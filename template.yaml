@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Serverless sample app
+
+Parameters:
+  DdApiKey:
+    Type: String
+    NoEcho: true
+
+Resources:
+  EntryFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: !GetAtt "LambdaFunctionRole.Arn"
+      Code:
+        ZipFile: |
+          import json, boto3, os
+          from datadog_lambda.tracing import get_dd_trace_context
+
+          def handler(event, context):
+            sns = boto3.client('sns')
+            sns.publish(
+              TopicArn=os.environ.get("SNS_TOPIC_ARN"),
+              Message='Message sent to SNS',
+              MessageAttributes = {
+                  '_datadog': {
+                      'DataType': 'String',
+                      'StringValue': json.dumps(get_dd_trace_context())
+                  },
+              })
+
+            return {
+                "body": "Sent message to SNS",
+                "statusCode": 200
+            }
+      Runtime: python3.9
+      Handler: datadog_lambda.handler.handler
+      Layers:
+        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:21
+        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python39:52
+      Environment:
+        Variables:
+          DD_LAMBDA_HANDLER: index.handler
+          DD_TRACE_ENABLED: true
+          DD_API_KEY: !Ref DdApiKey
+          SNS_TOPIC_ARN: !Ref SNSTopic
+          DD_CAPTURE_LAMBDA_PAYLOAD: true
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: "SampleTopic"
+  SQSQueue:
+    Type: AWS::SQS::Queue
+  SQSSubscription:
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      TopicArn: !Ref SNSTopic
+      Endpoint: !GetAtt "SQSQueue.Arn"
+      Protocol: sqs
+      RawMessageDelivery: 'true'
+  SNSToSQSPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues:
+        - !Ref SQSQueue
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+          - Sid: allow-sns-messages
+            Effect: Allow
+            Principal: '*'
+            Resource: !GetAtt SQSQueue.Arn
+            Action: SQS:SendMessage
+            Condition: 
+              ArnEquals:
+                aws:SourceArn: !Ref SNSTopic
+  SQSConsumerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: !GetAtt "LambdaFunctionRole.Arn"
+      Handler: "/opt/nodejs/node_modules/datadog-lambda-js/handler.handler"
+      Layers:
+        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:21
+        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Node12-x:73
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            event.Records.forEach(record => {
+              const { body } = record;
+              console.log(body);
+            });
+            return {
+              "body": "Successfully consumed SQS message",
+              "statusCode": 200
+            };
+          }
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          DD_LAMBDA_HANDLER: index.handler
+          DD_TRACE_ENABLED: true
+          DD_API_KEY: !Ref DdApiKey
+          DD_CAPTURE_LAMBDA_PAYLOAD: true
+  LambdaFunctionEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 10
+      Enabled: true
+      EventSourceArn: !GetAtt SQSQueue.Arn
+      FunctionName: !GetAtt SQSConsumerFunction.Arn
+  LambdaFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+            - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
+        - arn:aws:iam::aws:policy/AmazonSQSFullAccess
+      Path: /
