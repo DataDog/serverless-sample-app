@@ -21,13 +21,8 @@ Resources:
             sns = boto3.client('sns')
             sns.publish(
               TopicArn=os.environ.get("SNS_TOPIC_ARN"),
-              Message='Message sent to SNS',
-              MessageAttributes = {
-                  '_datadog': {
-                      'DataType': 'String',
-                      'StringValue': json.dumps(get_dd_trace_context())
-                  },
-              })
+              Message='Message sent to SNS'
+              )
 
             return {
                 "body": "Sent message to SNS",
