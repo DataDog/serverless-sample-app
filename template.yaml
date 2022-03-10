@@ -39,10 +39,9 @@ Resources:
           DD_API_KEY: !Ref DdApiKey
           SNS_TOPIC_ARN: !Ref SNSTopic
           DD_CAPTURE_LAMBDA_PAYLOAD: true
+          DD_LOG_LEVEL: DEBUG
   SNSTopic:
     Type: AWS::SNS::Topic
-    Properties:
-      TopicName: "SampleTopic"
   SQSQueue:
     Type: AWS::SQS::Queue
   SQSSubscription:
@@ -51,7 +50,6 @@ Resources:
       TopicArn: !Ref SNSTopic
       Endpoint: !GetAtt "SQSQueue.Arn"
       Protocol: sqs
-      RawMessageDelivery: 'true'
   SNSToSQSPolicy:
     Type: AWS::SQS::QueuePolicy
     Properties: 
@@ -92,6 +90,7 @@ Resources:
           DD_TRACE_ENABLED: true
           DD_API_KEY: !Ref DdApiKey
           DD_CAPTURE_LAMBDA_PAYLOAD: true
+          DD_LOG_LEVEL: DEBUG
   LambdaFunctionEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
