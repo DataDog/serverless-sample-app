@@ -15,7 +15,6 @@ Resources:
       Code:
         ZipFile: |
           import json, boto3, os
-          from datadog_lambda.tracing import get_dd_trace_context
 
           def handler(event, context):
             sns = boto3.client('sns')
@@ -80,10 +79,7 @@ Resources:
       Code:
         ZipFile: |
           exports.handler = async (event) => {
-            event.Records.forEach(record => {
-              const { body } = record;
-              console.log(body);
-            });
+            console.log(event)
             return {
               "body": "Successfully consumed SQS message",
               "statusCode": 200
@@ -99,7 +95,6 @@ Resources:
   LambdaFunctionEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      BatchSize: 10
       Enabled: true
       EventSourceArn: !GetAtt SQSQueue.Arn
       FunctionName: !GetAtt SQSConsumerFunction.Arn
