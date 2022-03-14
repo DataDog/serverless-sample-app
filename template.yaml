@@ -2,6 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   Datadog Serverless Sample App
 
+Mappings:
+  Constants:
+    DatadogServerlessSampleApp:
+      Version: 1.0.0
 Parameters:
   DdApiKey:
     Type: String
@@ -23,7 +27,7 @@ Resources:
     Type: AWS::ApiGateway::Method
     Properties:
       RestApiId: !Ref ApiGateway
-      ResourceId: !GetAtt "ApiGateway.RootResourceId"
+      ResourceId: !GetAtt ApiGateway.RootResourceId
       HttpMethod: GET
       AuthorizationType: NONE
       Integration:
@@ -49,7 +53,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: datadog-sample-entry-function
-      Role: !GetAtt "LambdaFunctionRole.Arn"
+      Role: !GetAtt LambdaFunctionRole.Arn
       Code:
         ZipFile: |
           INJECT_ENTRY_FUNCTION_CODE
@@ -70,8 +74,7 @@ Resources:
           DD_SERVICE: datadog-serverless-sample-app
           DD_ENV: dev
           DD_VERSION: 1.0.0
-          DD_SITE:
-            Ref: DdSite
+          DD_SITE: !Ref DdSite
   SNSTopic:
     Type: AWS::SNS::Topic
     Properties:
@@ -84,7 +87,7 @@ Resources:
     Type: 'AWS::SNS::Subscription'
     Properties:
       TopicArn: !Ref SNSTopic
-      Endpoint: !GetAtt "SQSQueue.Arn"
+      Endpoint: !GetAtt SQSQueue.Arn
       Protocol: sqs
   SNSToSQSPolicy:
     Type: AWS::SQS::QueuePolicy
@@ -106,7 +109,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: datadog-sample-sqs-consumer-function
-      Role: !GetAtt "LambdaFunctionRole.Arn"
+      Role: !GetAtt LambdaFunctionRole.Arn
       Handler: "/opt/nodejs/node_modules/datadog-lambda-js/handler.handler"
       MemorySize: 512
       Layers:
@@ -126,8 +129,7 @@ Resources:
           DD_SERVICE: datadog-serverless-sample-app
           DD_ENV: dev
           DD_VERSION: 1.0.0
-          DD_SITE:
-            Ref: DdSite
+          DD_SITE: !Ref DdSite
   LambdaFunctionEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
@@ -142,16 +144,14 @@ Resources:
           - Action:
             - sts:AssumeRole
             Effect: Allow
-            Principal:
-              Service:
-              - lambda.amazonaws.com
+            Resource:
+              - !Ref SNSTopic
+              - !GetAtt SQSQueue.Arn
         Version: 2012-10-17
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSLambdaExecute
         - arn:aws:iam::aws:policy/AmazonSNSFullAccess
         - arn:aws:iam::aws:policy/AmazonSQSFullAccess
-      Path: /
-
 Outputs:
   ApiGatewayInvokeURL:
     Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/datadog-sample-app-stage
