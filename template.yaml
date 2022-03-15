@@ -1,34 +1,65 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: >
-  Serverless sample app
+  Datadog Serverless Sample App
 
+Mappings:
+  Constants:
+    DatadogServerlessSampleApp:
+      Version: 0.1.0
 Parameters:
   DdApiKey:
     Type: String
+    Description: The Datadog API key, which can be found from the APIs page (/account/settings#api).
     NoEcho: true
+  DdSite:
+    Type: String
+    Default: datadoghq.com
+    Description: Define your Datadog Site to send data to. Possible values are `datadoghq.com`, `datadoghq.eu`, `us3.datadoghq.com`, `us5.datadoghq.com` and `ddog-gov.com`.
+    AllowedPattern: .+
+    ConstraintDescription: DdSite is required
 
 Resources:
+  ApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: datadog-sample-api-gw
+  ApiEntryMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResourceId: !GetAtt ApiGateway.RootResourceId
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn: !GetAtt EntryFunction.Arn
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ApiEntryMethod
+    Properties:
+      RestApiId: !Ref ApiGateway
+      StageName: datadog-sample-app-stage
+  ApiGatewayLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt EntryFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
   EntryFunction:
     Type: AWS::Lambda::Function
     Properties:
-      Role: !GetAtt "LambdaFunctionRole.Arn"
+      FunctionName: datadog-sample-entry-function
+      Role: !GetAtt LambdaFunctionRole.Arn
       Code:
         ZipFile: |
-          import json, boto3, os
-
-          def handler(event, context):
-            sns = boto3.client('sns')
-            sns.publish(
-              TopicArn=os.environ.get("SNS_TOPIC_ARN"),
-              Message='Message sent to SNS'
-              )
-
-            return {
-                "body": "Sent message to SNS",
-                "statusCode": 200
-            }
+          INJECT_ENTRY_FUNCTION_CODE_PLACEHOLDER
       Runtime: python3.9
       Handler: datadog_lambda.handler.handler
+      MemorySize: 512
       Layers:
         - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:21
         - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python39:52
@@ -40,15 +71,23 @@ Resources:
           SNS_TOPIC_ARN: !Ref SNSTopic
           DD_CAPTURE_LAMBDA_PAYLOAD: true
           DD_LOG_LEVEL: DEBUG
+          DD_SERVICE: datadog-serverless-sample-app
+          DD_ENV: dev
+          DD_VERSION: 1.0.0
+          DD_SITE: !Ref DdSite
   SNSTopic:
     Type: AWS::SNS::Topic
+    Properties:
+      TopicName: datadog-sample-sns-topic
   SQSQueue:
     Type: AWS::SQS::Queue
+    Properties:
+      QueueName: datadog-sample-sqs-queue
   SQSSubscription:
-    Type: 'AWS::SNS::Subscription'
+    Type: "AWS::SNS::Subscription"
     Properties:
       TopicArn: !Ref SNSTopic
-      Endpoint: !GetAtt "SQSQueue.Arn"
+      Endpoint: !GetAtt SQSQueue.Arn
       Protocol: sqs
   SNSToSQSPolicy:
     Type: AWS::SQS::QueuePolicy
@@ -56,11 +95,11 @@ Resources:
       Queues:
         - !Ref SQSQueue
       PolicyDocument: 
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Sid: allow-sns-messages
             Effect: Allow
-            Principal: '*'
+            Principal: "*"
             Resource: !GetAtt SQSQueue.Arn
             Action: SQS:SendMessage
             Condition: 
@@ -69,20 +108,16 @@ Resources:
   SQSConsumerFunction:
     Type: AWS::Lambda::Function
     Properties:
-      Role: !GetAtt "LambdaFunctionRole.Arn"
+      FunctionName: datadog-sample-sqs-consumer-function
+      Role: !GetAtt LambdaFunctionRole.Arn
       Handler: "/opt/nodejs/node_modules/datadog-lambda-js/handler.handler"
+      MemorySize: 512
       Layers:
         - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:21
         - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Node12-x:73
       Code:
         ZipFile: |
-          exports.handler = async (event) => {
-            console.log(event)
-            return {
-              "body": "Successfully consumed SQS message",
-              "statusCode": 200
-            };
-          }
+          INJECT_SQS_CONSUMER_CODE_PLACEHOLDER
       Runtime: nodejs12.x
       Environment:
         Variables:
@@ -91,6 +126,10 @@ Resources:
           DD_API_KEY: !Ref DdApiKey
           DD_CAPTURE_LAMBDA_PAYLOAD: true
           DD_LOG_LEVEL: DEBUG
+          DD_SERVICE: datadog-serverless-sample-app
+          DD_ENV: dev
+          DD_VERSION: 1.0.0
+          DD_SITE: !Ref DdSite
   LambdaFunctionEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
@@ -101,6 +140,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
+        Version: "2012-10-17"
         Statement:
           - Action:
             - sts:AssumeRole
@@ -108,9 +148,24 @@ Resources:
             Principal:
               Service:
               - lambda.amazonaws.com
-        Version: 2012-10-17
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSLambdaExecute
-        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
-        - arn:aws:iam::aws:policy/AmazonSQSFullAccess
-      Path: /
+      Policies:
+        - PolicyName: DDServerlessSampleAppLambdaPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - sns:Publish
+                Resource:
+                  - !GetAtt SQSQueue.Arn
+                  - !Ref SNSTopic
+Outputs:
+  ApiGatewayInvokeURL:
+    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/datadog-sample-app-stage
+  EntryFunctionName:
+    Value: !Ref EntryFunction
