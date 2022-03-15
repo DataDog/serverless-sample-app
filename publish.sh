@@ -52,8 +52,8 @@ echo "Injecting lambda code into CloudFormation template"
 rm -rf dist
 mkdir dist
 
-awk -v STRING_TO_REPLACE="INJECT_ENTRY_FUNCTION_CODE" -f inject_inline_code.awk handler.py template.yaml > dist/template.yaml
-awk -v STRING_TO_REPLACE="INJECT_SQS_CONSUMER_CODE" -f inject_inline_code.awk handler.js dist/template.yaml > tmp && mv tmp dist/template.yaml
+awk -v STRING_TO_REPLACE="INJECT_ENTRY_FUNCTION_CODE_PLACEHOLDER" -f inject_inline_code.awk handler.py template.yaml > dist/template.yaml
+awk -v STRING_TO_REPLACE="INJECT_SQS_CONSUMER_CODE_PLACEHOLDER" -f inject_inline_code.awk handler.js dist/template.yaml > tmp && mv tmp dist/template.yaml
 
 # Validate the template
 echo "Validating template.yaml..."

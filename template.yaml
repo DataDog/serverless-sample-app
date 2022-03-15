@@ -56,7 +56,7 @@ Resources:
       Role: !GetAtt LambdaFunctionRole.Arn
       Code:
         ZipFile: |
-          INJECT_ENTRY_FUNCTION_CODE
+          INJECT_ENTRY_FUNCTION_CODE_PLACEHOLDER
       Runtime: python3.9
       Handler: datadog_lambda.handler.handler
       MemorySize: 512
@@ -117,7 +117,7 @@ Resources:
         - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Node12-x:73
       Code:
         ZipFile: |
-          INJECT_SQS_CONSUMER_CODE
+          INJECT_SQS_CONSUMER_CODE_PLACEHOLDER
       Runtime: nodejs12.x
       Environment:
         Variables:
