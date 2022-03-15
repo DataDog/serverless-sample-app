@@ -62,7 +62,7 @@ echo "Uploading the CloudFormation Template"
 if [ "$ACCOUNT" = "prod" ]; then
     # Make sure we are on the master branch
     BRANCH=$(git rev-parse --abbrev-ref HEAD)
-    if [ $BRANCH != "master" ]; then
+    if [ $BRANCH != "main" ]; then
         echo "ERROR: Not on the master branch, aborting."
         exit 1
     fi
