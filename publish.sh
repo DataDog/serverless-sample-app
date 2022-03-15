@@ -1,11 +1,9 @@
 #!/bin/bash
 
 # Usage: ./publish.sh <Desired Version> <Account [sandbox|prod]>
-# When publishing to sandbox, the template version number is NOT updated, and no github release is created!
+# When publishing to sandbox, the template version number is NOT updated and no github release is created!
 
 set -e
-
-cd "$(dirname "$0")"/..
 
 CURRENT_VERSION=$(grep -o 'Version: \d\+\.\d\+\.\d\+' template.yaml | cut -d' ' -f2)
 
@@ -54,26 +52,31 @@ echo "Injecting lambda code into CloudFormation template"
 rm -rf dist
 mkdir dist
 
-awk -v STRING_TO_REPLACE="INJECT_ENTRY_FUNCTION_CODE" -f scripts/inject_inline_code.awk handler.py template.yaml > dist/template.yaml
-awk -v STRING_TO_REPLACE="INJECT_SQS_CONSUMER_CODE" -f scripts/inject_inline_code.awk handler.js dist/template.yaml > tmp && mv tmp dist/template.yaml
+awk -v STRING_TO_REPLACE="INJECT_ENTRY_FUNCTION_CODE" -f inject_inline_code.awk handler.py template.yaml > dist/template.yaml
+awk -v STRING_TO_REPLACE="INJECT_SQS_CONSUMER_CODE" -f inject_inline_code.awk handler.js dist/template.yaml > tmp && mv tmp dist/template.yaml
 
 # Validate the template
 echo "Validating template.yaml..."
 aws-login aws cloudformation validate-template --template-body file://dist/template.yaml
-
 echo "Uploading the CloudFormation Template"
-if [ "$ACCOUNT" = "prod" ] ; then
-    exit 1
-     # Confirm to proceed
+if [ "$ACCOUNT" = "prod" ]; then
+    # Make sure we are on the master branch
+    BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    if [ $BRANCH != "master" ]; then
+        echo "ERROR: Not on the master branch, aborting."
+        exit 1
+    fi
+
+    # Confirm to proceed
     echo
-    read -p "About to bump the version from ${CURRENT_VERSION} to ${SAMPLE_APP_VERSION}, create a release of aws-dd-forwarder-${FORWARDER_VERSION} on GitHub, upload the template.yaml to s3://${BUCKET}/aws/sample-app/${SAMPLE_APP_VERSION}.yaml. Continue (y/n)?" CONT
+    read -p "About to bump the version from ${CURRENT_VERSION} to ${SAMPLE_APP_VERSION}, create a release of v${SAMPLE_APP_VERSION} on GitHub, upload the template.yaml to s3://${BUCKET}/aws/sample-app/${SAMPLE_APP_VERSION}.yaml. Continue (y/n)?" CONT
     if [ "$CONT" != "y" ]; then
         echo "Exiting..."
         exit 1
     fi
 
     # Get the latest code
-    git pull origin master
+    git pull origin main
 
     # Bump version number in settings.py and template.yml
     echo "Bumping the version number to ${SAMPLE_APP_VERSION}..."
@@ -88,27 +91,21 @@ if [ "$ACCOUNT" = "prod" ] ; then
 
     # Create a GitHub release
     echo
-    echo "datadog-serverless-sample-app-${SAMPLE_APP_VERSION} to GitHub..."
+    echo "Releasing v${SAMPLE_APP_VERSION} to GitHub..."
     go get github.com/github/hub
 
     # "-a $BUNDLE_PATH" to include assets in github release
-    hub release create -m "datadog-serverless-sample-app-${SAMPLE_APP_VERSION}" datadog-serverless-sample-app-${SAMPLE_APP_VERSION}
+    hub release create -m "v${SAMPLE_APP_VERSION}" v${SAMPLE_APP_VERSION}
 
-    # Make sure we are on the master branch
-    BRANCH=$(git rev-parse --abbrev-ref HEAD)
-    if [ $BRANCH != "master" ]; then
-        echo "ERROR: Not on the master branch, aborting."
-        exit 1
-    fi
-    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/sample-app/${SAMPLE_APP_VERSION}.yaml \
+    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/serverless-sample-app/${SAMPLE_APP_VERSION}.yaml \
         --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
-    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/sample-app/latest.yaml \
+    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/serverless-sample-app/latest.yaml \
         --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
-    TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/sample-app/latest.yaml"
+    TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/serverless-sample-app/latest.yaml"
 else
-    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/sample-app-staging/${SAMPLE_APP_VERSION}.yaml
-    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/sample-app-staging/latest.yaml
-    TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/sample-app-staging/latest.yaml"
+    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/serverless-sample-app-staging/${SAMPLE_APP_VERSION}.yaml
+    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/serverless-sample-app-staging/latest.yaml
+    TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/serverless-sample-app-staging/latest.yaml"
     echo "CURRENT_VERSION: $CURRENT_VERSION"
     echo "SAMPLE_APP_VERSION: $SAMPLE_APP_VERSION"
     echo "ACCOUNT: $ACCOUNT"

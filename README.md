@@ -1,6 +1,6 @@
 # Serverless Sample App
 
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=datadog-serverless-sample-app&templateURL=https://datadog-cloudformation-template-sandbox.s3.amazonaws.com/aws/sample-app-staging/latest.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=datadog-serverless-sample-app&templateURL=https://datadog-cloudformation-template-sandbox.s3.amazonaws.com/aws/serverless-sample-app-staging/latest.yaml)
 
 Steps for trying out Datadog:
 
