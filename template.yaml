@@ -140,20 +140,32 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
+        Version: "2012-10-17"
         Statement:
           - Action:
             - sts:AssumeRole
             Effect: Allow
-            Resource:
-              - !Ref SNSTopic
-              - !GetAtt SQSQueue.Arn
-        Version: "2012-10-17"
+            Principal:
+              Service:
+              - lambda.amazonaws.com
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSLambdaExecute
-        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
-        - arn:aws:iam::aws:policy/AmazonSQSFullAccess
+      Policies:
+        - PolicyName: DDServerlessSampleAppLambdaPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - sns:Publish
+                Resource:
+                  - !GetAtt SQSQueue.Arn
+                  - !Ref SNSTopic
 Outputs:
   ApiGatewayInvokeURL:
     Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/datadog-sample-app-stage
-  StackName:
-    Value: !Ref AWS::StackName
+  EntryFunctionName:
+    Value: !Ref EntryFunction
