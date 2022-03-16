@@ -98,9 +98,6 @@ if [ "$ACCOUNT" = "prod" ]; then
 
     git push origin v${SAMPLE_APP_VERSION}
 
-    # Zipping up finished template to include in github release
-    zip -q dist/template dist/template.yaml
-
     aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/serverless-sample-app/${SAMPLE_APP_VERSION}.yaml \
         --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
     aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/serverless-sample-app/latest.yaml \
