@@ -92,15 +92,17 @@ if [ "$ACCOUNT" = "prod" ]; then
     echo "Committing version number change..."
     git add template.yaml
     git commit -m "Bump version from ${CURRENT_VERSION} to ${SAMPLE_APP_VERSION}"
-    git push origin master
+    git push origin main
+
+    # Zipping up finished template to include in github release
+    zip -q dist/template dist/template.yaml
 
     # Create a GitHub release
     echo
     echo "Releasing v${SAMPLE_APP_VERSION} to GitHub..."
     go get github.com/github/hub
 
-    # "-a $BUNDLE_PATH" to include assets in github release
-    hub release create -m "v${SAMPLE_APP_VERSION}" v${SAMPLE_APP_VERSION}
+    hub release create -a dist/template.zip -m "v${SAMPLE_APP_VERSION}" v${SAMPLE_APP_VERSION}
 
     aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/serverless-sample-app/${SAMPLE_APP_VERSION}.yaml \
         --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
