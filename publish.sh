@@ -94,15 +94,12 @@ if [ "$ACCOUNT" = "prod" ]; then
     git commit -m "Bump version from ${CURRENT_VERSION} to ${SAMPLE_APP_VERSION}"
     git push origin main
 
+    git tag v${SAMPLE_APP_VERSION}
+
+    git push origin v${SAMPLE_APP_VERSION}
+
     # Zipping up finished template to include in github release
     zip -q dist/template dist/template.yaml
-
-    # Create a GitHub release
-    echo
-    echo "Releasing v${SAMPLE_APP_VERSION} to GitHub..."
-    go get github.com/github/hub
-
-    hub release create -a dist/template.zip -m "v${SAMPLE_APP_VERSION}" v${SAMPLE_APP_VERSION}
 
     aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/serverless-sample-app/${SAMPLE_APP_VERSION}.yaml \
         --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
@@ -128,5 +125,5 @@ echo
 echo "Serverless Sample App release process complete!"
 
 if [ "$ACCOUNT" = "prod" ] ; then
-    echo "Don't forget to add release notes in GitHub!"
+    echo "Don't forget to create the release with the pushed tag in GitHub!"
 fi
