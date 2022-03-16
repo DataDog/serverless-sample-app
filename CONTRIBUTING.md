@@ -2,7 +2,7 @@
 
 We love pull requests. Here's a quick guide.
 
-_Please refer to the README.md for information about the structure of this repo_
+_Please refer to the [README.md](README.md) for information about the structure of this repo_
 
 1. Fork, clone and branch off `main`:
     ```bash
@@ -19,5 +19,5 @@ _Please refer to the README.md for information about the structure of this repo_
     This will create a `dist/template.yaml` with the lambda code injected within that is ready to use.
 
 1. Open the AWS CloudFormation console: https://console.aws.amazon.com/cloudformation
-1. Click create stack, specifying and uploading the `dist/template.yaml` as the template and including your Datadog API key and site in the parameters when prompted.
+1. Click create stack, specifying and uploading the `dist/template.yaml` as the template and including your Datadog API key and site as parameters when prompted.
 1. Once the stack is deployed, test your changes by invoking the entry lambda function and checking the Datadog site (see [README.md](README.md) for more info)
