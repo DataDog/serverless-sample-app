@@ -11,6 +11,10 @@ Mappings:
   Constants:
     DatadogServerlessSampleApp:
       Version: 0.1.0
+Conditions:
+  IsUS1: !Equals [datadoghq.com, !Ref DdSite]
+  IsEU1: !Equals [datadoghq.eu, !Ref DdSite]
+  IsUSFED: !Equals [ddog-gov.com, !Ref DdSite]
 Parameters:
   DdApiKey:
     Type: String
@@ -174,3 +178,16 @@ Outputs:
     Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/datadog-sample-app-stage
   EntryFunctionName:
     Value: !Ref EntryFunction
+  DatadogFunctionLink:
+    Value: !Sub
+      - https://${SiteName}/functions?cloud=aws&text_search=datadog-serverless-sample-app
+      - SiteName: !If 
+          - IsUS1
+          - app.datadoghq.com
+          - !If
+            - IsEU1
+            - app.datadoghq.eu
+            - !If 
+              - IsUSFED
+              - app.ddog-gov.com
+              - !Ref DdSite
