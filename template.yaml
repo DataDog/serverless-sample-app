@@ -18,7 +18,7 @@ Conditions:
 Parameters:
   DdApiKey:
     Type: String
-    Description: The Datadog API key, which can be found from the APIs page (/account/settings#api).
+    Description: The Datadog API key, which can be found from the APIs page (/organization-settings/api-keys).
     NoEcho: true
   DdSite:
     Type: String
