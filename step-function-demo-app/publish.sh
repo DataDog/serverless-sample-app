@@ -117,7 +117,7 @@ fi
 echo "Done uploading the CloudFormation template!"
 echo
 echo "Here is the CloudFormation quick launch URL:"
-echo "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=datadog-serverless-sample-app&templateURL=${TEMPLATE_URL}"
+echo "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=datadog-step-functions-tracing-demo-app&templateURL=${TEMPLATE_URL}"
 echo
 echo "Serverless Sample App release process complete!"
 
