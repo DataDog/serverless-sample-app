@@ -1,0 +1,54 @@
+{
+  "Comment": "This is Datadog demo state machine.",
+  "StartAt": "DynamoDB Create Item If Not Exist",
+  "States": {
+    "DynamoDB Create Item If Not Exist": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:updateItem",
+      "Parameters": {
+        "TableName": "DatadogDemoStepFunctionsTracingTable",
+        "Key": {
+          "pk": {
+            "S": "triggerCounts"
+          }
+        },
+        "UpdateExpression": "SET countValue = if_not_exists (countValue, :defaultValue)",
+        "ExpressionAttributeValues": {
+          ":defaultValue": {
+            "N": "0"
+          }
+        }
+      },
+      "Next": "DynamoDB Increment Count"
+    },
+    "DynamoDB Increment Count": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:updateItem",
+      "Parameters": {
+        "TableName": "DatadogDemoStepFunctionsTracingTable",
+        "Key": {
+          "pk": {
+            "S": "triggerCounts"
+          }
+        },
+        "UpdateExpression": "SET countValue = countValue + :incr",
+        "ExpressionAttributeValues": {
+          ":incr": {
+            "N": "1"
+          }
+        }
+      },
+      "Next": "Lambda Read From DynamoDB"
+    },
+    "Lambda Read From DynamoDB": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$.Payload",
+      "Parameters": {
+        "Payload.$": "States.JsonMerge($$, $, false)",
+        "FunctionName": "${lambdaArn}"
+      },
+      "End": true
+    }
+  }
+}
