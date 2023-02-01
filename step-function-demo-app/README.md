@@ -12,16 +12,15 @@ For more information on Datadog Serverless, check out our [Serverless Info](http
 1. Invoke the demo state machine 4-5 times by visiting the `datadog-demo-state-machine` on AWS Step Functions console.
 1. Visit Datadog app, open APM / Traces page, and search for `service:datadog-demo-state-machine`.
 
-## Sample App Architecture
+## State Machine
+### Definition
 
-![State Machine Definition](assets/state-machine.png)
+<img src="./assets/state-machine.png" width="50%" height="50%" alt="state-machine">
 
-## Sample Trace Map
-- The trace map of your resources you can expect to see in Datadog.
+## Example Trace on Datadog APM
 
 ![Example Trace](assets/trace-example.png)
 
 ## Repository Structure:
 
 This demo app is organized into four main files: `template.yaml`, `handler.js`, and `state_machine_definition.yaml`. The latter two files are injected into the template by `inject_inline_code.awk` script, which is called by `publish.sh`.
-
