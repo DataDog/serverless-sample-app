@@ -3,10 +3,10 @@
 # Unless explicitly stated otherwise all files in this repository are licensed
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
-# Copyright 2022 Datadog, Inc.
+# Copyright 2023 Datadog, Inc.
 
 # Usage: ./publish.sh <Desired Version> <Account [serverless-sandbox|prod]>
-# When publishing to sandbox, the template version number is NOT updated and no github release is created!
+# When publishing to serverless-sandbox, the template version number is NOT updated and no github release is created!
 
 set -e
 
@@ -57,8 +57,8 @@ echo "Injecting lambda code into CloudFormation template"
 rm -rf dist
 mkdir dist
 
-awk -v STRING_TO_REPLACE="INJECT_ENTRY_FUNCTION_CODE_PLACEHOLDER" -f inject_inline_code.awk handler.py template.yaml > dist/template.yaml
-awk -v STRING_TO_REPLACE="INJECT_SQS_CONSUMER_CODE_PLACEHOLDER" -f inject_inline_code.awk handler.js dist/template.yaml > tmp && mv tmp dist/template.yaml
+awk -v STRING_TO_REPLACE="INJECT_ENTRY_FUNCTION_CODE_PLACEHOLDER" -f inject_inline_code.awk handler.js template.yaml > dist/template.yaml
+awk -v STRING_TO_REPLACE="INJECT_STATE_MACHINE_DEFINITION_PLACEHOLDER" -f inject_inline_code.awk state_machine_defination.yaml dist/template.yaml > tmp && mv tmp dist/template.yaml
 
 # Validate the template
 echo "Validating template.yaml..."
@@ -74,7 +74,7 @@ if [ "$ACCOUNT" = "prod" ]; then
 
     # Confirm to proceed
     echo
-    read -p "About to bump the version from ${CURRENT_VERSION} to ${SAMPLE_APP_VERSION}, create a release of v${SAMPLE_APP_VERSION} on GitHub, upload the template.yaml to s3://${BUCKET}/aws/sample-app/${SAMPLE_APP_VERSION}.yaml. Continue (y/n)?" CONT
+    read -p "About to bump the version from ${CURRENT_VERSION} to ${SAMPLE_APP_VERSION}, create a release of v${SAMPLE_APP_VERSION} on GitHub, upload the template.yaml to s3://${BUCKET}/aws/step-functions-tracing-demo-app/${SAMPLE_APP_VERSION}.yaml. Continue (y/n)?" CONT
     if [ "$CONT" != "y" ]; then
         echo "Exiting..."
         exit 1
@@ -98,15 +98,15 @@ if [ "$ACCOUNT" = "prod" ]; then
 
     git push origin v${SAMPLE_APP_VERSION}
 
-    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/serverless-sample-app/${SAMPLE_APP_VERSION}.yaml \
+    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/step-functions-tracing-demo-app/${SAMPLE_APP_VERSION}.yaml \
         --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
-    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/serverless-sample-app/latest.yaml \
+    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/step-functions-tracing-demo-app/latest.yaml \
         --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
-    TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/serverless-sample-app/latest.yaml"
+    TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/step-functions-tracing-demo-app/latest.yaml"
 else
-    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/serverless-sample-app-staging/${SAMPLE_APP_VERSION}.yaml
-    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/serverless-sample-app-staging/latest.yaml
-    TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/serverless-sample-app-staging/latest.yaml"
+    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/step-functions-tracing-demo-app-dev/${SAMPLE_APP_VERSION}.yaml
+    aws-login aws s3 cp dist/template.yaml s3://${BUCKET}/aws/step-functions-tracing-demo-app-dev/latest.yaml
+    TEMPLATE_URL="https://${BUCKET}.s3.amazonaws.com/aws/step-functions-tracing-demo-app-dev/latest.yaml"
     echo "CURRENT_VERSION: $CURRENT_VERSION"
     echo "SAMPLE_APP_VERSION: $SAMPLE_APP_VERSION"
     echo "ACCOUNT: $ACCOUNT"
@@ -117,7 +117,7 @@ fi
 echo "Done uploading the CloudFormation template!"
 echo
 echo "Here is the CloudFormation quick launch URL:"
-echo "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=datadog-serverless-sample-app&templateURL=${TEMPLATE_URL}"
+echo "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=datadog-step-functions-tracing-demo-app&templateURL=${TEMPLATE_URL}"
 echo
 echo "Serverless Sample App release process complete!"
 

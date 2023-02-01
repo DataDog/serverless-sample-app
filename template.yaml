@@ -70,8 +70,8 @@ Resources:
       Handler: datadog_lambda.handler.handler
       MemorySize: 512
       Layers:
-        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:21
-        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python39:52
+        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:36
+        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python39:67
       Environment:
         Variables:
           DD_LAMBDA_HANDLER: index.handler
