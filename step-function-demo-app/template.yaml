@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: "2010-09-09"
 
 Description: >
   Datadog Step Functions Tracing Demo App
@@ -6,7 +6,7 @@ Description: >
 Mappings:
   Constants:
     DatadogStepFunctionsTracingDemoApp:
-      Version: 0.1.0
+      Version: 0.1.1
 
 Parameters:
   DdApiKey:
