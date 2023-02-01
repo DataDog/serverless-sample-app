@@ -1,4 +1,13 @@
 AWSTemplateFormatVersion: 2010-09-09
+
+Description: >
+  Datadog Step Functions Tracing Demo App
+
+Mappings:
+  Constants:
+    DatadogServerlessSampleApp:
+      Version: 0.0.1
+
 Parameters:
   DdApiKey:
     Type: String
