@@ -2,7 +2,7 @@
 
 [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=datadog-serverless-step-functions-tracing-demo-app&templateURL=https://datadog-cloudformation-template.s3.amazonaws.com/aws/step-functions-tracing-demo-app/latest.yaml)
 
-For more information on Datadog Serverless, check out our [Serverless Info](https://docs.datadoghq.com/serverless) page!
+For more information on Datadog Serverless, check out our [Serverless Info](https://docs.datadoghq.com/serverless) page! At the time of writing, only NodeJS is supported for trace linking for Lambda generated spans and Step Functions generated spans. 
 
 ## Try out Datadog:
 
