@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: 0.0.1-09-09
 Parameters:
   DdApiKey:
     Type: String
