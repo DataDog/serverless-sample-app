@@ -65,10 +65,10 @@ echo "Validating template.yaml..."
 aws-login aws cloudformation validate-template --template-body file://dist/template.yaml
 echo "Uploading the CloudFormation Template"
 if [ "$ACCOUNT" = "prod" ]; then
-    # Make sure we are on the master branch
+    # Make sure we are on the main branch
     BRANCH=$(git rev-parse --abbrev-ref HEAD)
     if [ $BRANCH != "main" ]; then
-        echo "ERROR: Not on the master branch, aborting."
+        echo "ERROR: Not on the main branch, aborting."
         exit 1
     fi
 
@@ -83,7 +83,7 @@ if [ "$ACCOUNT" = "prod" ]; then
     # Get the latest code
     git pull origin main
 
-    # Bump version number in settings.py and template.yml
+    # Bump version number in template.yml
     echo "Bumping the version number to ${SAMPLE_APP_VERSION}..."
     perl -pi -e "s/Version: [0-9\.]+/Version: ${SAMPLE_APP_VERSION}/g" template.yaml
     perl -pi -e "s/Version: [0-9\.]+/Version: ${SAMPLE_APP_VERSION}/g" dist/template.yaml
