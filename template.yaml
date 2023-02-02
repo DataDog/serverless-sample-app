@@ -7,6 +7,9 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: >
   Datadog Serverless Sample App
 
+# All version values except L16 are double-quoted on purpose since publish.sh is searching for
+# version string and replace the value with new version. All other version values should be
+# double-quoted.
 Mappings:
   Constants:
     DatadogServerlessSampleApp:
