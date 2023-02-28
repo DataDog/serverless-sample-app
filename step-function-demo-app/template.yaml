@@ -117,10 +117,10 @@ Resources:
           Key: "env"
           Value: "dev"
         -
-          Key: "dd_service"
-          Value: "demo-dd-service"
+          Key: "service"
+          Value: "datadog-demo-service"
         -
-          Key: "dd_version"
+          Key: "version"
           Value: "1"
       DefinitionString: !Sub
         - |-
