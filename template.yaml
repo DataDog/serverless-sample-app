@@ -73,8 +73,8 @@ Resources:
       Handler: datadog_lambda.handler.handler
       MemorySize: 512
       Layers:
-        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:36
-        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python39:67
+        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:44
+        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Python39:73
       Environment:
         Variables:
           DD_LAMBDA_HANDLER: index.handler
@@ -125,12 +125,12 @@ Resources:
       Handler: "/opt/nodejs/node_modules/datadog-lambda-js/handler.handler"
       MemorySize: 512
       Layers:
-        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:21
-        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Node12-x:73
+        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:44
+        - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Node18-x:91
       Code:
         ZipFile: |
           INJECT_SQS_CONSUMER_CODE_PLACEHOLDER
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       Environment:
         Variables:
           DD_LAMBDA_HANDLER: index.handler
