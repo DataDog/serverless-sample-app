@@ -13,7 +13,7 @@ Description: >
 Mappings:
   Constants:
     DatadogServerlessSampleApp:
-      Version: 0.1.0
+      Version: 0.2.0
 Conditions:
   IsUS1: !Equals [datadoghq.com, !Ref DdSite]
   IsEU1: !Equals [datadoghq.eu, !Ref DdSite]
