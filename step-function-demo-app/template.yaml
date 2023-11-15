@@ -123,6 +123,9 @@ Resources:
         -
           Key: "version"
           Value: "1"
+        -
+          Key: "DD_TRACE_ENABLED"
+          Value: "true"
       DefinitionString: !Sub
         - |-
           INJECT_STATE_MACHINE_DEFINITION_PLACEHOLDER
