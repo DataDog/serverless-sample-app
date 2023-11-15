@@ -55,6 +55,7 @@ Resources:
       Runtime: nodejs16.x
       Role: !GetAtt LambdaExecutionRole.Arn
       Handler: /opt/nodejs/node_modules/datadog-lambda-js/handler.handler
+      Timeout: 10
       Layers:
         - !Sub 'arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:36'
         - !Sub 'arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Node16-x:86'
