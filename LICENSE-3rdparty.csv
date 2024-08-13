@@ -1,2 +1,27 @@
 Component,Origin,License,Copyright
-boto3,https://github.com/boto/boto3,Apache-2.0,Amazon Web Services
+aws-sdk-js-v3,https://github.com/aws/aws-sdk-js-v3,Apache-2.0,Amazon Web Services
+@types/aws-lambda,https://github.com/DefinitelyTyped/DefinitelyTyped,MIT,
+@types/jest,https://github.com/DefinitelyTyped/DefinitelyTyped,MIT,
+@types/node,https://github.com/DefinitelyTyped/DefinitelyTyped,MIT,
+@types/uuid,https://github.com/DefinitelyTyped/DefinitelyTyped,MIT,
+aws-cdk,https://github.com/aws/aws-cdk,Apache-2.0,Amazon Web Services
+aws-cdk-lib,https://github.com/aws/aws-cdk,Apache-2.0,Amazon Web Services
+axios,https://github.com/axios/axios,MIT,
+constructs,https://github.com/aws/constructs,Apache-2.0,Amazon Web Services
+datadog-cdk-constructs-v2,https://github.com/DataDog/datadog-cdk-constructs,Apache-2.0,Datadog
+datadog-lambda-js,https://github.com/DataDog/datadog-lambda-js,Apache-2.0,Datadog
+dd-trace,https://github.com/DataDog/dd-trace-js,Apache-2.0,Datadog
+esbuild,https://github.com/evanw/esbuild,MIT,
+jest,https://github.com/jestjs/jest,MIT,
+moq.ts,https://github.com/dvabuzyarov/moq.ts,Apache-2.0,
+serverless,https://github.com/serverless/serverless,MIT,Serverless Inc
+serverless-esbuild,https://github.com/floydspace/serverless-esbuild,MIT,
+serverless-plugin-datadog,https://github.com/DataDog/serverless-plugin-datadog,Apache-2.0,Datadog
+serverless-step-functions,https://github.com/horike37/serverless-step-functions,MIT,
+source-map-support,https://github.com/evanw/node-source-map-support,MIT,
+ts-jest,https://github.com/kulshekhar/ts-jest,MIT,
+ts-node,https://github.com/TypeStrong/ts-node,MIT,
+typescript,https://github.com/Microsoft/TypeScript,Apache-2.0,Microsoft
+uuid,https://github.com/uuidjs/uuid,MIT,
+@aws-lambda-powertools/logger,https://github.com/aws-powertools/powertools-lambda-typescript,MIT-0,Amazon Web Services
+zod,https://github.com/colinhacks/zod,MIT,

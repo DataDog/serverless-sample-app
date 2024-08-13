@@ -1,0 +1,43 @@
+config:
+  target: "{{ $processEnvironment.API_ENDPOINT }}"
+  http:
+    timeout : 60
+  processor: "generator.js"
+  phases:
+    - duration: 30
+      arrivalRate: 1
+    - duration: 20
+      arrivalRate: 10
+    - duration: 10
+      arrivalRate: 5
+    - duration: 120
+      arrivalRate: 1
+
+scenarios:
+  - name: "Product end to end"
+    flow:
+      - function: "generateProduct"
+      - post:
+          url: "/product"
+          headers:
+            Content-Type: "application/json"
+          json:
+            name: "{{ Name }}"
+            price: "{{ Price }}"
+          capture:
+            - json: "$.data.productId"
+              as: Id
+      - get:
+          url: "/product/{{ Id }}"
+      - think: 3
+      - put:
+          url: "/product"
+          headers:
+            Content-Type: "application/json"
+          json:
+            id: "{{ Id }}"
+            name: "{{ Name }}"
+            price: "{{ UpdatedPrice }}"
+      - think: 1
+      - delete:
+          url: "/product/{{ Id }}"

@@ -1,0 +1,95 @@
+#
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2024 Datadog, Inc.
+#
+
+service: serverless-inventory-ordering-service
+frameworkVersion: "3"
+
+plugins:
+  - serverless-step-functions
+  - serverless-plugin-datadog
+  - serverless-esbuild
+
+custom:
+  serviceName: NodeInventoryOrderingService
+  datadog:
+    apiKeySecretArn: ${param:DD_SECRET_ARN}
+    site: datadoghq.eu
+    env: ${sls:stage}
+    service: ${self:custom.serviceName}
+    version: latest
+    # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
+    captureLambdaPayload: true
+    propagateUpstreamTrace: true
+  esbuild:
+    platform: "node"
+    target: "node20"
+    bundle: true
+    minify: true
+    exclude: 
+      - "opentracing"
+      - "dd-trace"
+      - "@datadog/native-metrics"
+      - "@datadog/pprof"
+      - '@datadog/native-appsec'
+      - '@datadog/native-iast-taint-tracking'
+      - '@datadog/native-iast-rewriter'
+      - 'graphql/language/visitor' 
+      - 'graphql/language/printer'
+      - 'graphql/utilities'
+      - '@aws-sdk/*'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  environment:
+    DD_EXTENSION_VERSION: "next"
+    ENV: ${sls:stage}
+    POWERTOOLS_SERVICE_NAME: ${self:custom.serviceName}
+    POWERTOOLS_LOG_LEVEL: 'INFO'
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource: ${param:DD_SECRET_ARN}
+        - Effect: Allow
+          Action:
+            - states:StartExecution
+          Resource:
+            - !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:inventoryOrderingWorkflow${sls:stage}
+
+functions:
+  startOrderingWorkflow:
+    handler: src/inventory-ordering-service/adapters/inventoryOrderingWorkflowTrigger.handler
+    environment:
+      DD_SERVICE_MAPPING: !Sub "lambda_sns:${ssm:/node/inventory/new-product-added-topic-name}"
+      ORDERING_SERVICE_WORKFLOW_ARN: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:inventoryOrderingWorkflow${sls:stage}
+    events:
+      - sns: ${ssm:/node/inventory/new-product-added-topic}
+
+stepFunctions:
+  stateMachines:
+    inventoryOrderingWorkflow:
+      name: inventoryOrderingWorkflow${sls:stage}
+      definition: ${file(lib/inventory-ordering-service/workflows/workflow.sample.asl.json)}
+      loggingConfig:
+        level: ALL
+        includeExecutionData: true
+        destinations:
+          - Fn::GetAtt: [InventoryOrderingServiceLogGroup, Arn]
+      tags:
+          DD_ENHANCED_METRICS: "true"
+          DD_TRACE_ENABLED: "true"
+
+resources:
+  Resources:
+    InventoryOrderingServiceLogGroup: 
+      Type: AWS::Logs::LogGroup
+      Properties: 
+        RetentionInDays: 1
+        LogGroupName: !Sub "/aws/vendedlogs/states/NodeInventoryOrderingServiceLogGroup-${sls:stage}"

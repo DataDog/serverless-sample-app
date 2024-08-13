@@ -1,33 +1,59 @@
-# Serverless Sample App
+# Serverless Getting Started
 
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?stackName=datadog-serverless-sample-app&templateURL=https://datadog-cloudformation-template.s3.amazonaws.com/aws/serverless-sample-app/latest.yaml)
+This repository contains source code for demonstrating the getting started experience when using native tracing through various AWS serverless technologies. It implements the same architecture in all the available Lambda runtimes, and different IaC tools to provide a getting started experience for where ever you are today.
 
-For more information on Datadog Serverless, check out our [Serverless Info](https://docs.datadoghq.com/serverless) page!
+![Architecture Diagram](img/serverless-lambda-tracing.png)
 
-## Try out Datadog:
+## Implementations
 
-1. Click "Launch Stack" above.
-1. Enter Datadog API Key and the Datadog Site you are registered with, acknowledge IAM Capabilities, and click `Create Stack`. See [this link](https://docs.datadoghq.com/account_management/api-app-keys/) for more info on API keys.
-1. Once the stack has finished creating, open the `Outputs` tab in the stack information view.
-1. Invoke your stack 3-4 times by visiting the `ApiGatewayInvokeURL` url given in the `Outputs` tab.
-1. Wait a couple minutes for the data to finish flushing to Datadog.
-1. Visit the `DatadogFunctionLink` in the `Outputs` tab to explore your data.
-    - Alternatively, visit Datadog's serverless view for your registered site (such as https://app.datadoghq.com/functions for those registered on the US1 site).
-    - Under `Function Name` on the left side of the site, search for the the entry function name also given in the stack `Outputs` tab.
+|                      | Node                                             | Python | .NET | Java | Go  | Rust |
+| -------------------- | ------------------------------------------------ | ------ | ---- | ---- | --- | ---- |
+| AWS CDK              | [Y](./src/nodejs/README.md#aws-cdk)              |        |      |      |     |      |
+| AWS SAM              | [Y](./src/nodejs/README.md#aws-sam)              |        |      |      |     |      |
+| Terraform            | [Y](./src/nodejs/README.md#terraform)            |        |      |      |     |      |
+| Serverless Framework | [Y](./src/nodejs/README.md#serverless-framework) |        |      |      |     |      |
 
-## Sample App Architecture
+## End to End Tracing Output
 
-![Architecture](assets/app_architecture.png)
+Once deployed, the system demonstrates the full end to end observability Datadog provides. Including automatic trace propagation through multiple asynchronous message channels, backend services and demonstrates [`SpanLinks`](https://docs.datadoghq.com/tracing/trace_collection/span_links/).
 
-## Sample Trace Map
-- The trace map of your resources you can expect to see in Datadog.
+![End to end tracing](img/end-to-end-trace.png)
 
-![Sample Trace Map](assets/sample_trace_map.png)
+The application simulates `Product`, `Inventory` and `Analytics` services, inside an eCommerce application. The functionality is managed by three independent teams, the product service, inventory service and analytics service team. Interactions between domains runs through a shared Amazon EventBridge EventBus.
 
-## Repository Structure:
+## Demo Application
 
-This repository is organized into four main files: `template.yaml`, `handler.js`, `handler.py`, and `publish.sh`. 
+### Product Service
 
-While our distributed template contains inline lambda code, the code is separated into  `handler.js` and `handler.py` files in this repo for easier development. The code in these two files are injected into the `template.yaml` during the publishing process through the `publish.sh` script. 
+The product service is made up of 3 independent services, that interact asynchronously.
 
-For information on how to inject the code and create a ready-to-use template outside publishing, refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file.
+1. The `ProductAPI` provides CRUD (Create, Read, Update, Delete) API provides the ability to manage product information. On all CUD requests, private events are published onto respective SNS topics for downstream processing. The API has one additional Lambda function reacting to `PricingChanged` events published by the `ProductPricingService`.
+2. The `ProductPricingService`. This service consumers `ProductCreated` and `ProductUpdated` events published by the `ProductAPI` and asynchronously calculates pricing discounts for the product. On calculation, it publishes a `PricingChanged` event onto another SNS topic which the `ProductAPI` then consumers to update pricing
+3. The `PublicEventPublisher` acts as a translation layer between private and public events. It takes the `ProductCreated`, `ProductUpdated` and `ProductDeleted` events and translates them into the respective events for downstream processing.
+
+### Inventory Service
+
+The inventory service is made up of 2 independent services, that interact asynchronously.
+
+1. The `InventoryAntiCorruptionLayer` acts as an anti-corruption layer. It receives requests from upstream services, ensures they are semantically correct against the expected schema and translates them for further processing inside the `InventorySevice`. This step also acts as a buffer, to prevent overload from upstream services.
+2. The `StockOrderingService` takes upstream events and starts a StepFunctions workflow to start the processing of purchasing stock for the product
+
+### Analytics Service
+
+The analytics service is made up of a single service that recevies all events from `EventBridge` and increments a metric inside Datadog depending on the type of event received. The analytics service also demonstrates the use of [`SpanLinks`](https://docs.datadoghq.com/tracing/trace_collection/span_links/). SpanLinks are useful when two processes are related but don't have a direct parent-child relationship.
+
+In this scenario, analytics spans would add noise to the end to end trace for the product creation and inventory ordering flow. However, causality is still useful to understand. Span Links provide a link, but still keeps independence in the traces.
+
+## Load Tests
+
+The repository also includes load-test configuration using [Artillery](https://www.artillery.io). You can use this to generate load into the product service, and view the downstream data in Datadog.
+
+**NOTE** The load test runs for roughly 3 minutes, and will generate load into both your AWS and Datadog accounts. Use with caution to avoid billing. As an alternative, a [Postman Collection](./serverless-sample-app.postman_collection.json) is available that you can use to run test manually. Or you can use the integration tests documented in the respective languages folder.
+
+To execute the loadtests, first ensure [Artillery is installed](https://www.artillery.io/docs/get-started/get-artillery). You will also need to set the `API_ENDPOINT` environment variable.
+
+```sh
+cd loadtest
+export API_ENDPOINT=
+artillery run loadtest.yml
+```

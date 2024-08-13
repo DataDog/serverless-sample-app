@@ -1,0 +1,49 @@
+{
+  "name": "node-lambda-hybrid-tracing",
+  "version": "0.1.0",
+  "type": "commonjs",
+  "bin": {
+    "node-lambda-hybrid-tracing": "bin/node-lambda-hybrid-tracing.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-cloudformation": "^3.596.0",
+    "@aws-sdk/client-dynamodb": "^3.596.0",
+    "@aws-sdk/client-eventbridge": "^3.596.0",
+    "@aws-sdk/client-sfn": "^3.596.0",
+    "@aws-sdk/client-sns": "^3.596.0",
+    "@aws-sdk/client-sqs": "^3.596.0",
+    "@aws-sdk/client-ssm": "^3.596.0",
+    "@types/aws-lambda": "8.10.140",
+    "@types/jest": "^29.5.12",
+    "@types/node": "20.14.2",
+    "@types/uuid": "^10.0.0",
+    "aws-cdk": "2.147.1",
+    "aws-cdk-lib": "^2.145.0",
+    "axios": "^1.7.3",
+    "constructs": "^10.3.0",
+    "datadog-cdk-constructs-v2": "^1.13.0",
+    "datadog-lambda-js": "^9.112.0",
+    "dd-trace": "^5.17.0",
+    "esbuild": "^0.20.2",
+    "jest": "^29.7.0",
+    "moq.ts": "^10.0.8",
+    "serverless-esbuild": "^1.52.1",
+    "serverless-plugin-datadog": "^5.69.0",
+    "serverless-step-functions": "^3.21.0",
+    "source-map-support": "^0.5.21",
+    "ts-jest": "^29.1.4",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.4.5",
+    "uuid": "^10.0.0"
+  },
+  "dependencies": {
+    "@aws-lambda-powertools/logger": "^2.6.0",
+    "zod": "^3.23.8"
+  }
+}
