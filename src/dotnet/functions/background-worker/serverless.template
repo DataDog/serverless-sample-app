@@ -1,0 +1,100 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::Serverless-2016-10-31",
+  "Description": "An AWS Serverless Application. This template is partially managed by Amazon.Lambda.Annotations (v1.2.0.0).",
+  "Resources": {
+    "BackgroundWorkersFunctionsSnsConsumerGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations"
+      },
+      "Properties": {
+        "Runtime": "dotnet8",
+        "CodeUri": ".",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "BackgroundWorkers::BackgroundWorkers.Functions_SnsConsumer_Generated::SnsConsumer"
+      }
+    },
+    "BackgroundWorkersFunctionsSnsToSqsConsumerGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations"
+      },
+      "Properties": {
+        "Runtime": "dotnet8",
+        "CodeUri": ".",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "BackgroundWorkers::BackgroundWorkers.Functions_SnsToSqsConsumer_Generated::SnsToSqsConsumer"
+      }
+    },
+    "BackgroundWorkersFunctionsEventBridgeToSqsConsumerGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations"
+      },
+      "Properties": {
+        "Runtime": "dotnet8",
+        "CodeUri": ".",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "BackgroundWorkers::BackgroundWorkers.Functions_EventBridgeToSqsConsumer_Generated::EventBridgeToSqsConsumer"
+      }
+    },
+    "BackgroundWorkersFunctionsEventBridgeConsumerGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations"
+      },
+      "Properties": {
+        "Runtime": "dotnet8",
+        "CodeUri": ".",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "BackgroundWorkers::BackgroundWorkers.Functions_EventBridgeConsumer_Generated::EventBridgeConsumer"
+      }
+    },
+    "BackgroundWorkersFunctionsStepFunctionsHandlerGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations"
+      },
+      "Properties": {
+        "Runtime": "dotnet8",
+        "CodeUri": ".",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "BackgroundWorkers::BackgroundWorkers.Functions_StepFunctionsHandler_Generated::StepFunctionsHandler"
+      }
+    }
+  },
+  "Outputs": {
+    "ApiURL": {
+      "Description": "API endpoint URL for Prod environment",
+      "Value": {
+        "Fn::Sub": "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+      }
+    }
+  }
+}

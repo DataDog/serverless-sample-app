@@ -1,0 +1,19 @@
+service: serverless-shared
+frameworkVersion: "3"
+
+provider:
+  name: aws
+
+resources:
+  Resources:
+    NodeSharedEventBus:
+      Type: AWS::Events::EventBus
+      Properties: 
+          Name: "NodeTracingEventBus"
+
+    SharedEventBusNameParameter:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /node/shared/event-bus-name
+        Type: String
+        Value: !Ref NodeSharedEventBus

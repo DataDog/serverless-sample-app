@@ -1,0 +1,64 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "node_modules", "node_modules", "{937C6579-ECC4-4845-8AF2-E71FD56741E7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "aws-cdk", "aws-cdk", "{CA77C960-6F32-4C40-A862-BB167A68736E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "lib", "lib", "{C5614592-D76C-4291-8665-6E8F4379FE10}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "init-templates", "init-templates", "{44F6057B-2940-4BD6-8A82-5E7DE9F6A4E4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sample-app", "sample-app", "{02CA2D82-D4A6-4DA2-BA07-54BF44D3AE00}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "csharp", "csharp", "{F01F7E8D-EB60-46BD-92AB-C53AAA7324D2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3EE4288B-C2A9-4CB1-9BA8-6E1F64A8F43B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "%name.PascalCased%.template", "node_modules\aws-cdk\lib\init-templates\sample-app\csharp\src\%name.PascalCased%\%name.PascalCased%.template.csproj", "{9351722B-C974-45B8-AE8F-DD7DCBEE69BD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "app", "app", "{B266597A-74A6-42B6-8ACB-8BA28C155817}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "csharp", "csharp", "{FE1EA0C5-8153-41AE-BD0B-C8F5F0AAA733}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{416AD25D-F40E-48BD-8B5F-E1ADBE60630C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "%name.PascalCased%.template", "node_modules\aws-cdk\lib\init-templates\app\csharp\src\%name.PascalCased%\%name.PascalCased%.template.csproj", "{5D021EF2-2E93-443F-8B30-590AE92E7F77}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9351722B-C974-45B8-AE8F-DD7DCBEE69BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9351722B-C974-45B8-AE8F-DD7DCBEE69BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9351722B-C974-45B8-AE8F-DD7DCBEE69BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9351722B-C974-45B8-AE8F-DD7DCBEE69BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D021EF2-2E93-443F-8B30-590AE92E7F77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D021EF2-2E93-443F-8B30-590AE92E7F77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D021EF2-2E93-443F-8B30-590AE92E7F77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D021EF2-2E93-443F-8B30-590AE92E7F77}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CA77C960-6F32-4C40-A862-BB167A68736E} = {937C6579-ECC4-4845-8AF2-E71FD56741E7}
+		{C5614592-D76C-4291-8665-6E8F4379FE10} = {CA77C960-6F32-4C40-A862-BB167A68736E}
+		{44F6057B-2940-4BD6-8A82-5E7DE9F6A4E4} = {C5614592-D76C-4291-8665-6E8F4379FE10}
+		{02CA2D82-D4A6-4DA2-BA07-54BF44D3AE00} = {44F6057B-2940-4BD6-8A82-5E7DE9F6A4E4}
+		{F01F7E8D-EB60-46BD-92AB-C53AAA7324D2} = {02CA2D82-D4A6-4DA2-BA07-54BF44D3AE00}
+		{3EE4288B-C2A9-4CB1-9BA8-6E1F64A8F43B} = {F01F7E8D-EB60-46BD-92AB-C53AAA7324D2}
+		{9351722B-C974-45B8-AE8F-DD7DCBEE69BD} = {3EE4288B-C2A9-4CB1-9BA8-6E1F64A8F43B}
+		{B266597A-74A6-42B6-8ACB-8BA28C155817} = {44F6057B-2940-4BD6-8A82-5E7DE9F6A4E4}
+		{FE1EA0C5-8153-41AE-BD0B-C8F5F0AAA733} = {B266597A-74A6-42B6-8ACB-8BA28C155817}
+		{416AD25D-F40E-48BD-8B5F-E1ADBE60630C} = {FE1EA0C5-8153-41AE-BD0B-C8F5F0AAA733}
+		{5D021EF2-2E93-443F-8B30-590AE92E7F77} = {416AD25D-F40E-48BD-8B5F-E1ADBE60630C}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3FE53827-A217-4264-850D-1F2758C02115}
+	EndGlobalSection
+EndGlobal

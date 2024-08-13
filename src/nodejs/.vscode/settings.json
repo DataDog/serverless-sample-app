@@ -1,0 +1,11 @@
+{
+    "datadog.ust.service.setup.linkedNames": [
+        "nodeanalyticsbackend",
+        "nodeinventoryacl",
+        "nodeinventoryworkers",
+        "nodepricingservice",
+        "nodeproductapi",
+        "nodeproductworkers"
+    ],
+    "datadog.ust.environment.setup.focusedName": "dev"
+}

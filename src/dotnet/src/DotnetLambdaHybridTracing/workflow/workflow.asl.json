@@ -1,0 +1,29 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "Lambda Invoke",
+  "States": {
+    "Lambda Invoke": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$.Payload",
+      "Parameters": {
+        "Payload.$": "States.JsonMerge($$, $, false)",
+        "FunctionName": "${StepFunctionsInvokeFunctionArn}:$LATEST"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "End": true
+    }
+  }
+}
