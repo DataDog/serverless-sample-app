@@ -80,6 +80,15 @@ export class InventoryServiceACL extends Construct {
 
     const productAddedTopicArnParameter = new StringParameter(
       this,
+      "NodeInventoryProductAddedArnParameter",
+      {
+        parameterName: "/node/inventory/product-added-topic",
+        stringValue: newProductAdded.topicArn,
+      }
+    );
+
+    const productAddedTopicNameParameter = new StringParameter(
+      this,
       "NodeInventoryProductAddedNameParameter",
       {
         parameterName: "/node/inventory/product-added-topic-name",

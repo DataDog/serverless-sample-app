@@ -178,3 +178,9 @@ resources:
         Name: /node/product/product-table-name
         Type: String
         Value: !Ref ProductDynamoDbTable
+    ProductApiEndpoint:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /node/product/api-endpoint
+        Type: String
+        Value: !GetAtt HttpApi.ApiEndpoint

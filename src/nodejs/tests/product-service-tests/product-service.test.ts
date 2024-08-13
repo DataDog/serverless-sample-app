@@ -13,30 +13,24 @@ import {
   DescribeStacksCommand,
 } from "@aws-sdk/client-cloudformation";
 
+import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
+
 let apiEndpoint = "";
 
 describe("product-service-tests", () => {
   beforeAll(async () => {
-    if (process.env.API_ENDPOINT !== undefined){
+    if (process.env.API_ENDPOINT !== undefined) {
       apiEndpoint = process.env.API_ENDPOINT;
       return;
     }
-    
-    const cfnClient = new CloudFormationClient();
-    const stackName =
-      process.env.PRODUCT_API_STACK_NAME ?? "NodeProductApiStack";
-    const stack = await cfnClient.send(
-      new DescribeStacksCommand({
-        StackName: stackName,
+
+    const ssmCLient = new SSMClient();
+    const parameter = await ssmCLient.send(
+      new GetParameterCommand({
+        Name: "/node/product/api-endpoint",
       })
     );
-    if (stack.Stacks === undefined) {
-      throw `Stack '${stackName}' not found`;
-    }
-    const outputs = stack.Stacks[0].Outputs;
-    apiEndpoint = outputs?.filter(
-      (output) => output.ExportName === "NodeProductApiEndpoint"
-    )[0].OutputValue!;
+    apiEndpoint = parameter.Parameter!.Value!;
   });
 
   it("should be able to run through entire product lifecycle, CRUD", async () => {

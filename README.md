@@ -6,12 +6,12 @@ This repository contains source code for demonstrating the getting started exper
 
 ## Implementations
 
-|                      | Node                                             | Python | .NET | Java |
-| -------------------- | ------------------------------------------------ | ------ | ---- | ---- |
-| AWS CDK              | [Y](./src/nodejs/README.md#aws-cdk)              |        |      |      |
-| AWS SAM              | [Y](./src/nodejs/README.md#aws-sam)              |        |      |      |
-| Terraform            | [Y](./src/nodejs/README.md#terraform)            |        |      |      |
-| Serverless Framework | [Y](./src/nodejs/README.md#serverless-framework) |        |      |      |
+|                      | Node                                             | Python | .NET | Java | Go  | Rust |
+| -------------------- | ------------------------------------------------ | ------ | ---- | ---- | --- | ---- |
+| AWS CDK              | [Y](./src/nodejs/README.md#aws-cdk)              |        |      |      |     |      |
+| AWS SAM              | [Y](./src/nodejs/README.md#aws-sam)              |        |      |      |     |      |
+| Terraform            | [Y](./src/nodejs/README.md#terraform)            |        |      |      |     |      |
+| Serverless Framework | [Y](./src/nodejs/README.md#serverless-framework) |        |      |      |     |      |
 
 ## End to End Tracing Output
 
@@ -43,3 +43,17 @@ The inventory service is made up of 2 independent services, that interact asynch
 The analytics service is made up of a single service that recevies all events from `EventBridge` and increments a metric inside Datadog depending on the type of event received. The analytics service also demonstrates the use of [`SpanLinks`](https://docs.datadoghq.com/tracing/trace_collection/span_links/). SpanLinks are useful when two processes are related but don't have a direct parent-child relationship.
 
 In this scenario, analytics spans would add noise to the end to end trace for the product creation and inventory ordering flow. However, causality is still useful to understand. Span Links provide a link, but still keeps independence in the traces.
+
+## Load Tests
+
+The repository also includes load-test configuration using [Artillery](https://www.artillery.io). You can use this to generate load into the product service, and view the downstream data in Datadog.
+
+**NOTE** The load test runs for roughly 3 minutes, and will generate load into both your AWS and Datadog accounts. Use with caution to avoid billing. As an alternative, a [Postman Collection](./serverless-sample-app.postman_collection.json) is available that you can use to run test manually. Or you can use the integration tests documented in the respective languages folder.
+
+To execute the loadtests, first ensure [Artillery is installed](https://www.artillery.io/docs/get-started/get-artillery). You will also need to set the `API_ENDPOINT` environment variable.
+
+```sh
+cd loadtest
+export API_ENDPOINT=
+artillery run loadtest.yml
+```

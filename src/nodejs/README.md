@@ -4,10 +4,9 @@ This README contains relevant instructions for deploying the sample application 
 
 ## Testing
 
-The repo includes an integration test that hits all 4 of the CRUD API endpoints. If you have deployed all of the backend services, running this test will give you the full set of end to end traces. The integration test dynamically loads the API endpoint from the CloudFormation output, and assumes the Product API is deployed to a stack named `NodeProductApiStack`. If your stack name is differnet, set the `PRODUCT_API_STACK_NAME` environment variable.
+The repo includes an integration test that hits all 4 of the CRUD API endpoints. If you have deployed all of the backend services, running this test will give you the full set of end to end traces. The integration test dynamically loads the API endpoint from an SSM parameter named `/node/product/api-endpoint`. If you need to override the API endpoint you are testing against, set the environment variable named `API_ENDPOINT`.
 
 ```sh
-export PRODUCT_API_STACK_NAME=NodeTracing-ProductApi-IOWW38V7Z5JB &&
 npm run test -- product-service
 ```
 
@@ -140,6 +139,7 @@ sam deploy --stack-name NodeInventoryAcl --parameter-overrides ParameterKey=DDAp
 sam build -t template-inventory-ordering-service.yaml &&
 sam deploy --stack-name NodeInventoryOrderingService --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION
 
+# Deploy Analytics Backend
 sam build -t template-analytics-service.yaml &&
 sam deploy --stack-name NodeAnalyticsService --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION
 ```
@@ -219,14 +219,6 @@ The root of the repository contains a `deploy.sh` file, this will transpile all 
 ./deploy.sh
 ```
 
-### Test
-
-Terraform does not use CloudFormation, so for the tests to work you will need to set the `API_ENDPOINT` environment variable in your terminal. After the deployment finishes, the API endpoint will be shown as an output.
-
-```sh
-export API_ENDPOINT=
-```
-
 ### Cleanup
 
 To cleanup all Terraform resources run:
@@ -273,14 +265,6 @@ serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=
 serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-inventory-acl.yml &&
 serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-inventory-ordering-service.yml &&
 serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-analytics-service.yml
-```
-
-### Test
-
-Serverless Framework creates custom output names inside the CloudFormation stack, so for the tests to work you will need to set the `API_ENDPOINT` environment variable in your terminal. After the deployment finishes, the API endpoint will be shown as an output.
-
-```sh
-export API_ENDPOINT=
 ```
 
 ### Cleanup

@@ -307,6 +307,13 @@ Resources:
         - AttributeName: PK
           KeyType: HASH
 
+  ApiEndpoint:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /node/product/api-endpoint
+      Type: String
+      Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+
 Outputs:
   NodeProductApiEndpoint:
     Description: Product API Endpoint

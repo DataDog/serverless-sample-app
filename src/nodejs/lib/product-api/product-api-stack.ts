@@ -102,6 +102,14 @@ export class ProductApiStack extends cdk.Stack {
         stringValue: api.productDeletedTopic.topicName,
       }
     );
+    const apiEndpointParameter = new StringParameter(
+      this,
+      "NodeProductApiEndpointParameter",
+      {
+        parameterName: "/node/product/api-endpoint",
+        stringValue: api.api.apiEndpoint,
+      }
+    );
 
     const apiEndpoint = new cdk.CfnOutput(this, "NodeProductApiEndpoint", {
       exportName: "NodeProductApiEndpoint",

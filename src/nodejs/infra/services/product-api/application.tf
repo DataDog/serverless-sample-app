@@ -184,3 +184,9 @@ resource "aws_ssm_parameter" "table_name_param" {
   type  = "String"
   value = aws_dynamodb_table.node_product_api.name
 }
+
+resource "aws_ssm_parameter" "api_endpoint" {
+  name  = "/node/product/api-endpoint"
+  type  = "String"
+  value = "${module.api_gateway.api_endpoint}/dev"
+}
