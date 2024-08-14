@@ -1,6 +1,7 @@
 package com.cdk;
 
 import com.cdk.product.api.ProductApiStack;
+import com.cdk.product.pricing.PricingServiceStack;
 import com.cdk.shared.SharedStack;
 import software.amazon.awscdk.App;
 import software.amazon.awscdk.StackProps;
@@ -13,7 +14,10 @@ public class JavaTraceSampleApp {
 
         var productApiStack = new ProductApiStack(app, "JavaProductApiStack", StackProps.builder()
                 .build());
-
+        
+        var pricingService = new PricingServiceStack(app, "JavaProductPricingService", StackProps.builder().build());
+        pricingService.addDependency(productApiStack);
+        
         app.synth();
     }
 }

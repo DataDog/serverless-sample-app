@@ -25,7 +25,7 @@ public class InstrumentedFunction extends Construct {
                 .path(props.getJarFile()).build();
 
         Map<String, String> lambdaEnvironment = new HashMap<>();
-        lambdaEnvironment.put("MAIN_CLASS", "com.product.api.FunctionConfiguration");
+        lambdaEnvironment.put("MAIN_CLASS", String.format("%s.FunctionConfiguration", props.getPackageName()));
         lambdaEnvironment.put("AWS_LAMBDA_EXEC_WRAPPER", "/opt/datadog_wrapper");
         lambdaEnvironment.put("DD_SITE", "datadoghq.eu");
         lambdaEnvironment.put("DD_SERVICE", props.getSharedProps().getService());
@@ -48,7 +48,7 @@ public class InstrumentedFunction extends Construct {
 
         // Create our basic function
         var builder = Function.Builder.create(this, props.getRoutingExpression())
-                .functionName(String.format("%s-%s", props.getRoutingExpression(), props.getSharedProps().getEnv()))
+                .functionName(String.format("%s-%s-%s", props.getPackageName().replace(".", ""), props.getRoutingExpression(), props.getSharedProps().getEnv()))
                 .runtime(Runtime.JAVA_21)
                 .memorySize(2048)
                 .handler("org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest")

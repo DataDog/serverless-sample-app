@@ -55,27 +55,28 @@ public class ProductApi extends Construct {
         apiEnvironmentVariables.put("PRODUCT_DELETED_TOPIC_ARN", productDeletedTopic.getTopicArn());
         
         String apiJarFile = "../product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar";
+        String packageName = "com.product.api";
 
         IFunction getProductFunction = new InstrumentedFunction(this, "GetProductJavaFunction",
-                new InstrumentedFunctionProps(props.getSharedProps(), apiJarFile, "handleGetProduct", apiEnvironmentVariables)).getFunction();
+                new InstrumentedFunctionProps(props.getSharedProps(), packageName, apiJarFile,"handleGetProduct", apiEnvironmentVariables)).getFunction();
         
         HttpLambdaIntegration getProductFunctionIntegration = new HttpLambdaIntegration("GetProductFunctionIntegration", getProductFunction);
         this.table.grantReadData(getProductFunction);
         
         IFunction createProductFunction = new InstrumentedFunction(this, "CreateProductJavaFunction",
-                new InstrumentedFunctionProps(props.getSharedProps(), apiJarFile, "handleCreateProduct", apiEnvironmentVariables)).getFunction();
+                new InstrumentedFunctionProps(props.getSharedProps(), packageName, apiJarFile, "handleCreateProduct", apiEnvironmentVariables)).getFunction();
         HttpLambdaIntegration createProductFunctionIntegration = new HttpLambdaIntegration("CreateProductFunctionIntegration", createProductFunction);
         this.table.grantReadWriteData(createProductFunction);
         productCreatedTopic.grantPublish(createProductFunction);
 
         IFunction updateProductFunction = new InstrumentedFunction(this, "UpdateProductJavaFunction",
-                new InstrumentedFunctionProps(props.getSharedProps(), apiJarFile, "handleUpdateProduct", apiEnvironmentVariables)).getFunction();
+                new InstrumentedFunctionProps(props.getSharedProps(), packageName, apiJarFile, "handleUpdateProduct", apiEnvironmentVariables)).getFunction();
         HttpLambdaIntegration updateProductFunctionIntegration = new HttpLambdaIntegration("UpdateProductFunctionIntegration", updateProductFunction);
         this.table.grantReadWriteData(updateProductFunction);
         productUpdatedTopic.grantPublish(updateProductFunction);
 
         IFunction deleteProductFunction = new InstrumentedFunction(this, "DeleteProductJavaFunction",
-                new InstrumentedFunctionProps(props.getSharedProps(), apiJarFile, "handleDeleteProduct", apiEnvironmentVariables)).getFunction();
+                new InstrumentedFunctionProps(props.getSharedProps(), packageName, apiJarFile, "handleDeleteProduct", apiEnvironmentVariables)).getFunction();
         HttpLambdaIntegration deleteProductFunctionIntegration = new HttpLambdaIntegration("DeleteProductFunctionIntegration", deleteProductFunction);
         this.table.grantReadWriteData(deleteProductFunction);
         productDeletedTopic.grantPublish(deleteProductFunction);
