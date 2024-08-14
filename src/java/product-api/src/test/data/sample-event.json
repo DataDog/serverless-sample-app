@@ -1,26 +1,13 @@
 {
   "version": "0",
   "id": "7c796078-d790-8e0d-02e0-6f8cc61e3f7c",
-  "detail-type": "order.orderConfirmed",
+  "detail-type": "product.productCreated",
   "source": "java-trace-test.orders",
   "account": "214365161190",
   "time": "2024-07-25T16:00:42Z",
   "region": "eu-west-1",
   "resources": [],
   "detail": {
-    "orderId": "1235"
-  }
-}
-{
-  "version": "0",
-  "id": "d6b2792c-8515-f575-fea9-7a69984c5199",
-  "detail-type": "order.orderConfirmed",
-  "source": "java-trace-test.orders",
-  "account": "214365161190",
-  "time": "2024-07-25T16:28:30Z",
-  "region": "eu-west-1",
-  "resources": [],
-  "detail": {
-    "orderId": "1235"
+    "productId": "1235"
   }
 }

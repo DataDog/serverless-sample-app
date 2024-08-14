@@ -20,11 +20,11 @@ public class Product {
         this.priceBrackets = new ArrayList<>(0);
     }
 
-    public Product(String productId, String name, Double price) {
+    public Product(String productId, String name, Double price, List<ProductPriceBracket> priceBrackets) {
         this.productId = productId;
         this.name = name;
         this.price = price;
-        this.priceBrackets = new ArrayList<>(0);
+        this.priceBrackets = priceBrackets;
     }
 
     static Product Create(String name, Double price) {

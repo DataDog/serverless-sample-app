@@ -3,20 +3,25 @@ package com.product.api.adapters;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.model.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.product.api.core.Product;
+import com.product.api.core.ProductPriceBracket;
 import com.product.api.core.ProductRepository;
+
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Repository
 public class ProductRepositoryImpl implements ProductRepository {
     private final AmazonDynamoDB dynamoDB;
     private final ObjectMapper mapper;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(ProductRepositoryImpl.class);
     private static final String PARTITION_KEY = "PK";
     private static final String PRODUCT_ID_KEY = "ProductId";
     private static final String NAME_KEY = "Name";
@@ -24,10 +29,9 @@ public class ProductRepositoryImpl implements ProductRepository {
     private static final String TYPE_KEY = "Type";
     private static final String PRICE_BRACKET_KEY = "PriceBrackets";
 
-    public ProductRepositoryImpl(AmazonDynamoDB dynamoDB, ObjectMapper mapper, Logger logger) {
+    public ProductRepositoryImpl(AmazonDynamoDB dynamoDB, ObjectMapper mapper) {
         this.dynamoDB = dynamoDB;
         this.mapper = mapper;
-        this.logger = logger;
     }
 
     @Override
@@ -44,7 +48,19 @@ public class ProductRepositoryImpl implements ProductRepository {
             return null;
         }
 
-        return new Product(item.get(PARTITION_KEY).getS(), item.get(NAME_KEY).getS(), Double.parseDouble(item.get(PRICE_KEY).getN()));
+        try {
+            String priceBracketString = item.get(PRICE_BRACKET_KEY).getS();
+            
+            logger.info(priceBracketString);
+            
+            List<ProductPriceBracket> brackets = this.mapper.readValue(priceBracketString, new TypeReference<>() {});
+
+            return new Product(item.get(PARTITION_KEY).getS(), item.get(NAME_KEY).getS(), Double.parseDouble(item.get(PRICE_KEY).getN()), brackets);
+        }
+        catch (JsonProcessingException error){
+            logger.error("An exception occurred!", error);
+            return new Product(item.get(PARTITION_KEY).getS(), item.get(NAME_KEY).getS(), Double.parseDouble(item.get(PRICE_KEY).getN()), List.of());
+        }
     }
 
     @Override

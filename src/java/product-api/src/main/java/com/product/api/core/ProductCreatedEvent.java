@@ -8,16 +8,19 @@ public class ProductCreatedEvent {
     private String name;
     private Double price;
 
-    public ProductCreatedEvent(){
-        this.productId = ""; this.name = ""; this.price = -1.0;
+    public ProductCreatedEvent() {
+        this.productId = "";
+        this.name = "";
+        this.price = -1.0;
     }
-    
+
     public ProductCreatedEvent(String productId, String name, Double price) {
-        this.productId = productId; this.name = name;
+        this.productId = productId;
+        this.name = name;
         this.price = price;
     }
 
-    public String getOrderId() {
+    public String getProductId() {
         return productId;
     }
 

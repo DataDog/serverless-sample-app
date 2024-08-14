@@ -4,12 +4,19 @@ import com.amazonaws.services.lambda.runtime.events.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.product.api.core.*;
+import com.product.api.core.events.internal.ProductPriceCalculatedEvent;
+
+import io.opentracing.Span;
+import io.opentracing.log.Fields;
+import io.opentracing.tag.Tags;
+import io.opentracing.util.GlobalTracer;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -155,6 +162,31 @@ public class FunctionConfiguration {
                         .withHeaders(Map.of("Content-Type", "application/json"))
                         .build();
             }
+        };
+    }
+
+    @Bean
+    public Function<SNSEvent, String> handlePricingChanged() {
+        return value -> {
+            final Span span = GlobalTracer.get().activeSpan();
+
+            try {
+                for (SNSEvent.SNSRecord record : value.getRecords()) {
+                    logger.info("Handling pricing changed event");
+                    ProductPriceCalculatedEvent evt = this.objectMapper.readValue(record.getSNS().getMessage(), ProductPriceCalculatedEvent.class);
+                    
+                    logger.info(String.format("Handling pricing changed for product %s", evt.getProductId()));
+                    span.setTag("product.id", evt.getProductId());
+
+                    this.service.handleProductPriceCalculatedEvent(evt);
+                }
+            } catch (JsonProcessingException | Error exception) {
+                logger.error("An exception occurred!", exception);
+                span.setTag(Tags.ERROR, true);
+                span.log(Collections.singletonMap(Fields.ERROR_OBJECT, exception));
+            }
+
+            return "OK";
         };
     }
 }

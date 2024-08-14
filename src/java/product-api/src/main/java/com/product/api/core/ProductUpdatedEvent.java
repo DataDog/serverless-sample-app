@@ -1,6 +1,5 @@
 package com.product.api.core;
 
-import com.amazonaws.services.dynamodbv2.model.Update;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)

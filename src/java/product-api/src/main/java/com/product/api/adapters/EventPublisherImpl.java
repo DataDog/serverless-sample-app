@@ -7,6 +7,7 @@ import com.product.api.core.EventPublisher;
 import com.product.api.core.ProductCreatedEvent;
 import com.product.api.core.ProductDeletedEvent;
 import com.product.api.core.ProductUpdatedEvent;
+
 import org.springframework.stereotype.Component;
 
 @Component

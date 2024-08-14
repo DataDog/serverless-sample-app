@@ -2,15 +2,15 @@ package com.product.api.core;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.product.api.core.events.internal.ProductPriceCalculatedEvent;
-import com.sun.source.tree.VariableTree;
+
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.security.Key;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -19,12 +19,11 @@ import java.util.List;
 public class ProductService {
     private final ProductRepository repository;
     private final EventPublisher eventPublisher;
-    private final Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(ProductService.class);
 
-    public ProductService(ProductRepository repository, EventPublisher eventPublisher, Logger logger) {
+    public ProductService(ProductRepository repository, EventPublisher eventPublisher) {
         this.repository = repository;
         this.eventPublisher = eventPublisher;
-        this.logger = logger;
     }
 
     public HandlerResponse<ProductDTO> getProduct(String productId) {
@@ -146,9 +145,13 @@ public class ProductService {
                 return new HandlerResponse<>(false, List.of("Product not found"), false);
             }
             
+            span.setTag("product.priceBrackets", evt.getPriceBrackets().size());
+            logger.info(String.format("Processing %s pricing brackets", evt.getPriceBrackets().size()));
+            
             existingProduct.clearPricing();
             
             evt.getPriceBrackets().forEach((quantity, price) -> {
+                logger.info(String.format("Adding price %s for quantity of %s", price, quantity));
                 existingProduct.addPrice(new ProductPriceBracket(quantity, price));
             });
             
