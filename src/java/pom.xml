@@ -13,6 +13,6 @@
         <module>inventory-acl</module>
         <module>inventory-ordering-service</module>
         <module>analytics-backend</module>
-        <module>infra</module>
+        <module>cdk</module>
     </modules>
 </project>
