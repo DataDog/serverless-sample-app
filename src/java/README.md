@@ -8,7 +8,7 @@ To generate load against your application, see the documentation on running a [l
 
 ## AWS CDK
 
-When using Java as your language of choice with the AWS CDK, you need to manually configure the Datadog Lambda Extension and the `dd-trace-java` layer. To simplify this configuration, a custom [`InstrumentFunction`](./infra/src/main/java/com/cdk/constructs/InstrumentedFunction.java) construct is used to centralise all of the configuration.
+When using Java as your language of choice with the AWS CDK, you need to manually configure the Datadog Lambda Extension and the `dd-trace-java` layer. To simplify this configuration, a custom [`InstrumentFunction`](./cdk/src/main/java/com/cdk/constructs/InstrumentedFunction.java) construct is used to centralise all of the configuration.
 
 ```java
 List<ILayerVersion> layers = new ArrayList<>(2);

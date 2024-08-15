@@ -30,7 +30,7 @@ public class InventoryOrderingService extends Construct {
                 .removalPolicy(RemovalPolicy.DESTROY)
                 .build());
 
-        String workflowFilePath = "../infra/src/main/java/com/cdk/inventory/ordering/workflows/workflow.sample.asl.json";
+        String workflowFilePath = "../cdk/src/main/java/com/cdk/inventory/ordering/workflows/workflow.sample.asl.json";
 
         StateMachine workflow = new StateMachine(this, "JavaInventoryOrderingWorkflow", StateMachineProps.builder()
                 .stateMachineName(String.format("JavaInventoryOrderingService-%s", props.sharedProps().env()))
