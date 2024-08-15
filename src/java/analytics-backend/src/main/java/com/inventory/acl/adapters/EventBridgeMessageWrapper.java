@@ -1,4 +1,4 @@
-package com.product.api;
+package com.inventory.acl.adapters;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
