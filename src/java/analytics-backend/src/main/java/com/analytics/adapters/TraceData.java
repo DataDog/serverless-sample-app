@@ -1,9 +1,21 @@
 package com.analytics.adapters;
 
-public class DatadogTraceData {
+import java.io.Serializable;
+
+public class TraceData implements Serializable {
     private String traceId;
     private String spanId;
-    private String traceParent;
     
-    
+    public TraceData(){
+        this.traceId = "";
+        this.spanId = "";
+    }
+
+    public String getTraceId() {
+        return traceId;
+    }
+
+    public String getSpanId() {
+        return spanId;
+    }
 }

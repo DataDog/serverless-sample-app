@@ -1,4 +1,4 @@
-package com.product.pricing.core.events.internal;
+package com.product.publisher.core.events.internal;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

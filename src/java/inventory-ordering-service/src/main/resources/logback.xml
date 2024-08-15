@@ -2,27 +2,6 @@
 <configuration>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <!-- encoders are assigned the type
-             ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
-        <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36}: %X{REQUEST_URI} %X{REQUEST_METHOD} %replace(MDC-PARTY[%X{PARTY_ID}]){'MDC-PARTY\[\]', ''} %msg%n</pattern>
-        </encoder>
-        <filter class="ch.qos.logback.classic.filter.LevelFilter">
-            <level>INFO</level>
-            <onMatch>ACCEPT</onMatch>
-            <onMismatch>DENY</onMismatch>
-        </filter>
-    </appender>
-
-    <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/jamboree.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <!-- rollover every minute -->
-            <fileNamePattern>logs/jamboree-%d{yyyy-MM-dd-HH-mm}.log</fileNamePattern>
-            <!-- each file should be at most 100MB, keep 60 days worth of history, but at most 20GB -->
-            <maxHistory>60</maxHistory>
-            <totalSizeCap>20GB</totalSizeCap>
-        </rollingPolicy>
         <layout class="ch.qos.logback.contrib.json.classic.JsonLayout">
             <jsonFormatter class="ch.qos.logback.contrib.jackson.JacksonJsonFormatter">
                 <prettyPrint>false</prettyPrint>
@@ -32,10 +11,9 @@
         </layout>
     </appender>
 
-    <logger name="me.mourjo" level="debug"/>
+    <logger name="com.inventory.ordering" level="debug"/>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="ROLLING"/>
     </root>
 </configuration>

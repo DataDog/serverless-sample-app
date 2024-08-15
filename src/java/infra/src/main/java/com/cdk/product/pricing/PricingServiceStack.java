@@ -1,8 +1,6 @@
 package com.cdk.product.pricing;
 
 import com.cdk.constructs.SharedProps;
-import software.amazon.awscdk.CfnOutput;
-import software.amazon.awscdk.CfnOutputProps;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
 import software.amazon.awscdk.services.secretsmanager.ISecret;
@@ -13,9 +11,6 @@ import software.amazon.awscdk.services.ssm.StringParameter;
 import software.constructs.Construct;
 
 public class PricingServiceStack extends Stack {
-    public PricingServiceStack(final Construct scope, final String id) {
-        this(scope, id, null);
-    }
 
     public PricingServiceStack(final Construct scope, final String id, final StackProps props) {
         super(scope, id, props);
@@ -34,6 +29,6 @@ public class PricingServiceStack extends Stack {
         String productUpdatedTopicArn = StringParameter.valueForStringParameter(this, "/java/product-api/product-updated-topic");
         ITopic productUpdatedTopic = Topic.fromTopicArn(this, "ProductUpdatedTopic", productUpdatedTopicArn);
         
-        var pricingService = new PricingService(this, "JavaPricingService", new PricingServiceProps(sharedProps, productCreatedTopic, productUpdatedTopic));
+        new PricingService(this, "JavaPricingService", new PricingServiceProps(sharedProps, productCreatedTopic, productUpdatedTopic));
     }
 }

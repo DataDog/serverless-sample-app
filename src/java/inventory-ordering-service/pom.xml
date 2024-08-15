@@ -3,11 +3,11 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>com.product.pricing</artifactId>
+    <artifactId>com.inventory.ordering</artifactId>
     <version>0.0.1-SNAPSHOT</version><!-- @releaser:version-check-off -->
     <packaging>jar</packaging>
-    <name>com.product.pricing</name>
-    <description>Product Pricing Service</description>
+    <name>com.inventory.ordering</name>
+    <description>Inventory Ordering Service</description>
     <parent>
         <groupId>com.javasample</groupId>
         <artifactId>com.javasample</artifactId>
@@ -45,12 +45,7 @@
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-dynamodb</artifactId>
-            <version>1.12.760</version>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-sns</artifactId>
+            <artifactId>aws-java-sdk-stepfunctions</artifactId>
             <version>1.12.760</version>
         </dependency>
         <dependency>
@@ -80,8 +75,6 @@
             <artifactId>logback-json-classic</artifactId>
             <version>0.1.5</version>
         </dependency>
-
-
         <dependency>
             <groupId>ch.qos.logback.contrib</groupId>
             <artifactId>logback-jackson</artifactId>

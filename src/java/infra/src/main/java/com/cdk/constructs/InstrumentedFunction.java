@@ -21,24 +21,24 @@ public class InstrumentedFunction extends Construct {
     public InstrumentedFunction(@NotNull Construct scope, @NotNull String id, @NotNull InstrumentedFunctionProps props) {
         super(scope, id);
 
-        Asset fileAsset = Asset.Builder.create(this, String.format("%sS3Asset", props.getRoutingExpression()))
-                .path(props.getJarFile()).build();
+        Asset fileAsset = Asset.Builder.create(this, String.format("%sS3Asset", props.routingExpression()))
+                .path(props.jarFile()).build();
 
         Map<String, String> lambdaEnvironment = new HashMap<>();
-        lambdaEnvironment.put("MAIN_CLASS", String.format("%s.FunctionConfiguration", props.getPackageName()));
+        lambdaEnvironment.put("MAIN_CLASS", String.format("%s.FunctionConfiguration", props.packageName()));
         lambdaEnvironment.put("AWS_LAMBDA_EXEC_WRAPPER", "/opt/datadog_wrapper");
         lambdaEnvironment.put("DD_SITE", "datadoghq.eu");
-        lambdaEnvironment.put("DD_SERVICE", props.getSharedProps().getService());
-        lambdaEnvironment.put("DD_ENV", props.getSharedProps().getEnv());
-        lambdaEnvironment.put("ENV", props.getSharedProps().getEnv());
-        lambdaEnvironment.put("DD_VERSION", props.getSharedProps().getVersion());
-        lambdaEnvironment.put("DD_API_KEY_SECRET_ARN", props.getSharedProps().getDdApiKeySecret().getSecretArn());
+        lambdaEnvironment.put("DD_SERVICE", props.sharedProps().service());
+        lambdaEnvironment.put("DD_ENV", props.sharedProps().env());
+        lambdaEnvironment.put("ENV", props.sharedProps().env());
+        lambdaEnvironment.put("DD_VERSION", props.sharedProps().version());
+        lambdaEnvironment.put("DD_API_KEY_SECRET_ARN", props.sharedProps().ddApiKeySecret().getSecretArn());
         lambdaEnvironment.put("DD_CAPTURE_LAMBDA_PAYLOAD", "true");
         lambdaEnvironment.put("DD_LOGS_INJECTION", "true");
-        lambdaEnvironment.put("spring_cloud_function_definition", props.getRoutingExpression());
+        lambdaEnvironment.put("spring_cloud_function_definition", props.routingExpression());
 
         // Add custom environment variables to the default set.
-        lambdaEnvironment.putAll(props.getEnvironmentVariables());
+        lambdaEnvironment.putAll(props.environmentVariables());
 
         List<ILayerVersion> layers = new ArrayList<>(2);
         layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", "arn:aws:lambda:eu-west-1:464622532012:layer:dd-trace-java:15"));
@@ -47,8 +47,8 @@ public class InstrumentedFunction extends Construct {
         IBucket bucket = Bucket.fromBucketName(this, "CDKBucket", fileAsset.getS3BucketName());
 
         // Create our basic function
-        var builder = Function.Builder.create(this, props.getRoutingExpression())
-                .functionName(String.format("%s-%s-%s", props.getPackageName().replace(".", ""), props.getRoutingExpression(), props.getSharedProps().getEnv()))
+        var builder = Function.Builder.create(this, props.routingExpression())
+                .functionName(String.format("%s-%s-%s", props.packageName().replace(".", ""), props.routingExpression(), props.sharedProps().env()))
                 .runtime(Runtime.JAVA_21)
                 .memorySize(2048)
                 .handler("org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest")
@@ -57,13 +57,13 @@ public class InstrumentedFunction extends Construct {
                 .code(Code.fromBucket(bucket, fileAsset.getS3ObjectKey()))
                 .layers(layers);
         
-        if (props.getSharedProps().getEnv().equals("prod")) {
+        if (props.sharedProps().env().equals("prod")) {
             builder.snapStart(SnapStartConf.ON_PUBLISHED_VERSIONS);
         }
 
         this.function = builder.build();
         
-        if (props.getSharedProps().getEnv() == "prod") {
+        if (props.sharedProps().env() == "prod") {
             var version = new Version(this, String.format("%sVersion", id), VersionProps.builder()
                     .lambda(this.function)
                     .build());
@@ -74,7 +74,7 @@ public class InstrumentedFunction extends Construct {
                     .build());
         }
 
-        props.getSharedProps().getDdApiKeySecret().grantRead(this.function);
+        props.sharedProps().ddApiKeySecret().grantRead(this.function);
     }
 
     public IFunction getFunction() {

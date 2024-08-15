@@ -9,8 +9,8 @@
     <name>com.product.api</name>
     <description>Product API</description>
     <parent>
-        <groupId>com.product</groupId>
-        <artifactId>com.product</artifactId>
+        <groupId>com.javasample</groupId>
+        <artifactId>com.javasample</artifactId>
         <version>1.0.0</version>
     </parent>
     <properties>

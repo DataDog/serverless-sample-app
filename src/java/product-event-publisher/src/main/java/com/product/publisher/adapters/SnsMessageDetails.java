@@ -6,25 +6,26 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SnsMessageWrapper<T> implements Serializable {
-    @JsonProperty("Message")
-    private T message;
-    
+public class SnsMessageDetails implements Serializable {
     @JsonProperty("TopicArn")
     private String topicArn;
+    
+    @JsonProperty("Message")
+    private String message;
 
-    public SnsMessageWrapper() {
+    public SnsMessageDetails() {
     }
 
-    public SnsMessageWrapper(T message) {
+    public SnsMessageDetails(String topicArn, String message) {
+        this.topicArn = topicArn;
         this.message = message;
-    }
-
-    public T getMessage() {
-        return message;
     }
 
     public String getTopicArn() {
         return topicArn;
+    }
+
+    public String getMessage() {
+        return message;
     }
 }

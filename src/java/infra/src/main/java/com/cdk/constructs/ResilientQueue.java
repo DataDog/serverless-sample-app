@@ -7,18 +7,18 @@ import software.amazon.awscdk.services.sqs.Queue;
 import software.amazon.awscdk.services.sqs.QueueProps;
 import software.constructs.Construct;
 
-public class ResiliantQueue extends Construct {
+public class ResilientQueue extends Construct {
     private final IQueue queue;
     private final IQueue dlq;
-    public ResiliantQueue(@NotNull Construct scope, @NotNull String id, @NotNull ResiliantQueueProps props) {
+    public ResilientQueue(@NotNull Construct scope, @NotNull String id, @NotNull ResilientQueueProps props) {
         super(scope, id);
         
-        this.dlq = new Queue(this, String.format("%sDLQ-%s", props.getQueueName(), props.getProps().getEnv()), QueueProps.builder()
-                .queueName(String.format("%sDLQ-%s", props.getQueueName(), props.getProps().getEnv()))
+        this.dlq = new Queue(this, String.format("%sDLQ-%s", props.queueName(), props.props().env()), QueueProps.builder()
+                .queueName(String.format("%sDLQ-%s", props.queueName(), props.props().env()))
                 .build());
 
-        this.queue = new Queue(this, String.format("%s-%s", props.getQueueName(), props.getProps().getEnv()), QueueProps.builder()
-                .queueName(String.format("%s-%s", props.getQueueName(), props.getProps().getEnv()))
+        this.queue = new Queue(this, String.format("%s-%s", props.queueName(), props.props().env()), QueueProps.builder()
+                .queueName(String.format("%s-%s", props.queueName(), props.props().env()))
                 .deadLetterQueue(DeadLetterQueue.builder()
                         .queue(this.dlq)
                         .maxReceiveCount(3)

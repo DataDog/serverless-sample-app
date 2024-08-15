@@ -39,13 +39,13 @@ public class ProductApi extends Construct {
                 .build());
 
         ITopic productCreatedTopic = new Topic(this, "JavaProductCreatedTopic", TopicProps.builder()
-                .topicName(String.format("ProductCreated-%s", props.getSharedProps().getEnv()))
+                .topicName(String.format("ProductCreated-%s", props.sharedProps().env()))
                 .build());
         ITopic productUpdatedTopic = new Topic(this, "JavaProductUpdatedTopic", TopicProps.builder()
-                .topicName(String.format("ProductUpdated-%s", props.getSharedProps().getEnv()))
+                .topicName(String.format("ProductUpdated-%s", props.sharedProps().env()))
                 .build());
         ITopic productDeletedTopic = new Topic(this, "JavaProductDeletedTopic", TopicProps.builder()
-                .topicName(String.format("ProductDeleted-%s", props.getSharedProps().getEnv()))
+                .topicName(String.format("ProductDeleted-%s", props.sharedProps().env()))
                 .build());
 
         HashMap<String, String> apiEnvironmentVariables = new HashMap<>(2);
@@ -58,25 +58,37 @@ public class ProductApi extends Construct {
         String packageName = "com.product.api";
 
         IFunction getProductFunction = new InstrumentedFunction(this, "GetProductJavaFunction",
-                new InstrumentedFunctionProps(props.getSharedProps(), packageName, apiJarFile,"handleGetProduct", apiEnvironmentVariables)).getFunction();
+                new InstrumentedFunctionProps(props.sharedProps(), packageName, apiJarFile,"handleGetProduct", apiEnvironmentVariables)).getFunction();
         
         HttpLambdaIntegration getProductFunctionIntegration = new HttpLambdaIntegration("GetProductFunctionIntegration", getProductFunction);
         this.table.grantReadData(getProductFunction);
         
+        HashMap<String, String> createProductFunctionEnvVars = new HashMap<>();
+        createProductFunctionEnvVars.put("DD_SERVICE_MAPPING", String.format("lambda_sns:%s", productCreatedTopic.getTopicName()));
+        createProductFunctionEnvVars.putAll(apiEnvironmentVariables);
+        
         IFunction createProductFunction = new InstrumentedFunction(this, "CreateProductJavaFunction",
-                new InstrumentedFunctionProps(props.getSharedProps(), packageName, apiJarFile, "handleCreateProduct", apiEnvironmentVariables)).getFunction();
+                new InstrumentedFunctionProps(props.sharedProps(), packageName, apiJarFile, "handleCreateProduct", createProductFunctionEnvVars)).getFunction();
         HttpLambdaIntegration createProductFunctionIntegration = new HttpLambdaIntegration("CreateProductFunctionIntegration", createProductFunction);
         this.table.grantReadWriteData(createProductFunction);
         productCreatedTopic.grantPublish(createProductFunction);
 
+        HashMap<String, String> updateProductFunctionEnvVars = new HashMap<>();
+        updateProductFunctionEnvVars.put("DD_SERVICE_MAPPING", String.format("lambda_sns:%s", productUpdatedTopic.getTopicName()));
+        updateProductFunctionEnvVars.putAll(apiEnvironmentVariables);
+
         IFunction updateProductFunction = new InstrumentedFunction(this, "UpdateProductJavaFunction",
-                new InstrumentedFunctionProps(props.getSharedProps(), packageName, apiJarFile, "handleUpdateProduct", apiEnvironmentVariables)).getFunction();
+                new InstrumentedFunctionProps(props.sharedProps(), packageName, apiJarFile, "handleUpdateProduct", updateProductFunctionEnvVars)).getFunction();
         HttpLambdaIntegration updateProductFunctionIntegration = new HttpLambdaIntegration("UpdateProductFunctionIntegration", updateProductFunction);
         this.table.grantReadWriteData(updateProductFunction);
         productUpdatedTopic.grantPublish(updateProductFunction);
 
+        HashMap<String, String> deleteProductFunctionEnvVars = new HashMap<>();
+        deleteProductFunctionEnvVars.put("DD_SERVICE_MAPPING", String.format("lambda_sns:%s", productDeletedTopic.getTopicName()));
+        deleteProductFunctionEnvVars.putAll(apiEnvironmentVariables);
+        
         IFunction deleteProductFunction = new InstrumentedFunction(this, "DeleteProductJavaFunction",
-                new InstrumentedFunctionProps(props.getSharedProps(), packageName, apiJarFile, "handleDeleteProduct", apiEnvironmentVariables)).getFunction();
+                new InstrumentedFunctionProps(props.sharedProps(), packageName, apiJarFile, "handleDeleteProduct", deleteProductFunctionEnvVars)).getFunction();
         HttpLambdaIntegration deleteProductFunctionIntegration = new HttpLambdaIntegration("DeleteProductFunctionIntegration", deleteProductFunction);
         this.table.grantReadWriteData(deleteProductFunction);
         productDeletedTopic.grantPublish(deleteProductFunction);

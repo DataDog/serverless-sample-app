@@ -1,58 +1,47 @@
-package com.cdk.product.pricing;
+package com.cdk.product.publisher;
 
 import com.cdk.constructs.InstrumentedFunction;
 import com.cdk.constructs.InstrumentedFunctionProps;
+import com.cdk.constructs.ResilientQueue;
+import com.cdk.constructs.ResilientQueueProps;
 import org.jetbrains.annotations.NotNull;
-import software.amazon.awscdk.RemovalPolicy;
-import software.amazon.awscdk.aws_apigatewayv2_integrations.HttpLambdaIntegration;
-import software.amazon.awscdk.services.apigatewayv2.AddRoutesOptions;
-import software.amazon.awscdk.services.apigatewayv2.HttpApi;
-import software.amazon.awscdk.services.apigatewayv2.HttpMethod;
-import software.amazon.awscdk.services.apigatewayv2.IHttpApi;
-import software.amazon.awscdk.services.dynamodb.*;
+import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.services.lambda.IFunction;
-import software.amazon.awscdk.services.lambda.eventsources.SnsEventSource;
-import software.amazon.awscdk.services.ses.actions.Sns;
-import software.amazon.awscdk.services.sns.ITopic;
-import software.amazon.awscdk.services.sns.Topic;
-import software.amazon.awscdk.services.sns.TopicProps;
-import software.amazon.awscdk.services.ssm.StringParameter;
-import software.amazon.awscdk.services.ssm.StringParameterProps;
+import software.amazon.awscdk.services.lambda.eventsources.SqsEventSource;
+import software.amazon.awscdk.services.lambda.eventsources.SqsEventSourceProps;
+import software.amazon.awscdk.services.sns.subscriptions.SqsSubscription;
 import software.constructs.Construct;
 
 import java.util.HashMap;
-import java.util.List;
 
-public class PricingService extends Construct {
-    public PricingService(@NotNull Construct scope, @NotNull String id, @NotNull PricingServiceProps props) {
+public class ProductEventPublisher extends Construct {
+    public ProductEventPublisher(@NotNull Construct scope, @NotNull String id, @NotNull ProductEventPublisherProps props) {
         super(scope, id);
-        
-        ITopic priceCalculatedTopic = new Topic(this, "JavaPriceCalculatedTopic", TopicProps.builder()
-                .topicName(String.format("ProductPriceCalculated-%s", props.getSharedProps().getEnv()))
-                .build());
 
+        ResilientQueue queue = new ResilientQueue(this, "ProductPublicEventPublisherQueue", new ResilientQueueProps("ProductEventPublisherQueue", props.sharedProps()));
+        
         HashMap<String, String> functionEnvVars = new HashMap<>(2);
-        functionEnvVars.put("PRODUCT_CREATED_TOPIC_ARN", props.getProductCreatedTopic().getTopicArn());
-        functionEnvVars.put("PRODUCT_UPDATED_TOPIC_ARN", props.getProductUpdatedTopic().getTopicArn());
-        functionEnvVars.put("PRICE_CALCULATED_TOPIC_ARN", priceCalculatedTopic.getTopicArn());
+        functionEnvVars.put("DD_SERVICE_MAPPING", String.format("lambda_sqs:%s", queue.getQueue().getQueueName()));
+        functionEnvVars.put("PRODUCT_CREATED_TOPIC_ARN", props.productCreatedTopic().getTopicArn());
+        functionEnvVars.put("PRODUCT_UPDATED_TOPIC_ARN", props.productUpdatedTopic().getTopicArn());
+        functionEnvVars.put("PRODUCT_DELETED_TOPIC_ARN", props.productDeletedTopic().getTopicArn());
+        functionEnvVars.put("EVENT_BUS_NAME", props.sharedEventBus().getEventBusName());
         
-        String compiledJarFilePath = "../product-pricing/target/com.product.pricing-0.0.1-SNAPSHOT-aws.jar";
+        String compiledJarFilePath = "../product-event-publisher/target/com.product.publisher-0.0.1-SNAPSHOT-aws.jar";
 
-        IFunction getProductFunction = new InstrumentedFunction(this, "PriceCalculatedJavaFunction",
-                new InstrumentedFunctionProps(props.getSharedProps(), "com.product.pricing", compiledJarFilePath, "handlePricingChanged", functionEnvVars)).getFunction();
-        priceCalculatedTopic.grantPublish(getProductFunction);
+        IFunction eventPublisherFunction = new InstrumentedFunction(this, "ProductEventPublisherFunction",
+                new InstrumentedFunctionProps(props.sharedProps(), "com.product.publisher", compiledJarFilePath, "handleInternalEvents", functionEnvVars)).getFunction();
+        props.sharedEventBus().grantPutEventsTo(eventPublisherFunction);
         
-        getProductFunction.addEventSource(new SnsEventSource(props.getProductCreatedTopic()));
-        getProductFunction.addEventSource(new SnsEventSource(props.getProductUpdatedTopic()));
+        eventPublisherFunction.addEventSource(new SqsEventSource(queue.getQueue(), SqsEventSourceProps.builder()
+                .reportBatchItemFailures(true)
+                .maxBatchingWindow(Duration.seconds(10))
+                .batchSize(10)
+                .build()));
         
-        StringParameter priceCalculatedTopicArnParam = new StringParameter(this, "PriceCalculatedTopicArn", StringParameterProps.builder()
-                .parameterName("/java/product-pricing/product-calculated-topic")
-                .stringValue(priceCalculatedTopic.getTopicArn())
-                .build());
-        StringParameter priceCalculatedTopicNameParam = new StringParameter(this, "PriceCalculatedTopicName", StringParameterProps.builder()
-                .parameterName("/java/product-pricing/product-calculated-topic-name")
-                .stringValue(priceCalculatedTopic.getTopicName())
-                .build());
+        props.productCreatedTopic().addSubscription(new SqsSubscription(queue.getQueue()));
+        props.productUpdatedTopic().addSubscription(new SqsSubscription(queue.getQueue()));
+        props.productDeletedTopic().addSubscription(new SqsSubscription(queue.getQueue()));
         
     }
 }

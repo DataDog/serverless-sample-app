@@ -111,7 +111,7 @@ public class ProductRepositoryImpl implements ProductRepository {
                     .withConditionExpression("attribute_exists(ProductId)")
                     .addKeyEntry(PARTITION_KEY, new AttributeValue(productId));
 
-            var deleteResult = this.dynamoDB.deleteItem(deleteItemRequest);
+            this.dynamoDB.deleteItem(deleteItemRequest);
             
             return true;
         }

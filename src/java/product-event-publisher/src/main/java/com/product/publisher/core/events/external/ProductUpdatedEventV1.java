@@ -1,9 +1,14 @@
 package com.product.publisher.core.events.external;
 
-public class ProductCreatedEventV1 {
+import io.opentracing.Span;
+
+import java.io.Serializable;
+
+public class ProductUpdatedEventV1 extends TracedEvent implements Serializable {
     private String productId;
     
-    public ProductCreatedEventV1(String productId){
+    public ProductUpdatedEventV1(Span activeSpan, String productId){
+        super(activeSpan);
         this.productId = productId;
     }
 

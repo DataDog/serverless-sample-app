@@ -1,4 +1,4 @@
-package com.product.pricing.core.events.internal;
+package com.product.publisher.core.events.internal;
 
 public class ProductDetails {
     private final String name;

@@ -3,14 +3,14 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>com.product.publisher</artifactId>
+    <artifactId>com.inventory.acl</artifactId>
     <version>0.0.1-SNAPSHOT</version><!-- @releaser:version-check-off -->
     <packaging>jar</packaging>
-    <name>com.product.publisher</name>
-    <description>Product Event Publisher Service</description>
+    <name>com.inventory.acl</name>
+    <description>Inventory Anti-Corruption Layer</description>
     <parent>
-        <groupId>com.product</groupId>
-        <artifactId>com.product</artifactId>
+        <groupId>com.javasample</groupId>
+        <artifactId>com.javasample</artifactId>
         <version>1.0.0</version>
     </parent>
     <properties>
@@ -45,12 +45,7 @@
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-dynamodb</artifactId>
-            <version>1.12.760</version>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-eventbridge</artifactId>
+            <artifactId>aws-java-sdk-sns</artifactId>
             <version>1.12.760</version>
         </dependency>
         <dependency>

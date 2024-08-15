@@ -1,4 +1,4 @@
-package com.product.publisher.config;
+package com.inventory.ordering.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;

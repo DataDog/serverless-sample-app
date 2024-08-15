@@ -1,4 +1,4 @@
-package com.product.pricing.config;
+package com.product.publisher.config;
 
 public class Config {
 }

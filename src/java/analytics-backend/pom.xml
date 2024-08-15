@@ -3,11 +3,11 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>com.inventory.acl</artifactId>
+    <artifactId>com.analytics</artifactId>
     <version>0.0.1-SNAPSHOT</version><!-- @releaser:version-check-off -->
     <packaging>jar</packaging>
-    <name>com.inventory.acl</name>
-    <description>Inventory Anti-Corruption Layer</description>
+    <name>com.analytics</name>
+    <description>Analytics Backend</description>
     <parent>
         <groupId>com.javasample</groupId>
         <artifactId>com.javasample</artifactId>
@@ -42,11 +42,6 @@
             <artifactId>aws-lambda-java-core</artifactId>
             <version>1.1.0</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-sns</artifactId>
-            <version>1.12.760</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -96,6 +91,11 @@
             <groupId>com.datadoghq</groupId>
             <artifactId>dd-trace-api</artifactId>
             <version>LATEST</version>
+        </dependency>
+        <dependency>
+            <groupId>com.timgroup</groupId>
+            <artifactId>java-statsd-client</artifactId>
+            <version>3.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -1,10 +1,11 @@
-package com.product.pricing.config;
+package com.inventory.ordering.config;
 
-import com.product.pricing.FunctionConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.inventory.ordering.FunctionConfiguration;
 
 @Configuration
 public class LoggingConfiguration {

@@ -1,49 +1,30 @@
-package com.inventory.acl.adapters;
+package com.product.publisher.adapters;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.Serializable;
 
-public class EventBridgeMessageWrapper<T> implements Serializable {
-    private static final long serialVersionUID = 1L;
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class SnsMessageWrapper<T> implements Serializable {
+    @JsonProperty("Message")
+    private T message;
+    
+    @JsonProperty("TopicArn")
+    private String topicArn;
 
-    @JsonProperty("detail")
-    private T detail;
-    @JsonProperty("detail-type")
-    private String detailType;
-    @JsonProperty("source")
-    private String source;
-
-    public EventBridgeMessageWrapper() {
+    public SnsMessageWrapper() {
     }
 
-    public EventBridgeMessageWrapper(String source, String detailType, T detail) {
-        this.source = source;
-        this.detailType = detailType;
-        this.detail = detail;
+    public SnsMessageWrapper(T message) {
+        this.message = message;
     }
 
-    public T getDetail() {
-        return detail;
+    public T getMessage() {
+        return message;
     }
 
-    public void setDetail(T detail) {
-        this.detail = detail;
-    }
-
-    public String getSource() {
-        return source;
-    }
-
-    public void setSource(String source) {
-        this.source = source;
-    }
-
-    public String getDetailType() {
-        return detailType;
-    }
-
-    public void setDetailType(String detailType) {
-        this.detailType = detailType;
+    public String getTopicArn() {
+        return topicArn;
     }
 }

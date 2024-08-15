@@ -7,6 +7,7 @@ import com.cdk.constructs.ResilientQueueProps;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.services.events.EventPattern;
+import software.amazon.awscdk.services.events.Match;
 import software.amazon.awscdk.services.events.Rule;
 import software.amazon.awscdk.services.events.RuleProps;
 import software.amazon.awscdk.services.events.targets.SqsQueue;
@@ -23,26 +24,23 @@ import software.constructs.Construct;
 import java.util.HashMap;
 import java.util.List;
 
-public class InventoryAcl extends Construct {
-    public InventoryAcl(@NotNull Construct scope, @NotNull String id, @NotNull InventoryAclProps props) {
+public class AnalyticsBackend extends Construct {
+    public AnalyticsBackend(@NotNull Construct scope, @NotNull String id, @NotNull AnalyticsBackendProps props) {
         super(scope, id);
 
-        ITopic newProductAddedTopic = new Topic(this, "NewProductAddedTopic", TopicProps.builder()
-                .topicName(String.format("JavaInventoryNewProductAddedTopic-%s", props.sharedProps().env()))
-                .build());
-
-        ResilientQueue queue = new ResilientQueue(this, "ProductCreatedEventQueue", new ResilientQueueProps("InventoryProductCreatedEventQueue", props.sharedProps()));
+        ResilientQueue queue = new ResilientQueue(this, "EventAnalyticsQueue", new ResilientQueueProps("EventAnalyticsQueue", props.sharedProps()));
         
         HashMap<String, String> functionEnvVars = new HashMap<>(2);
-        functionEnvVars.put("DD_SERVICE_MAPPING", String.format("lambda_sqs:%s,lambda_sns:%s", queue.getQueue().getQueueName(), newProductAddedTopic.getTopicName()));
+        functionEnvVars.put("DD_SERVICE_MAPPING", String.format("lambda_sqs:%s", queue.getQueue().getQueueName()));
         functionEnvVars.put("EVENT_BUS_NAME", props.sharedEventBus().getEventBusName());
-        functionEnvVars.put("NEW_PRODUCT_ADDED_TOPIC_ARN", newProductAddedTopic.getTopicArn());
+        functionEnvVars.put("DD_TRACE_PROPAGATION_STYLE", "none");
+        functionEnvVars.put("DD_TRACE_PROPAGATION_STYLE_EXTRACT", "none");
+        functionEnvVars.put("DD_TRACE_OTEL_ENABLED", "true");
         
-        String compiledJarFilePath = "../inventory-acl/target/com.inventory.acl-0.0.1-SNAPSHOT-aws.jar";
+        String compiledJarFilePath = "../analytics-backend/target/com.analytics-0.0.1-SNAPSHOT-aws.jar";
 
-        IFunction productCreatedEventHandlerFunction = new InstrumentedFunction(this, "InventoryAclFunction",
-                new InstrumentedFunctionProps(props.sharedProps(), "com.inventory.acl", compiledJarFilePath, "handleProductCreatedEvent", functionEnvVars)).getFunction();
-        newProductAddedTopic.grantPublish(productCreatedEventHandlerFunction);
+        IFunction productCreatedEventHandlerFunction = new InstrumentedFunction(this, "AnalyticsBackendFunction",
+                new InstrumentedFunctionProps(props.sharedProps(), "com.analytics", compiledJarFilePath, "handleEvents", functionEnvVars)).getFunction();
         
         productCreatedEventHandlerFunction.addEventSource(new SqsEventSource(queue.getQueue(), SqsEventSourceProps.builder()
                 .reportBatchItemFailures(true)
@@ -50,22 +48,12 @@ public class InventoryAcl extends Construct {
                 .batchSize(10)
                 .build()));
 
-        Rule rule = new Rule(this, "InventoryProductCreatedRule", RuleProps.builder()
+        Rule rule = new Rule(this, "AnalyticsCatchAllRule", RuleProps.builder()
                 .eventBus(props.sharedEventBus())
                 .build());
         rule.addEventPattern(EventPattern.builder()
-                        .detailType(List.of("product.productCreated.v1"))
-                        .source(List.of(String.format("%s.products", props.sharedProps().env())))
+                        .source(Match.prefix(props.sharedProps().env()))
                 .build());
         rule.addTarget(new SqsQueue(queue.getQueue()));
-
-        StringParameter newProductAddedTopicArnParam = new StringParameter(this, "ProductAddedTopicArn", StringParameterProps.builder()
-                .parameterName("/java/inventory/product-added-topic")
-                .stringValue(newProductAddedTopic.getTopicArn())
-                .build());
-        StringParameter newProductAddedTopicNameParam = new StringParameter(this, "ProductAddedTopicName", StringParameterProps.builder()
-                .parameterName("/java/inventory/product-added-topic-name")
-                .stringValue(newProductAddedTopic.getTopicName())
-                .build());
     }
 }

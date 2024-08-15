@@ -1,14 +1,14 @@
-package com.product.pricing.config;
+package com.product.publisher.config;
 
-import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.AmazonSNSAsyncClientBuilder;
+import com.amazonaws.services.eventbridge.AmazonEventBridge;
+import com.amazonaws.services.eventbridge.AmazonEventBridgeClientBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class AwsConfiguration {
     @Bean
-    public AmazonSNS amazonSNS() {
-        return AmazonSNSAsyncClientBuilder.standard().build();
+    public AmazonEventBridge amazonSNS() {
+        return AmazonEventBridgeClientBuilder.standard().build();
     }
 }

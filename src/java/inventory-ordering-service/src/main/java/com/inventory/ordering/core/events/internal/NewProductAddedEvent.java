@@ -1,16 +1,16 @@
-package com.product.publisher.core.events.internal;
+package com.inventory.ordering.core.events.internal;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ProductDeletedEvent {
+public class NewProductAddedEvent {
     private String productId;
 
-    public ProductDeletedEvent(){
+    public NewProductAddedEvent(){
         this.productId = "";
     }
     
-    public ProductDeletedEvent(String productId) {
+    public NewProductAddedEvent(String productId) {
         this.productId = productId;
     }
 
