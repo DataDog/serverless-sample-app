@@ -1,6 +1,6 @@
 # Java Implementation
 
-This README contains relevant instructions for deploying the sample application with each of the available IaC tools. As well as details on any Node specific implementation details when instrumenting with Datadog.
+This README contains relevant instructions for deploying the sample application with each of the available IaC tools. As well as details on any Java specific implementation details when instrumenting with Datadog.
 
 ## Testing
 
@@ -94,7 +94,7 @@ The `template.yaml` file contains an example of using a nested stack to deploy a
 
 ```sh
 sam build
-sam deploy --stack-name NodeTracing --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $AWS_REGION
+sam deploy --stack-name JavaTracing --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $AWS_REGION
 ```
 
 To deploy individual stacks and resources, you can use the below commands.
@@ -102,35 +102,35 @@ To deploy individual stacks and resources, you can use the below commands.
 ```sh
 # Deploy Shared Resoures
 sam build -t template-shared.yaml &&
-sam deploy --stack-name NodeSharedStack --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
+sam deploy --stack-name JavaSharedStack --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
 
 # Deploy API
 sam build -t template-api.yaml &&
-sam deploy --stack-name NodeProductApiStack --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
+sam deploy --stack-name JavaProductApiStack --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
 
 # Deploy Pricing Service
 sam build -t template-pricing-service.yaml &&
-sam deploy --stack-name NodeProductPricingServiceStack --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
+sam deploy --stack-name JavaProductPricingServiceStack --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
 
 # Deploy Public Event Publisher
 sam build -t template-product-event-publisher.yaml &&
-sam deploy --stack-name NodeProductPublicEventPublisherStack --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
+sam deploy --stack-name JavaProductPublicEventPublisherStack --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
 
 # Deploy Product API worker
 sam build -t template-product-api-worker.yaml &&
-sam deploy --stack-name NodeProductApiWorkerStack --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
+sam deploy --stack-name JavaProductApiWorkerStack --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
 
 # Deploy Inventory ACL
 sam build -t template-inventory-acl.yaml &&
-sam deploy --stack-name NodeInventoryAcl --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
+sam deploy --stack-name JavaInventoryAcl --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
 
 # Deploy Inventory Ordering Service
 sam build -t template-inventory-ordering-service.yaml &&
-sam deploy --stack-name NodeInventoryOrderingService --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION
+sam deploy --stack-name JavaInventoryOrderingService --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION
 
 # Deploy Analytics Backend
 sam build -t template-analytics-service.yaml &&
-sam deploy --stack-name NodeAnalyticsService --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION
+sam deploy --stack-name JavaAnalyticsService --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION
 ```
 
 ### Cleanup
@@ -138,22 +138,22 @@ sam deploy --stack-name NodeAnalyticsService --parameter-overrides ParameterKey=
 Use the below `sh` script to cleanup resources deployed with AWS SAM.
 
 ```sh
-sam delete --stack-name NodeInventoryOrderingService --region $AWS_REGION --no-prompts &&
-sam delete --stack-name NodeInventoryAcl --region $AWS_REGION --no-prompts &&
-sam delete --stack-name NodeProductApiWorkerStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name NodeProductPublicEventPublisherStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name NodeProductPricingServiceStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name NodeProductApiStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name NodeSharedStack --region $AWS_REGION --no-prompts
+sam delete --stack-name JavaInventoryOrderingService --region $AWS_REGION --no-prompts &&
+sam delete --stack-name JavaInventoryAcl --region $AWS_REGION --no-prompts &&
+sam delete --stack-name JavaProductApiWorkerStack --region $AWS_REGION --no-prompts &&
+sam delete --stack-name JavaProductPublicEventPublisherStack --region $AWS_REGION --no-prompts &&
+sam delete --stack-name JavaProductPricingServiceStack --region $AWS_REGION --no-prompts &&
+sam delete --stack-name JavaProductApiStack --region $AWS_REGION --no-prompts &&
+sam delete --stack-name JavaSharedStack --region $AWS_REGION --no-prompts
 ```
 
 ## Terraform
 
-Terraform does not natively support transpiling Typescript into JS code. When deploying with Typescript, you first need to transpile and ZIP up the typescript code. The [`deploy.sh`](./deploy.sh) script performs this action. Iterating over all of the `build*.js` files and running esbuild before zipping up all folders in the output folder.
+Terraform does not natively support compiling Java code. When deploying with Java, you first need to compile your Java code. Terraform includes a `archive_file` resources that is used to generate the ZIP of your `.jar` file. The [`deploy.sh`](./deploy.sh) script performs this action. Running `mvn clean package` and then `terraform apply`.
 
 ### Configuration
 
-A customer [`lambda_function`](./infra/modules/lambda-function/main.tf) module is used to group together all the functionality for deploying Lambda functions. This handles the creation of the CloudWatch Log Groups, and default IAM roles.
+A custom [`lambda_function`](./infra/modules/lambda-function/main.tf) module is used to group together all the functionality for deploying Lambda functions. This handles the creation of the CloudWatch Log Groups, and default IAM roles.
 
 The Datadog Lambda Terraform module is used to create and configure the Lambda function with the required extensions, layers and configurations.
 
@@ -168,7 +168,7 @@ module "aws_lambda_function" {
   function_name            = var.function_name
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = var.lambda_handler
-  runtime                  = "nodejs20.x"
+  runtime                  = "java21"
   memory_size              = 512
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
   source_code_hash = "${filebase64sha256(var.zip_file)}"
@@ -188,7 +188,7 @@ module "aws_lambda_function" {
   )
 
   datadog_extension_layer_version = 62
-  datadog_node_layer_version      = 112
+  datadog_java_layer_version      = 15
 }
 ```
 
