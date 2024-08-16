@@ -23,7 +23,7 @@ resource "aws_iam_role" "lambda_function_role" {
 }
 
 resource "aws_iam_policy" "function_logging_policy" {
-  name = "${var.function_name}-logging-policy"
+  name = "${var.function_name}-${var.env}-logging-policy"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -40,7 +40,7 @@ resource "aws_iam_policy" "function_logging_policy" {
 }
 
 resource "aws_iam_policy" "dd_api_secret_policy" {
-  name = "${var.function_name}-api-key-secret-policy"
+  name = "${var.function_name}-${var.env}-api-key-secret-policy"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -66,7 +66,7 @@ resource "aws_iam_role_policy_attachment" "secrets_retrieval_policy_attachment" 
 }
 
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
-  name              = "/aws/lambda/${var.function_name}"
+  name              = "/aws/lambda/Java-${var.function_name}-${var.env}"
   retention_in_days = 7
   lifecycle {
     prevent_destroy = false
@@ -79,7 +79,7 @@ module "aws_lambda_function" {
   version = "1.3.0"
 
   filename                 = var.jar_file
-  function_name            = "${var.function_name}-${var.env}"
+  function_name            = "Java-${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = "org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest"
   runtime                  = "java21"
