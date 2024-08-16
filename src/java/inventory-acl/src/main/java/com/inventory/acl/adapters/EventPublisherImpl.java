@@ -6,7 +6,6 @@
 
 package com.inventory.acl.adapters;
 
-import com.amazonaws.services.sns.AmazonSNS;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inventory.acl.core.EventPublisher;
@@ -15,14 +14,16 @@ import com.inventory.acl.core.events.internal.NewProductAddedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
 
 @Component
 public class EventPublisherImpl implements EventPublisher {
-    private final AmazonSNS snsClient;
+    private final SnsClient snsClient;
     private final ObjectMapper mapper;
     private final Logger logger = LoggerFactory.getLogger(EventPublisher.class);
 
-    public EventPublisherImpl(AmazonSNS snsClient, ObjectMapper mapper) {
+    public EventPublisherImpl(SnsClient snsClient, ObjectMapper mapper) {
         this.snsClient = snsClient;
         this.mapper = mapper;
     }
@@ -30,10 +31,12 @@ public class EventPublisherImpl implements EventPublisher {
     @Override
     public void publishNewProductAddedEvent(NewProductAddedEvent evt) {
         try {
-            this.snsClient.publish(System.getenv("NEW_PRODUCT_ADDED_TOPIC_ARN"), this.mapper.writeValueAsString(evt));
+            this.snsClient.publish(PublishRequest.builder()
+                    .topicArn(System.getenv("NEW_PRODUCT_ADDED_TOPIC_ARN"))
+                    .message(this.mapper.writeValueAsString(evt))
+                    .build());
 
-        }
-        catch (JsonProcessingException exception) {
+        } catch (JsonProcessingException exception) {
         }
     }
 }

@@ -6,15 +6,14 @@
 
 package com.inventory.ordering.config;
 
-import com.amazonaws.services.stepfunctions.AWSStepFunctions;
-import com.amazonaws.services.stepfunctions.AWSStepFunctionsClientBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.services.sfn.SfnClient;
 
 @Configuration
 public class AwsConfiguration {
     @Bean
-    public AWSStepFunctions awsStepFunctions() {
-        return AWSStepFunctionsClientBuilder.standard().build();
+    public SfnClient awsStepFunctions() {
+        return SfnClient.builder().build();
     }
 }

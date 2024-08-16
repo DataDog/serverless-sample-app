@@ -38,6 +38,6 @@ scenarios:
             id: "{{ Id }}"
             name: "{{ Name }}"
             price: "{{ UpdatedPrice }}"
-      - think: 1
+      - think: 10
       - delete:
           url: "/product/{{ Id }}"

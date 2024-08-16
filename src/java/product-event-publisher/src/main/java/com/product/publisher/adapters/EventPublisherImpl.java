@@ -6,9 +6,6 @@
 
 package com.product.publisher.adapters;
 
-import com.amazonaws.services.eventbridge.AmazonEventBridge;
-import com.amazonaws.services.eventbridge.model.PutEventsRequest;
-import com.amazonaws.services.eventbridge.model.PutEventsRequestEntry;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.product.publisher.core.EventPublisher;
@@ -22,17 +19,20 @@ import io.opentracing.util.GlobalTracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsRequest;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
 
 import java.util.Collections;
 import java.util.List;
 
 @Component
 public class EventPublisherImpl implements EventPublisher {
-    private final AmazonEventBridge eventBridgeClient;
+    private final EventBridgeClient eventBridgeClient;
     private final ObjectMapper mapper;
     private final Logger logger = LoggerFactory.getLogger(EventPublisher.class);
 
-    public EventPublisherImpl(AmazonEventBridge eventBridgeClient, ObjectMapper mapper) {
+    public EventPublisherImpl(EventBridgeClient eventBridgeClient, ObjectMapper mapper) {
         this.eventBridgeClient = eventBridgeClient;
         this.mapper = mapper;
     }
@@ -97,12 +97,15 @@ public class EventPublisherImpl implements EventPublisher {
         
         this.logger.info(String.format("Publishing %s from %s to %s", detailType, source, eventBusName));
         
-        PutEventsRequest request = new PutEventsRequest()
-                .withEntries(List.of(new PutEventsRequestEntry()
-                        .withEventBusName(eventBusName)
-                        .withSource(source)
-                        .withDetailType(detailType)
-                        .withDetail(detail)));
+        PutEventsRequest request = PutEventsRequest
+                .builder()
+                .entries(List.of(PutEventsRequestEntry.builder()
+                        .eventBusName(eventBusName)
+                        .source(source)
+                        .detailType(detailType)
+                        .detail(detail)
+                        .build()))
+                .build();
         
         eventBridgeClient.putEvents(request);
     }

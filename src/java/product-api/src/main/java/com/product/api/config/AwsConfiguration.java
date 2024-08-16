@@ -6,21 +6,19 @@
 
 package com.product.api.config;
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
-import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.AmazonSNSClientBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.sns.SnsClient;
 
 @Configuration
 public class AwsConfiguration {
     @Bean
-    public AmazonDynamoDB amazonDynamoDB() {
-        return AmazonDynamoDBClientBuilder.standard().build();
+    public DynamoDbClient amazonDynamoDB() {
+        return DynamoDbClient.builder().build();
     }
     @Bean
-    public AmazonSNS amazonSNS() {
-        return AmazonSNSClientBuilder.standard().build();
+    public SnsClient amazonSNS() {
+        return SnsClient.builder().build();
     }
 }

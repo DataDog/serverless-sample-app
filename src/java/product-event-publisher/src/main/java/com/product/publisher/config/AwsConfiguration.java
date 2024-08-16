@@ -6,15 +6,14 @@
 
 package com.product.publisher.config;
 
-import com.amazonaws.services.eventbridge.AmazonEventBridge;
-import com.amazonaws.services.eventbridge.AmazonEventBridgeClientBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 
 @Configuration
 public class AwsConfiguration {
     @Bean
-    public AmazonEventBridge amazonSNS() {
-        return AmazonEventBridgeClientBuilder.standard().build();
+    public EventBridgeClient eventBridgeClient() {
+        return EventBridgeClient.builder().build();
     }
 }
