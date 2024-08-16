@@ -56,7 +56,7 @@ You first need to compile your Java application code, before running `cdk deploy
 ```sh
 export DD_SECRET_ARN=<YOUR SECRET ARN>
 mvn clean package
-cd infra
+cd cdk
 cdk deploy --all --require-approval never
 ```
 
