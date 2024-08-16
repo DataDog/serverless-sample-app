@@ -6,16 +6,17 @@
 
 package com.analytics.config;
 
-import com.timgroup.statsd.NonBlockingStatsDClient;
-import com.timgroup.statsd.StatsDClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.timgroup.statsd.NonBlockingStatsDClientBuilder;
+import com.timgroup.statsd.StatsDClient;
 
 @Configuration
 public class MetricConfiguration {
     
     @Bean
     public StatsDClient getStatsDClient() {
-        return new NonBlockingStatsDClient("statsd", "localhost", 8125);
+        return new NonBlockingStatsDClientBuilder().hostname("localhost").build();
     }
 }
