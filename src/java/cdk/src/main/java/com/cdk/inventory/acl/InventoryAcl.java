@@ -45,7 +45,7 @@ public class InventoryAcl extends Construct {
         HashMap<String, String> functionEnvVars = new HashMap<>(2);
         functionEnvVars.put("DD_SERVICE_MAPPING", String.format("lambda_sqs:%s,lambda_sns:%s", queue.getQueue().getQueueName(), newProductAddedTopic.getTopicName()));
         functionEnvVars.put("EVENT_BUS_NAME", props.sharedEventBus().getEventBusName());
-        functionEnvVars.put("NEW_PRODUCT_ADDED_TOPIC_ARN", newProductAddedTopic.getTopicArn());
+        functionEnvVars.put("PRODUCT_ADDED_TOPIC_ARN", newProductAddedTopic.getTopicArn());
         
         String compiledJarFilePath = "../inventory-acl/target/com.inventory.acl-0.0.1-SNAPSHOT-aws.jar";
 

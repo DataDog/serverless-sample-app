@@ -66,7 +66,7 @@ resource "aws_cloudwatch_event_rule" "event_rule" {
     "product.productCreated.v1"
   ],
   "source": [
-    "${var.env}.orders"
+    "${var.env}.products"
   ]
 }
 EOF

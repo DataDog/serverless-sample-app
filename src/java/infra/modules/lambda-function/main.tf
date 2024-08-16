@@ -79,7 +79,7 @@ module "aws_lambda_function" {
   version = "1.3.0"
 
   filename                 = var.jar_file
-  function_name            = var.function_name
+  function_name            = "${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = "org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest"
   runtime                  = "java21"
