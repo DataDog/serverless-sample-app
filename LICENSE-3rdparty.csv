@@ -25,3 +25,16 @@ typescript,https://github.com/Microsoft/TypeScript,Apache-2.0,Microsoft
 uuid,https://github.com/uuidjs/uuid,MIT,
 @aws-lambda-powertools/logger,https://github.com/aws-powertools/powertools-lambda-typescript,MIT-0,Amazon Web Services
 zod,https://github.com/colinhacks/zod,MIT,
+spring-cloud-context,,Apache-2.0,
+spring-cloud-function-adapter-aws,,Apache-2.0,
+aws-lambda-java-events,https://github.com/aws/aws-lambda-java-libs/tree/main/aws-lambda-java-events,Apache-2.0,Amazon Web Services
+aws-lambda-java-core,https://github.com/aws/aws-lambda-java-libs/tree/main/aws-lambda-java-events,Apache-2.0,Amazon Web Services
+jackson-databind,https://github.com/FasterXML/jackson-databind,Apache-2.0,
+jackson-core,https://github.com/FasterXML/jackson-core,Apache-2.0,
+slf4j-api,https://github.com/qos-ch/slf4j,MIT,
+logback-classic,https://github.com/qos-ch/logback,GNU,
+logback-json-classic,https://github.com/qos-ch/logback,GNU,
+opentracing-api,https://github.com/opentracing/opentracing-java,Apache-2.0,
+opentracing-util,https://github.com/opentracing/opentracing-java,Apache-2.0,
+dd-trace-java,https://github.com/DataDog/dd-trace-java,Apache-2.0,Datadog
+software.amazon.awssdk,https://github.com/aws/aws-sdk-java-v2,Apache-2.0,Amazon Web Services

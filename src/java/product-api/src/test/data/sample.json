@@ -1,0 +1,22 @@
+[
+  {
+    "quantity": 5.0,
+    "price": 12.3405
+  },
+  {
+    "quantity": 10.0,
+    "price": 11.691
+  },
+  {
+    "quantity": 25.0,
+    "price": 10.392000000000001
+  },
+  {
+    "quantity": 50.0,
+    "price": 9.7425
+  },
+  {
+    "quantity": 100.0,
+    "price": 9.093
+  }
+]

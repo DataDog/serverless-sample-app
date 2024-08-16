@@ -1,13 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
+  ~ This product includes software developed at Datadog (https://www.datadoghq.com/).
+  ~ Copyright 2024 Datadog, Inc.
+  -->
+
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.orders</groupId>
-    <artifactId>com.orders</artifactId>
+    <groupId>com.javasample</groupId>
+    <artifactId>com.javasample</artifactId>
     <version>1.0.0</version>
     <packaging>pom</packaging>
     <modules>
-        <module>application</module>
-        <module>infra</module>
+        <module>product-api</module>
+        <module>product-pricing</module>
+        <module>product-event-publisher</module>
+        <module>inventory-acl</module>
+        <module>inventory-ordering-service</module>
+        <module>analytics-backend</module>
+        <module>cdk</module>
     </modules>
 </project>
