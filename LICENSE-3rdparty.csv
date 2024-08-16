@@ -38,3 +38,4 @@ opentracing-api,https://github.com/opentracing/opentracing-java,Apache-2.0,
 opentracing-util,https://github.com/opentracing/opentracing-java,Apache-2.0,
 dd-trace-java,https://github.com/DataDog/dd-trace-java,Apache-2.0,Datadog
 software.amazon.awssdk,https://github.com/aws/aws-sdk-java-v2,Apache-2.0,Amazon Web Services
+java-dogstatsd-client,https://github.com/DataDog/java-dogstatsd-client,MIT,Datadog
