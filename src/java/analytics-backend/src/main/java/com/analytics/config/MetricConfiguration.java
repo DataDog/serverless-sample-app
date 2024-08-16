@@ -6,7 +6,6 @@
 
 package com.analytics.config;
 
-import com.timgroup.statsd.ConvenienceMethodProvidingStatsDClient;
 import com.timgroup.statsd.NonBlockingStatsDClient;
 import com.timgroup.statsd.StatsDClient;
 import org.springframework.context.annotation.Bean;

@@ -14,12 +14,21 @@ import com.product.api.core.ProductCreatedEvent;
 import com.product.api.core.ProductDeletedEvent;
 import com.product.api.core.ProductUpdatedEvent;
 
+import io.opentracing.Span;
+import io.opentracing.log.Fields;
+import io.opentracing.tag.Tags;
+import io.opentracing.util.GlobalTracer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.Collections;
 
 @Component
 public class EventPublisherImpl implements EventPublisher {
     private final AmazonSNS sns;
     private final ObjectMapper mapper;
+    private final Logger logger = LoggerFactory.getLogger(EventPublisherImpl.class);
 
     public EventPublisherImpl(AmazonSNS sns, ObjectMapper mapper) {
         this.sns = sns;
@@ -27,38 +36,41 @@ public class EventPublisherImpl implements EventPublisher {
     }
 
     @Override
-    public boolean publishProductCreatedEvent(ProductCreatedEvent evt) {
+    public void publishProductCreatedEvent(ProductCreatedEvent evt) {
+        final Span span = GlobalTracer.get().activeSpan();
         try {
             sns.publish(System.getenv("PRODUCT_CREATED_TOPIC_ARN"), this.mapper.writeValueAsString(evt));
-            
-            return true;
         }
-        catch (JsonProcessingException exception) {
-            return false;
+        catch (JsonProcessingException error) {
+            logger.error("An exception occurred!", error);
+            span.setTag(Tags.ERROR, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, error));
         }
     }
 
     @Override
-    public boolean publishProductUpdatedEvent(ProductUpdatedEvent evt) {
+    public void publishProductUpdatedEvent(ProductUpdatedEvent evt) {
+        final Span span = GlobalTracer.get().activeSpan();
         try {
             sns.publish(System.getenv("PRODUCT_UPDATED_TOPIC_ARN"), this.mapper.writeValueAsString(evt));
-
-            return true;
         }
-        catch (JsonProcessingException exception) {
-            return false;
+        catch (JsonProcessingException error) {
+            logger.error("An exception occurred!", error);
+            span.setTag(Tags.ERROR, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, error));
         }
     }
 
     @Override
-    public boolean publishProductDeletedEvent(ProductDeletedEvent evt) {
+    public void publishProductDeletedEvent(ProductDeletedEvent evt) {
+        final Span span = GlobalTracer.get().activeSpan();
         try {
             sns.publish(System.getenv("PRODUCT_DELETED_TOPIC_ARN"), this.mapper.writeValueAsString(evt));
-
-            return true;
         }
-        catch (JsonProcessingException exception) {
-            return false;
+        catch (JsonProcessingException error) {
+            logger.error("An exception occurred!", error);
+            span.setTag(Tags.ERROR, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, error));
         }
     }
 }

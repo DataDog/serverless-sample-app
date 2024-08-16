@@ -6,21 +6,16 @@
 
 package com.cdk;
 
-import com.cdk.analytics.AnalyticsBackend;
 import com.cdk.analytics.AnalyticsBackendStack;
 import com.cdk.inventory.acl.InventoryAclStack;
-import com.cdk.inventory.ordering.InventoryOrderingService;
 import com.cdk.inventory.ordering.InventoryOrderingServiceStack;
 import com.cdk.product.api.ProductApiStack;
 import com.cdk.product.apiworker.ProductApiWorkerStack;
 import com.cdk.product.pricing.PricingServiceStack;
-import com.cdk.product.publisher.ProductEventPublisher;
 import com.cdk.product.publisher.ProductEventPublisherStack;
 import com.cdk.shared.SharedStack;
-import com.fasterxml.jackson.databind.introspect.AnnotatedAndMetadata;
 import software.amazon.awscdk.App;
 import software.amazon.awscdk.StackProps;
-import software.amazon.awscdk.services.servicecatalog.Product;
 
 public class JavaTraceSampleApp {
     public static void main(final String[] args) {

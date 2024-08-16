@@ -8,7 +8,6 @@ package com.cdk.product.pricing;
 
 import com.cdk.constructs.InstrumentedFunction;
 import com.cdk.constructs.InstrumentedFunctionProps;
-import com.cdk.constructs.SharedProps;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.services.lambda.IFunction;
 import software.amazon.awscdk.services.lambda.eventsources.SnsEventSource;

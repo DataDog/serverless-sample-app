@@ -11,8 +11,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 
 public class EventBridgeMessageWrapper<T> implements Serializable {
-    private static final long serialVersionUID = 1L;
-
     @JsonProperty("detail")
     private T detail;
     @JsonProperty("detail-type")

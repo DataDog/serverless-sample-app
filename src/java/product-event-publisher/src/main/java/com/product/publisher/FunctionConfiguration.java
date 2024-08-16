@@ -6,14 +6,12 @@
 
 package com.product.publisher;
 
-import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 import com.amazonaws.services.lambda.runtime.events.SQSBatchResponse;
 import com.amazonaws.services.lambda.runtime.events.SQSEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.product.publisher.adapters.SnsMessageDetails;
-import com.product.publisher.adapters.SnsMessageWrapper;
 import com.product.publisher.core.InternalEventHandler;
 import com.product.publisher.core.events.internal.ProductCreatedEvent;
 import com.product.publisher.core.events.internal.ProductDeletedEvent;
@@ -29,7 +27,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
-import java.lang.constant.Constable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

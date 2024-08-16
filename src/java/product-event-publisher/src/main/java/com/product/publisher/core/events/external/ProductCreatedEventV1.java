@@ -6,9 +6,7 @@
 
 package com.product.publisher.core.events.external;
 
-import datadog.trace.api.Trace;
 import io.opentracing.Span;
-import io.opentracing.util.GlobalTracer;
 
 import java.io.Serializable;
 

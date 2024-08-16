@@ -6,11 +6,9 @@
 
 package com.product.api;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.product.api.core.ProductCreatedEvent;
 import com.product.api.core.ProductPriceBracket;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +27,7 @@ public class EventTests {
 
         var eventSample = Files.readString(Path.of("src/test/data/sample.json"), Charset.defaultCharset());
 
-        List<ProductPriceBracket> brackets = objectMapper.readValue(eventSample, new TypeReference<List<ProductPriceBracket>>(){});
+        List<ProductPriceBracket> brackets = objectMapper.readValue(eventSample, new TypeReference<>(){});
 
         assertEquals(5, brackets.size());
     }

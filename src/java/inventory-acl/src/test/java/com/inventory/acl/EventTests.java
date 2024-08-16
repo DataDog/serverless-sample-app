@@ -6,7 +6,6 @@
 
 package com.inventory.acl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,7 +27,7 @@ public class EventTests {
 
         var eventSample = Files.readString(Path.of("src/test/data/sample-event.json"), Charset.defaultCharset());
 
-        TypeReference<EventBridgeMessageWrapper<ProductCreatedEventV1>> typeRef = new TypeReference<EventBridgeMessageWrapper<ProductCreatedEventV1>>(){};
+        TypeReference<EventBridgeMessageWrapper<ProductCreatedEventV1>> typeRef = new TypeReference<>(){};
 
         EventBridgeMessageWrapper<ProductCreatedEventV1> evtWrapper = objectMapper.readValue(eventSample, typeRef);
         
