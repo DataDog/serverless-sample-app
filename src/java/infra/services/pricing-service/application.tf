@@ -14,8 +14,8 @@ module "product_pricing_created_handler" {
   package_name = "com.product.pricing"
   source         = "../../modules/lambda-function"
   jar_file       = "../product-pricing/target/com.product.pricing-0.0.1-SNAPSHOT-aws.jar"
-  function_name  = "handleProductCreated"
-  lambda_handler = "index.handler"
+  function_name  = "JavaProductCreatedPricingHandler"
+  lambda_handler = "handleProductCreated"
   environment_variables = {
     PRICE_CALCULATED_TOPIC_ARN: aws_sns_topic.product_price_calculated.arn
     DD_SERVICE_MAPPING: "lambda_sns:${aws_sns_topic.product_price_calculated.name}"
