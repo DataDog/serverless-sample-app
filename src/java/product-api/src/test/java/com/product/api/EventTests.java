@@ -1,3 +1,9 @@
+/*
+ * Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
+ * This product includes software developed at Datadog (https://www.datadoghq.com/).
+ * Copyright 2024 Datadog, Inc.
+ */
+
 package com.product.api;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -18,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class EventTests {
     @Test
-    public void testPriceBracketDeserialization() throws JsonProcessingException, IOException {
+    public void testPriceBracketDeserialization() throws IOException {
         var objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         var eventSample = Files.readString(Path.of("src/test/data/sample.json"), Charset.defaultCharset());

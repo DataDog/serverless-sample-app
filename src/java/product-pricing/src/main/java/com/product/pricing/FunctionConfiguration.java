@@ -1,3 +1,9 @@
+/*
+ * Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
+ * This product includes software developed at Datadog (https://www.datadoghq.com/).
+ * Copyright 2024 Datadog, Inc.
+ */
+
 package com.product.pricing;
 
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;
@@ -34,27 +40,36 @@ public class FunctionConfiguration {
     }
 
     @Bean
-    public Function<SNSEvent, String> handlePricingChanged() {
+    public Function<SNSEvent, String> handleProductCreated() {
         return value -> {
             final Span span = GlobalTracer.get().activeSpan();
 
             try {
-                String productCreatedTopicArn = System.getenv("PRODUCT_CREATED_TOPIC_ARN");
-                String productUpdatedTopicArn = System.getenv("PRODUCT_UPDATED_TOPIC_ARN");
                 for (SNSEvent.SNSRecord record : value.getRecords()) {
-                    if (record.getSNS().getTopicArn().equals(productCreatedTopicArn)) {
-                        ProductCreatedEvent evt = this.objectMapper.readValue(record.getSNS().getMessage(), ProductCreatedEvent.class);
+                    ProductCreatedEvent evt = this.objectMapper.readValue(record.getSNS().getMessage(), ProductCreatedEvent.class);
 
-                        this.pricingService.calculatePricing(evt.getProductId(), evt.getPrice());
-                    } else if (record.getSNS().getTopicArn().equals(productUpdatedTopicArn)) {
-                        ProductUpdatedEvent evt = this.objectMapper.readValue(record.getSNS().getMessage(), ProductUpdatedEvent.class);
+                    this.pricingService.calculatePricing(evt.getProductId(), evt.getPrice());
+                }
+            } catch (JsonProcessingException | Error exception) {
+                logger.error("An exception occurred!", exception);
+                span.setTag(Tags.ERROR, true);
+                span.log(Collections.singletonMap(Fields.ERROR_OBJECT, exception));
+            }
 
-                        this.pricingService.calculatePricing(evt.getProductId(), evt.getUpdated().getPrice());
-                    } else {
-                        this.logger.warn(String.format("Unknown topic ARN %s", record.getSNS().getTopicArn()));
-                        span.setTag(Tags.ERROR, true);
-                        span.setTag("error.message", String.format("Unknown topic ARN %s", record.getSNS().getTopicArn()));
-                    }
+            return "OK";
+        };
+    }
+
+    @Bean
+    public Function<SNSEvent, String> handleProductUpdated() {
+        return value -> {
+            final Span span = GlobalTracer.get().activeSpan();
+
+            try {
+                for (SNSEvent.SNSRecord record : value.getRecords()) {
+                    ProductUpdatedEvent evt = this.objectMapper.readValue(record.getSNS().getMessage(), ProductUpdatedEvent.class);
+
+                    this.pricingService.calculatePricing(evt.getProductId(), evt.getUpdated().getPrice());
                 }
             } catch (JsonProcessingException | Error exception) {
                 logger.error("An exception occurred!", exception);

@@ -1,3 +1,9 @@
+/*
+ * Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
+ * This product includes software developed at Datadog (https://www.datadoghq.com/).
+ * Copyright 2024 Datadog, Inc.
+ */
+
 package com.product.api.core.events.internal;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -6,8 +12,8 @@ import java.util.HashMap;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ProductPriceCalculatedEvent {
-    private String productId;
-    private HashMap<Double, Double> priceBrackets;
+    private final String productId;
+    private final HashMap<Double, Double> priceBrackets;
 
     public ProductPriceCalculatedEvent(){
         this.productId = "";

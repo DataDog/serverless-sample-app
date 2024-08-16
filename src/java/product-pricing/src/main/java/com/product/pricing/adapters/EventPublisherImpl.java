@@ -1,3 +1,9 @@
+/*
+ * Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
+ * This product includes software developed at Datadog (https://www.datadoghq.com/).
+ * Copyright 2024 Datadog, Inc.
+ */
+
 package com.product.pricing.adapters;
 
 import com.amazonaws.services.sns.AmazonSNS;
@@ -21,11 +27,9 @@ public class EventPublisherImpl implements EventPublisher {
     public void publishPriceCalculatedEvent(ProductPriceCalculatedEvent evt) {
         try {
             sns.publish(System.getenv("PRICE_CALCULATED_TOPIC_ARN"), this.mapper.writeValueAsString(evt));
-            
-            return;
+
         }
         catch (JsonProcessingException exception) {
-            return;
         }
     }
 }
