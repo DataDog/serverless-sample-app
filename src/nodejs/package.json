@@ -9,7 +9,13 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "dev:sst": "sst dev --stage=personal",
+    "build:sst": "sst build --stage=dev",
+    "deploy:sst": "sst deploy --stage=dev",
+    "remove:sst:personal": "sst remove --stage=personal",
+    "remove:sst": "sst remove --stage=dev",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@aws-sdk/client-cloudformation": "^3.596.0",
@@ -37,6 +43,7 @@
     "serverless-plugin-datadog": "^5.69.0",
     "serverless-step-functions": "^3.21.0",
     "source-map-support": "^0.5.21",
+    "sst": "^2.43.6",
     "ts-jest": "^29.1.4",
     "ts-node": "^10.9.2",
     "typescript": "~5.4.5",

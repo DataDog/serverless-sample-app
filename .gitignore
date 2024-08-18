@@ -345,3 +345,7 @@ override.tf.json
 terraform.rc
 
 **/.serverless/*
+
+# sst
+.sst
+.build
