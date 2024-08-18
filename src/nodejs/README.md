@@ -282,15 +282,15 @@ serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=
 serverless remove --stage dev --region=${AWS_REGION} --config serverless-shared.yml
 ```
 
-## sst
+## Serverless Stack (SST)
 
-This sample uses [`sst` v2](https://docs.sst.dev/what-is-sst) with `AWS CDK` to deploy the app.
+This sample uses [sst v2](https://docs.sst.dev/what-is-sst) with `AWS CDK` to deploy the app.
 
-**Note**: This is not using `Ion`, which is a complete rewrite of `sst`, using Pulumi and Terraform. 
+**Note**: This is not using [Ion](https://sst.dev/), which is a complete rewrite of `sst`, using Pulumi and Terraform. 
 
-The majority of the setup is common with [AWS CDK](#AWS-CDK), using the same stack definitions as the `AWS-CDK` sample and the Datadog configuration is all done by the stacks themselves individually.
+The majority of the setup is common with [AWS CDK](#AWS-CDK), using the same stack definitions as the `AWS-CDK` sample. The Datadog configuration is done within the stack definitions for the purpose of this sample. This can be centralized in the `sst.config.ts` if you wish.
 
-**Note**: `sst` provides a few useful L3 AWS CDK constructs that is not used much here, for brevity and convenience of using the same stacks as the `AWS-CDK` sample.
+**Note**: `sst` provides a few useful L3 AWS CDK constructs that are not used much here, for brevity and convenience of using the same stacks as the `AWS-CDK` sample.
 
 ### Deploy
 
@@ -299,11 +299,11 @@ Ensure you have set the below environment variables before starting deployment:
 - `DD_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
 - `AWS_REGION`: The AWS region you want to deploy to
 
-Once set, use the the sst `dev` command to run the stacks. This runs the functions locally, interacting with AWS services deployed remotely. 
+Once set, use the the sst `dev` command to run the stacks. This runs the functions locally, interacting with AWS services deployed remotely, e.g. API Gateway.  
 
 `npm run dev:sst`
 
-Change the command in `package.json` to point to your personal stage, e.g. `james`. 
+**Note**: Change the command in `package.json` to point to your personal stage, e.g. `james`. 
 
 Use the API URL printed on your terminal by setting the environment variable `API_ENDPOINT` and run the below command to execute an integration test and populate the system with the full end to end flow. This will run the tests against your local Lambda functions.
 
@@ -327,6 +327,6 @@ npm run test -- product-service
 
 ### Cleanup
 
-To remove a dev stack (your personal stack you ran locally), run `npm run remove:sst:dev`.
+To remove a dev stack (your personal stack you ran locally), run `npm run remove:sst:personal`.
 
-To remove a dev stack (your personal stack you ran locally), run `npm run remove:sst`.
+To remove a dev stack, run `npm run remove:sst`.
