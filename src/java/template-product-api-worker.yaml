@@ -1,0 +1,79 @@
+#
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2024 Datadog, Inc.
+#
+
+AWSTemplateFormatVersion: "2010-09-09"
+Transform:
+  - AWS::Serverless-2016-10-31
+  - Name: DatadogServerless
+    Parameters:
+      stackName: !Ref "AWS::StackName"
+      apiKeySecretArn: !Ref DDApiKeySecretArn
+      nodeLayerVersion: "115"
+      extensionLayerVersion: "62"
+      service: !Ref ServiceName
+      env: !Ref Env
+      version: !Ref CommitHash
+      site: datadoghq.eu
+      captureLambdaPayload: true
+Description: A sample SAM template for deploying Lambda functions.
+
+Parameters:
+  ServiceName:
+    Type: String
+    Default: NodeProductApi
+  Env:
+    Type: String
+    Default: dev
+  CommitHash:
+    Type: String
+    Default: latest
+  DDApiKeySecretArn:
+    Type: String
+  TopicArn:
+    Type: String
+    Default: "{{resolve:ssm:/java/product/pricing-calculated-topic:1}}"
+
+Globals:
+  Function:
+    Runtime: java21
+    Timeout: 29
+    MemorySize: 512
+    Environment:
+      Variables:
+        ENV: !Ref Env
+        DD_EXTENSION_VERSION: "next"
+        DD_SERVERLESS_APPSEC_ENABLED: "true"
+        POWERTOOLS_SERVICE_NAME: !Ref ServiceName
+        POWERTOOLS_LOG_LEVEL: "INFO"
+    Architectures:
+      - x86_64
+
+Resources:
+  ProductApiPricingWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
+      Handler: handlePricingChangedFunction.handler
+      FunctionName: !Sub ProductApiPricingWorker-${Env}
+      Environment:
+        Variables:
+          DD_SERVICE_MAPPING: !Sub "lambda_sns:${TopicArn}"
+          TABLE_NAME: "{{resolve:ssm:/java/product/product-table-name:1}}"
+      Events:
+        PricingChangedTopic:
+          Type: SNS
+          Properties:
+            Topic: !Ref TopicArn
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "{{resolve:ssm:/java/product/product-table-name:1}}"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn

@@ -1,0 +1,155 @@
+#
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2024 Datadog, Inc.
+#
+
+AWSTemplateFormatVersion: "2010-09-09"
+Transform:
+  - AWS::Serverless-2016-10-31
+  - Name: DatadogServerless
+    Parameters:
+      stackName: !Ref "AWS::StackName"
+      apiKeySecretArn: !Ref DDApiKeySecretArn
+      nodeLayerVersion: "115"
+      extensionLayerVersion: "62"
+      service: !Ref ServiceName
+      env: !Ref Env
+      version: !Ref CommitHash
+      site: datadoghq.eu
+      captureLambdaPayload: true
+Description: A sample SAM template for deploying Lambda functions.
+
+Parameters:
+  ServiceName:
+    Type: String
+    Default: NodeProductPublicEventPublisher
+  Env:
+    Type: String
+    Default: dev
+  CommitHash:
+    Type: String
+    Default: latest
+  DDApiKeySecretArn:
+    Type: String
+
+Globals:
+  Function:
+    Runtime: java21
+    Timeout: 29
+    MemorySize: 512
+    Environment:
+      Variables:
+        ENV: !Ref Env
+        DD_EXTENSION_VERSION: "next"
+        POWERTOOLS_SERVICE_NAME: !Ref ServiceName
+        POWERTOOLS_LOG_LEVEL: "INFO"
+    Architectures:
+      - x86_64
+
+Resources:
+  ProductPublicEventPublisher:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./product-event-publisher/target/com.product.publisher-0.0.1-SNAPSHOT-aws.jar
+      Handler: publicEventPublisherFunction.handler
+      FunctionName: !Sub ProductPublicEventPublisherFunction-${Env}
+      Environment:
+        Variables:
+          EVENT_BUS_NAME: "{{resolve:ssm:/java/shared/event-bus-name:1}}"
+          PRODUCT_CREATED_TOPIC_ARN: "{{resolve:ssm:/java/product/product-created-topic:1}}"
+          PRODUCT_UPDATED_TOPIC_ARN: "{{resolve:ssm:/java/product/product-updated-topic:1}}"
+          PRODUCT_DELETED_TOPIC_ARN: "{{resolve:ssm:/java/product/product-deleted-topic:1}}"
+          DD_SERVICE_MAPPING: !Sub "lambda_sqs:${ProductPublicEventPublisherQueue.QueueName}"
+      Events:
+        IntegrationQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ProductPublicEventPublisherQueue.Arn
+      Policies:
+        - EventBridgePutEventsPolicy:
+            EventBusName: "{{resolve:ssm:/java/shared/event-bus-name:1}}"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+
+  ProductPublicEventPublisherDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "ProductPublicEventPublisherDLQ-${Env}"
+
+  ProductPublicEventPublisherQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "ProductPublicEventPublisherQueue-${Env}"
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - "ProductPublicEventPublisherDLQ"
+            - "Arn"
+        maxReceiveCount: 3
+
+  SnsToQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues:
+        - !Ref ProductPublicEventPublisherQueue
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+          - Sid: allow-created-messages
+            Effect: Allow
+            Principal: '*'
+            Resource: !GetAtt ProductPublicEventPublisherQueue.Arn
+            Action: SQS:SendMessage
+            Condition: 
+              ArnEquals:
+                aws:SourceArn: "{{resolve:ssm:/java/product/product-created-topic:1}}"
+          - Sid: allow-updated-messages
+            Effect: Allow
+            Principal: '*'
+            Resource: !GetAtt ProductPublicEventPublisherQueue.Arn
+            Action: SQS:SendMessage
+            Condition: 
+              ArnEquals:
+                aws:SourceArn: "{{resolve:ssm:/java/product/product-updated-topic:1}}"
+          - Sid: allow-deleted-messages
+            Effect: Allow
+            Principal: '*'
+            Resource: !GetAtt ProductPublicEventPublisherQueue.Arn
+            Action: SQS:SendMessage
+            Condition: 
+              ArnEquals:
+                aws:SourceArn: "{{resolve:ssm:/java/product/product-deleted-topic:1}}"
+
+  
+  ProductCreatedTopicSubscription:
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      TopicArn: "{{resolve:ssm:/java/product/product-created-topic:1}}"
+      Endpoint: !GetAtt 
+        - ProductPublicEventPublisherQueue
+        - Arn
+      Protocol: sqs
+  
+  ProductUpdatedTopicSubscription:
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      TopicArn: "{{resolve:ssm:/java/product/product-updated-topic:1}}"
+      Endpoint: !GetAtt 
+        - ProductPublicEventPublisherQueue
+        - Arn
+      Protocol: sqs
+  
+  ProductDeletedTopicSubscription:
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      TopicArn: "{{resolve:ssm:/java/product/product-deleted-topic:1}}"
+      Endpoint: !GetAtt 
+        - ProductPublicEventPublisherQueue
+        - Arn
+      Protocol: sqs
