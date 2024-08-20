@@ -2,6 +2,8 @@
 
 This README contains relevant instructions for deploying the sample application with each of the available IaC tools. As well as details on any Java specific implementation details when instrumenting with Datadog.
 
+The Java sample code uses [Spring Cloud Functions](https://spring.io/projects/spring-cloud-function) to enable SpringBoot features inside a serverless environment. Spring Cloud Functions could be substituted for [Micronaut](https://micronaut.io/) or [Quarkus](https://quarkus.io/) and the IaC code would stay the same.
+
 ## Testing
 
 To generate load against your application, see the documentation on running a [load test](../../README.md#load-tests)
@@ -152,13 +154,13 @@ sam delete --stack-name JavaSharedStack --region $AWS_REGION --no-prompts
 
 ## Terraform
 
-Terraform does not natively support transpiling Typescript into JS code. When deploying with Typescript, you first need to transpile and ZIP up the typescript code. The [`deploy.sh`](./deploy.sh) script performs this action. Iterating over all of the `build*.js` files and running esbuild before zipping up all folders in the output folder.
+Terraform does not natively support compiling Java code. When deploying with Java, you first need to compile your Java code. The JAR file is passed directly to the `filename` property of the `aws_lambda_function` resource. The [`deploy.sh`](./deploy.sh) script performs this action. Running `mvn clean package` and then `terraform apply`.
 
 ### Configuration
 
-A customer [`lambda_function`](./infra/modules/lambda-function/main.tf) module is used to group together all the functionality for deploying Lambda functions. This handles the creation of the CloudWatch Log Groups, and default IAM roles.
+A custom [`lambda_function`](./infra/modules/lambda-function/main.tf) module is used to group together all the functionality for deploying Lambda functions. This handles the creation of the CloudWatch Log Groups, and default IAM roles.
 
-The Datadog Lambda Terraform module is used to create and configure the Lambda function with the required extensions, layers and configurations.
+The [Datadog Lambda Terraform module](https://github.com/DataDog/terraform-aws-lambda-datadog) is used to create and configure the Lambda function with the required extensions, layers and configurations.
 
 > **IMPORTANT!** If you are using AWS Secrets Manager to hold your Datadog API key, ensure your Lambda function has permissions to call the `secretsmanager:GetSecretValue` IAM action.
 
@@ -167,30 +169,31 @@ module "aws_lambda_function" {
   source  = "DataDog/lambda-datadog/aws"
   version = "1.3.0"
 
-  filename                 = var.zip_file
+  filename                 = var.jar_file
   function_name            = var.function_name
   role                     = aws_iam_role.lambda_function_role.arn
-  handler                  = var.lambda_handler
+  handler                  = "org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest"
   runtime                  = "java21"
-  memory_size              = 512
+  memory_size              = var.memory_size
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
-  source_code_hash = "${filebase64sha256(var.zip_file)}"
-  timeout = 29
+  source_code_hash         = base64sha256(filebase64(var.jar_file))
+  timeout                  = var.timeout
 
   environment_variables = merge(tomap({
-    "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
-    "DD_EXTENSION_VERSION": "next"
-    "DD_ENV" : var.env
-    "DD_SERVICE" : var.service_name
+    "MAIN_CLASS" : "${var.package_name}.FunctionConfiguration"
     "DD_SITE" : "datadoghq.eu"
+    "DD_SERVICE" : var.service_name
+    "DD_ENV" : var.env
+    "ENV" : var.env
     "DD_VERSION" : var.app_version
-    "ENV": var.env
-    "POWERTOOLS_SERVICE_NAME": var.service_name
-    "POWERTOOLS_LOG_LEVEL": "INFO" }),
+    "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
+    "DD_CAPTURE_LAMBDA_PAYLOAD": "true"
+    "DD_LOGS_INJECTION": "true"
+    "spring_cloud_function_definition" : var.lambda_handler}),
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 62
+  datadog_extension_layer_version = 64
   datadog_java_layer_version      = 15
 }
 ```

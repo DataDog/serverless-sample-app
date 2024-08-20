@@ -13,6 +13,9 @@ import java.io.Serializable;
 public class EventBridgeMessageWrapper implements Serializable {
     @JsonProperty("detail-type")
     private String detailType;
+
+    @JsonProperty("source")
+    private String source;
     
     @JsonProperty("detail")
     private TraceData detail;
@@ -20,7 +23,8 @@ public class EventBridgeMessageWrapper implements Serializable {
     public EventBridgeMessageWrapper() {
     }
 
-    public EventBridgeMessageWrapper(String detailType, TraceData detail) {
+    public EventBridgeMessageWrapper(String source, String detailType, TraceData detail) {
+        this.source = source;
         this.detailType = detailType;
         this.detail = detail;
     }
@@ -39,5 +43,13 @@ public class EventBridgeMessageWrapper implements Serializable {
 
     public void setTraceData(TraceData detail) {
         this.detail = detail;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
     }
 }

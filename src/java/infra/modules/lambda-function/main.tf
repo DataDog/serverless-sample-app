@@ -5,6 +5,7 @@
 // Copyright 2024 Datadog, Inc.
 //
 
+
 resource "aws_iam_role" "lambda_function_role" {
   name = "${var.function_name}-lambda-role"
   assume_role_policy = jsonencode({
@@ -22,7 +23,7 @@ resource "aws_iam_role" "lambda_function_role" {
 }
 
 resource "aws_iam_policy" "function_logging_policy" {
-  name = "${var.function_name}-logging-policy"
+  name = "${var.function_name}-${var.env}-logging-policy"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -39,7 +40,7 @@ resource "aws_iam_policy" "function_logging_policy" {
 }
 
 resource "aws_iam_policy" "dd_api_secret_policy" {
-  name = "${var.function_name}-api-key-secret-policy"
+  name = "${var.function_name}-${var.env}-api-key-secret-policy"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -65,7 +66,7 @@ resource "aws_iam_role_policy_attachment" "secrets_retrieval_policy_attachment" 
 }
 
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
-  name              = "/aws/lambda/${var.function_name}"
+  name              = "/aws/lambda/Java-${var.function_name}-${var.env}"
   retention_in_days = 7
   lifecycle {
     prevent_destroy = false
@@ -77,30 +78,30 @@ module "aws_lambda_function" {
   source  = "DataDog/lambda-datadog/aws"
   version = "1.4.0"
 
-  filename                 = var.zip_file
-  function_name            = var.function_name
+  filename                 = var.jar_file
+  function_name            = "Java-${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
-  handler                  = var.lambda_handler
-  runtime                  = "nodejs20.x"
-  memory_size              = 512
+  handler                  = "org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest"
+  runtime                  = "java21"
+  memory_size              = var.memory_size
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
-  source_code_hash = "${filebase64sha256(var.zip_file)}"
-  timeout = 29
+  source_code_hash         = base64sha256(filebase64(var.jar_file))
+  timeout                  = var.timeout
 
   environment_variables = merge(tomap({
-    "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
-    "DD_EXTENSION_VERSION": "next"
-    "DD_CAPTURE_LAMBDA_PAYLOAD": "true",
-    "DD_ENV" : var.env
-    "DD_SERVICE" : var.service_name
+    "MAIN_CLASS" : "${var.package_name}.FunctionConfiguration"
     "DD_SITE" : "datadoghq.eu"
+    "DD_SERVICE" : var.service_name
+    "DD_ENV" : var.env
+    "ENV" : var.env
     "DD_VERSION" : var.app_version
-    "ENV": var.env
-    "POWERTOOLS_SERVICE_NAME": var.service_name
-    "POWERTOOLS_LOG_LEVEL": "INFO" }),
+    "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
+    "DD_CAPTURE_LAMBDA_PAYLOAD": "true"
+    "DD_LOGS_INJECTION": "true"
+    "spring_cloud_function_definition" : var.lambda_handler}),
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 62
-  datadog_node_layer_version      = 115
+  datadog_extension_layer_version = 63
+  datadog_java_layer_version      = 15
 }
