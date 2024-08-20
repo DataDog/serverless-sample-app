@@ -12,8 +12,8 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
-      nodeLayerVersion: "115"
-      extensionLayerVersion: "62"
+      extensionLayerVersion: "64"
+      javaLayerVersion: "15"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -24,7 +24,7 @@ Description: A sample SAM template for deploying Lambda functions.
 Parameters:
   ServiceName:
     Type: String
-    Default: NodeProductPublicEventPublisher
+    Default: JavaProductPublicEventPublisher
   Env:
     Type: String
     Default: dev
@@ -38,13 +38,17 @@ Globals:
   Function:
     Runtime: java21
     Timeout: 29
-    MemorySize: 512
+    MemorySize: 2048
     Environment:
       Variables:
         ENV: !Ref Env
         DD_EXTENSION_VERSION: "next"
+        DD_SERVERLESS_APPSEC_ENABLED: "true"
+        DD_LOGS_INJECTION: "true"
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
-        POWERTOOLS_LOG_LEVEL: "INFO"
+        POWERTOOLS_LOG_LEVEL: 'INFO'
+        MAIN_CLASS: com.product.publisher.FunctionConfiguration
+        AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
     Architectures:
       - x86_64
 
@@ -53,7 +57,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./product-event-publisher/target/com.product.publisher-0.0.1-SNAPSHOT-aws.jar
-      Handler: publicEventPublisherFunction.handler
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       FunctionName: !Sub ProductPublicEventPublisherFunction-${Env}
       Environment:
         Variables:
@@ -62,6 +66,7 @@ Resources:
           PRODUCT_UPDATED_TOPIC_ARN: "{{resolve:ssm:/java/product/product-updated-topic:1}}"
           PRODUCT_DELETED_TOPIC_ARN: "{{resolve:ssm:/java/product/product-deleted-topic:1}}"
           DD_SERVICE_MAPPING: !Sub "lambda_sqs:${ProductPublicEventPublisherQueue.QueueName}"
+          spring_cloud_function_definition: handleInternalEvents
       Events:
         IntegrationQueue:
           Type: SQS
@@ -76,6 +81,8 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      SkipBuild: True
 
   ProductPublicEventPublisherDLQ:
     Type: AWS::SQS::Queue

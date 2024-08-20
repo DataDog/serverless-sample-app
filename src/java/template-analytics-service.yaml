@@ -12,8 +12,8 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
-      nodeLayerVersion: "115"
-      extensionLayerVersion: "62"
+      javaLayerVersion: "15"
+      extensionLayerVersion: "64"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -24,7 +24,7 @@ Description: A sample SAM template for deploying Lambda functions.
 Parameters:
   ServiceName:
     Type: String
-    Default: NodeAnalyticsBackend
+    Default: JavaAnalyticsBackend
   Env:
     Type: String
     Default: dev
@@ -38,32 +38,36 @@ Globals:
   Function:
     Runtime: java21
     Timeout: 29
-    MemorySize: 512
+    MemorySize: 2048
     Environment:
       Variables:
         ENV: !Ref Env
         DD_EXTENSION_VERSION: "next"
         DD_SERVERLESS_APPSEC_ENABLED: "true"
+        DD_LOGS_INJECTION: "true"
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
-        POWERTOOLS_LOG_LEVEL: "INFO"
+        POWERTOOLS_LOG_LEVEL: 'INFO'
+        MAIN_CLASS: com.analytics.FunctionConfiguration
+        AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
     Architectures:
       - x86_64
 
 Resources:
-  NodeAnalyticsBackend:
+  JavaAnalyticsBackend:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./analytics-backend/target/com.analytics-0.0.1-SNAPSHOT-aws.jar
-      Handler: analyticsEventHandler.handler
-      FunctionName: !Sub NodeAnalyticsBackendFunction-${Env}
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      FunctionName: !Sub JavaAnalyticsBackendFunction-${Env}
       Environment:
         Variables:
           DD_TRACE_PROPAGATION_STYLE: "none"
+          spring_cloud_function_definition: handleEvents
       Events:
         IntegrationQueue:
           Type: SQS
           Properties:
-            Queue: !GetAtt NodeAnalyticsEventQueue.Arn
+            Queue: !GetAtt JavaAnalyticsEventQueue.Arn
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -71,41 +75,43 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      SkipBuild: True
 
-  NodeAnalyticsEventDLQ:
+  JavaAnalyticsEventDLQ:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "NodeAnalyticsEventDLQ-${Env}"
+      QueueName: !Sub "JavaAnalyticsEventDLQ-${Env}"
 
-  NodeAnalyticsEventQueue:
+  JavaAnalyticsEventQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "NodeAnalyticsEventQueue-${Env}"
+      QueueName: !Sub "JavaAnalyticsEventQueue-${Env}"
       RedrivePolicy:
         deadLetterTargetArn:
           Fn::GetAtt:
-            - "NodeAnalyticsEventDLQ"
+            - "JavaAnalyticsEventDLQ"
             - "Arn"
         maxReceiveCount: 3
 
   AnalyticsCatchAllRule:
     Type: AWS::Events::Rule
     Properties:
-      EventBusName: "NodeTracingEventBus" #"{{resolve:ssm:/java/shared/event-bus-name:1}}"
+      EventBusName: "JavaTracingEventBus" #"{{resolve:ssm:/java/shared/event-bus-name:1}}"
       Name: analytics-catch-all
       State: ENABLED
       EventPattern:
         source:
           - prefix: !Sub "${Env}."
       Targets:
-        - Id: NodeAnalyticsEventQueue
-          Arn: !GetAtt NodeAnalyticsEventQueue.Arn
+        - Id: JavaAnalyticsEventQueue
+          Arn: !GetAtt JavaAnalyticsEventQueue.Arn
 
   EBToQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
       Queues:
-        - !Ref NodeAnalyticsEventQueue
+        - !Ref JavaAnalyticsEventQueue
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -113,5 +119,5 @@ Resources:
             Effect: Allow
             Principal:
               Service: "events.amazonaws.com"
-            Resource: !GetAtt NodeAnalyticsEventQueue.Arn
+            Resource: !GetAtt JavaAnalyticsEventQueue.Arn
             Action: SQS:SendMessage

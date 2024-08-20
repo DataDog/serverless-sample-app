@@ -12,8 +12,8 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
-      nodeLayerVersion: "115"
-      extensionLayerVersion: "62"
+      javaLayerVersion: "15"
+      extensionLayerVersion: "64"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -24,7 +24,7 @@ Description: A sample SAM template for deploying Lambda functions.
 Parameters:
   ServiceName:
     Type: String
-    Default: NodeInventoryOrderingService
+    Default: JavaInventoryOrderingService
   Env:
     Type: String
     Default: dev
@@ -41,28 +41,32 @@ Globals:
   Function:
     Runtime: java21
     Timeout: 29
-    MemorySize: 512
+    MemorySize: 2048
     Environment:
       Variables:
         ENV: !Ref Env
         DD_EXTENSION_VERSION: "next"
         DD_SERVERLESS_APPSEC_ENABLED: "true"
+        DD_LOGS_INJECTION: "true"
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
-        POWERTOOLS_LOG_LEVEL: "INFO"
+        POWERTOOLS_LOG_LEVEL: 'INFO'
+        MAIN_CLASS: com.inventory.ordering.FunctionConfiguration
+        AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
     Architectures:
       - x86_64
 
 Resources:
-  NodeInventoryOrderingWorkflow:
+  JavaInventoryOrderingWorkflow:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./inventory-ordering-service/target/com.inventory.ordering-0.0.1-SNAPSHOT-aws.jar
-      Handler: inventoryOrderingWorkflowTrigger.handler
-      FunctionName: !Sub NodeInventoryOrderingWorkflow-${Env}
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      FunctionName: !Sub JavaInventoryOrderingWorkflow-${Env}
       Environment:
         Variables:
           DD_SERVICE_MAPPING: !Sub "lambda_sns:${TopicArn}"
-          ORDERING_SERVICE_WORKFLOW_ARN: !Ref NodeInventoryOrderingService
+          ORDERING_SERVICE_WORKFLOW_ARN: !Ref JavaInventoryOrderingService
+          spring_cloud_function_definition: handleNewProductAdded
       Events:
         NewProductAddedTopic:
           Type: SNS
@@ -76,18 +80,20 @@ Resources:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
         - StepFunctionsExecutionPolicy:
-            StateMachineName: !GetAtt NodeInventoryOrderingService.Name
+            StateMachineName: !GetAtt JavaInventoryOrderingService.Name
+    Metadata:
+      SkipBuild: True
 
   InventoryOrderingServiceLogGroup: 
     Type: AWS::Logs::LogGroup
     Properties: 
       RetentionInDays: 1
-      LogGroupName: !Sub "/aws/vendedlogs/states/NodeInventoryOrderingServiceLogGroup-${Env}"
+      LogGroupName: !Sub "/aws/vendedlogs/states/JavaInventoryOrderingServiceLogGroup-${Env}"
 
-  NodeInventoryOrderingService:
+  JavaInventoryOrderingService:
     Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionUri: lib/inventory-ordering-service/workflows/workflow.sample.asl.json
+      DefinitionUri: cdk/src/main/java/com/cdk/inventory/ordering/workflows/workflow.sample.asl.json
       Policies:
         - Version: "2012-10-17"
           Statement:

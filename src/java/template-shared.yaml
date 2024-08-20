@@ -17,14 +17,14 @@ Parameters:
     Default: latest
 
 Resources:
-  NodeSharedEventBus: 
+  JavaSharedEventBus: 
     Type: AWS::Events::EventBus
     Properties: 
-        Name: "NodeTracingEventBus"
+        Name: "JavaTracingEventBus"
 
   SharedEventBusNameParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /java/shared/event-bus-name
       Type: String
-      Value: !Ref NodeSharedEventBus
+      Value: !Ref JavaSharedEventBus

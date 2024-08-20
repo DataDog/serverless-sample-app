@@ -12,8 +12,8 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
-      nodeLayerVersion: "115"
-      extensionLayerVersion: "62"
+      extensionLayerVersion: "64"
+      javaLayerVersion: "15"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -24,7 +24,7 @@ Description: A sample SAM template for deploying Lambda functions.
 Parameters:
   ServiceName:
     Type: String
-    Default: NodeProductApi
+    Default: JavaProductApi
   Env:
     Type: String
     Default: dev
@@ -41,14 +41,18 @@ Globals:
   Function:
     Runtime: java21
     Timeout: 29
-    MemorySize: 512
+    MemorySize: 2048
     Environment:
       Variables:
         ENV: !Ref Env
         DD_EXTENSION_VERSION: "next"
         DD_SERVERLESS_APPSEC_ENABLED: "true"
+        DD_LOGS_INJECTION: "true"
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
-        POWERTOOLS_LOG_LEVEL: "INFO"
+        POWERTOOLS_LOG_LEVEL: 'INFO'
+        MAIN_CLASS: com.product.api.FunctionConfiguration
+        AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
+        TABLE_NAME: !Ref ProductApiTable
     Architectures:
       - x86_64
 
@@ -57,12 +61,13 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
-      Handler: handlePricingChangedFunction.handler
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       FunctionName: !Sub ProductApiPricingWorker-${Env}
       Environment:
         Variables:
           DD_SERVICE_MAPPING: !Sub "lambda_sns:${TopicArn}"
           TABLE_NAME: "{{resolve:ssm:/java/product/product-table-name:1}}"
+          spring_cloud_function_definition: handlePricingChanged
       Events:
         PricingChangedTopic:
           Type: SNS
@@ -77,3 +82,5 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      SkipBuild: True

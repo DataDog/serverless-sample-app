@@ -12,8 +12,8 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
-      nodeLayerVersion: "115"
-      extensionLayerVersion: "62"
+      javaLayerVersion: "15"
+      extensionLayerVersion: "64"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -24,7 +24,7 @@ Description: A sample SAM template for deploying Lambda functions.
 Parameters: 
   ServiceName: 
     Type: String
-    Default: NodeProductApi
+    Default: JavaProductApi
   Env: 
     Type: String
     Default: dev
@@ -38,15 +38,18 @@ Globals:
   Function:
     Runtime: java21
     Timeout: 29
-    MemorySize: 512
+    MemorySize: 2048
     Environment:
       Variables:
         ENV: !Ref Env
         DD_EXTENSION_VERSION: "next"
         DD_SERVERLESS_APPSEC_ENABLED: "true"
+        DD_LOGS_INJECTION: "true"
         TABLE_NAME: !Ref ProductApiTable
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
         POWERTOOLS_LOG_LEVEL: 'INFO'
+        MAIN_CLASS: com.product.api.FunctionConfiguration
+        AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
     Architectures:
       - x86_64
 
@@ -55,7 +58,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
-      Handler: getProductFunction.handler
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       FunctionName: !Sub GetProductFunction-${Env}
       Events:
         GetProduct:
@@ -63,6 +66,9 @@ Resources:
           Properties: 
             Path: /product/{productId}
             Method: get
+      Environment:
+        Variables:
+          spring_cloud_function_definition: handleGetProduct
       Policies:
         - DynamoDBReadPolicy:
             TableName:
@@ -74,12 +80,14 @@ Resources:
                 - secretsmanager:GetSecretValue
                 - dynamodb:GetItem
               Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      SkipBuild: True
               
   CreateProductFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
-      Handler: createProductFunction.handler
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       FunctionName: !Sub CreateProductFunction-${Env}
       Events:
         GetProduct:
@@ -90,6 +98,7 @@ Resources:
       Environment:
         Variables:
           PRODUCT_CREATED_TOPIC_ARN: !Ref ProductCreatedTopic
+          spring_cloud_function_definition: handleCreateProduct
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -107,12 +116,14 @@ Resources:
               Resource: !Ref DDApiKeySecretArn
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductCreatedTopic.TopicName
+    Metadata:
+      SkipBuild: True
             
   UpdateProductFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
-      Handler: updateProductFunction.handler
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       FunctionName: !Sub UpdateProductFunction-${Env}
       Events:
         GetProduct:
@@ -123,6 +134,7 @@ Resources:
       Environment:
         Variables:
           PRODUCT_UPDATED_TOPIC_ARN: !Ref ProductUpdatedTopic
+          spring_cloud_function_definition: handleUpdateProduct
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -139,12 +151,14 @@ Resources:
               Resource: !Ref DDApiKeySecretArn
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductUpdatedTopic.TopicName
+    Metadata:
+      SkipBuild: True
             
   DeleteProductFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
-      Handler: deleteProductFunction.handler
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       FunctionName: !Sub DeleteProductFunction-${Env}
       Events:
         GetProduct:
@@ -155,6 +169,7 @@ Resources:
       Environment:
         Variables:
           PRODUCT_DELETED_TOPIC_ARN: !Ref ProductDeletedTopic
+          spring_cloud_function_definition: handleDeleteProduct
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -172,6 +187,8 @@ Resources:
               Resource: !Ref DDApiKeySecretArn
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductDeletedTopic.TopicName
+    Metadata:
+      SkipBuild: True
   
   ProductCreatedTopic:
     Type: AWS::SNS::Topic
@@ -214,7 +231,7 @@ Resources:
   ProductApiTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub NodeProducts-${Env}
+      TableName: !Sub JavaProducts-${Env}
       AttributeDefinitions:
         - AttributeName: PK
           AttributeType: S
@@ -231,8 +248,8 @@ Resources:
       Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
 
 Outputs:
-  NodeProductApiEndpoint:
+  JavaProductApiEndpoint:
     Description: Product API Endpoint
     Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
     Export:
-      Name: NodeProductApiEndpoint
+      Name: JavaProductApiEndpoint

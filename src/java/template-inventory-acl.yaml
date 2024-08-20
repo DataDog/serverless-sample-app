@@ -12,8 +12,8 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
-      nodeLayerVersion: "115"
-      extensionLayerVersion: "62"
+      javaLayerVersion: "15"
+      extensionLayerVersion: "64"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -24,7 +24,7 @@ Description: A sample SAM template for deploying Lambda functions.
 Parameters:
   ServiceName:
     Type: String
-    Default: NodeInventoryAcl
+    Default: JavaInventoryAcl
   Env:
     Type: String
     Default: dev
@@ -38,14 +38,17 @@ Globals:
   Function:
     Runtime: java21
     Timeout: 29
-    MemorySize: 512
+    MemorySize: 2048
     Environment:
       Variables:
         ENV: !Ref Env
         DD_EXTENSION_VERSION: "next"
         DD_SERVERLESS_APPSEC_ENABLED: "true"
+        DD_LOGS_INJECTION: "true"
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
-        POWERTOOLS_LOG_LEVEL: "INFO"
+        POWERTOOLS_LOG_LEVEL: 'INFO'
+        MAIN_CLASS: com.inventory.acl.FunctionConfiguration
+        AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
     Architectures:
       - x86_64
 
@@ -54,17 +57,18 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./inventory-acl/target/com.inventory.acl-0.0.1-SNAPSHOT-aws.jar
-      Handler: productCreatedPublicEventHandler.handler
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       FunctionName: !Sub InventoryProductCreatedPublicEventHandler-${Env}
       Environment:
         Variables:
           PRODUCT_ADDED_TOPIC_ARN: !Ref NewProductAddedTopic
-          DD_SERVICE_MAPPING: !Sub "lambda_sqs:${NodeInventoryProductCreatedEventQueue.QueueName}"
+          DD_SERVICE_MAPPING: !Sub "lambda_sqs:${JavaInventoryProductCreatedEventQueue.QueueName}"
+          spring_cloud_function_definition: handleProductCreatedEvent
       Events:
         IntegrationQueue:
           Type: SQS
           Properties:
-            Queue: !GetAtt NodeInventoryProductCreatedEventQueue.Arn
+            Queue: !GetAtt JavaInventoryProductCreatedEventQueue.Arn
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -74,11 +78,13 @@ Resources:
               Resource: !Ref DDApiKeySecretArn
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt NewProductAddedTopic.TopicName
+    Metadata:
+      SkipBuild: True
  
   NewProductAddedTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub "NodeInventoryNewProductAddedTopic-${Env}"
+      TopicName: !Sub "JavaInventoryNewProductAddedTopic-${Env}"
   
   NewProductAddedTopicArn:
     Type: AWS::SSM::Parameter
@@ -87,19 +93,19 @@ Resources:
       Type: String
       Value: !Ref NewProductAddedTopic
 
-  NodeInventoryProductCreatedEventDLQ:
+  JavaInventoryProductCreatedEventDLQ:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "NodeInventoryProductCreatedEventDLQ-${Env}"
+      QueueName: !Sub "JavaInventoryProductCreatedEventDLQ-${Env}"
 
-  NodeInventoryProductCreatedEventQueue:
+  JavaInventoryProductCreatedEventQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "NodeInventoryProductCreatedEventQueue-${Env}"
+      QueueName: !Sub "JavaInventoryProductCreatedEventQueue-${Env}"
       RedrivePolicy:
         deadLetterTargetArn:
           Fn::GetAtt:
-            - "NodeInventoryProductCreatedEventDLQ"
+            - "JavaInventoryProductCreatedEventDLQ"
             - "Arn"
         maxReceiveCount: 3
 
@@ -111,18 +117,18 @@ Resources:
       State: ENABLED
       EventPattern:
         source:
-          - !Sub "${Env}.orders"
+          - !Sub "${Env}.products"
         detail-type:
           - "product.productCreated.v1"
       Targets:
         - Id: ProductCreatedEventQueue
-          Arn: !GetAtt NodeInventoryProductCreatedEventQueue.Arn
+          Arn: !GetAtt JavaInventoryProductCreatedEventQueue.Arn
 
   SnsToQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues:
-        - !Ref NodeInventoryProductCreatedEventQueue
+        - !Ref JavaInventoryProductCreatedEventQueue
       PolicyDocument: 
         Version: '2012-10-17'
         Statement:
@@ -130,5 +136,5 @@ Resources:
             Effect: Allow
             Principal:
               Service: "events.amazonaws.com"
-            Resource: !GetAtt NodeInventoryProductCreatedEventQueue.Arn
+            Resource: !GetAtt JavaInventoryProductCreatedEventQueue.Arn
             Action: SQS:SendMessage

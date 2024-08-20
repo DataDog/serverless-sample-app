@@ -12,8 +12,8 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
-      nodeLayerVersion: "115"
-      extensionLayerVersion: "62"
+      extensionLayerVersion: "64"
+      javaLayerVersion: "15"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -24,7 +24,7 @@ Description: A sample SAM template for deploying Lambda functions.
 Parameters: 
   ServiceName: 
     Type: String
-    Default: NodePricingService
+    Default: JavaPricingService
   Env: 
     Type: String
     Default: dev
@@ -38,28 +38,32 @@ Globals:
   Function:
     Runtime: java21
     Timeout: 29
-    MemorySize: 512
+    MemorySize: 2048
     Environment:
       Variables:
         ENV: !Ref Env
         DD_EXTENSION_VERSION: "next"
         DD_SERVERLESS_APPSEC_ENABLED: "true"
+        DD_LOGS_INJECTION: "true"
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
         POWERTOOLS_LOG_LEVEL: 'INFO'
+        MAIN_CLASS: com.product.pricing.FunctionConfiguration
+        AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
     Architectures:
       - x86_64
 
 Resources:
-  ProductPricingServiceFunction:
+  ProductCreatedPricingServiceFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./product-pricing/target/com.product.pricing-0.0.1-SNAPSHOT-aws.jar
-      Handler: productCreatedPricingHandler.handler
-      FunctionName: !Sub ProductPricingServiceFunction-${Env}
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      FunctionName: !Sub ProductCreatedPricingServiceFunction-${Env}
       Environment:
         Variables:
           PRICE_CALCULATED_TOPIC_ARN: !Ref ProductPricingCalculatedTopic
           DD_SERVICE_MAPPING: !Sub "lambda_sns:${ProductPricingCalculatedTopic.TopicName}"
+          spring_cloud_function_definition: handleProductCreated
       Events:
         ProductCreated:
           Type: SNS
@@ -75,6 +79,37 @@ Resources:
                 - secretsmanager:GetSecretValue
                 - dynamodb:GetItem
               Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      SkipBuild: True
+
+  ProductUpdatedPricingServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./product-pricing/target/com.product.pricing-0.0.1-SNAPSHOT-aws.jar
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      FunctionName: !Sub ProductUpdatedPricingServiceFunction-${Env}
+      Environment:
+        Variables:
+          PRICE_CALCULATED_TOPIC_ARN: !Ref ProductPricingCalculatedTopic
+          DD_SERVICE_MAPPING: !Sub "lambda_sns:${ProductPricingCalculatedTopic.TopicName}"
+          spring_cloud_function_definition: handleProductUpdated
+      Events:
+        ProductCreated:
+          Type: SNS
+          Properties: 
+            Topic: '{{resolve:ssm:/java/product/product-updated-topic:1}}' 
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ProductPricingCalculatedTopic.TopicName
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+                - dynamodb:GetItem
+              Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      SkipBuild: True
 
   ProductPricingCalculatedTopic:
     Type: AWS::SNS::Topic
