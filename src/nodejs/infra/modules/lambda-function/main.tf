@@ -75,7 +75,7 @@ resource "aws_cloudwatch_log_group" "lambda_log_group" {
 
 module "aws_lambda_function" {
   source  = "DataDog/lambda-datadog/aws"
-  version = "1.3.0"
+  version = "1.4.0"
 
   filename                 = var.zip_file
   function_name            = var.function_name
