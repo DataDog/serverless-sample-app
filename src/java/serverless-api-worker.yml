@@ -1,0 +1,63 @@
+#
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2024 Datadog, Inc.
+#
+
+service: serverless-product-api-worker
+frameworkVersion: "3"
+
+plugins:
+  - serverless-plugin-datadog
+
+custom:
+  serviceName: JavaProductApi
+  datadog:
+    apiKeySecretArn: ${param:DD_SECRET_ARN}
+    site: datadoghq.eu
+    env: ${sls:stage}
+    service: ${self:custom.serviceName}
+    version: latest
+    # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
+    captureLambdaPayload: true
+    propagateUpstreamTrace: true
+
+provider:
+  name: aws
+  runtime: java21
+  environment:
+    DD_EXTENSION_VERSION: "next"
+    ENV: ${sls:stage}
+    POWERTOOLS_SERVICE_NAME: ${self:custom.serviceName}
+    POWERTOOLS_LOG_LEVEL: 'INFO'
+    DD_SERVERLESS_APPSEC_ENABLED: "true"
+    DD_LOGS_INJECTION: "true"
+    MAIN_CLASS: com.analytics.FunctionConfiguration
+    AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource: ${param:DD_SECRET_ARN}
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource: "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.TABLE_NAME}"
+
+functions:
+  handlePricingUpdated:
+    handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+    environment:
+      DD_SERVICE_MAPPING: !Sub "lambda_sns:${ssm:/java/product/pricing-calculated-topic-name}"
+      spring_cloud_function_definition: handlePricingChanged
+    package:
+      artifact: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
+      individually: true
+    events:
+      - sns: ${ssm:/java/product/pricing-calculated-topic}

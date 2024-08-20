@@ -1,0 +1,187 @@
+#
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2024 Datadog, Inc.
+#
+
+service: serverless-product-api
+frameworkVersion: "3"
+
+plugins:
+  - serverless-plugin-datadog
+
+custom:
+  serviceName: JavaProductApi
+  datadog:
+    apiKeySecretArn: ${param:DD_SECRET_ARN}
+    site: datadoghq.eu
+    env: ${sls:stage}
+    service: ${self:custom.serviceName}
+    version: latest
+    # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
+    captureLambdaPayload: true
+    propagateUpstreamTrace: true
+
+provider:
+  name: aws
+  runtime: java21
+  environment:
+    TABLE_NAME: ${self:service}-${sls:stage}
+    DD_EXTENSION_VERSION: "next"
+    ENV: ${sls:stage}
+    POWERTOOLS_SERVICE_NAME: ${self:custom.serviceName}
+    POWERTOOLS_LOG_LEVEL: 'INFO'
+    DD_SERVERLESS_APPSEC_ENABLED: "true"
+    DD_LOGS_INJECTION: "true"
+    MAIN_CLASS: com.analytics.FunctionConfiguration
+    AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
+  httpApi:
+    cors: true
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource: "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.TABLE_NAME}"
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource: ${param:DD_SECRET_ARN}
+        - Effect: Allow
+          Action:
+            - sns:Publish
+          Resource:
+            - !Ref ProductCreatedTopic
+            - !Ref ProductUpdatedTopic
+            - !Ref ProductDeletedTopic
+
+functions:
+  create:
+    handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+    environment:
+      PRODUCT_CREATED_TOPIC_ARN: !Ref ProductCreatedTopic
+      spring_cloud_function_definition: handleCreateProduct
+    package:
+      artifact: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
+      individually: true
+    events:
+      - httpApi:
+          path: /product
+          method: post
+  get:
+    handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+    environment:
+      spring_cloud_function_definition: handleGetProduct
+    package:
+      artifact: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
+      individually: true
+    events:
+      - httpApi:
+          path: /product/{productId}
+          method: get
+  update:
+    handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+    environment:
+      PRODUCT_UPDATED_TOPIC_ARN: !Ref ProductUpdatedTopic
+      spring_cloud_function_definition: handleUpdateProduct
+    package:
+      artifact: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
+      individually: true
+    events:
+      - httpApi:
+          path: /product
+          method: put
+  delete:
+    handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+    environment:
+      PRODUCT_DELETED_TOPIC_ARN: !Ref ProductDeletedTopic
+      spring_cloud_function_definition: handleDeleteProduct
+    package:
+      artifact: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
+      individually: true
+    events:
+      - httpApi:
+          path: /product/{productId}
+          method: delete
+
+resources:
+  Resources:
+    ProductDynamoDbTable:
+      Type: "AWS::DynamoDB::Table"
+      DeletionPolicy: Delete
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.TABLE_NAME}
+
+    ProductCreatedTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: !Sub "ProductCreatedTopic-${sls:stage}"
+    ProductUpdatedTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: !Sub "ProductUpdatedTopic-${sls:stage}"
+    ProductDeletedTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: !Sub "ProductDeletedTopic-${sls:stage}"
+
+    ProductCreatedTopicArn:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /java/product/product-created-topic
+        Type: String
+        Value: !Ref ProductCreatedTopic
+    ProductUpdatedTopicArn:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /java/product/product-updated-topic
+        Type: String
+        Value: !Ref ProductUpdatedTopic
+    ProductDeletedTopicArn:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /java/product/product-deleted-topic
+        Type: String
+        Value: !Ref ProductDeletedTopic
+    ProductCreatedTopicName:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /java/product/product-created-topic-name
+        Type: String
+        Value: !GetAtt ProductCreatedTopic.TopicName
+    ProductUpdatedTopicName:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /java/product/product-updated-topic-name
+        Type: String
+        Value: !GetAtt ProductUpdatedTopic.TopicName
+    ProductDeletedTopicName:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /java/product/product-deleted-topic-name
+        Type: String
+        Value: !GetAtt ProductDeletedTopic.TopicName
+    ProductApiTableName:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /java/product/product-table-name
+        Type: String
+        Value: !Ref ProductDynamoDbTable
+    ProductApiEndpoint:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /java/product/api-endpoint
+        Type: String
+        Value: !GetAtt HttpApi.ApiEndpoint

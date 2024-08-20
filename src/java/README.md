@@ -249,9 +249,10 @@ Ensure you have set the below environment variables before starting deployment:
 - `DD_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
 - `AWS_REGION`: The AWS region you want to deploy to
 
-Once set, use the below commands to deploy each of the individual backend services on by one.
+Once set, use the below commands to deploy each of the individual backend services on by one. You will need to package your Java application before deploy.
 
 ```sh
+mvn clean package &&
 serverless deploy --stage dev --region=${AWS_REGION} --config serverless-shared.yml &&
 serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-api.yml &&
 serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-pricing-service.yml &&
