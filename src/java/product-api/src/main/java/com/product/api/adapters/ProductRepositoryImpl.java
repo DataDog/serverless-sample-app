@@ -54,8 +54,8 @@ public class ProductRepositoryImpl implements ProductRepository {
         var result = dynamoDB.getItem(request);
 
         Map<String, AttributeValue> item = result.item();
-
-        if (item == null) {
+        
+        if (item.isEmpty() || !item.containsKey(NAME_KEY)) {
             return null;
         }
 

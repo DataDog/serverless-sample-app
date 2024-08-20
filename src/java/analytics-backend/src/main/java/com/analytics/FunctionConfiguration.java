@@ -65,7 +65,8 @@ public class FunctionConfiguration {
                     this.logger.info(String.format("TraceId = %s", evtWrapper.getTraceData().getTraceId()));
                     this.logger.info(String.format("SpanId = %s", evtWrapper.getTraceData().getSpanId()));
                     
-                    this.statsDClient.incrementCounter(evtWrapper.getDetailType());
+                    this.statsDClient.recordDistributionValue(String.format("%s.%s", evtWrapper.getSource(), evtWrapper.getDetailType()), 1);
+                    
                 } catch (JsonProcessingException | Error exception) {
                     batchItemFailures.add(SQSBatchResponse.BatchItemFailure.builder().withItemIdentifier(message.getMessageId()).build());
                     logger.error("An exception occurred!", exception);

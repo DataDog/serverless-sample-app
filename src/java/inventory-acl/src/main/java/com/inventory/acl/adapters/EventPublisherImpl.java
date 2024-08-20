@@ -32,7 +32,7 @@ public class EventPublisherImpl implements EventPublisher {
     public void publishNewProductAddedEvent(NewProductAddedEvent evt) {
         try {
             this.snsClient.publish(PublishRequest.builder()
-                    .topicArn(System.getenv("NEW_PRODUCT_ADDED_TOPIC_ARN"))
+                    .topicArn(System.getenv("PRODUCT_ADDED_TOPIC_ARN"))
                     .message(this.mapper.writeValueAsString(evt))
                     .build());
 

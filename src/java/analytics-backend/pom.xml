@@ -99,9 +99,9 @@
             <version>LATEST</version>
         </dependency>
         <dependency>
-            <groupId>com.timgroup</groupId>
-            <artifactId>java-statsd-client</artifactId>
-            <version>3.1.0</version>
+            <groupId>com.datadoghq</groupId>
+            <artifactId>java-dogstatsd-client</artifactId>
+            <version>4.4.2</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
