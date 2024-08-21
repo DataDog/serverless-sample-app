@@ -18,7 +18,7 @@ custom:
     site: datadoghq.eu
     env: ${sls:stage}
     service: ${self:custom.serviceName}
-    version: latest
+    version: 64
     # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
     captureLambdaPayload: true
     propagateUpstreamTrace: true
@@ -26,6 +26,9 @@ custom:
 provider:
   name: aws
   runtime: java21
+  memorySize: 2048
+  timeout: 29
+  logRetentionInDays: 1
   environment:
     DD_EXTENSION_VERSION: "next"
     ENV: ${sls:stage}
@@ -33,7 +36,7 @@ provider:
     POWERTOOLS_LOG_LEVEL: 'INFO'
     DD_SERVERLESS_APPSEC_ENABLED: "true"
     DD_LOGS_INJECTION: "true"
-    MAIN_CLASS: com.analytics.FunctionConfiguration
+    MAIN_CLASS: com.product.publisher.FunctionConfiguration
     AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
   iam:
     role:

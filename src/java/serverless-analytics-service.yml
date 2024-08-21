@@ -18,7 +18,7 @@ custom:
     site: datadoghq.eu
     env: ${sls:stage}
     service: ${self:custom.serviceName}
-    version: latest
+    version: 64
     # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
     captureLambdaPayload: true
     propagateUpstreamTrace: true 
@@ -26,6 +26,9 @@ custom:
 provider:
   name: aws
   runtime: java21
+  memorySize: 2048
+  timeout: 29
+  logRetentionInDays: 1
   environment:
     DD_EXTENSION_VERSION: "next"
     ENV: ${sls:stage}
@@ -78,7 +81,7 @@ resources:
     AnalyticsCatchAllRule:
       Type: AWS::Events::Rule
       Properties:
-        EventBusName: ${ssm:/Java/shared/event-bus-name}
+        EventBusName: ${ssm:/java/shared/event-bus-name}
         Name: analytics-catch-all
         State: ENABLED
         EventPattern:

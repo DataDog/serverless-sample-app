@@ -19,7 +19,7 @@ custom:
     site: datadoghq.eu
     env: ${sls:stage}
     service: ${self:custom.serviceName}
-    version: latest
+    version: 64
     # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
     captureLambdaPayload: true
     propagateUpstreamTrace: true
@@ -27,6 +27,9 @@ custom:
 provider:
   name: aws
   runtime: java21
+  memorySize: 2048
+  timeout: 29
+  logRetentionInDays: 1
   environment:
     DD_EXTENSION_VERSION: "next"
     ENV: ${sls:stage}
@@ -34,7 +37,7 @@ provider:
     POWERTOOLS_LOG_LEVEL: 'INFO'
     DD_SERVERLESS_APPSEC_ENABLED: "true"
     DD_LOGS_INJECTION: "true"
-    MAIN_CLASS: com.analytics.FunctionConfiguration
+    MAIN_CLASS: com.inventory.ordering.FunctionConfiguration
     AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
   iam:
     role:
@@ -50,7 +53,7 @@ provider:
             - !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:inventoryOrderingWorkflow${sls:stage}
 
 functions:
-  startOrderingWorkflow:
+  startOrderWorkflow:
     handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
     environment:
       DD_SERVICE_MAPPING: !Sub "lambda_sns:${ssm:/java/inventory/new-product-added-topic-name}"
@@ -66,7 +69,7 @@ stepFunctions:
   stateMachines:
     inventoryOrderingWorkflow:
       name: inventoryOrderingWorkflow${sls:stage}
-      definition: ${file(lib/inventory-ordering-service/workflows/workflow.sample.asl.json)}
+      definition: ${file(cdk/src/main/java/com/cdk/inventory/ordering/workflows/workflow.sample.asl.json)}
       loggingConfig:
         level: ALL
         includeExecutionData: true

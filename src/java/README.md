@@ -15,7 +15,7 @@ When using Java as your language of choice with the AWS CDK, you need to manuall
 ```java
 List<ILayerVersion> layers = new ArrayList<>(2);
 layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", "arn:aws:lambda:eu-west-1:464622532012:layer:dd-trace-java:15"));
-layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", "arn:aws:lambda:eu-west-1:464622532012:layer:Datadog-Extension:63"));
+layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", "arn:aws:lambda:eu-west-1:464622532012:layer:Datadog-Extension:64"));
 
 var builder = Function.Builder.create(this, props.routingExpression())
     // Remove for brevity
@@ -236,7 +236,7 @@ custom:
     site: datadoghq.eu
     env: ${sls:stage}
     service: ${self:custom.serviceName}
-    version: latest
+    version: 64
     # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
     captureLambdaPayload: true
     propagateUpstreamTrace: true
