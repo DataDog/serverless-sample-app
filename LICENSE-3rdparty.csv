@@ -25,6 +25,7 @@ typescript,https://github.com/Microsoft/TypeScript,Apache-2.0,Microsoft
 uuid,https://github.com/uuidjs/uuid,MIT,
 @aws-lambda-powertools/logger,https://github.com/aws-powertools/powertools-lambda-typescript,MIT-0,Amazon Web Services
 zod,https://github.com/colinhacks/zod,MIT,
+sst,https://github.com/sst/sst,MIT,
 spring-cloud-context,,Apache-2.0,
 spring-cloud-function-adapter-aws,,Apache-2.0,
 aws-lambda-java-events,https://github.com/aws/aws-lambda-java-libs/tree/main/aws-lambda-java-events,Apache-2.0,Amazon Web Services
