@@ -123,7 +123,6 @@ export class Api extends Construct {
         environment: {
           TABLE_NAME: this.table.tableName,
           PRODUCT_CREATED_TOPIC_ARN: this.productCreatedTopic.topicArn,
-          DD_SERVICE_MAPPING: `lambda_sns:${this.productCreatedTopic.topicName}`,
         },
         buildDef: "./src/product-api/adapters/buildCreateProductFunction.js",
         outDir: "./out/createProductFunction",
@@ -150,7 +149,6 @@ export class Api extends Construct {
         environment: {
           TABLE_NAME: this.table.tableName,
           PRODUCT_UPDATED_TOPIC_ARN: this.productUpdatedTopic.topicArn,
-          DD_SERVICE_MAPPING: `lambda_sns:${this.productUpdatedTopic.topicName}`,
         },
         buildDef: "./src/product-api/adapters/buildUpdateProductFunction.js",
         outDir: "./out/updateProductFunction",
@@ -177,7 +175,6 @@ export class Api extends Construct {
         environment: {
           TABLE_NAME: this.table.tableName,
           PRODUCT_DELETED_TOPIC_ARN: this.productDeletedTopic.topicArn,
-          DD_SERVICE_MAPPING: `lambda_sns:${this.productDeletedTopic.topicName}`,
         },
         buildDef: "./src/product-api/adapters/buildDeleteProductFunction.js",
         outDir: "./out/deleteProductFunction",
