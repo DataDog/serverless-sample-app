@@ -21,7 +21,7 @@ public class OrderingWorkflowImpl implements OrderingWorkflow {
     @Override
     public void startOrderingWorkflowFor(String productId) {
         this.stepFunctionsClient.startExecution(StartExecutionRequest.builder()
-                .stateMachineArn(System.getenv("STEP_FUNCTIONS_WORKFLOW_ARN"))
+                .stateMachineArn(System.getenv("ORDERING_SERVICE_WORKFLOW_ARN"))
                 .input(String.format("{\"productId\":\"%s\"}", productId))
                 .build());
     }

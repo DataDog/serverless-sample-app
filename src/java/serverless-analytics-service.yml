@@ -1,0 +1,107 @@
+#
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2024 Datadog, Inc.
+#
+
+service: serverless-analytics-service
+frameworkVersion: "3"
+
+plugins:
+  - serverless-plugin-datadog
+
+custom:
+  serviceName: JavaAnalyticsBackend
+  datadog:
+    apiKeySecretArn: ${param:DD_SECRET_ARN}
+    site: datadoghq.eu
+    env: ${sls:stage}
+    service: ${self:custom.serviceName}
+    version: 64
+    # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
+    captureLambdaPayload: true
+    propagateUpstreamTrace: true 
+
+provider:
+  name: aws
+  runtime: java21
+  memorySize: 2048
+  timeout: 29
+  logRetentionInDays: 1
+  environment:
+    DD_EXTENSION_VERSION: "next"
+    ENV: ${sls:stage}
+    POWERTOOLS_SERVICE_NAME: ${self:custom.serviceName}
+    POWERTOOLS_LOG_LEVEL: 'INFO'
+    DD_SERVERLESS_APPSEC_ENABLED: "true"
+    DD_LOGS_INJECTION: "true"
+    MAIN_CLASS: com.analytics.FunctionConfiguration
+    AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource: ${param:DD_SECRET_ARN}
+
+functions:
+  analyticsHandler:
+    handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+    environment:
+      DD_TRACE_PROPAGATION_STYLE: "none"
+      spring_cloud_function_definition: handleEvents
+    package:
+      artifact: ./analytics-backend/target/com.analytics-0.0.1-SNAPSHOT-aws.jar
+      individually: true
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [JavaAnalyticsEventQueue, Arn]
+
+resources:
+  Resources:
+    JavaAnalyticsEventDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: !Sub "JavaAnalyticsEventDLQ-${sls:stage}"
+
+    JavaAnalyticsEventQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: !Sub "JavaAnalyticsEventQueue-${sls:stage}"
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - "JavaAnalyticsEventDLQ"
+              - "Arn"
+          maxReceiveCount: 3
+
+    AnalyticsCatchAllRule:
+      Type: AWS::Events::Rule
+      Properties:
+        EventBusName: ${ssm:/java/shared/event-bus-name}
+        Name: analytics-catch-all
+        State: ENABLED
+        EventPattern:
+          source:
+            - prefix: !Sub "${sls:stage}."
+        Targets:
+          - Id: JavaAnalyticsEventQueue
+            Arn: !GetAtt JavaAnalyticsEventQueue.Arn
+
+    EBToQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref JavaAnalyticsEventQueue
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Sid: allow-eb-send-message-messages
+              Effect: Allow
+              Principal:
+                Service: "events.amazonaws.com"
+              Resource: !GetAtt JavaAnalyticsEventQueue.Arn
+              Action: SQS:SendMessage

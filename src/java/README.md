@@ -15,7 +15,7 @@ When using Java as your language of choice with the AWS CDK, you need to manuall
 ```java
 List<ILayerVersion> layers = new ArrayList<>(2);
 layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", "arn:aws:lambda:eu-west-1:464622532012:layer:dd-trace-java:15"));
-layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", "arn:aws:lambda:eu-west-1:464622532012:layer:Datadog-Extension:63"));
+layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", "arn:aws:lambda:eu-west-1:464622532012:layer:Datadog-Extension:64"));
 
 var builder = Function.Builder.create(this, props.routingExpression())
     // Remove for brevity
@@ -94,7 +94,10 @@ Once both environment variables are set, use the below `sh` script to deploy all
 
 The `template.yaml` file contains an example of using a nested stack to deploy all 6 backend services in a single command. This **is not** recommended for production use cases, instead preferring independent deployments. For the purposes of this demonstration, a single template makes test deployments easier.
 
+The `CodeUri` property in the SAM template directly references a compiled `jar` file. Ensure you run `mvn clean package` before deploying a new version.
+
 ```sh
+mvn clean package
 sam build
 sam deploy --stack-name JavaTracing --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $AWS_REGION
 ```
@@ -190,7 +193,7 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 63
+  datadog_extension_layer_version = 64
   datadog_java_layer_version      = 15
 }
 ```
@@ -233,7 +236,7 @@ custom:
     site: datadoghq.eu
     env: ${sls:stage}
     service: ${self:custom.serviceName}
-    version: latest
+    version: 64
     # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
     captureLambdaPayload: true
     propagateUpstreamTrace: true
@@ -246,9 +249,10 @@ Ensure you have set the below environment variables before starting deployment:
 - `DD_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
 - `AWS_REGION`: The AWS region you want to deploy to
 
-Once set, use the below commands to deploy each of the individual backend services on by one.
+Once set, use the below commands to deploy each of the individual backend services on by one. You will need to package your Java application before deploy.
 
 ```sh
+mvn clean package &&
 serverless deploy --stage dev --region=${AWS_REGION} --config serverless-shared.yml &&
 serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-api.yml &&
 serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-pricing-service.yml &&
