@@ -16,7 +16,7 @@ import { Logger } from "@aws-lambda-powertools/logger";
 const logger = new Logger({});
 
 export class UpdateProductCommand {
-  productId: string;
+  id: string;
   name: string;
   price: number;
 }
@@ -36,7 +36,7 @@ export class UpdateProductHandler {
     try {
       const span = tracer.scope().active()!;
       const existingProduct = await this.repository.getProduct(
-        command.productId
+        command.id
       );
 
       if (existingProduct === undefined) {
