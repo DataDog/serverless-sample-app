@@ -30,11 +30,9 @@ provider:
   timeout: 29
   logRetentionInDays: 1
   environment:
-    DD_EXTENSION_VERSION: "next"
     ENV: ${sls:stage}
     POWERTOOLS_SERVICE_NAME: ${self:custom.serviceName}
     POWERTOOLS_LOG_LEVEL: 'INFO'
-    DD_SERVERLESS_APPSEC_ENABLED: "true"
     DD_LOGS_INJECTION: "true"
     MAIN_CLASS: com.inventory.acl.FunctionConfiguration
     AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
