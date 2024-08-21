@@ -28,6 +28,7 @@ module "create_product_lambda" {
     "PRODUCT_CREATED_TOPIC_ARN" : aws_sns_topic.product_created.arn
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
 }
 
 resource "aws_iam_role_policy_attachment" "create_product_lambda_dynamo_db_write" {
@@ -61,6 +62,7 @@ module "get_product_lambda" {
     "TABLE_NAME" : aws_dynamodb_table.java_product_api.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
 }
 
 resource "aws_iam_role_policy_attachment" "get_product_lambda_dynamo_db_read" {
@@ -95,6 +97,7 @@ module "update_product_lambda" {
     "PRODUCT_UPDATED_TOPIC_ARN" : aws_sns_topic.product_updated.arn
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
 }
 
 resource "aws_iam_role_policy_attachment" "update_product_lambda_dynamo_db_read" {
@@ -138,6 +141,7 @@ module "delete_product_lambda" {
     "PRODUCT_DELETED_TOPIC_ARN" : aws_sns_topic.product_deleted.arn
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
 }
 
 resource "aws_iam_role_policy_attachment" "delete_product_lambda_dynamo_db_read" {

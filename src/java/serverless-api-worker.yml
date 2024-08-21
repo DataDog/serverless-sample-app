@@ -15,7 +15,7 @@ custom:
   serviceName: JavaProductApi
   datadog:
     apiKeySecretArn: ${param:DD_SECRET_ARN}
-    site: datadoghq.eu
+    site: ${param:DD_SITE}
     env: ${sls:stage}
     service: ${self:custom.serviceName}
     version: 64
@@ -31,11 +31,9 @@ provider:
   logRetentionInDays: 1
   environment:
     TABLE_NAME: ${ssm:/java/product/product-table-name}
-    DD_EXTENSION_VERSION: "next"
     ENV: ${sls:stage}
     POWERTOOLS_SERVICE_NAME: ${self:custom.serviceName}
     POWERTOOLS_LOG_LEVEL: 'INFO'
-    DD_SERVERLESS_APPSEC_ENABLED: "true"
     DD_LOGS_INJECTION: "true"
     MAIN_CLASS: com.product.api.FunctionConfiguration
     AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper

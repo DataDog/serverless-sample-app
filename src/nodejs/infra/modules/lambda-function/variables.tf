@@ -45,3 +45,8 @@ variable "environment_variables" {
 variable "dd_api_key_secret_arn" {
   type = string
 }
+
+variable "dd_site" {
+  default = "The Datadog site to use"
+  type = string
+}

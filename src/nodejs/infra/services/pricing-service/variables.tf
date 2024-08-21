@@ -9,3 +9,8 @@ variable "dd_api_key_secret_arn" {
   type        = string
   description = "The ARN of the Datadog API key secret"
 }
+
+variable "dd_site" {
+  type    = string
+  description = "The Datadog site"
+}

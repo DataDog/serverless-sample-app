@@ -63,3 +63,8 @@ variable "timeout" {
   type = number
   default = 29
 }
+
+variable "dd_site" {
+  default = "The Datadog site to use"
+  type = string
+}

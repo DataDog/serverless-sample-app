@@ -34,6 +34,7 @@ module "analytics_service_function" {
     DD_TRACE_PROPAGATION_STYLE: "none"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
 }
 
 resource "aws_lambda_event_source_mapping" "analytics_backend_source" {

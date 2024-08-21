@@ -27,7 +27,7 @@ The relevant Datadog environment variables are also set.
 ```java
 Map<String, String> lambdaEnvironment = new HashMap<>();
 lambdaEnvironment.put("AWS_LAMBDA_EXEC_WRAPPER", "/opt/datadog_wrapper");
-lambdaEnvironment.put("DD_SITE", "datadoghq.eu");
+lambdaEnvironment.put("DD_SITE", System.getenv("DD_SITE") == null ? "datadoghq.com" : System.getenv("DD_SITE"));
 lambdaEnvironment.put("DD_SERVICE", props.sharedProps().service());
 lambdaEnvironment.put("DD_ENV", props.sharedProps().env());
 lambdaEnvironment.put("DD_VERSION", props.sharedProps().version());
@@ -36,7 +36,7 @@ lambdaEnvironment.put("DD_CAPTURE_LAMBDA_PAYLOAD", "true");
 lambdaEnvironment.put("DD_LOGS_INJECTION", "true");
 ```
 
-The Datadog extension retrieves your Datadog API key from a Secrets Manager secret. For this to work, ensure you create a secret in your account containing your API key and set the `DD_SECRET_ARN` environment variable before deployment.. Eensure that you give your Lambda function permission to access the AWS Secrets Manager secret
+The Datadog extension retrieves your Datadog API key from a Secrets Manager secret. For this to work, ensure you create a secret in your account containing your API key and set the `DD_SECRET_ARN` and `DD_SITE` environment variable before deployment. Eensure that you give your Lambda function permission to access the AWS Secrets Manager secret
 
 ```java
 props.sharedProps().ddApiKeySecret().grantRead(this.function);
@@ -57,19 +57,13 @@ You first need to compile your Java application code, before running `cdk deploy
 
 ```sh
 export DD_SECRET_ARN=<YOUR SECRET ARN>
+export DD_SITE=<YOUR PREFERRED DATADOG SITE>
 mvn clean package
 cd cdk
 cdk deploy --all --require-approval never
 ```
 
 If you wish to deploy individual stacks, you can do that by running the respective command below:
-
-```sh
-cdk deploy JavaSharedStack --require-approval never
-cdk deploy JavaProductApiStack --require-approval never
-cdk deploy JavaEventPublisherStack --require-approval never
-cdk deploy JavaProductPricingService --require-approval never
-```
 
 ### Cleanup
 
@@ -86,6 +80,7 @@ The AWS SAM example leverages the Datadog CloudFormation Macro. The macro auto-i
 Ensure you have set the below environment variables before starting deployment:
 
 - `DD_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
+- `DD_SITE`: The Datadog Site to use
 - `AWS_REGION`: The AWS region you want to deploy to
 
 Once both environment variables are set, use the below `sh` script to deploy all backend services. You can deploy individual services as well if required. Due to the SSM parameters holding SNS Topic ARN's, the order of deployment is important.
@@ -99,43 +94,7 @@ The `CodeUri` property in the SAM template directly references a compiled `jar` 
 ```sh
 mvn clean package
 sam build
-sam deploy --stack-name JavaTracing --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $AWS_REGION
-```
-
-To deploy individual stacks and resources, you can use the below commands.
-
-```sh
-# Deploy Shared Resoures
-sam build -t template-shared.yaml &&
-sam deploy --stack-name JavaSharedStack --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
-
-# Deploy API
-sam build -t template-api.yaml &&
-sam deploy --stack-name JavaProductApiStack --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
-
-# Deploy Pricing Service
-sam build -t template-pricing-service.yaml &&
-sam deploy --stack-name JavaProductPricingServiceStack --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
-
-# Deploy Public Event Publisher
-sam build -t template-product-event-publisher.yaml &&
-sam deploy --stack-name JavaProductPublicEventPublisherStack --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
-
-# Deploy Product API worker
-sam build -t template-product-api-worker.yaml &&
-sam deploy --stack-name JavaProductApiWorkerStack --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
-
-# Deploy Inventory ACL
-sam build -t template-inventory-acl.yaml &&
-sam deploy --stack-name JavaInventoryAcl --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION &&
-
-# Deploy Inventory Ordering Service
-sam build -t template-inventory-ordering-service.yaml &&
-sam deploy --stack-name JavaInventoryOrderingService --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION
-
-# Deploy Analytics Backend
-sam build -t template-analytics-service.yaml &&
-sam deploy --stack-name JavaAnalyticsService --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" --resolve-s3 --capabilities CAPABILITY_IAM --region $AWS_REGION
+sam deploy --stack-name JavaTracing --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" ParameterKey=DDSite,ParameterValue="$DD_SITE" --resolve-s3 --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $AWS_REGION
 ```
 
 ### Cleanup
@@ -181,7 +140,7 @@ module "aws_lambda_function" {
 
   environment_variables = merge(tomap({
     "MAIN_CLASS" : "${var.package_name}.FunctionConfiguration"
-    "DD_SITE" : "datadoghq.eu"
+    "DD_SITE" : var.dd_site
     "DD_SERVICE" : var.service_name
     "DD_ENV" : var.env
     "ENV" : var.env
@@ -204,6 +163,7 @@ To deploy, first create a file named `infra/dev.tfvars`. In your tfvars file, yo
 
 ```tf
 dd_api_key_secret_arn="<DD_SECRET_ARN>"
+dd_site="<YOUR PREFERRED DATADOG SITE>
 ```
 
 There's a single `main.tf` that contains all 7 backend services as modules. This is **not** recommended in production, and you should deploy backend services independenly. However, to simplify this demo deployment a single file is used.
@@ -233,7 +193,7 @@ Datadog provides a [plugin](https://www.serverless.com/plugins/serverless-plugin
 custom:
   datadog:
     apiKeySecretArn: ${param:DD_SECRET_ARN}
-    site: datadoghq.eu
+    site: ${param:DD_SITE}
     env: ${sls:stage}
     service: ${self:custom.serviceName}
     version: 64
@@ -247,6 +207,7 @@ custom:
 Ensure you have set the below environment variables before starting deployment:
 
 - `DD_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
+- `DD_SITE`: The Datadog Site to use
 - `AWS_REGION`: The AWS region you want to deploy to
 
 Once set, use the below commands to deploy each of the individual backend services on by one. You will need to package your Java application before deploy.
@@ -254,13 +215,13 @@ Once set, use the below commands to deploy each of the individual backend servic
 ```sh
 mvn clean package &&
 serverless deploy --stage dev --region=${AWS_REGION} --config serverless-shared.yml &&
-serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-api.yml &&
-serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-pricing-service.yml &&
-serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-api-worker.yml &&
-serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-product-event-publisher.yml &&
-serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-inventory-acl.yml &&
-serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-inventory-ordering-service.yml &&
-serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-analytics-service.yml
+serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api.yml &&
+serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-pricing-service.yml &&
+serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api-worker.yml &&
+serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-product-event-publisher.yml &&
+serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-acl.yml &&
+serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-ordering-service.yml &&
+serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-analytics-service.yml
 ```
 
 ### Cleanup
@@ -268,12 +229,12 @@ serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=
 The same commands can be used to cleanup all resources, but replacing `deploy` with `remove`.
 
 ```sh
-serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-analytics-service.yml &&
-serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-inventory-ordering-service.yml &&
-serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-inventory-acl.yml &&
-serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-product-event-publisher.yml &&
-serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-api-worker.yml &&
-serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-pricing-service.yml &&
-serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --stage dev --region=${AWS_REGION} --config serverless-api.yml &&
+serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-analytics-service.yml &&
+serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-ordering-service.yml &&
+serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-acl.yml &&
+serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-product-event-publisher.yml &&
+serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api-worker.yml &&
+serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-pricing-service.yml &&
+serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api.yml &&
 serverless remove --stage dev --region=${AWS_REGION} --config serverless-shared.yml
 ```

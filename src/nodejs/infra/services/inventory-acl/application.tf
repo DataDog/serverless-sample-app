@@ -38,6 +38,7 @@ module "inventory_acl_function" {
     DD_SERVICE_MAPPING : "lambda_sqs:${aws_sqs_queue.public_event_acl_queue.name}"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
 }
 
 resource "aws_lambda_event_source_mapping" "public_event_publisher" {

@@ -17,7 +17,7 @@ Transform:
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
-      site: datadoghq.eu
+      site: !Ref DDSite
       captureLambdaPayload: true
 Description: A sample SAM template for deploying Lambda functions.
 
@@ -36,6 +36,8 @@ Parameters:
   TopicArn:
     Type: String
     Default: '{{resolve:ssm:/java/inventory/new-product-added-topic:1}}' 
+  DDSite:
+    Type: String
 
 Globals:
   Function:
@@ -45,8 +47,6 @@ Globals:
     Environment:
       Variables:
         ENV: !Ref Env
-        DD_EXTENSION_VERSION: "next"
-        DD_SERVERLESS_APPSEC_ENABLED: "true"
         DD_LOGS_INJECTION: "true"
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
         POWERTOOLS_LOG_LEVEL: 'INFO'
