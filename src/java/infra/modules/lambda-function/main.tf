@@ -90,7 +90,7 @@ module "aws_lambda_function" {
 
   environment_variables = merge(tomap({
     "MAIN_CLASS" : "${var.package_name}.FunctionConfiguration"
-    "DD_SITE" : "datadoghq.eu"
+    "DD_SITE" : var.dd_site
     "DD_SERVICE" : var.service_name
     "DD_ENV" : var.env
     "ENV" : var.env

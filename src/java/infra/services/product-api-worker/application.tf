@@ -17,6 +17,7 @@ module "product_api_pricing_worker" {
     DD_SERVICE_MAPPING : "lambda_sns:${data.aws_ssm_parameter.product_pricing_changed_topic_name.value}"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
 }
 
 

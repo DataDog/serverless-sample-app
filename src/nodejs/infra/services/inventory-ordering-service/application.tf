@@ -16,6 +16,7 @@ module "inventory_ordering_service" {
     DD_SERVICE_MAPPING : "lambda_sns:${data.aws_ssm_parameter.product_added_topic.value}"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
 }
 
 resource "aws_iam_role_policy_attachment" "product_created_handler_sqs_receive_permission" {

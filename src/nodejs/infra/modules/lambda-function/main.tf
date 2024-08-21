@@ -93,7 +93,7 @@ module "aws_lambda_function" {
     "DD_CAPTURE_LAMBDA_PAYLOAD": "true",
     "DD_ENV" : var.env
     "DD_SERVICE" : var.service_name
-    "DD_SITE" : "datadoghq.eu"
+    "DD_SITE" : var.dd_site
     "DD_VERSION" : var.app_version
     "ENV": var.env
     "POWERTOOLS_SERVICE_NAME": var.service_name

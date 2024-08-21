@@ -38,6 +38,7 @@ module "product_public_event_publisher" {
     EVENT_BUS_NAME : data.aws_ssm_parameter.eb_name.value
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
 }
 
 resource "aws_lambda_event_source_mapping" "public_event_publisher" {

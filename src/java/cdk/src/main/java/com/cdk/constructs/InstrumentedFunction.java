@@ -33,7 +33,7 @@ public class InstrumentedFunction extends Construct {
         Map<String, String> lambdaEnvironment = new HashMap<>();
         lambdaEnvironment.put("MAIN_CLASS", String.format("%s.FunctionConfiguration", props.packageName()));
         lambdaEnvironment.put("AWS_LAMBDA_EXEC_WRAPPER", "/opt/datadog_wrapper");
-        lambdaEnvironment.put("DD_SITE", "datadoghq.eu");
+        lambdaEnvironment.put("DD_SITE", System.getenv("DD_SITE") == null ? "datadoghq.com" : System.getenv("DD_SITE"));
         lambdaEnvironment.put("DD_SERVICE", props.sharedProps().service());
         lambdaEnvironment.put("DD_ENV", props.sharedProps().env());
         lambdaEnvironment.put("ENV", props.sharedProps().env());

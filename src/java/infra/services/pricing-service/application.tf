@@ -21,6 +21,7 @@ module "product_pricing_created_handler" {
     DD_SERVICE_MAPPING: "lambda_sns:${aws_sns_topic.product_price_calculated.name}"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
 }
 
 resource "aws_iam_role_policy_attachment" "product_created_handler_publish_permission" {
@@ -55,6 +56,7 @@ module "product_pricing_updated_handler" {
     DD_SERVICE_MAPPING: "lambda_sns:${aws_sns_topic.product_price_calculated.name}"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
 }
 
 resource "aws_iam_role_policy_attachment" "product_updated_handler_publish_permission" {

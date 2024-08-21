@@ -15,7 +15,7 @@ custom:
   serviceName: JavaProductPublicEventPublisher
   datadog:
     apiKeySecretArn: ${param:DD_SECRET_ARN}
-    site: datadoghq.eu
+    site: ${param:DD_SITE}
     env: ${sls:stage}
     service: ${self:custom.serviceName}
     version: 64
