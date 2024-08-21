@@ -61,7 +61,7 @@ public class FunctionConfiguration {
                         .withHeaders(Map.of("Content-Type", "application/json"))
                         .build();
             } catch (JsonProcessingException e) {
-                logger.error("an exception occurred", e);
+                logger.error("an error occurred", e);
 
                 return APIGatewayV2HTTPResponse.builder()
                         .withStatusCode(500)
