@@ -12,6 +12,7 @@ This repository contains source code for demonstrating the getting started exper
 | AWS SAM              | [Y](./src/nodejs/README.md#aws-sam)              |        |      | [Y](./src/java/README.md#aws-sam)              |     |      |
 | Terraform            | [Y](./src/nodejs/README.md#terraform)            |        |      | [Y](./src/java/README.md#terraform)            |     |      |
 | Serverless Framework | [Y](./src/nodejs/README.md#serverless-framework) |        |      | [Y](./src/java/README.md#serverless-framework) |     |      |
+| SST v2               | [Y](./src/nodejs/README.md#serverless-stack-sst)                  |        |      |                                                |     |      |
 
 ## End to End Tracing Output
 
