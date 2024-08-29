@@ -1,5 +1,3 @@
-using Product.Api.Core.CreateProduct;
-
 namespace Product.Api.Core.DeleteProduct;
 
 public class DeleteProductCommandHandler(IProductRepository productRepository, IEventPublisher eventPublisher, DeleteProductValidator validator)

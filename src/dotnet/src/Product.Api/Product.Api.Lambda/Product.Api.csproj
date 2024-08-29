@@ -29,9 +29,6 @@
         <FrameworkReference Include="Microsoft.AspNetCore.App"/>
     </ItemGroup>
     <ItemGroup>
-      <Folder Include="Core\" />
-    </ItemGroup>
-    <ItemGroup>
       <ProjectReference Include="..\Product.Api.Core\Product.Api.Core.csproj" />
     </ItemGroup>
 </Project>

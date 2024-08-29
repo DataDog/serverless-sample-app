@@ -1,8 +1,6 @@
-using System;
 using Amazon.CDK;
 using Amazon.CDK.AWS.SecretsManager;
 using Constructs;
-using EventBus = Amazon.CDK.AWS.Events.EventBus;
 
 namespace ServerlessGettingStarted.CDK.Services.Product.Api;
 

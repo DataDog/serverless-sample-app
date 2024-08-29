@@ -1,5 +1,4 @@
 using FluentValidation;
-using Product.Api.Core.CreateProduct;
 
 namespace Product.Api.Core.UpdateProduct;
 

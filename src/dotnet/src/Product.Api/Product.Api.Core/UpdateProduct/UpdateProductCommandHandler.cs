@@ -1,5 +1,3 @@
-using Product.Api.Core.CreateProduct;
-
 namespace Product.Api.Core.UpdateProduct;
 
 public class UpdateProductCommandHandler(IProductRepository productRepository, IEventPublisher eventPublisher, UpdateProductValidator updateProductValidator)

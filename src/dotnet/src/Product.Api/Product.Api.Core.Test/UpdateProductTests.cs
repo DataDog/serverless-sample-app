@@ -1,7 +1,5 @@
 using FakeItEasy;
 using Microsoft.Extensions.DependencyInjection;
-using Product.Api.Core.CreateProduct;
-using Product.Api.Core.DeleteProduct;
 using Product.Api.Core.UpdateProduct;
 
 namespace Product.Api.Core.Test;
