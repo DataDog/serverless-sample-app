@@ -36,5 +36,4 @@ jobs:
         name: Maven build
         shell: bash
         run: |
-          cd src/java/
-          mvn clean package
+          make package-java
