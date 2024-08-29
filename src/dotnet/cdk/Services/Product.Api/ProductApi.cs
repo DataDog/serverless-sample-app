@@ -46,26 +46,26 @@ public class ProductApi : Construct
         };
         
         var getProductFunction = new InstrumentedFunction(this, "GetProductFunction",
-            new FunctionProps(props.ServiceName, props.Env, props.Version,"GetProduct", "../src/Product.Api/Product.Api.Lambda/",
-                "Product.Api::Product.Api.Functions_GetProduct_Generated::GetProduct", apiEnvironmentVariables, props.DdApiKeySecret));
+            new FunctionProps(props.ServiceName, props.Env, props.Version,"GetProduct", "../src/Product.Api/ProductService.Api.Lambda/",
+                "ProductService.Api::ProductService.Api.Functions_GetProduct_Generated::GetProduct", apiEnvironmentVariables, props.DdApiKeySecret));
         var getProductIntegration = new HttpLambdaIntegration("GetProductIntegration", getProductFunction.Function);
         Table.GrantReadData(getProductFunction.Function);
 
         var createProductFunction = new InstrumentedFunction(this, "CreateProductFunction",
-            new FunctionProps(props.ServiceName, props.Env, props.Version,"CreateProduct", "../src/Product.Api/Product.Api.Lambda/",
-                "Product.Api::Product.Api.Functions_CreateProduct_Generated::CreateProduct", apiEnvironmentVariables, props.DdApiKeySecret));
+            new FunctionProps(props.ServiceName, props.Env, props.Version,"CreateProduct", "../src/Product.Api/ProductService.Api.Lambda/",
+                "ProductService.Api::ProductService.Api.Functions_CreateProduct_Generated::CreateProduct", apiEnvironmentVariables, props.DdApiKeySecret));
         
         var createProductIntegration = new HttpLambdaIntegration("CreateProductIntegration", createProductFunction.Function);
         
         var deleteProductFunction = new InstrumentedFunction(this, "DeleteProductFunction",
-            new FunctionProps(props.ServiceName, props.Env, props.Version,"DeleteProduct", "../src/Product.Api/Product.Api.Lambda/",
-                "Product.Api::Product.Api.Functions_DeleteProduct_Generated::DeleteProduct", apiEnvironmentVariables, props.DdApiKeySecret));
+            new FunctionProps(props.ServiceName, props.Env, props.Version,"DeleteProduct", "../src/Product.Api/ProductService.Api.Lambda/",
+                "ProductService.Api::ProductService.Api.Functions_DeleteProduct_Generated::DeleteProduct", apiEnvironmentVariables, props.DdApiKeySecret));
         
         var deleteProductIntegration = new HttpLambdaIntegration("DeleteProductIntegration", deleteProductFunction.Function);
         
         var updateProductFunction = new InstrumentedFunction(this, "UpdateProductFunction",
-            new FunctionProps(props.ServiceName, props.Env, props.Version,"UpdateProduct", "../src/Product.Api/Product.Api.Lambda/",
-                "Product.Api::Product.Api.Functions_UpdateProduct_Generated::UpdateProduct", apiEnvironmentVariables, props.DdApiKeySecret));
+            new FunctionProps(props.ServiceName, props.Env, props.Version,"UpdateProduct", "../src/Product.Api/ProductService.Api.Lambda/",
+                "ProductService.Api::ProductService.Api.Functions_UpdateProduct_Generated::UpdateProduct", apiEnvironmentVariables, props.DdApiKeySecret));
         
         var updateProductIntegration = new HttpLambdaIntegration("UpdateProductIntegration", updateProductFunction.Function);
 
