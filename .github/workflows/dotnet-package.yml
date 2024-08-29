@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 jobs:
-  clean-and-package:
+  package-and-test:
     runs-on: ubuntu-latest
     steps:
       -
