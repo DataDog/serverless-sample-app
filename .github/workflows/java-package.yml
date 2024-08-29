@@ -2,8 +2,6 @@ name: Java Package
 
 on:
     push:
-      branches:
-        - main
       paths:
         - src/java/**
     workflow_dispatch:
