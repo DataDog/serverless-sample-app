@@ -3,6 +3,7 @@ package-dotnet:
 
 test-dotnet:
 	dotnet test src/dotnet/src/Product.Api/ProductService.Api.Core.Test/ProductService.Api.Core.Test.csproj
+	dotnet test src/dotnet/src/Product.Pricing/ProductPricingService.Core.Test/ProductPricingService.Core.Test.csproj
 
 cdk-dotnet:
 	cd src/dotnet/cdk; cdk deploy --require-approval never --all
