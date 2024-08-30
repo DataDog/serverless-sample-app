@@ -4,6 +4,7 @@ using Amazon.CDK.AWS.Apigatewayv2;
 using Amazon.CDK.AWS.DynamoDB;
 using Amazon.CDK.AWS.SecretsManager;
 using Amazon.CDK.AWS.SNS;
+using Amazon.CDK.AWS.SSM;
 using Amazon.CDK.AwsApigatewayv2Integrations;
 using Constructs;
 using ServerlessGettingStarted.CDK.Constructs;
@@ -103,5 +104,24 @@ public class ProductApi : Construct
             Methods = [HttpMethod.DELETE],
             Integration = deleteProductIntegration
         });
+
+        var productCreatedTopicArnParameter = new StringParameter(this, "ProductCreatedTopicArnParameter",
+            new StringParameterProps()
+            {
+                ParameterName = "/dotnet/product-api/product-created-topic",
+                StringValue = ProductCreatedTopic.TopicArn
+            });
+        var productUpdatedTopicArnParameter = new StringParameter(this, "ProductUpdatedTopicArnParameter",
+            new StringParameterProps()
+            {
+                ParameterName = "/dotnet/product-api/product-updated-topic",
+                StringValue = ProductUpdatedTopic.TopicArn
+            });
+        var productDeletedTopicArnParameter = new StringParameter(this, "ProductDeletedTopicArnParameter",
+            new StringParameterProps()
+            {
+                ParameterName = "/dotnet/product-api/product-deleted-topic",
+                StringValue = ProductDeletedTopic.TopicArn
+            });
     }
 }
