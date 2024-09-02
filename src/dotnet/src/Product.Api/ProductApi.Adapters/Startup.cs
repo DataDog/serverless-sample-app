@@ -1,14 +1,14 @@
-using Amazon.Lambda.Annotations;
+using Amazon.DynamoDBv2;
 using Amazon.SimpleNotificationService;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using ProductPricingService.Core;
-using ProductPricingService.Lambda.Adapters;
+using ProductApi.Adapters.Adapters;
+using ProductApi.Core;
 using StatsdClient;
 
-namespace ProductPricingService.Lambda;
+namespace ProductApi.Adapters;
 
-[LambdaStartup]
+[Amazon.Lambda.Annotations.LambdaStartup]
 public class Startup
 {
     public void ConfigureServices(IServiceCollection services)
@@ -30,8 +30,9 @@ public class Startup
         services.AddLogging();
 
         services.AddSingleton(new AmazonSimpleNotificationServiceClient());
+        services.AddSingleton(new AmazonDynamoDBClient());
 
         services.AddSingleton<IEventPublisher, SnsEventPublisher>();
-        services.AddCore();
+        services.AddSingleton<IProducts, DynamoDbProducts>();
     }
 }

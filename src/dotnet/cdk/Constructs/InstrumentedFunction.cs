@@ -28,6 +28,7 @@ public class InstrumentedFunction : Construct
             { "DD_ENV", props.Env },
             { "ENV", props.Env },
             { "DD_VERSION", props.Version },
+            { "DD_SERVICE", props.ServiceName },
             { "DD_API_KEY_SECRET_ARN", props.DdApiKeySecret.SecretArn },
             { "DD_CAPTURE_LAMBDA_PAYLOAD", "true" },
         };

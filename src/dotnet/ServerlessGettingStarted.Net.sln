@@ -9,11 +9,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerlessGettingStarted.CD
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "services", "services", "{4263CABF-2354-4643-B016-8547EFA582EF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductService.Api", "src\Product.Api\ProductService.Api.Lambda\ProductService.Api.csproj", "{6C9573DF-1FCD-47D2-8690-DB9289509E84}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductApi.Adapters", "src\Product.Api\ProductApi.Adapters\ProductApi.Adapters.csproj", "{6C9573DF-1FCD-47D2-8690-DB9289509E84}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductService.Api.Core", "src\Product.Api\ProductService.Api.Core\ProductService.Api.Core.csproj", "{32387C51-45B0-4422-A5D4-D5E89045906A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductApi.Core", "src\Product.Api\ProductApi.Core\ProductApi.Core.csproj", "{32387C51-45B0-4422-A5D4-D5E89045906A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductService.Api.Core.Test", "src\Product.Api\ProductService.Api.Core.Test\ProductService.Api.Core.Test.csproj", "{03F84535-4916-446D-92B6-1AEAE7701F27}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductApi.Core.Test", "src\Product.Api\ProductApi.Core.Test\ProductApi.Core.Test.csproj", "{03F84535-4916-446D-92B6-1AEAE7701F27}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Product.Api", "Product.Api", "{D811020A-EE2E-44D0-8D9A-B3268F8FE52D}"
 EndProject

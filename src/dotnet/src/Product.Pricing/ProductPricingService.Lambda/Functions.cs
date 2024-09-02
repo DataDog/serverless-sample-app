@@ -12,49 +12,81 @@ public class Functions(PricingService pricingService)
     public async Task HandleProductCreated(SNSEvent evt)
     {
         var activeSpan = Tracer.Instance.ActiveScope?.Span;
-        
+        evt.AddToTelemetry();
+
         foreach (var record in evt.Records)
         {
             var processingSpan = Tracer.Instance.StartActive("process", new SpanCreationSettings()
             {
                 Parent = activeSpan?.Context
             });
+            record.AddToTelemetry();
             
-            var evtData = JsonSerializer.Deserialize<ProductCreatedEvent>(record.Sns.Message);
-
-            if (evtData is null)
+            try
             {
-                throw new ArgumentException("Event payload does not serialize to a `ProductCreatedEvent`");
-            }
+                using var timer = record.StartProcessingTimer();
 
-            await pricingService.GeneratePricingFor(new ProductPrice(evtData.Price));
-            
-            processingSpan.Close();
+                var evtData = JsonSerializer.Deserialize<ProductCreatedEvent>(record.Sns.Message);
+
+                if (evtData is null)
+                    throw new ArgumentException("Event payload does not serialize to a `ProductCreatedEvent`");
+
+                await pricingService.GeneratePricingFor(evtData.ProductId, new ProductPrice(evtData.Price));
+
+                processingSpan.Close();
+                record.AddProcessingMetrics();
+            }
+            catch (Exception e)
+            {
+                processingSpan.Span?.SetTag("error.type", e.GetType().Name);
+                record.AddProcessingMetrics(e);
+                throw;
+            }
+            finally
+            {
+                processingSpan.Close();
+            }
         }
     }
-    
+
     [LambdaFunction]
     public async Task HandleProductUpdated(SNSEvent evt)
     {
         var activeSpan = Tracer.Instance.ActiveScope?.Span;
-        
+        evt.AddToTelemetry();
+
         foreach (var record in evt.Records)
         {
             var processingSpan = Tracer.Instance.StartActive("process", new SpanCreationSettings()
             {
                 Parent = activeSpan?.Context
             });
-            
-            var evtData = JsonSerializer.Deserialize<ProductUpdatedEvent>(record.Sns.Message);
-
-            if (evtData is null)
+            try
             {
-                throw new ArgumentException("Event payload does not serialize to a `ProductUpdatedEvent`");
-            }
+                record.AddToTelemetry();
 
-            await pricingService.GeneratePricingFor(new ProductPrice(evtData.Price));
-            
-            processingSpan.Close();
+                using var timer = record.StartProcessingTimer();
+
+                var evtData = JsonSerializer.Deserialize<ProductUpdatedEvent>(record.Sns.Message);
+
+                if (evtData is null)
+                    throw new ArgumentException("Event payload does not serialize to a `ProductUpdatedEvent`");
+
+                await pricingService.GeneratePricingFor(evtData.ProductId, new ProductPrice(evtData.Price));
+
+                record.AddProcessingMetrics();
+            }
+            catch (Exception e)
+            {
+                processingSpan.Span?.SetTag("error.type", e.GetType().Name);
+                record.AddProcessingMetrics(e);
+                throw;
+            }
+            finally
+            {
+                processingSpan.Close();
+            }
         }
     }
+
 }

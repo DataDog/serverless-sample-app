@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Amazon.CDK.AWS.Lambda.EventSources;
 using Amazon.CDK.AWS.SecretsManager;
 using Amazon.CDK.AWS.SNS;
+using Amazon.CDK.AWS.SSM;
 using Constructs;
 using ServerlessGettingStarted.CDK.Constructs;
 
@@ -31,5 +32,12 @@ public class ProductPricingService : Construct
                 "ProductPricingService.Lambda::ProductPricingService.Lambda.Functions_HandleProductUpdated_Generated::HandleProductUpdated", apiEnvironmentVariables, props.DdApiKeySecret));
         handleProductUpdatedFunction.Function.AddEventSource(new SnsEventSource(props.ProductUpdatedTopic));
         productPricingUpdatedTopic.GrantPublish(handleProductUpdatedFunction.Function);
+        
+        var pricingUpdatedTopic = new StringParameter(this, "PricingUpdatedTopicArn",
+            new StringParameterProps()
+            {
+                ParameterName = "/dotnet/product-pricing/pricing-updated-topic",
+                StringValue = productPricingUpdatedTopic.TopicArn
+            });
     }
 }

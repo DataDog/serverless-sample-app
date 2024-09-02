@@ -2,7 +2,7 @@
 
 public class PricingService(IEventPublisher eventPublisher)
 {
-    public async Task GeneratePricingFor(ProductPrice price)
+    public async Task GeneratePricingFor(string productId, ProductPrice price)
     {
         var pricingOptions = new Dictionary<int, decimal>(5)
         {
@@ -13,6 +13,6 @@ public class PricingService(IEventPublisher eventPublisher)
             { 100, price.Value * 0.7M }
         };
 
-        await eventPublisher.Publish(new ProductPricingUpdatedEvent(pricingOptions));
+        await eventPublisher.Publish(new ProductPricingUpdatedEvent(productId, pricingOptions));
     } 
 }

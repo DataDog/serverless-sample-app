@@ -1,8 +1,11 @@
+load:
+	cd loadtest; artillery run loadtest.yml; cd ..
+
 package-dotnet:
 	dotnet publish src/dotnet/ -r linux-x64
 
 test-dotnet:
-	dotnet test src/dotnet/src/Product.Api/ProductService.Api.Core.Test/ProductService.Api.Core.Test.csproj
+	dotnet test src/dotnet/src/Product.Api/ProductApi.Core.Test/ProductApi.Core.Test.csproj
 	dotnet test src/dotnet/src/Product.Pricing/ProductPricingService.Core.Test/ProductPricingService.Core.Test.csproj
 
 cdk-dotnet:

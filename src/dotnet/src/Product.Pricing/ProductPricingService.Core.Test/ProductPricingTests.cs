@@ -24,11 +24,11 @@ public class ProductPricingTests
         var mockEventPublisher = _serviceProvider.GetRequiredService<IEventPublisher>();
         var pricingService = _serviceProvider.GetRequiredService<PricingService>();
 
-        await pricingService.GeneratePricingFor(new ProductPrice(12));
+        await pricingService.GeneratePricingFor("productid", new ProductPrice(12));
 
         A.CallTo(() => mockEventPublisher.Publish(A<ProductPricingUpdatedEvent>
                 .That
-                .Matches(evt => evt.priceBrackets.Count == 5)))
+                .Matches(evt => evt.PriceBrackets.Count == 5)))
             .MustHaveHappened(1, Times.Exactly);
     }
 }

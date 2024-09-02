@@ -3,22 +3,32 @@ using Amazon.SimpleNotificationService;
 using Amazon.SimpleNotificationService.Model;
 using Datadog.Trace;
 using Microsoft.Extensions.Configuration;
-using ProductPricingService.Core;
+using ProductApi.Core;
 
-namespace ProductPricingService.Lambda.Adapters;
+namespace ProductApi.Adapters.Adapters;
 
 public class SnsEventPublisher(AmazonSimpleNotificationServiceClient snsClient, IConfiguration configuration)
     : IEventPublisher
 {
-    private readonly JsonSerializerOptions _options = new()
+    public async Task Publish(ProductCreatedEvent evt)
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
+        var req = new PublishRequest(configuration["PRODUCT_CREATED_TOPIC_ARN"], JsonSerializer.Serialize(evt));
+        
+        await this.Publish(req);
+    }
 
-    public async Task Publish(ProductPricingUpdatedEvent evt)
+    public async Task Publish(ProductUpdatedEvent evt)
     {
-        var publishRequest = new PublishRequest(configuration["PRICE_CALCULATED_TOPIC_ARN"], JsonSerializer.Serialize(evt, _options));
-        await this.Publish(publishRequest);
+        var req = new PublishRequest(configuration["PRODUCT_UPDATED_TOPIC_ARN"], JsonSerializer.Serialize(evt));
+        
+        await this.Publish(req);
+    }
+
+    public async Task Publish(ProductDeletedEvent evt)
+    {
+        var req = new PublishRequest(configuration["PRODUCT_DELETED_TOPIC_ARN"], JsonSerializer.Serialize(evt));
+
+        await this.Publish(req);
     }
 
     private async Task Publish(PublishRequest req)
