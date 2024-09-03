@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Nodes;
 using Amazon.Lambda.SNSEvents;
 using AWS.Lambda.Powertools.Logging;
 using Datadog.Trace;
@@ -30,6 +31,8 @@ public static class ObservabilityExtensions
 
     public static IDisposable StartProcessingTimer(this SNSEvent.SNSRecord record)
     {
+        CalculateInFlightTimeFrom(record);
+        
         var timer = DogStatsd.StartTimer("messaging.process.duration", 1D,
             new[]
             {
@@ -75,5 +78,31 @@ public static class ObservabilityExtensions
     private static string ExtractNameFromArn(string topicArn)
     {
         return topicArn.Split(':')[5];
+    }
+
+    private static void CalculateInFlightTimeFrom(SNSEvent.SNSRecord record)
+    {
+        try
+        {
+            var messageBody = JsonNode.Parse(record.Sns.Message);
+        
+            if (messageBody is not null && messageBody["PublishDateTime"] is not null)
+            {
+                var publishedDate = DateTime.Parse(messageBody["PublishDateTime"]!.ToString());
+
+                var inFlightTime = (DateTime.Now - publishedDate).TotalMilliseconds;
+                DogStatsd.Timer("messaging.inflight.duration", inFlightTime, 1D,
+                    new[]
+                    {
+                        "messaging.system:aws_sns",
+                        $"messaging.destination.name:{ExtractNameFromArn(record.Sns.TopicArn)}",
+                        $"messaging.destination.subscription.name:{record.EventSubscriptionArn}"
+                    });
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.LogWarning(e, "Failure calculating inflight duration");
+        }
     }
 }
