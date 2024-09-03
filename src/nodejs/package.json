@@ -21,7 +21,7 @@
     "@aws-sdk/client-cloudformation": "^3.637.0",
     "@aws-sdk/client-dynamodb": "^3.637.0",
     "@aws-sdk/client-eventbridge": "^3.637.0",
-    "@aws-sdk/client-sfn": "^3.635.0",
+    "@aws-sdk/client-sfn": "^3.642.0",
     "@aws-sdk/client-sns": "^3.635.0",
     "@aws-sdk/client-sqs": "^3.637.0",
     "@aws-sdk/client-ssm": "^3.637.0",
