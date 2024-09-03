@@ -1,6 +1,8 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Amazon.SimpleNotificationService;
 using Amazon.SimpleNotificationService.Model;
+using AWS.Lambda.Powertools.Logging;
 using Datadog.Trace;
 using Microsoft.Extensions.Configuration;
 using ProductApi.Core;
@@ -38,6 +40,18 @@ public class SnsEventPublisher(AmazonSimpleNotificationServiceClient snsClient, 
         {
             Parent = activeSpan?.Context
         });
+
+        var evtJsonData = JsonNode.Parse(req.Message);
+
+        if (evtJsonData is null)
+        {
+            Logger.LogWarning("Invalid JObject to be published");
+            return;
+        }
+        
+        evtJsonData["PublishDateTime"] = DateTime.Now.ToString("s");
+        evtJsonData["EventId"] = Guid.NewGuid().ToString();
+        req.Message = evtJsonData.ToJsonString();
         
         req.AddToTelemetry();        
         await snsClient.PublishAsync(req);
