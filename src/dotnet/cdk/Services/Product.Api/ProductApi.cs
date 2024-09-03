@@ -11,7 +11,7 @@ using ServerlessGettingStarted.CDK.Constructs;
 
 namespace ServerlessGettingStarted.CDK.Services.Product.Api;
 
-public record ProductApiProps(string ServiceName, string Env, string Version, ISecret DdApiKeySecret);
+public record ProductApiProps(SharedProps Shared, ISecret DdApiKeySecret);
 
 public class ProductApi : Construct
 {
@@ -22,9 +22,18 @@ public class ProductApi : Construct
     
     public ProductApi(Construct scope, string id, ProductApiProps props) : base(scope, id)
     {
-        ProductCreatedTopic = new Topic(this, "ProductCreatedTopic");
-        ProductUpdatedTopic = new Topic(this, "ProductUpdatedTopic");
-        ProductDeletedTopic = new Topic(this, "ProductDeletedTopic");
+        ProductCreatedTopic = new Topic(this, "ProductCreatedTopic", new TopicProps()
+        {
+            TopicName = $"DotnetProductCreatedTopic-{props.Shared.Env}"
+        });
+        ProductUpdatedTopic = new Topic(this, "ProductUpdatedTopic", new TopicProps()
+        {
+            TopicName = $"DotnetProductUpdatedTopic-{props.Shared.Env}"
+        });
+        ProductDeletedTopic = new Topic(this, "ProductDeletedTopic", new TopicProps()
+        {
+            TopicName = $"DotnetProductDeletedTopic-{props.Shared.Env}"
+        });
         
         Table = new Table(this, "TracedDotnetTable", new TableProps()
         {
@@ -47,25 +56,25 @@ public class ProductApi : Construct
         };
         
         var getProductFunction = new InstrumentedFunction(this, "GetProductFunction",
-            new FunctionProps(props.ServiceName, props.Env, props.Version,"GetProduct", "../src/Product.Api/ProductApi.Adapters/",
+            new FunctionProps(props.Shared,"GetProduct", "../src/Product.Api/ProductApi.Adapters/",
                 "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_GetProduct_Generated::GetProduct", apiEnvironmentVariables, props.DdApiKeySecret));
         var getProductIntegration = new HttpLambdaIntegration("GetProductIntegration", getProductFunction.Function);
         Table.GrantReadData(getProductFunction.Function);
 
         var createProductFunction = new InstrumentedFunction(this, "CreateProductFunction",
-            new FunctionProps(props.ServiceName, props.Env, props.Version,"CreateProduct", "../src/Product.Api/ProductApi.Adapters/",
+            new FunctionProps(props.Shared,"CreateProduct", "../src/Product.Api/ProductApi.Adapters/",
                 "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_CreateProduct_Generated::CreateProduct", apiEnvironmentVariables, props.DdApiKeySecret));
         
         var createProductIntegration = new HttpLambdaIntegration("CreateProductIntegration", createProductFunction.Function);
         
         var deleteProductFunction = new InstrumentedFunction(this, "DeleteProductFunction",
-            new FunctionProps(props.ServiceName, props.Env, props.Version,"DeleteProduct", "../src/Product.Api/ProductApi.Adapters/",
+            new FunctionProps(props.Shared,"DeleteProduct", "../src/Product.Api/ProductApi.Adapters/",
                 "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_DeleteProduct_Generated::DeleteProduct", apiEnvironmentVariables, props.DdApiKeySecret));
         
         var deleteProductIntegration = new HttpLambdaIntegration("DeleteProductIntegration", deleteProductFunction.Function);
         
         var updateProductFunction = new InstrumentedFunction(this, "UpdateProductFunction",
-            new FunctionProps(props.ServiceName, props.Env, props.Version,"UpdateProduct", "../src/Product.Api/ProductApi.Adapters/",
+            new FunctionProps(props.Shared,"UpdateProduct", "../src/Product.Api/ProductApi.Adapters/",
                 "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_UpdateProduct_Generated::UpdateProduct", apiEnvironmentVariables, props.DdApiKeySecret));
         
         var updateProductIntegration = new HttpLambdaIntegration("UpdateProductIntegration", updateProductFunction.Function);

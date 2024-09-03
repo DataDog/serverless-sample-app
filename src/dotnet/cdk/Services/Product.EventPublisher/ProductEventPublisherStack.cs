@@ -1,11 +1,10 @@
 using Amazon.CDK;
-using Amazon.CDK.AWS.DynamoDB;
 using Amazon.CDK.AWS.Events;
 using Amazon.CDK.AWS.SecretsManager;
 using Amazon.CDK.AWS.SNS;
 using Amazon.CDK.AWS.SSM;
 using Constructs;
-using ServerlessGettingStarted.CDK.Services.Product.Api.Workers;
+using ServerlessGettingStarted.CDK.Constructs;
 
 namespace ServerlessGettingStarted.CDK.Services.Product.EventPublisher;
 
@@ -19,6 +18,7 @@ public class ProductEventPublisherStack : Stack {
         var serviceName = "DotnetProductEventPublisher";
         var env = System.Environment.GetEnvironmentVariable("ENV") ?? "dev";
         var version = System.Environment.GetEnvironmentVariable("VERSION") ?? "latest";
+        var sharedProps = new SharedProps(serviceName, env, version);
         
         var productCreatedTopicParam = StringParameter.FromStringParameterName(this, "ProductCreatedTopicArn",
             "/dotnet/product-api/product-created-topic");
@@ -34,6 +34,6 @@ public class ProductEventPublisherStack : Stack {
             "/dotnet/shared/event-bus-name");
         var eventBus = EventBus.FromEventBusName(this, "SharedEventBus", eventBusTopicArn.StringValue);
 
-        var productEventPublisher = new ProductEventPublisher(this, "DotnetProductEventPublisher", new ProductEventPublisherProps(serviceName, env, version, secret, productCreatedTopic, productUpdatedTopic, productDeletedTopic, eventBus));
+        var productEventPublisher = new ProductEventPublisher(this, "DotnetProductEventPublisher", new ProductEventPublisherProps(sharedProps, secret, productCreatedTopic, productUpdatedTopic, productDeletedTopic, eventBus));
     }
 }

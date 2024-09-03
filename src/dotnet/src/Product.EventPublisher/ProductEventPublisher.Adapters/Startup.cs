@@ -26,7 +26,7 @@ public class Startup
         services.AddSingleton<IConfiguration>(configuration);
         services.AddCore();
         services.AddLogging();
-        services.AddSingleton<IExternalEventPublisher, EventBridgeExternalEventPublisher>();
         services.AddSingleton(new AmazonEventBridgeClient());
+        services.AddSingleton<IExternalEventPublisher, EventBridgeExternalEventPublisher>();
     }
 }

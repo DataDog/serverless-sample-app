@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Amazon.CDK.AWS.DynamoDB;
 using Amazon.CDK.AWS.Events;
 using Amazon.CDK.AWS.Lambda.EventSources;
 using Amazon.CDK.AWS.SecretsManager;
@@ -9,7 +8,7 @@ using ServerlessGettingStarted.CDK.Constructs;
 
 namespace ServerlessGettingStarted.CDK.Services.Product.EventPublisher;
 
-public record ProductEventPublisherProps(string ServiceName, string Env, string Version, ISecret DdApiKeySecret, ITopic ProductCreatedTopic, ITopic ProductUpdatedTopic, ITopic ProductDeletedTopic, IEventBus EventBus);
+public record ProductEventPublisherProps(SharedProps Shared, ISecret DdApiKeySecret, ITopic ProductCreatedTopic, ITopic ProductUpdatedTopic, ITopic ProductDeletedTopic, IEventBus EventBus);
 
 public class ProductEventPublisher : Construct
 {
@@ -21,19 +20,19 @@ public class ProductEventPublisher : Construct
         };
         
         var handleProductCreated = new InstrumentedFunction(this, "HandleProductCreatedFunction",
-            new FunctionProps(props.ServiceName, props.Env, props.Version,"HandleProductCreated", "../src/Product.EventPublisher/ProductEventPublisher.Adapters/",
+            new FunctionProps(props.Shared,"HandleProductCreated", "../src/Product.EventPublisher/ProductEventPublisher.Adapters/",
                 "ProductEventPublisher.Adapters::ProductEventPublisher.Adapters.HandlerFunctions_HandleCreated_Generated::HandleCreated", environmentVariables, props.DdApiKeySecret));
         handleProductCreated.Function.AddEventSource(new SnsEventSource(props.ProductCreatedTopic));
         
         var handleProductUpdated = new InstrumentedFunction(this, "HandleProductUpdatedFunction",
-            new FunctionProps(props.ServiceName, props.Env, props.Version,"HandleProductUpdated", "../src/Product.EventPublisher/ProductEventPublisher.Adapters/",
+            new FunctionProps(props.Shared,"HandleProductUpdated", "../src/Product.EventPublisher/ProductEventPublisher.Adapters/",
                 "ProductEventPublisher.Adapters::ProductEventPublisher.Adapters.HandlerFunctions_HandleUpdated_Generated::HandleUpdated", environmentVariables, props.DdApiKeySecret));
         handleProductUpdated.Function.AddEventSource(new SnsEventSource(props.ProductUpdatedTopic));
         
         var handleProductDeleted = new InstrumentedFunction(this, "HandleProductDeletedFunction",
-            new FunctionProps(props.ServiceName, props.Env, props.Version,"HandleProductDeleted", "../src/Product.EventPublisher/ProductEventPublisher.Adapters/",
+            new FunctionProps(props.Shared,"HandleProductDeleted", "../src/Product.EventPublisher/ProductEventPublisher.Adapters/",
                 "ProductEventPublisher.Adapters::ProductEventPublisher.Adapters.HandlerFunctions_HandleDeleted_Generated::HandleDeleted", environmentVariables, props.DdApiKeySecret));
-        handleProductDeleted.Function.AddEventSource(new SnsEventSource(props.ProductCreatedTopic));
+        handleProductDeleted.Function.AddEventSource(new SnsEventSource(props.ProductDeletedTopic));
 
         props.EventBus.GrantPutEventsTo(handleProductCreated.Function);
         props.EventBus.GrantPutEventsTo(handleProductUpdated.Function);

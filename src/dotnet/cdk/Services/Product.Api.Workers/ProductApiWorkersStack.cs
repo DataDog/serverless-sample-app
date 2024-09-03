@@ -4,6 +4,7 @@ using Amazon.CDK.AWS.SecretsManager;
 using Amazon.CDK.AWS.SNS;
 using Amazon.CDK.AWS.SSM;
 using Constructs;
+using ServerlessGettingStarted.CDK.Constructs;
 
 namespace ServerlessGettingStarted.CDK.Services.Product.Api.Workers;
 
@@ -17,6 +18,7 @@ public class ProductApiWorkersStack : Stack {
         var serviceName = "DotnetProductApiWorkers";
         var env = System.Environment.GetEnvironmentVariable("ENV") ?? "dev";
         var version = System.Environment.GetEnvironmentVariable("VERSION") ?? "latest";
+        var sharedProps = new SharedProps(serviceName, env, version);
         
         var pricingUpdatedTopicParameter = StringParameter.FromStringParameterName(this, "PricingUpdatedTopicArn",
             "/dotnet/product-pricing/pricing-updated-topic");
@@ -26,6 +28,6 @@ public class ProductApiWorkersStack : Stack {
             StringParameter.FromStringParameterName(this, "ProductsTableArnParam", "/dotnet/product-api/table-arn");
         var productTable = Table.FromTableArn(this, "ProductTable", productsTableParameter.StringValue);
 
-        var productApiWorkers = new ProductApiWorkers(this, "DotnetProductApiWorkers", new ProductApiWorkersProps(serviceName, env, version, secret, productTable, pricingUpdatedTopic));
+        var productApiWorkers = new ProductApiWorkers(this, "DotnetProductApiWorkers", new ProductApiWorkersProps(sharedProps, secret, productTable, pricingUpdatedTopic));
     }
 }

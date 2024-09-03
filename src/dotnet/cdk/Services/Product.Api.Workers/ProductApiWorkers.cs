@@ -8,7 +8,7 @@ using ServerlessGettingStarted.CDK.Constructs;
 
 namespace ServerlessGettingStarted.CDK.Services.Product.Api.Workers;
 
-public record ProductApiWorkersProps(string ServiceName, string Env, string Version, ISecret DdApiKeySecret, ITable ProductTable, ITopic PricingUpdatedTopic);
+public record ProductApiWorkersProps(SharedProps Shared, ISecret DdApiKeySecret, ITable ProductTable, ITopic PricingUpdatedTopic);
 
 public class ProductApiWorkers : Construct
 {
@@ -20,7 +20,7 @@ public class ProductApiWorkers : Construct
         };
         
         var handlePricingUpdated = new InstrumentedFunction(this, "HandlePricingUpdatedFunction",
-            new FunctionProps(props.ServiceName, props.Env, props.Version,"HandlePricingUpdated", "../src/Product.Api/ProductApi.Adapters/",
+            new FunctionProps(props.Shared,"HandlePricingUpdated", "../src/Product.Api/ProductApi.Adapters/",
                 "ProductApi.Adapters::ProductApi.Adapters.HandlerFunctions_HandlePricingUpdated_Generated::HandlePricingUpdated", apiEnvironmentVariables, props.DdApiKeySecret));
         handlePricingUpdated.Function.AddEventSource(new SnsEventSource(props.PricingUpdatedTopic));
 

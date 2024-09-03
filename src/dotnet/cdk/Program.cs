@@ -1,4 +1,7 @@
 ﻿using Amazon.CDK;
+using ServerlessGettingStarted.CDK.Services.Analytics;
+using ServerlessGettingStarted.CDK.Services.Inventory.Acl;
+using ServerlessGettingStarted.CDK.Services.Inventory.Ordering;
 using ServerlessGettingStarted.CDK.Services.Product.Api;
 using ServerlessGettingStarted.CDK.Services.Product.Api.Workers;
 using ServerlessGettingStarted.CDK.Services.Product.EventPublisher;
@@ -25,6 +28,15 @@ namespace ServerlessGettingStarted.CDK
             var productEventPublisher = new ProductEventPublisherStack(app, "DotnetProductEventPublisher", new StackProps());
             productEventPublisher.AddDependency(sharedStack);
             productEventPublisher.AddDependency(productApiStack);
+
+            var inventoryAcl = new InventoryAclServiceStack(app, "DotnetInventoryAcl", new StackProps());
+            inventoryAcl.AddDependency(sharedStack);
+
+            var inventoryOrdering = new InventoryOrderingServiceStack(app, "DotnetInventoryOrdering", new StackProps());
+            inventoryOrdering.AddDependency(inventoryAcl);
+
+            var analytics = new AnalyticsServiceStack(app, "DotnetAnalyticsService", new StackProps());
+            analytics.AddDependency(sharedStack);
             
             app.Synth();
         }

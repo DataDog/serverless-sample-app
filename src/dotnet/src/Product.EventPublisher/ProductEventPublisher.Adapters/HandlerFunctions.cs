@@ -115,7 +115,7 @@ public class HandlerFunctions(EventAdapter eventAdapter)
 
                 if (evtData is null)
                 {
-                    throw new ArgumentException("Event payload does not serialize to a `ProductUpdatedEvent`");
+                    throw new ArgumentException("Event payload does not serialize to a `ProductDeletedEvent`");
                 }
 
                 await eventAdapter.HandleInternalEvent(evtData);

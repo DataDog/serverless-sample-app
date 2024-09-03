@@ -25,7 +25,7 @@ public static class ObservabilityExtensions
             {
                 "messaging.operation.name:process",
                 "messaging.system:aws_sns",
-                $"messaging.destination.name:{record.Sns.TopicArn}",
+                $"messaging.destination.name:{ExtractNameFromArn(record.Sns.TopicArn)}",
                 $"messaging.destination.subscription.name:{record.EventSubscriptionArn}"
             });
 
@@ -78,17 +78,20 @@ public static class ObservabilityExtensions
         var destinationName = ExtractNameFromArn(publishRequest.TopicArn);
         
         var schema = JsonSchema.FromSampleJson(publishRequest.Message);
-        var activeSpan = Tracer.Instance.ActiveScope.Span;
+        var activeSpan = Tracer.Instance.ActiveScope?.Span;
         
         Logger.LogInformation(schema.ToJson());
         activeSpan?.SetTag("messaging.message.schema", schema.ToJson());
+        activeSpan?.SetTag("messaging.message.type", destinationName);
+        activeSpan?.SetTag("messaging.destination.name", destinationName);
         
-        DogStatsd.Counter("messaging.client.published.messages", 1, 1D,
+        DogStatsd.Increment("messaging.client.published.messages", 1, 1D,
             new[]
             {
                 "messaging.operation.name:send",
                 "messaging.system:aws_sns",
                 $"messaging.destination.name:{destinationName}",
+                $"messaging.message.type:{destinationName}"
             });
         DogStatsd.Distribution("messaging.client.published.message.bytes", Encoding.UTF8.GetByteCount(publishRequest.Message), 1D,
             new[]
@@ -96,6 +99,7 @@ public static class ObservabilityExtensions
                 "messaging.operation.name:receive",
                 "messaging.system:aws_sns",
                 $"messaging.destination.name:{destinationName}",
+                $"messaging.message.type:{destinationName}"
             });
     }
     

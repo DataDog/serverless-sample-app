@@ -25,7 +25,7 @@ public static class ObservabilityExtensions
             {
                 "messaging.operation.name:process",
                 "messaging.system:aws_sns",
-                $"messaging.destination.name:{record.Sns.TopicArn}",
+                $"messaging.destination.name:{ExtractNameFromArn(record.Sns.TopicArn)}",
                 $"messaging.destination.subscription.name:{record.EventSubscriptionArn}"
             });
 
@@ -49,6 +49,7 @@ public static class ObservabilityExtensions
         {
             Logger.LogError(ex, "Failure processing message");
         }
+        
         var topicName = ExtractNameFromArn(record.Sns.TopicArn);
         var subscriptionName = ExtractNameFromArn(record.EventSubscriptionArn);
 
@@ -76,13 +77,15 @@ public static class ObservabilityExtensions
     public static void AddToTelemetry(this PutEventsRequestEntry publishRequest)
     {
         var schema = JsonSchema.FromSampleJson(publishRequest.Detail);
-        var activeSpan = Tracer.Instance.ActiveScope.Span;
+        var activeSpan = Tracer.Instance.ActiveScope?.Span;
         
         Logger.LogInformation(schema.ToJson());
         activeSpan?.SetTag("messaging.message.schema", schema.ToJson());
         activeSpan?.SetTag("messaging.message.type", publishRequest.DetailType);
+        activeSpan?.SetTag("messaging.destination.name", publishRequest.EventBusName);
+        activeSpan?.SetTag("messaging.system:aws_eventbridge", "aws_eventbridge");
         
-        DogStatsd.Counter("messaging.client.published.messages", 1, 1D,
+        DogStatsd.Increment("messaging.client.published.messages", 1, 1D,
             new[]
             {
                 "messaging.operation.name:send",

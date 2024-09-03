@@ -10,7 +10,7 @@ using Constructs;
 
 namespace ServerlessGettingStarted.CDK.Constructs;
 
-public record FunctionProps(string ServiceName, string Env, string Version, string FunctionName, string ProjectPath, string Handler, Dictionary<string, string> EnvironmentVariables, ISecret DdApiKeySecret);
+public record FunctionProps(SharedProps Shared, string FunctionName, string ProjectPath, string Handler, Dictionary<string, string> EnvironmentVariables, ISecret DdApiKeySecret);
 
 public class InstrumentedFunction : Construct
 {
@@ -23,18 +23,18 @@ public class InstrumentedFunction : Construct
             throw new Exception(
                 "Function handler cannot be greater than 128 chars. https://docs.aws.amazon.com/lambda/latest/api/API_CreateFunction.html#lambda-CreateFunction-request-Handler");
         }
-        var functionName = $"{props.ServiceName}-{props.FunctionName}-{props.Env}";
+        var functionName = $"{props.Shared.ServiceName}-{props.FunctionName}-{props.Shared.Env}";
 
         var defaultEnvironmentVariables = new Dictionary<string, string>()
         {
-            { "POWERTOOLS_SERVICE_NAME", props.ServiceName },
+            { "POWERTOOLS_SERVICE_NAME", props.Shared.ServiceName },
             { "POWERTOOLS_LOG_LEVEL", "DEBUG" },
             { "AWS_LAMBDA_EXEC_WRAPPER", "/opt/datadog_wrapper" },
             { "DD_SITE", System.Environment.GetEnvironmentVariable("DD_SITE") },
-            { "DD_ENV", props.Env },
-            { "ENV", props.Env },
-            { "DD_VERSION", props.Version },
-            { "DD_SERVICE", props.ServiceName },
+            { "DD_ENV", props.Shared.Env },
+            { "ENV", props.Shared.Env },
+            { "DD_VERSION", props.Shared.Version },
+            { "DD_SERVICE", props.Shared.ServiceName },
             { "DD_API_KEY_SECRET_ARN", props.DdApiKeySecret.SecretArn },
             { "DD_CAPTURE_LAMBDA_PAYLOAD", "true" },
         };
