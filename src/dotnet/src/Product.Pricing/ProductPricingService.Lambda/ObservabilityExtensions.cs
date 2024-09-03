@@ -108,7 +108,18 @@ public static class ObservabilityExtensions
     
     private static string ExtractNameFromArn(string topicArn)
     {
-        return topicArn.Split(':')[5];
+        if (topicArn is null)
+        {
+            return "";
+        }
+        
+        var arnSplit = topicArn.Split(':');
+        if (arnSplit.Length < 4)
+        {
+            return "";
+        }
+        
+        return arnSplit[5];
     }
 
     private static void CalculateInFlightTimeFrom(SNSEvent.SNSRecord record)
