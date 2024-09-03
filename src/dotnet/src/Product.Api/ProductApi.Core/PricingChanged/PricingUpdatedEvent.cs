@@ -8,5 +8,5 @@ public record PricingUpdatedEvent
     public string ProductId { get; set; } = "";
     
     [JsonPropertyName("priceBrackets")] 
-    public Dictionary<int, decimal> PriceBrackets { get; set; } = new(0);
+    public Dictionary<decimal, decimal> PriceBrackets { get; set; } = new(0);
 }

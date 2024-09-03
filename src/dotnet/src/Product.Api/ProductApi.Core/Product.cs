@@ -13,9 +13,12 @@ public class Product
     
     public bool IsUpdated { get; private set; }
 
-    public static Product From(ProductId productId, ProductName name, ProductPrice price)
+    public static Product From(ProductId productId, ProductName name, ProductPrice price, List<ProductPriceBracket> priceBrackets)
     {
-        return new Product(productId, name, price);
+        return new Product(productId, name, price)
+        {
+            PriceBrackets = priceBrackets
+        };
     }
     
     private Product(ProductId productId, ProductName name, ProductPrice price)

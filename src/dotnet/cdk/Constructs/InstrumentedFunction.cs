@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Amazon.CDK;
@@ -17,6 +18,11 @@ public class InstrumentedFunction : Construct
     
     public InstrumentedFunction(Construct scope, string id, FunctionProps props) : base(scope, id)
     {
+        if (props.Handler.Length > 128)
+        {
+            throw new Exception(
+                "Function handler cannot be greater than 128 chars. https://docs.aws.amazon.com/lambda/latest/api/API_CreateFunction.html#lambda-CreateFunction-request-Handler");
+        }
         var functionName = $"{props.ServiceName}-{props.FunctionName}-{props.Env}";
 
         var defaultEnvironmentVariables = new Dictionary<string, string>()

@@ -10,7 +10,11 @@ public class UpdateProductTests
 
     public UpdateProductTests()
     {
-        var testProduct = Product.From(new ProductId("12345"), new ProductName("test"), new ProductPrice(12));
+        var testProduct = Product.From(new ProductId("12345"), new ProductName("test"), new ProductPrice(12), new List<ProductPriceBracket>(1)
+        {
+            new(5, 10.99M)
+        });
+        
         var mockProductRepository = A.Fake<IProducts>();
         A.CallTo(() => mockProductRepository.WithId(A<String>.Ignored)).Returns(testProduct);
         var mockEventPublisher = A.Fake<IEventPublisher>();
@@ -31,7 +35,9 @@ public class UpdateProductTests
 
         var response = await commandHandler.Handle(new UpdateProductCommand("12345", "new name", 15));
             
-        A.CallTo(() => mockProductRepository.UpdateExistingFrom(A<Product>.Ignored)).MustHaveHappened(1, Times.Exactly);
+        A.CallTo(() => mockProductRepository.UpdateExistingFrom(A<Product>
+            .That
+            .Matches(product => product.PriceBrackets.Count == 0))).MustHaveHappened(1, Times.Exactly);
         A.CallTo(() => mockEventPublisher.Publish(A<ProductUpdatedEvent>.Ignored)).MustHaveHappened(1, Times.Exactly);
         Assert.True(response.IsSuccess);
     }

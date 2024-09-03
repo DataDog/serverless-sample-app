@@ -72,7 +72,7 @@ public class Functions(PricingService pricingService)
                 if (evtData is null)
                     throw new ArgumentException("Event payload does not serialize to a `ProductUpdatedEvent`");
 
-                await pricingService.GeneratePricingFor(evtData.ProductId, new ProductPrice(evtData.Price));
+                await pricingService.GeneratePricingFor(evtData.ProductId, new ProductPrice(evtData.Updated.Price));
 
                 record.AddProcessingMetrics();
             }

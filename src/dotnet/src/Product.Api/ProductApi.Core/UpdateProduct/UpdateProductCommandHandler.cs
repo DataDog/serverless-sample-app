@@ -23,6 +23,7 @@ public class UpdateProductCommandHandler(IProducts products, IEventPublisher eve
                 return new HandlerResponse<ProductDto>(new ProductDto(product), true,
                     new List<string>(1) { "No changes required" });
 
+            product.ClearPricing();
             await products.UpdateExistingFrom(product);
 
             await eventPublisher.Publish(new ProductUpdatedEvent(product));

@@ -1,6 +1,7 @@
 ﻿using Amazon.CDK;
 using ServerlessGettingStarted.CDK.Services.Product.Api;
 using ServerlessGettingStarted.CDK.Services.Product.Api.Workers;
+using ServerlessGettingStarted.CDK.Services.Product.EventPublisher;
 using ServerlessGettingStarted.CDK.Services.Product.Pricing;
 using ServerlessGettingStarted.CDK.Services.Shared;
 
@@ -20,6 +21,10 @@ namespace ServerlessGettingStarted.CDK
             
             var productApiWorker = new ProductApiWorkersStack(app, "DotnetProductApiWorkers", new StackProps());
             productApiWorker.AddDependency(pricingStack);
+
+            var productEventPublisher = new ProductEventPublisherStack(app, "DotnetProductEventPublisher", new StackProps());
+            productEventPublisher.AddDependency(sharedStack);
+            productEventPublisher.AddDependency(productApiStack);
             
             app.Synth();
         }

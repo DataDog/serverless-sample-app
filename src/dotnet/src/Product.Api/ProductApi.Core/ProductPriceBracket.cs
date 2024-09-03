@@ -1,13 +1,7 @@
 namespace ProductApi.Core;
 
-public class ProductPriceBracket
+public class ProductPriceBracket(decimal quantity, decimal price)
 {
-    private decimal _price;
-    private decimal _quantity;
-
-    public ProductPriceBracket(decimal price, decimal quantity)
-    {
-        _price = price;
-        _quantity = quantity;
-    }
+    public decimal Price { get; } = price;
+    public decimal Quantity { get; } = quantity;
 }
