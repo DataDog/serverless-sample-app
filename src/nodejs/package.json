@@ -44,7 +44,7 @@
     "serverless-step-functions": "^3.21.0",
     "source-map-support": "^0.5.21",
     "sst": "^2.43.6",
-    "ts-jest": "^29.2.4",
+    "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "~5.5.4",
     "uuid": "^10.0.0"
