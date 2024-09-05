@@ -2,8 +2,6 @@ name: Java Package
 
 on:
     push:
-      branches:
-        - main
       paths:
         - src/java/**
     workflow_dispatch:
@@ -36,5 +34,4 @@ jobs:
         name: Maven build
         shell: bash
         run: |
-          cd src/java/
-          mvn clean package
+          make package-java

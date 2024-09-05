@@ -40,3 +40,24 @@ opentracing-util,https://github.com/opentracing/opentracing-java,Apache-2.0,
 dd-trace-java,https://github.com/DataDog/dd-trace-java,Apache-2.0,Datadog
 software.amazon.awssdk,https://github.com/aws/aws-sdk-java-v2,Apache-2.0,Amazon Web Services
 java-dogstatsd-client,https://github.com/DataDog/java-dogstatsd-client,MIT,Datadog
+Amazon.CDK.AWS.Lambda.DotNet,https://github.com/cdklabs/awscdk-lambda-dotnet.git,Apache-2.0,Amazon Web Services
+Amazon.CDK.Lib,https://github.com/aws/aws-cdk.git,Apache-2.0,Amazon Web Services
+Constructs,https://github.com/aws/constructs.git,Apache-2.0,
+Amazon.Lambda.Annotations,https://github.com/aws/aws-lambda-dotnet,Apache-2.0,Amazon Web Services
+Amazon.Lambda.APIGatewayEvents,https://github.com/aws/aws-lambda-dotnet,Apache-2.0,Amazon Web Services
+Amazon.Lambda.SNSEvents,https://github.com/aws/aws-lambda-dotnet,Apache-2.0,Amazon Web Services
+Amazon.Lambda.SQSEvents,https://github.com/aws/aws-lambda-dotnet,Apache-2.0,Amazon Web Services
+Amazon.Lambda.Core,https://github.com/aws/aws-lambda-dotnet,Apache-2.0,Amazon Web Services
+Amazon.Lambda.Serialization.SystemTextJson,https://github.com/aws/aws-lambda-dotnet,Apache-2.0,Amazon Web Services
+AWS.Lambda.Powertools.Logging,https://github.com/aws-powertools/powertools-lambda-dotnet,Apache-2.0,Amazon Web Services
+AWSSDK.DynamoDBv2,https://github.com/aws/aws-sdk-net/,Apache-2.0,Amazon Web Services
+AWSSDK.SimpleNotificationService,https://github.com/aws/aws-sdk-net/,Apache-2.0,Amazon Web Services
+Datadog.Trace,https://github.com/DataDog/dd-trace-dotnet.git,Apache-2.0,Datadog
+DogStatsD-CSharp-Client,https://github.com/DataDog/dogstatsd-csharp-client,MIT,Datadog
+NJsonSchema,https://github.com/RicoSuter/NJsonSchema,MIT,
+FluentValidation,https://github.com/JeremySkinner/fluentvalidation,Apache-2.0,
+Microsoft.Extensions.DependencyInjection,https://github.com/dotnet/runtime,MIT,Microsoft
+Microsoft.Extensions.DependencyInjection.Abstractions,https://github.com/dotnet/runtime,MIT,Microsoft
+coverlet.collector,https://github.com/coverlet-coverage/coverlet.git,MIT,
+FakeItEasy,https://github.com/FakeItEasy/FakeItEasy.git,MIT,
+xunit,https://github.com/xunit/xunit,Apache-2.0,

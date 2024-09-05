@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "ProductId": {
+      "type": "string"
+    },
+    "Previous": {
+      "$ref": "#/definitions/Previous"
+    },
+    "Updated": {
+      "$ref": "#/definitions/Previous"
+    }
+  },
+  "definitions": {
+    "Previous": {
+      "type": "object",
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Price": {
+          "type": "number"
+        }
+      }
+    }
+  }
+}
