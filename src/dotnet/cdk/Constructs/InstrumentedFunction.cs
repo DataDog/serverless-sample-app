@@ -1,3 +1,7 @@
+// Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
+// This product includes software developed at Datadog (https://www.datadoghq.com/).
+// Copyright 2024 Datadog, Inc.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +11,7 @@ using Amazon.CDK.AWS.Lambda.DotNet;
 using Amazon.CDK.AWS.Logs;
 using Amazon.CDK.AWS.SecretsManager;
 using Constructs;
+using Environment = System.Environment;
 
 namespace ServerlessGettingStarted.CDK.Constructs;
 
@@ -30,7 +35,7 @@ public class InstrumentedFunction : Construct
             { "POWERTOOLS_SERVICE_NAME", props.Shared.ServiceName },
             { "POWERTOOLS_LOG_LEVEL", "DEBUG" },
             { "AWS_LAMBDA_EXEC_WRAPPER", "/opt/datadog_wrapper" }, 
-            { "DD_SITE", System.Environment.GetEnvironmentVariable("DD_SITE") },
+            { "DD_SITE", Environment.GetEnvironmentVariable("DD_SITE") },
             { "DD_ENV", props.Shared.Env },
             { "ENV", props.Shared.Env },
             { "DD_VERSION", props.Shared.Version },
