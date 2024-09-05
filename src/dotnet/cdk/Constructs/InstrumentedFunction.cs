@@ -29,7 +29,7 @@ public class InstrumentedFunction : Construct
         {
             { "POWERTOOLS_SERVICE_NAME", props.Shared.ServiceName },
             { "POWERTOOLS_LOG_LEVEL", "DEBUG" },
-            { "AWS_LAMBDA_EXEC_WRAPPER", "/opt/datadog_wrapper" },
+            { "AWS_LAMBDA_EXEC_WRAPPER", "/opt/datadog_wrapper" }, 
             { "DD_SITE", System.Environment.GetEnvironmentVariable("DD_SITE") },
             { "DD_ENV", props.Shared.Env },
             { "ENV", props.Shared.Env },

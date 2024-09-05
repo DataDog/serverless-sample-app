@@ -11,6 +11,8 @@ Transform: AWS::Serverless-2016-10-31
 Parameters: 
   DDApiKeySecretArn:
     Type: String
+  DDSite:
+    Type: String
 
 Resources:
     Shared:
@@ -24,6 +26,7 @@ Resources:
         Location: template-api.yaml
         Parameters:
           DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
       DependsOn: Shared
 
     ProductPricingService:
@@ -32,6 +35,7 @@ Resources:
         Location: template-pricing-service.yaml
         Parameters:
           DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
       DependsOn:
         - Shared
         - ProductApi
@@ -42,6 +46,7 @@ Resources:
         Location: template-product-api-worker.yaml
         Parameters:
           DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
       DependsOn:
         - ProductPricingService
     
@@ -51,6 +56,7 @@ Resources:
         Location: template-product-event-publisher.yaml
         Parameters:
           DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
       DependsOn:
         - ProductApi
     
@@ -60,6 +66,7 @@ Resources:
         Location: template-inventory-acl.yaml
         Parameters:
           DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
       DependsOn:
         - Shared
     
@@ -69,6 +76,7 @@ Resources:
         Location: template-inventory-ordering-service.yaml
         Parameters:
           DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
       DependsOn:
         - InventoryAcl
     
@@ -78,5 +86,6 @@ Resources:
         Location: template-analytics-service.yaml
         Parameters:
           DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
       DependsOn:
         - Shared
