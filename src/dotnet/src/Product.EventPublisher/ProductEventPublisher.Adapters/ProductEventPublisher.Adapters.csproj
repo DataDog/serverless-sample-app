@@ -13,7 +13,7 @@
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Amazon.Lambda.Core" Version="2.2.0"/>
+        <PackageReference Include="Amazon.Lambda.Core" Version="2.3.0"/>
         <PackageReference Include="Amazon.Lambda.SNSEvents" Version="2.1.0" />
         <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.3"/>
         <PackageReference Include="Amazon.Lambda.Annotations" Version="1.5.0" />
