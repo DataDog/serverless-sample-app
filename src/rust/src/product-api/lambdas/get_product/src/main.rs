@@ -9,7 +9,7 @@ use shared::core::Repository;
 use shared::ports::{execute_get_product_query, ApplicationError, GetProductQuery};
 use shared::response::{empty_response, json_response};
 use std::env;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Registry};
+use tracing_subscriber::util::SubscriberInitExt;
 use observability::observability;
 
 #[instrument(name = "GET /{productId}", skip(client, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]

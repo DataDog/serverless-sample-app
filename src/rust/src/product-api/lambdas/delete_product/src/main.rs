@@ -9,7 +9,7 @@ use shared::core::{EventPublisher, Repository};
 use shared::ports::{handle_delete_product, DeleteProductCommand};
 use shared::response::empty_response;
 use std::env;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Registry};
+use tracing_subscriber::util::SubscriberInitExt;
 use observability::observability;
 
 #[instrument(name = "DELETE /{productId}", skip(client, event_publisher, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]

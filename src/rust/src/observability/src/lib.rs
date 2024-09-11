@@ -29,13 +29,13 @@ pub fn observability() -> impl Subscriber + Send + Sync
         .with_target(false)
         .without_time();
 
-    let layer = Registry::default()
+    
+
+    Registry::default()
         .with(fmt_layer)
         .with(telemetry_layer)
         .with(logger)
-        .with(tracing_subscriber::EnvFilter::from_default_env());
-
-    layer
+        .with(tracing_subscriber::EnvFilter::from_default_env())
 }
 
 #[derive(Deserialize, Serialize)]

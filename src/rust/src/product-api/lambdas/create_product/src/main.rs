@@ -11,7 +11,6 @@ use shared::adapters::{DynamoDbRepository, SnsEventPublisher};
 use shared::core::{EventPublisher, Repository};
 use shared::ports::{handle_create_product, CreateProductCommand};
 use std::env;
-use tracing::log::__private_api;
 use tracing_subscriber::util::SubscriberInitExt;
 
 #[instrument(name = "POST /", skip(client, event_publisher, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]
