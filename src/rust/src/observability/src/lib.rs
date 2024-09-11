@@ -141,6 +141,5 @@ impl TracedMessage {
         span.set_attribute(KeyValue::new("resource_names", topic_name.clone()));
         span.set_attribute(KeyValue::new("operation_name", "aws.sns"));
         span.set_attribute(KeyValue::new("message_id", record.sns.message_id.clone()));
-        span.set_attribute(KeyValue::new("peer.service", ));
     }
 }
