@@ -30,8 +30,10 @@ pub async fn handle_create_product<TRepo: Repository, TEventPublisher: EventPubl
     );
 
     let _res = repository.store_product(&product).await;
-    
-    event_publisher.publish_product_created_event(product.clone().into()).await;
+
+    event_publisher
+        .publish_product_created_event(product.clone().into())
+        .await;
 
     Ok(product.as_dto())
 }
@@ -67,8 +69,11 @@ pub async fn handle_update_product<TRepo: Repository, TEventPublisher: EventPubl
 
     match repository.update_product(&product).await {
         Ok(_) => {
-            event_publisher.publish_product_updated_event(product.clone().into()).await;
-            Ok(product.as_dto()) },
+            event_publisher
+                .publish_product_updated_event(product.clone().into())
+                .await;
+            Ok(product.as_dto())
+        }
         Err(e) => Err(ApplicationError::InternalError(e.to_string())),
     }
 }
@@ -88,19 +93,23 @@ pub async fn handle_delete_product<TRepo: Repository, TEventPublisher: EventPubl
     event_publisher: &TEventPublisher,
     delete_product_command: DeleteProductCommand,
 ) -> Result<(), ApplicationError> {
-    let product = repository.get_product(&delete_product_command.product_id).await;
-    
+    let product = repository
+        .get_product(&delete_product_command.product_id)
+        .await;
+
     match product {
         Ok(product) => {
             let res = repository
                 .delete_product(&delete_product_command.product_id)
                 .await;
 
-            event_publisher.publish_product_deleted_event(product.clone().into()).await;
-            
+            event_publisher
+                .publish_product_deleted_event(product.clone().into())
+                .await;
+
             Ok(())
         }
-        Err(_) => Err(ApplicationError::NotFound)
+        Err(_) => Err(ApplicationError::NotFound),
     }
 }
 

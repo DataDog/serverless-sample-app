@@ -5,7 +5,11 @@ members = [
   "src/product-api/lambdas/get_product",
   "src/product-api/lambdas/update_product",
   "src/product-api/lambdas/delete_product",
-  "src/product-api/shared"
+  "src/product-api/core",
+  "src/product-pricing/core",
+  "src/product-pricing/lambdas/product_created_pricing_handler",
+  "src/product-pricing/lambdas/product_updated_pricing_handler",
+  "src/observability"
 ]
 
 [workspace.dependencies]

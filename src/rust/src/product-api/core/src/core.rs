@@ -13,9 +13,18 @@ pub enum RepositoryError {
 
 #[async_trait]
 pub trait EventPublisher {
-    async fn publish_product_created_event(&self, product_created_event: ProductCreatedEvent) -> Result<(), ()>;
-    async fn publish_product_updated_event(&self, product_updated_event: ProductUpdatedEvent) -> Result<(), ()>;
-    async fn publish_product_deleted_event(&self, product_deleted_event: ProductDeletedEvent) -> Result<(), ()>;
+    async fn publish_product_created_event(
+        &self,
+        product_created_event: ProductCreatedEvent,
+    ) -> Result<(), ()>;
+    async fn publish_product_updated_event(
+        &self,
+        product_updated_event: ProductUpdatedEvent,
+    ) -> Result<(), ()>;
+    async fn publish_product_deleted_event(
+        &self,
+        product_deleted_event: ProductDeletedEvent,
+    ) -> Result<(), ()>;
 }
 
 #[async_trait]
@@ -111,42 +120,42 @@ impl ProductPriceBracket {
 pub struct ProductCreatedEvent {
     product_id: String,
     name: String,
-    price: f32
+    price: f32,
 }
 
 impl Into<ProductCreatedEvent> for Product {
     fn into(self) -> ProductCreatedEvent {
-        ProductCreatedEvent{
+        ProductCreatedEvent {
             price: self.price.clone(),
             product_id: self.product_id.clone(),
-            name: self.name.clone()
+            name: self.name.clone(),
         }
     }
 }
 
 impl Into<ProductUpdatedEvent> for Product {
     fn into(self) -> ProductUpdatedEvent {
-        ProductUpdatedEvent{
+        ProductUpdatedEvent {
             product_id: self.product_id.clone(),
-            previous: ProductDTO{
+            previous: ProductDTO {
                 name: self.previous_name.clone(),
                 price: self.previous_price.clone(),
                 product_id: self.product_id.clone(),
-                price_brackets: vec![]
+                price_brackets: vec![],
             },
-            new: ProductDTO{
+            new: ProductDTO {
                 name: self.name.clone(),
                 price: self.price.clone(),
                 product_id: self.product_id.clone(),
-                price_brackets: vec![]
-            }
+                price_brackets: vec![],
+            },
         }
     }
 }
 
 impl Into<ProductDeletedEvent> for Product {
     fn into(self) -> ProductDeletedEvent {
-        ProductDeletedEvent{
+        ProductDeletedEvent {
             product_id: self.product_id.clone(),
         }
     }
@@ -155,7 +164,7 @@ impl Into<ProductDeletedEvent> for Product {
 pub struct ProductUpdatedEvent {
     product_id: String,
     previous: ProductDTO,
-    new: ProductDTO
+    new: ProductDTO,
 }
 #[derive(Serialize)]
 pub struct ProductDeletedEvent {

@@ -15,7 +15,9 @@ pub fn json_response(status: &StatusCode, body: &impl Serialize) -> Result<Respo
     let response = Response::builder()
         .status(status)
         .header("content-type", "application/json")
-        .body(Body::Text(serde_json::to_string(&body).unwrap()))
+        .body(Body::Text(
+            serde_json::to_string(&body).unwrap_or("".to_string()),
+        ))
         .map_err(Box::new)?;
 
     Ok(response)

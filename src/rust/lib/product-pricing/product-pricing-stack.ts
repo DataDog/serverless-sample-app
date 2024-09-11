@@ -24,13 +24,12 @@ export class ProductPricingStack extends cdk.Stack {
       process.env.DD_SECRET_ARN!
     );
 
-    const service = "NodeProductPricingService";
+    const service = "RustProductPricingService";
     const env = process.env.ENV ?? "dev";
     const version = process.env["COMMIT_HASH"] ?? "latest";
 
     const datadogConfiguration = new Datadog(this, "Datadog", {
-      nodeLayerVersion: 115,
-      extensionLayerVersion: 62,
+      extensionLayerVersion: 64,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
       service,
@@ -51,7 +50,7 @@ export class ProductPricingStack extends cdk.Stack {
     const productCreatedTopicArn = StringParameter.fromStringParameterName(
       this,
       "ProductCreatedTopicArn",
-      "/node/product/product-created-topic"
+      "/rust/product/product-created-topic"
     );
     const productCreatedTopic = Topic.fromTopicArn(
       this,
@@ -62,7 +61,7 @@ export class ProductPricingStack extends cdk.Stack {
     const productUpdatedTopicArn = StringParameter.fromStringParameterName(
       this,
       "ProductUpdatedTopicArn",
-      "/node/product/product-updated-topic"
+      "/rust/product/product-updated-topic"
     );
     const productUpdatedTopic = Topic.fromTopicArn(
       this,
@@ -72,7 +71,7 @@ export class ProductPricingStack extends cdk.Stack {
 
     const productPricingService = new ProductPricingService(
       this,
-      "NodeProductPricingService",
+      "RustProductPricingService",
       {
         sharedProps,
         productCreatedTopic,
@@ -82,18 +81,18 @@ export class ProductPricingStack extends cdk.Stack {
 
     const productPricingTopicArnParameter = new StringParameter(
       this,
-      "NodeProductPricingCalculatedTopicArn",
+      "RustProductPricingCalculatedTopicArn",
       {
-        parameterName: "/node/product/pricing-calculated-topic",
+        parameterName: "/rust/product/pricing-calculated-topic",
         stringValue: productPricingService.priceCalculatedTopic.topicArn,
       }
     );
 
     const productPricingTopicNameParameter = new StringParameter(
       this,
-      "NodeProductPricingCalculatedTopicName",
+      "RustProductPricingCalculatedTopicName",
       {
-        parameterName: "/node/product/pricing-calculated-topic-name",
+        parameterName: "/rust/product/pricing-calculated-topic-name",
         stringValue: productPricingService.priceCalculatedTopic.topicArn,
       }
     );

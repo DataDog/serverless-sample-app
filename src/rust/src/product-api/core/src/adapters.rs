@@ -1,11 +1,20 @@
-use crate::core::{EventPublisher, Product, ProductCreatedEvent, ProductDeletedEvent, ProductUpdatedEvent, Repository, RepositoryError};
+use crate::core::{
+    EventPublisher, Product, ProductCreatedEvent, ProductDeletedEvent, ProductUpdatedEvent,
+    Repository, RepositoryError,
+};
 use async_trait::async_trait;
 use aws_sdk_dynamodb::error::ProvideErrorMetadata;
+use aws_sdk_dynamodb::operation::put_item::PutItemOutput;
 use aws_sdk_dynamodb::types::AttributeValue;
 use aws_sdk_dynamodb::Client;
-use aws_sdk_dynamodb::operation::put_item::PutItemOutput;
 use aws_sdk_sns::error::SdkError;
 use lambda_http::tracing::instrument;
+use opentelemetry::trace::TraceContextExt;
+use serde::Serialize;
+use std::time::{SystemTime, UNIX_EPOCH};
+use tracing::Span;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
+use observability::TracedMessage;
 
 pub struct DynamoDbRepository {
     client: Client,
@@ -17,14 +26,17 @@ impl DynamoDbRepository {
         DynamoDbRepository { client, table_name }
     }
 
-    async fn put_to_dynamo(&self, product: &Product) -> Result<(), RepositoryError>{
+    async fn put_to_dynamo(&self, product: &Product) -> Result<(), RepositoryError> {
         let res = self
             .client
             .put_item()
             .table_name(&self.table_name)
             .item("PK", AttributeValue::S(product.product_id.clone()))
             .item("Name", AttributeValue::S(product.name.clone()))
-            .item("Price", AttributeValue::N(product.price.clone().to_string()))
+            .item(
+                "Price",
+                AttributeValue::N(product.price.clone().to_string()),
+            )
             .item("ProductId", AttributeValue::S(product.product_id.clone()))
             .item(
                 "PriceBrackets",
@@ -65,10 +77,10 @@ impl Repository for DynamoDbRepository {
 
         match res {
             Ok(item) => Ok({
-                if item.item.is_none() { 
+                if item.item.is_none() {
                     return Err(RepositoryError::NotFound);
-                } 
-                
+                }
+
                 let attributes = item.item().unwrap().clone();
 
                 let product = Product {
@@ -119,12 +131,10 @@ impl Repository for DynamoDbRepository {
 
         Ok(())
     }
-    
-    
 }
 
 pub struct SnsEventPublisher {
-    client: aws_sdk_sns::Client
+    client: aws_sdk_sns::Client,
 }
 
 impl SnsEventPublisher {
@@ -135,36 +145,57 @@ impl SnsEventPublisher {
 
 #[async_trait]
 impl EventPublisher for SnsEventPublisher {
-    #[instrument(name = "publish-product-created-event", skip(self, product_created_event))]
-    async fn publish_product_created_event(&self, product_created_event: ProductCreatedEvent) -> Result<(), ()> {
-        let _publish_res = &self.client
+    #[instrument(
+        name = "publish-product-created-event",
+        skip(self, product_created_event)
+    )]
+    async fn publish_product_created_event(
+        &self,
+        product_created_event: ProductCreatedEvent,
+    ) -> Result<(), ()> {
+        let _publish_res = &self
+            .client
             .publish()
             .topic_arn(std::env::var("PRODUCT_CREATED_TOPIC_ARN").unwrap())
-            .message(serde_json::to_string(&product_created_event).unwrap())
+            .message(serde_json::to_string(&TracedMessage::new(product_created_event)).unwrap())
             .send()
             .await;
-        
+
         Ok(())
     }
 
-    #[instrument(name = "publish-product-updated-event", skip(self, product_updated_event))]
-    async fn publish_product_updated_event(&self, product_updated_event: ProductUpdatedEvent) -> Result<(), ()> {
-        let _publish_res = &self.client
+    #[instrument(
+        name = "publish-product-updated-event",
+        skip(self, product_updated_event)
+    )]
+    async fn publish_product_updated_event(
+        &self,
+        product_updated_event: ProductUpdatedEvent,
+    ) -> Result<(), ()> {
+        let _publish_res = &self
+            .client
             .publish()
             .topic_arn(std::env::var("PRODUCT_UPDATED_TOPIC_ARN").unwrap())
-            .message(serde_json::to_string(&product_updated_event).unwrap())
+            .message(serde_json::to_string(&TracedMessage::new(product_updated_event)).unwrap())
             .send()
             .await;
 
         Ok(())
     }
 
-    #[instrument(name = "publish-product-deleted-event", skip(self, product_deleted_event))]
-    async fn publish_product_deleted_event(&self, product_deleted_event: ProductDeletedEvent) -> Result<(), ()> {
-        let _publish_res = &self.client
+    #[instrument(
+        name = "publish-product-deleted-event",
+        skip(self, product_deleted_event)
+    )]
+    async fn publish_product_deleted_event(
+        &self,
+        product_deleted_event: ProductDeletedEvent,
+    ) -> Result<(), ()> {
+        let _publish_res = &self
+            .client
             .publish()
             .topic_arn(std::env::var("PRODUCT_DELETED_TOPIC_ARN").unwrap())
-            .message(serde_json::to_string(&product_deleted_event).unwrap())
+            .message(serde_json::to_string(&TracedMessage::new(product_deleted_event)).unwrap())
             .send()
             .await;
 

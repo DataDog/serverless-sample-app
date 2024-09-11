@@ -29,24 +29,22 @@ export class ProductPricingService extends Construct {
   constructor(scope: Construct, id: string, props: ProductPricingServiceProps) {
     super(scope, id);
 
-    this.priceCalculatedTopic = new Topic(this, "NodePriceCalculatedTopic", {
-      topicName: `NodePriceCalculatedTopic-${props.sharedProps.environment}`,
+    this.priceCalculatedTopic = new Topic(this, "RustPriceCalculatedTopic", {
+      topicName: `RustPriceCalculatedTopic-${props.sharedProps.environment}`,
     });
 
     this.productCreatedPricingFunction = new InstrumentedLambdaFunction(
       this,
-      "NodeProductCreatedPricingFunction",
+      "RustProductCreatedPricingFunction",
       {
         sharedProps: props.sharedProps,
-        functionName: `NodeProductCreatedPricing-${props.sharedProps.environment}`,
+        functionName: `RustProductCreatedPricing-${props.sharedProps.environment}`,
         handler: "index.handler",
         environment: {
           PRICE_CALCULATED_TOPIC_ARN: this.priceCalculatedTopic.topicArn,
           DD_SERVICE_MAPPING: `lambda_sns:${this.priceCalculatedTopic.topicName}`,
-        },
-        buildDef:
-          "./src/product-pricing-service/adapters/buildProductCreatedPricingHandler.js",
-        outDir: "./out/productCreatedPricingHandler",
+        }, 
+          manifestPath: "./src/product-pricing/lambdas/product_created_pricing_handler/Cargo.toml"
       }
     ).function;
     this.priceCalculatedTopic.grantPublish(this.productCreatedPricingFunction);
@@ -55,7 +53,7 @@ export class ProductPricingService extends Construct {
       this,
       "ProductPricingDeadLetterQueue",
       {
-        queueName: `NodeProductPricingDLQ-${props.sharedProps.environment}`,
+        queueName: `RustProductPricingDLQ-${props.sharedProps.environment}`,
       }
     );
 
@@ -67,18 +65,16 @@ export class ProductPricingService extends Construct {
 
     this.productUpdatedPricingFunction = new InstrumentedLambdaFunction(
       this,
-      "NodeProductUpdatedPricingFunction",
+      "RustProductUpdatedPricingFunction",
       {
         sharedProps: props.sharedProps,
-        functionName: `NodeProductUpdatedPricing-${props.sharedProps.environment}`,
+        functionName: `RustProductUpdatedPricing-${props.sharedProps.environment}`,
         handler: "index.handler",
         environment: {
           PRICE_CALCULATED_TOPIC_ARN: this.priceCalculatedTopic.topicArn,
           DD_SERVICE_MAPPING: `lambda_sns:${this.priceCalculatedTopic.topicName}`,
         },
-        buildDef:
-          "./src/product-pricing-service/adapters/buildProductUpdatedPricingHandler.js",
-        outDir: "./out/productUpdatedPricingHandler",
+          manifestPath: "./src/product-pricing/lambdas/product_updated_pricing_handler/Cargo.toml"
       }
     ).function;
     this.priceCalculatedTopic.grantPublish(this.productUpdatedPricingFunction);
@@ -87,7 +83,7 @@ export class ProductPricingService extends Construct {
       this,
       "ProductUpdatedPricingDLQ",
       {
-        queueName: `NodeProductUpdatedPricingDLQ-${props.sharedProps.environment}`,
+        queueName: `RustProductUpdatedPricingDLQ-${props.sharedProps.environment}`,
       }
     );
 
