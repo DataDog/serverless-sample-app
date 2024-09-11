@@ -1,0 +1,25 @@
+[workspace]
+resolver = "2"
+members = [
+  "src/product-api/lambdas/create_product",
+  "src/product-api/lambdas/get_product",
+  "src/product-api/lambdas/update_product",
+  "src/product-api/lambdas/delete_product",
+  "src/product-api/shared"
+]
+
+[workspace.dependencies]
+anyhow = "1.0.87"
+thiserror = "1.0"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+serde = "1.0"
+serde_json = "1.0"
+tracing-subscriber = "0.3.8"
+opentelemetry = { version = "0.23", features = ["trace"] }
+opentelemetry-datadog = { version = "0.11.0", features = ["reqwest-client"] }
+opentelemetry_sdk = { version = "0.23", features = ["trace"] }
+opentelemetry-http = { version = "0.12", features = ["reqwest"] }
+opentelemetry-stdout = "0.4.0"
+opentelemetry-semantic-conventions = "0.25"
+tracing-opentelemetry = "0.24.0"
+tracing = "0.1.40"

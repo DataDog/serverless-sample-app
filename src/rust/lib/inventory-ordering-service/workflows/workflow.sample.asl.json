@@ -1,0 +1,16 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "Wait 3",
+  "States": {
+    "Wait 3": {
+      "Type": "Wait",
+      "Seconds": 3,
+      "Next": "Wait 5"
+    },
+    "Wait 5": {
+      "Type": "Wait",
+      "Seconds": 5,
+      "End": true
+    }
+  }
+}
