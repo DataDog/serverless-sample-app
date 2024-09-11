@@ -1,12 +1,11 @@
 use lambda_http::http::StatusCode;
 use lambda_http::{
     run, service_fn,
-    tracing::{self, instrument},
-    Body, Error, IntoResponse, Request, RequestExt, RequestPayloadExt, Response,
+    tracing::{self, instrument}, Error, IntoResponse, Request, RequestExt,
 };
 use shared::adapters::{DynamoDbRepository, SnsEventPublisher};
 use shared::core::{EventPublisher, Repository};
-use shared::ports::{handle_delete_product, ApplicationError, DeleteProductCommand};
+use shared::ports::{handle_delete_product, DeleteProductCommand};
 use shared::response::empty_response;
 use std::env;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Registry};
