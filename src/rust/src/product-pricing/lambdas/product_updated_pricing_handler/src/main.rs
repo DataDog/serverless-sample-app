@@ -17,7 +17,7 @@ async fn function_handler<TEventPublisher: EventPublisher>(
 
         let evt = serde_json::from_str(&traced_message.message).unwrap();
 
-        handle_product_updated_event(event_publisher, evt).await;
+        handle_product_updated_event(event_publisher, evt).await?;
     }
 
     Ok(())

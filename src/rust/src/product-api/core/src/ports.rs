@@ -1,8 +1,7 @@
 use crate::core::{
     EventPublisher, Product, ProductDTO, ProductPriceBracket, Repository, RepositoryError,
 };
-use aws_sdk_dynamodb::types::Get;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -27,15 +26,17 @@ pub async fn handle_create_product<TRepo: Repository, TEventPublisher: EventPubl
     create_product_command: CreateProductCommand,
 ) -> Result<ProductDTO, ApplicationError> {
     let product = Product::new(
-        create_product_command.name.clone(),
-        create_product_command.price.clone(),
+        create_product_command.name,
+        create_product_command.price,
     );
 
     let _res = repository.store_product(&product).await;
 
     event_publisher
         .publish_product_created_event(product.clone().into())
-        .await;
+        .await.map_err(|_e| {
+            ApplicationError::InternalError("Failure publishing event".to_string())
+        })?;
 
     Ok(product.as_dto())
 }
@@ -61,8 +62,8 @@ pub async fn handle_update_product<TRepo: Repository, TEventPublisher: EventPubl
         })?;
 
     let product = get_product_result.update(
-        update_product_command.name.clone(),
-        update_product_command.price.clone(),
+        update_product_command.name,
+        update_product_command.price,
     );
 
     if !product.updated {
@@ -73,7 +74,9 @@ pub async fn handle_update_product<TRepo: Repository, TEventPublisher: EventPubl
         Ok(_) => {
             event_publisher
                 .publish_product_updated_event(product.clone().into())
-                .await;
+                .await.map_err(|_e| {
+                    ApplicationError::InternalError("Failure publishing event".to_string())
+                })?;
             Ok(product.as_dto())
         }
         Err(e) => Err(ApplicationError::InternalError(e.to_string())),
@@ -101,13 +104,17 @@ pub async fn handle_delete_product<TRepo: Repository, TEventPublisher: EventPubl
 
     match product {
         Ok(product) => {
-            let res = repository
+            repository
                 .delete_product(&delete_product_command.product_id)
-                .await;
+                .await.map_err(|e| {
+                    ApplicationError::InternalError(e.to_string())
+                })?;
 
             event_publisher
                 .publish_product_deleted_event(product.clone().into())
-                .await;
+                .await.map_err(|_e| {
+                    ApplicationError::InternalError("Failure publishing event".to_string())
+                })?;
 
             Ok(())
         }
@@ -174,7 +181,10 @@ pub async fn handle_pricing_updated_event<T: Repository>(
         ));
     }
 
-    repository.update_product(&product).await;
+    repository.update_product(&product)
+        .await.map_err(|e| {
+            ApplicationError::InternalError(e.to_string())
+        })?;
 
     Ok(())
 }

@@ -31,11 +31,11 @@ pub trait EventPublisher {
 pub trait Repository {
     async fn store_product(&self, body: &Product) -> Result<(), RepositoryError>;
 
-    async fn get_product(&self, id: &String) -> Result<Product, RepositoryError>;
+    async fn get_product(&self, id: &str) -> Result<Product, RepositoryError>;
 
     async fn update_product(&self, body: &Product) -> Result<(), RepositoryError>;
 
-    async fn delete_product(&self, id: &String) -> Result<(), RepositoryError>;
+    async fn delete_product(&self, id: &str) -> Result<(), RepositoryError>;
 }
 
 #[derive(Serialize)]
@@ -47,7 +47,7 @@ pub struct ProductDTO {
 }
 
 #[derive(Clone, Serialize)]
-pub(crate) struct Product {
+pub struct Product {
     pub(crate) product_id: String,
     pub(crate) previous_name: String,
     pub(crate) name: String,
@@ -100,7 +100,7 @@ impl Product {
 
     pub(crate) fn as_dto(&self) -> ProductDTO {
         ProductDTO {
-            price: self.price.clone(),
+            price: self.price,
             product_id: self.product_id.clone(),
             name: self.name.clone(),
             price_brackets: self.price_brackets.to_vec(),
@@ -127,43 +127,44 @@ pub struct ProductCreatedEvent {
     price: f32,
 }
 
-impl Into<ProductCreatedEvent> for Product {
-    fn into(self) -> ProductCreatedEvent {
+impl From<Product> for ProductCreatedEvent {
+    fn from(value: Product) -> Self {
         ProductCreatedEvent {
-            price: self.price.clone(),
-            product_id: self.product_id.clone(),
-            name: self.name.clone(),
+            price: value.price,
+            product_id: value.product_id,
+            name: value.name,
         }
     }
 }
 
-impl Into<ProductUpdatedEvent> for Product {
-    fn into(self) -> ProductUpdatedEvent {
+impl From<Product> for ProductUpdatedEvent {
+    fn from(value: Product) -> Self {
         ProductUpdatedEvent {
-            product_id: self.product_id.clone(),
+            product_id: value.product_id.clone(),
             previous: ProductDTO {
-                name: self.previous_name.clone(),
-                price: self.previous_price.clone(),
-                product_id: self.product_id.clone(),
+                name: value.previous_name,
+                price: value.previous_price,
+                product_id: value.product_id.clone(),
                 price_brackets: vec![],
             },
             new: ProductDTO {
-                name: self.name.clone(),
-                price: self.price.clone(),
-                product_id: self.product_id.clone(),
+                name: value.name,
+                price: value.price,
+                product_id: value.product_id.clone(),
                 price_brackets: vec![],
             },
         }
     }
 }
 
-impl Into<ProductDeletedEvent> for Product {
-    fn into(self) -> ProductDeletedEvent {
+impl From<Product> for ProductDeletedEvent {
+    fn from(value: Product) -> Self {
         ProductDeletedEvent {
-            product_id: self.product_id.clone(),
+            product_id: value.product_id.clone(),
         }
     }
 }
+
 #[derive(Serialize)]
 pub struct ProductUpdatedEvent {
     product_id: String,

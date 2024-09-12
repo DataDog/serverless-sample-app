@@ -16,7 +16,7 @@ async fn function_handler<TEventPublisher: EventPublisher>(
         let traced_message: TracedMessage = sns_record.into();
         let evt = serde_json::from_str(&traced_message.message).unwrap();
 
-        handle_product_created_event(event_publisher, evt).await;
+        handle_product_created_event(event_publisher, evt).await?;
     }
 
     Ok(())

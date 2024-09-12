@@ -19,8 +19,6 @@ async fn function_handler<TRepository: Repository, TEventPublisher: EventPublish
     event_publisher: &TEventPublisher,
     event: Request,
 ) -> Result<impl IntoResponse, Error>
-where
-    TRepository: Repository,
 {
     tracing::info!("Received event: {:?}", event);
 

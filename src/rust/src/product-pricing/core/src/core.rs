@@ -10,7 +10,7 @@ pub trait EventPublisher {
 }
 
 #[derive(Serialize)]
-pub(crate) struct ProductPricingChangedEvent {
+pub struct ProductPricingChangedEvent {
     product_id: String,
     price_brackets: Vec<PricingResult>,
 }
@@ -34,27 +34,28 @@ pub(crate) struct PricingResult {
 
 impl PricingService {
     pub(crate) fn calculate_pricing_for(price: f32) -> Vec<PricingResult> {
-        let mut results = Vec::new();
-        results.push(PricingResult {
-            quantity_to_order: 5,
-            price: price * 0.95,
-        });
-        results.push(PricingResult {
-            quantity_to_order: 10,
-            price: price * 0.9,
-        });
-        results.push(PricingResult {
-            quantity_to_order: 25,
-            price: price * 0.8,
-        });
-        results.push(PricingResult {
-            quantity_to_order: 50,
-            price: price * 0.75,
-        });
-        results.push(PricingResult {
-            quantity_to_order: 100,
-            price: price * 0.7,
-        });
+        let results = vec![
+            PricingResult {
+                quantity_to_order: 5,
+                price: price * 0.95,
+            },
+            PricingResult {
+                quantity_to_order: 10,
+                price: price * 0.9,
+            },
+            PricingResult {
+                quantity_to_order: 25,
+                price: price * 0.8,
+            },
+            PricingResult {
+                quantity_to_order: 50,
+                price: price * 0.75,
+            },
+            PricingResult {
+                quantity_to_order: 100,
+                price: price * 0.7,
+            }
+        ];
 
         results
     }

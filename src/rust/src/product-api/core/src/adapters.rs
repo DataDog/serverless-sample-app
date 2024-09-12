@@ -3,17 +3,10 @@ use crate::core::{
     Repository, RepositoryError,
 };
 use async_trait::async_trait;
-use aws_sdk_dynamodb::error::ProvideErrorMetadata;
-use aws_sdk_dynamodb::operation::put_item::PutItemOutput;
 use aws_sdk_dynamodb::types::AttributeValue;
 use aws_sdk_dynamodb::Client;
-use aws_sdk_sns::error::SdkError;
-use lambda_http::tracing::instrument;
 use observability::TracedMessage;
-use opentelemetry::trace::TraceContextExt;
-use serde::Serialize;
-use std::time::{SystemTime, UNIX_EPOCH};
-use tracing::Span;
+use tracing::{instrument, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 pub struct DynamoDbRepository {
@@ -73,7 +66,7 @@ impl Repository for DynamoDbRepository {
     }
 
     #[instrument(name = "get-product", skip(self, id), fields(aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = id))]
-    async fn get_product(&self, id: &String) -> Result<crate::core::Product, RepositoryError> {
+    async fn get_product(&self, id: &str) -> Result<crate::core::Product, RepositoryError> {
         Span::current().set_attribute("span.type", "dynamodb");
         Span::current().set_attribute(
             "resource.name",
@@ -124,7 +117,7 @@ impl Repository for DynamoDbRepository {
 
                 product
             }),
-            Err(e) => Err(RepositoryError::NotFound),
+            Err(_e) => Err(RepositoryError::NotFound),
         }
     }
 
@@ -135,14 +128,14 @@ impl Repository for DynamoDbRepository {
     }
 
     #[instrument(name = "delete-product", skip(self, id), fields(aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = id))]
-    async fn delete_product(&self, id: &String) -> Result<(), RepositoryError> {
+    async fn delete_product(&self, id: &str) -> Result<(), RepositoryError> {
         Span::current().set_attribute("span.type", "dynamodb");
         Span::current().set_attribute(
             "resource.name",
             format!("DynamoDB.DeleteItem {}", &self.table_name),
         );
 
-        let res = self
+        let _res = self
             .client
             .delete_item()
             .table_name(&self.table_name)

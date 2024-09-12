@@ -1,5 +1,13 @@
 use crate::core::{EventPublisher, PricingService, ProductPricingChangedEvent};
 use serde::Deserialize;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum ApplicationError {
+    #[error("Error: {0}")]
+    InternalError(String),
+}
+
 
 #[derive(Deserialize)]
 pub struct ProductCreatedEvent {
@@ -10,7 +18,7 @@ pub struct ProductCreatedEvent {
 pub async fn handle_product_created_event<TEventPublisher: EventPublisher>(
     event_publisher: &TEventPublisher,
     evt: ProductCreatedEvent,
-) {
+) -> Result<(), ApplicationError> {
     let price_breakdowns = PricingService::calculate_pricing_for(evt.price);
 
     event_publisher
@@ -18,7 +26,9 @@ pub async fn handle_product_created_event<TEventPublisher: EventPublisher>(
             evt.product_id,
             price_breakdowns,
         ))
-        .await;
+        .await.map_err(|_e| {
+            ApplicationError::InternalError("Failure publishing event".to_string())
+        })
 }
 
 #[derive(Deserialize)]
@@ -35,7 +45,7 @@ struct ProductDetails {
 pub async fn handle_product_updated_event<TEventPublisher: EventPublisher>(
     event_publisher: &TEventPublisher,
     evt: ProductUpdatedEvent,
-) {
+) -> Result<(), ApplicationError> {
     let price_breakdowns = PricingService::calculate_pricing_for(evt.new.price);
 
     event_publisher
@@ -43,5 +53,7 @@ pub async fn handle_product_updated_event<TEventPublisher: EventPublisher>(
             evt.product_id,
             price_breakdowns,
         ))
-        .await;
+        .await.map_err(|_e| {
+            ApplicationError::InternalError("Failure publishing event".to_string())
+        })
 }
