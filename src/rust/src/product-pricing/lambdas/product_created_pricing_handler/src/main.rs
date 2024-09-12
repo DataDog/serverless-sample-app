@@ -14,7 +14,7 @@ async fn function_handler<TEventPublisher: EventPublisher>(
 ) -> Result<(), Error> {
     for sns_record in &event.payload.records {
         let traced_message: TracedMessage = sns_record.into();
-        let evt= serde_json::from_str(&traced_message.message).unwrap();
+        let evt = serde_json::from_str(&traced_message.message).unwrap();
 
         handle_product_created_event(event_publisher, evt).await;
     }

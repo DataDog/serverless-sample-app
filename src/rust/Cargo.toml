@@ -5,6 +5,7 @@ members = [
   "src/product-api/lambdas/get_product",
   "src/product-api/lambdas/update_product",
   "src/product-api/lambdas/delete_product",
+  "src/product-api/lambdas/handle_pricing_updated",
   "src/product-api/core",
   "src/product-pricing/core",
   "src/product-pricing/lambdas/product_created_pricing_handler",

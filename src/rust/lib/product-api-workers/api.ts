@@ -31,8 +31,8 @@ export class ApiWorker extends Construct {
 
     this.table = Table.fromTableName(
       this,
-      "NodeProductTable",
-      `NodeProducts-${props.sharedProps.environment}`
+      "RustProductTable",
+      `RustProducts-${props.sharedProps.environment}`
     );
 
     const priceCalculatedFunction = this.buildPriceCalculatedHandlerFunction(
@@ -53,7 +53,7 @@ export class ApiWorker extends Construct {
       this,
       "ProductApiPricingChangedDLQ",
       {
-        queueName: `NodeProductApiPricingChangedDLQ-${props.environment}`,
+        queueName: `RustProductApiPricingChangedDLQ-${props.environment}`,
       }
     );
 
@@ -67,10 +67,8 @@ export class ApiWorker extends Construct {
         environment: {
           TABLE_NAME: this.table.tableName,
           DD_SERVICE_MAPPING: `lambda_sns:${priceCalculatedTopic.topicName}`,
-        },
-        buildDef:
-          "./src/product-api/adapters/buildHandlePricingChangedFunction.js",
-        outDir: "./out/handlePricingChangedFunction",
+        }, 
+          manifestPath: "./src/product-api/lambdas/handle_pricing_updated/Cargo.toml"
       }
     );
 

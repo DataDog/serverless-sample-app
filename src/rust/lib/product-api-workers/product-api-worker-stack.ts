@@ -24,13 +24,12 @@ export class ProductApiWorkerStack extends cdk.Stack {
       process.env.DD_SECRET_ARN!
     );
 
-    const service = "NodeProductApi";
+    const service = "RustProductApi";
     const env = process.env.ENV ?? "dev";
     const version = process.env["COMMIT_HASH"] ?? "latest";
 
     const datadogConfiguration = new Datadog(this, "Datadog", {
-      nodeLayerVersion: 115,
-      extensionLayerVersion: 62,
+      extensionLayerVersion: 64,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
       service,
@@ -53,7 +52,7 @@ export class ProductApiWorkerStack extends cdk.Stack {
     const priceCalculatedTopicArn = StringParameter.fromStringParameterName(
       this,
       "PriceCalculatedTopicArn",
-      "/node/product/pricing-calculated-topic"
+      "/rust/product/pricing-calculated-topic"
     );
     
     priceCalculatedTopic = Topic.fromTopicArn(

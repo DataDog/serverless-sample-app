@@ -4,13 +4,13 @@ use lambda_http::{
     tracing::{self, instrument},
     Error, IntoResponse, Request, RequestExt,
 };
+use observability::observability;
 use shared::adapters::{DynamoDbRepository, SnsEventPublisher};
 use shared::core::{EventPublisher, Repository};
 use shared::ports::{handle_delete_product, DeleteProductCommand};
 use shared::response::empty_response;
 use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
-use observability::observability;
 
 #[instrument(name = "DELETE /{productId}", skip(client, event_publisher, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]
 async fn function_handler<TRepository: Repository, TEventPublisher: EventPublisher>(
@@ -45,7 +45,7 @@ where
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     observability().init();
-    
+
     let table_name = env::var("TABLE_NAME").expect("TABLE_NAME is not set");
     let config = aws_config::load_from_env().await;
     let dynamodb_client = aws_sdk_dynamodb::Client::new(&config);

@@ -1,6 +1,8 @@
-use crate::core::{EventPublisher, Product, ProductDTO, Repository, RepositoryError};
+use crate::core::{
+    EventPublisher, Product, ProductDTO, ProductPriceBracket, Repository, RepositoryError,
+};
 use aws_sdk_dynamodb::types::Get;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -137,4 +139,42 @@ pub async fn execute_get_product_query<T: Repository>(
         })?;
 
     Ok(product.as_dto())
+}
+
+#[derive(Deserialize)]
+pub struct PricingUpdatedEvent {
+    product_id: String,
+    price_brackets: Vec<PricingResult>,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct PricingResult {
+    quantity_to_order: i32,
+    price: f32,
+}
+
+pub async fn handle_pricing_updated_event<T: Repository>(
+    repository: &T,
+    evt: PricingUpdatedEvent,
+) -> Result<(), ApplicationError> {
+    let mut product = repository
+        .get_product(&evt.product_id)
+        .await
+        .map_err(|e| match e {
+            RepositoryError::NotFound => ApplicationError::NotFound,
+            RepositoryError::InternalError(e) => ApplicationError::InternalError(e),
+        })?;
+
+    product = product.clear_pricing();
+
+    for price_bracket in evt.price_brackets {
+        product = product.add_price(ProductPriceBracket::new(
+            price_bracket.quantity_to_order,
+            price_bracket.price,
+        ));
+    }
+
+    repository.update_product(&product).await;
+
+    Ok(())
 }

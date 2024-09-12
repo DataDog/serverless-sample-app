@@ -86,12 +86,16 @@ impl Product {
         self
     }
 
-    pub(crate) fn clear_pricing(mut self) {
+    pub(crate) fn clear_pricing(mut self) -> Self {
         self.price_brackets = vec![];
+
+        self
     }
 
-    pub(crate) fn add_price(mut self, price_bracket: ProductPriceBracket) {
+    pub(crate) fn add_price(mut self, price_bracket: ProductPriceBracket) -> Self {
         self.price_brackets.push(price_bracket);
+
+        self
     }
 
     pub(crate) fn as_dto(&self) -> ProductDTO {
@@ -111,7 +115,7 @@ pub(crate) struct ProductPriceBracket {
 }
 
 impl ProductPriceBracket {
-    fn new(quantity: i32, price: f32) -> Self {
+    pub fn new(quantity: i32, price: f32) -> Self {
         Self { quantity, price }
     }
 }

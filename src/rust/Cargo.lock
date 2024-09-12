@@ -946,6 +946,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "handle-pricing-updated"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "aws-sdk-sns",
+ "aws_lambda_events",
+ "lambda_runtime",
+ "observability",
+ "opentelemetry",
+ "opentelemetry-datadog",
+ "opentelemetry-http",
+ "opentelemetry-semantic-conventions 0.25.0",
+ "opentelemetry-stdout",
+ "opentelemetry_sdk",
+ "serde_json",
+ "shared",
+ "tokio",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

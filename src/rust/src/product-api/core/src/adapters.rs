@@ -9,12 +9,12 @@ use aws_sdk_dynamodb::types::AttributeValue;
 use aws_sdk_dynamodb::Client;
 use aws_sdk_sns::error::SdkError;
 use lambda_http::tracing::instrument;
+use observability::TracedMessage;
 use opentelemetry::trace::TraceContextExt;
 use serde::Serialize;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::Span;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
-use observability::TracedMessage;
 
 pub struct DynamoDbRepository {
     client: Client,
@@ -27,6 +27,10 @@ impl DynamoDbRepository {
     }
 
     async fn put_to_dynamo(&self, product: &Product) -> Result<(), RepositoryError> {
+        Span::current().set_attribute(
+            "resource.name",
+            format!("DynamoDB.PutItem {}", &self.table_name),
+        );
         let res = self
             .client
             .put_item()
@@ -58,13 +62,23 @@ impl DynamoDbRepository {
 
 #[async_trait]
 impl Repository for DynamoDbRepository {
-    #[instrument(name = "store-product", skip(self, body), fields(dynamodb.table_name = self.table_name, product.id = body.product_id))]
+    #[instrument(name = "store-product", skip(self, body), fields(aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = body.product_id))]
     async fn store_product(&self, body: &Product) -> Result<(), RepositoryError> {
+        tracing::Span::current().set_attribute("span.type", "dynamodb");
+        Span::current().set_attribute(
+            "resource.name",
+            format!("DynamoDB.GetItem {}", &self.table_name),
+        );
         self.put_to_dynamo(body).await
     }
 
-    #[instrument(name = "get-product", skip(self, id), fields(dynamodb.table_name = self.table_name, product.id = id))]
+    #[instrument(name = "get-product", skip(self, id), fields(aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = id))]
     async fn get_product(&self, id: &String) -> Result<crate::core::Product, RepositoryError> {
+        Span::current().set_attribute("span.type", "dynamodb");
+        Span::current().set_attribute(
+            "resource.name",
+            format!("DynamoDB.GetItem {}", &self.table_name),
+        );
         tracing::info!("Retrieving record from DynamoDB: {id}");
 
         let res = self
@@ -114,13 +128,20 @@ impl Repository for DynamoDbRepository {
         }
     }
 
-    #[instrument(name = "update-product", skip(self, body), fields(dynamodb.table_name = self.table_name, product.id = body.product_id))]
+    #[instrument(name = "update-product", skip(self, body), fields(aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = body.product_id))]
     async fn update_product(&self, body: &Product) -> Result<(), RepositoryError> {
+        tracing::Span::current().set_attribute("span.type", "dynamodb");
         self.put_to_dynamo(body).await
     }
 
-    #[instrument(name = "delete-product", skip(self, id), fields(dynamodb.table_name = self.table_name, product.id = id))]
+    #[instrument(name = "delete-product", skip(self, id), fields(aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = id))]
     async fn delete_product(&self, id: &String) -> Result<(), RepositoryError> {
+        Span::current().set_attribute("span.type", "dynamodb");
+        Span::current().set_attribute(
+            "resource.name",
+            format!("DynamoDB.DeleteItem {}", &self.table_name),
+        );
+
         let res = self
             .client
             .delete_item()

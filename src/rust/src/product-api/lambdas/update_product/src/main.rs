@@ -4,13 +4,13 @@ use lambda_http::{
     tracing::{self, instrument},
     Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
 };
+use observability::observability;
 use shared::adapters::{DynamoDbRepository, SnsEventPublisher};
 use shared::core::{EventPublisher, Repository};
 use shared::ports::{handle_update_product, ApplicationError, UpdateProductCommand};
 use shared::response::{empty_response, json_response};
 use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
-use observability::observability;
 
 #[instrument(name = "PUT /", skip(client, event_publisher, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]
 async fn function_handler<TRepository: Repository, TEventPublisher: EventPublisher>(
