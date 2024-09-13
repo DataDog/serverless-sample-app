@@ -1,4 +1,26 @@
-#Rust Implementation
+# Rust Implementation
+
+The Rust implementation uses Open Telemetry for all of the tracing, which means trace propagation through SNS/SQS/EventBridge needs to be done manually. Both from a producer and a consumer perspective. All of the logic to propagate traces is held in a shared [`observability`](./src/observability/) crate. All of the logic is contained in the [`TracedMessage`](./src/observability/src/lib.rs) struct.
+
+Messages are published using the `TracedMessage` struct as a wrapper, to ensure trace and span id's are consistently sent. The `From` trait is used at the consumer side to transform the Lambda Event struct `SnsEvent`, `SqsEvent` etc back into a `TracedMessage`.
+
+```rust
+let mut traced_message: TracedMessage = serde_json::from_str(value.sns.message.as_str()).unwrap();
+
+let trace_id = TraceId::from_hex(traced_message.trace_id.as_str()).unwrap();
+let span_id = SpanId::from_hex(traced_message.span_id.as_str()).unwrap();
+
+let span_context = SpanContext::new(
+    trace_id,
+    span_id,
+    TraceFlags::SAMPLED,
+    false,
+    TraceState::NONE,
+);
+
+let inflight_ctx = Context::new().with_remote_span_context(span_context.clone());
+tracing::Span::current().set_parent(inflight_ctx.clone());
+```
 
 This README contains relevant instructions for deploying the sample application with each of the available IaC tools. As well as details on any Node specific implementation details when instrumenting with Datadog.
 
