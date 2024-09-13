@@ -61,3 +61,19 @@ Microsoft.Extensions.DependencyInjection.Abstractions,https://github.com/dotnet/
 coverlet.collector,https://github.com/coverlet-coverage/coverlet.git,MIT,
 FakeItEasy,https://github.com/FakeItEasy/FakeItEasy.git,MIT,
 xunit,https://github.com/xunit/xunit,Apache-2.0,
+anyhow,https://github.com/dtolnay/anyhow, Apache-2.0,
+thiserror,https://github.com/dtolnay/thiserror,Apache-2.0,
+tokio,https://github.com/tokio-rs/tokio,MIT,
+serde,https://github.com/serde-rs/serde,MIT,
+serde_json,https://github.com/serde-rs/json,MIT,
+tracing,https://github.com/tokio-rs/tracing,MIT,
+opentelemetry,https://github.com/open-telemetry/opentelemetry-rust,Apache-2.0
+opentelemetry-datadog,https://github.com/open-telemetry/opentelemetry-rust-contrib/tree/main/opentelemetry-datadog,Apache-2.0,
+aws_lambda_events,https://github.com/awslabs/aws-lambda-rust-runtime,Apache-2.0,Amazon Web Services
+lambda_runtime,https://github.com/awslabs/aws-lambda-rust-runtime,Apache-2.0,Amazon Web Services
+lambda_http,https://github.com/awslabs/aws-lambda-rust-runtime,Apache-2.0,Amazon Web Services
+aws-config,https://github.com/awslabs/aws-lambda-rust-runtime,Apache-2.0,Amazon Web Services
+aws-sdk-sfn,https://github.com/awslabs/aws-sdk-rust,Apache-2.0,Amazon Web Services
+aws-sdk-sns,https://github.com/awslabs/aws-sdk-rust,Apache-2.0,Amazon Web Services
+aws-sdk-eventbridge,https://github.com/awslabs/aws-sdk-rust,Apache-2.0,Amazon Web Services
+aws-sdk-dynamodb,https://github.com/awslabs/aws-sdk-rust,Apache-2.0,Amazon Web Services

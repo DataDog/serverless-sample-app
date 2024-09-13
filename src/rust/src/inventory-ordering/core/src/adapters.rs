@@ -1,5 +1,9 @@
 use async_trait::async_trait;
+use opentelemetry::trace::TraceContextExt;
+use serde::Serialize;
 use tracing::instrument;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
+use tracing_subscriber::registry::Data;
 
 use crate::core::OrderingWorkflow;
 
@@ -26,11 +30,25 @@ impl OrderingWorkflow for StepFunctionsWorkflow {
         product_id: String,
     ) -> Result<(), ()>{
 
+        let span_context = tracing::Span::current().context().span().span_context().clone();
+
+        let trace_id = span_context.trace_id().to_string().clone();
+        let span_id = span_context.span_id().to_string().clone();
+
+        let workflow_input = WorkflowInput{
+            product_id: product_id,
+            datadog: DatadogTracing{
+                trace_id: trace_id,
+                span_id: span_id,
+                priority: 1,
+                tags: "".to_string()
+            }
+        };
 
         self.client
             .start_execution()
             .set_state_machine_arn(Some(self.step_function_arn.clone()))
-            .input(format!("{{\"productId\":\"{}\"}}", &product_id))
+            .input(serde_json::to_string(&workflow_input).unwrap())
             .send()
             .await
             .map_err(|e| {
@@ -41,4 +59,24 @@ impl OrderingWorkflow for StepFunctionsWorkflow {
 
         Ok(())
     }
+}
+
+#[derive(Serialize)]
+struct WorkflowInput {
+    #[serde(rename(serialize = "productId"))]
+    product_id: String,
+    #[serde(rename(serialize = "_datadog"))]
+    datadog: DatadogTracing
+}
+
+#[derive(Serialize)]
+struct DatadogTracing {
+    #[serde(rename(serialize = "x-datadog-trace-id"))]
+    trace_id: String,
+    #[serde(rename(serialize = "x-datadog-parent-id"))]
+    span_id: String,
+    #[serde(rename(serialize = "x-datadog-sampling-priority"))]
+    priority: i32,
+    #[serde(rename(serialize = "x-datadog-tags"))]
+    tags: String
 }

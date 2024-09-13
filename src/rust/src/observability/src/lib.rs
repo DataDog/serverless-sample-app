@@ -372,8 +372,8 @@ impl TracedMessage {
         span.set_attribute(KeyValue::new("peer.messaging.destination", topic_name.clone()));
 
         let inflight_ctx = Context::new().with_remote_span_context(span.span_context().clone());
-
         tracing::Span::current().set_parent(inflight_ctx.clone());
+        
         self.inflight_ctx = Some(inflight_ctx);
 
     }
