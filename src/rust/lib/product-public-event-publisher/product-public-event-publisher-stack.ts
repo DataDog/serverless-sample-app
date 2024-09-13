@@ -25,13 +25,12 @@ export class ProductPublicEventPublisherStack extends cdk.Stack {
       process.env.DD_SECRET_ARN!
     );
 
-    const service = "NodeProductPublicEventPublisher";
+    const service = "RustProductPublicEventPublisher";
     const env = process.env.ENV ?? "dev";
     const version = process.env["COMMIT_HASH"] ?? "latest";
 
     const datadogConfiguration = new Datadog(this, "Datadog", {
-      nodeLayerVersion: 115,
-      extensionLayerVersion: 62,
+      extensionLayerVersion: 64,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
       service,
@@ -42,7 +41,7 @@ export class ProductPublicEventPublisherStack extends cdk.Stack {
       captureLambdaPayload: true,
     });
 
-    const sharedEventBus = EventBus.fromEventBusName(this, "SharedEventBus", "NodeTracingEventBus");
+    const sharedEventBus = EventBus.fromEventBusName(this, "SharedEventBus", "RustTracingEventBus");
 
     const sharedProps: SharedProps = {
       environment: env,
@@ -54,7 +53,7 @@ export class ProductPublicEventPublisherStack extends cdk.Stack {
     const productCreatedTopicArn = StringParameter.fromStringParameterName(
       this,
       "ProductCreatedTopicArn",
-      "/node/product/product-created-topic"
+      "/rust/product/product-created-topic"
     );
     const productCreatedTopic = Topic.fromTopicArn(
       this,
@@ -65,7 +64,7 @@ export class ProductPublicEventPublisherStack extends cdk.Stack {
     const productUpdatedTopicArn = StringParameter.fromStringParameterName(
       this,
       "ProductUpdatedTopicArn",
-      "/node/product/product-updated-topic"
+      "/rust/product/product-updated-topic"
     );
     const productUpdatedTopic = Topic.fromTopicArn(
       this,
@@ -76,7 +75,7 @@ export class ProductPublicEventPublisherStack extends cdk.Stack {
     const productDeletedTopicArn = StringParameter.fromStringParameterName(
       this,
       "ProductDeletedTopicArn",
-      "/node/product/product-deleted-topic"
+      "/rust/product/product-deleted-topic"
     );
     const productDeletedTopic = Topic.fromTopicArn(
       this,

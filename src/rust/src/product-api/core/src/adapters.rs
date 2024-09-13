@@ -5,7 +5,7 @@ use crate::core::{
 use async_trait::async_trait;
 use aws_sdk_dynamodb::types::AttributeValue;
 use aws_sdk_dynamodb::Client;
-use observability::TracedMessage;
+use observability::{parse_name_from_arn, TracedMessage};
 use tracing::{instrument, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
@@ -24,6 +24,8 @@ impl DynamoDbRepository {
             "resource.name",
             format!("DynamoDB.PutItem {}", &self.table_name),
         );
+        tracing::Span::current().set_attribute("peer.db.system", "dynamodb");
+        tracing::Span::current().set_attribute("span.type", "dynamodb");
         let res = self
             .client
             .put_item()
@@ -55,19 +57,20 @@ impl DynamoDbRepository {
 
 #[async_trait]
 impl Repository for DynamoDbRepository {
-    #[instrument(name = "store-product", skip(self, body), fields(aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = body.product_id))]
+    #[instrument(name = "store-product", skip(self, body), fields(peer.aws.dynamodb.table_name = self.table_name, peer.db.name = self.table_name, tablename = self.table_name, product.id = body.product_id))]
     async fn store_product(&self, body: &Product) -> Result<(), RepositoryError> {
-        tracing::Span::current().set_attribute("span.type", "dynamodb");
         Span::current().set_attribute(
             "resource.name",
             format!("DynamoDB.GetItem {}", &self.table_name),
         );
+        Span::current().set_attribute("peer.service", self.table_name.clone());
         self.put_to_dynamo(body).await
     }
 
-    #[instrument(name = "get-product", skip(self, id), fields(aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = id))]
+    #[instrument(name = "get-product", skip(self, id), fields(peer.aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = id))]
     async fn get_product(&self, id: &str) -> Result<crate::core::Product, RepositoryError> {
         Span::current().set_attribute("span.type", "dynamodb");
+        Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
             format!("DynamoDB.GetItem {}", &self.table_name),
@@ -121,15 +124,17 @@ impl Repository for DynamoDbRepository {
         }
     }
 
-    #[instrument(name = "update-product", skip(self, body), fields(aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = body.product_id))]
+    #[instrument(name = "update-product", skip(self, body), fields(peer.aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = body.product_id))]
     async fn update_product(&self, body: &Product) -> Result<(), RepositoryError> {
         tracing::Span::current().set_attribute("span.type", "dynamodb");
+        Span::current().set_attribute("peer.service", self.table_name.clone());
         self.put_to_dynamo(body).await
     }
 
-    #[instrument(name = "delete-product", skip(self, id), fields(aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = id))]
+    #[instrument(name = "delete-product", skip(self, id), fields(peer.aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = id))]
     async fn delete_product(&self, id: &str) -> Result<(), RepositoryError> {
         Span::current().set_attribute("span.type", "dynamodb");
+        Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
             format!("DynamoDB.DeleteItem {}", &self.table_name),
@@ -167,6 +172,8 @@ impl EventPublisher for SnsEventPublisher {
         &self,
         product_created_event: ProductCreatedEvent,
     ) -> Result<(), ()> {
+        Span::current().set_attribute("peer.service", parse_name_from_arn(&std::env::var("PRODUCT_CREATED_TOPIC_ARN").unwrap()));
+        tracing::Span::current().set_attribute("peer.messaging.destination", std::env::var("PRODUCT_CREATED_TOPIC_ARN").unwrap());
         let _publish_res = &self
             .client
             .publish()
@@ -186,6 +193,8 @@ impl EventPublisher for SnsEventPublisher {
         &self,
         product_updated_event: ProductUpdatedEvent,
     ) -> Result<(), ()> {
+        Span::current().set_attribute("peer.service", parse_name_from_arn(&std::env::var("PRODUCT_UPDATED_TOPIC_ARN").unwrap()));
+        tracing::Span::current().set_attribute("peer.messaging.destination", std::env::var("PRODUCT_UPDATED_TOPIC_ARN").unwrap());
         let _publish_res = &self
             .client
             .publish()
@@ -205,6 +214,8 @@ impl EventPublisher for SnsEventPublisher {
         &self,
         product_deleted_event: ProductDeletedEvent,
     ) -> Result<(), ()> {
+        Span::current().set_attribute("peer.service", parse_name_from_arn(&std::env::var("PRODUCT_DELETED_TOPIC_ARN").unwrap()));
+        tracing::Span::current().set_attribute("peer.messaging.destination", std::env::var("PRODUCT_DELETED_TOPIC_ARN").unwrap());
         let _publish_res = &self
             .client
             .publish()

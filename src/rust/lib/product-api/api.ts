@@ -36,9 +36,15 @@ export class Api extends Construct {
   constructor(scope: Construct, id: string, props: ApiProps) {
     super(scope, id);
 
-    this.productCreatedTopic = new Topic(this, "RustProductCreatedTopic");
-    this.productUpdatedTopic = new Topic(this, "RustProductUpdatedTopic");
-    this.productDeletedTopic = new Topic(this, "RustProductDeletedTopic");
+    this.productCreatedTopic = new Topic(this, "RustProductCreatedTopic", {
+      topicName: `RustProductCreatedTopic-${props.sharedProps.environment}`
+    });
+    this.productUpdatedTopic = new Topic(this, "RustProductUpdatedTopic", {
+      topicName: `RustProductUpdatedTopic-${props.sharedProps.environment}`
+    });
+    this.productDeletedTopic = new Topic(this, "RustProductDeletedTopic", {
+      topicName: `RustProductDeletedTopic-${props.sharedProps.environment}`
+    });
 
     this.table = new Table(this, "TracedRustTable", {
       tableName: `RustProducts-${props.sharedProps.environment}`,

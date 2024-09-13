@@ -10,6 +10,8 @@ members = [
   "src/product-pricing/core",
   "src/product-pricing/lambdas/product_created_pricing_handler",
   "src/product-pricing/lambdas/product_updated_pricing_handler",
+  "src/product-event-publisher/core",
+  "src/product-event-publisher/lambdas/product_public_event_publisher",
   "src/observability"
 ]
 

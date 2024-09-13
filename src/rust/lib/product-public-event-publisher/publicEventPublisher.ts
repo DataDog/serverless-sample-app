@@ -54,15 +54,12 @@ export class ProductPublicEventPublisher extends Construct {
         functionName: "ProductPublicEventPublisher",
         handler: "index.handler",
         environment: {
-          DD_SERVICE_MAPPING: `lambda_sqs:${this.integrationEventPublisherQueue.queueName}`,
           PRODUCT_CREATED_TOPIC_ARN: props.productCreatedTopic.topicArn,
           PRODUCT_UPDATED_TOPIC_ARN: props.productUpdatedTopic.topicArn,
           PRODUCT_DELETED_TOPIC_ARN: props.productDeletedTopic.topicArn,
           EVENT_BUS_NAME: props.sharedEventBus.eventBusName,
         },
-        buildDef:
-          "./src/product-public-event-publisher/adapters/buildPublicEventPublisherFunction.js",
-        outDir: "./out/publicEventPublisherFunction",
+        manifestPath: "./src/product-event-publisher/lambdas/product_public_event_publisher/Cargo.toml"
       }
     ).function;
 

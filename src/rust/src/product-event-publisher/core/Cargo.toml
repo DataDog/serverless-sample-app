@@ -1,11 +1,11 @@
 [package]
-name = "pricing-core"
+name = "event_publisher_core"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 observability = {path = "../../observability"}
-aws-sdk-sns = "1.43"
+aws-sdk-eventbridge = "1.43"
 uuid = {version = "1.10.0", features = ["v4"]}
 async-trait = "0.1"
 
