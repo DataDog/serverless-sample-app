@@ -12,11 +12,15 @@ members = [
   "src/product-pricing/lambdas/product_updated_pricing_handler",
   "src/product-event-publisher/core",
   "src/product-event-publisher/lambdas/product_public_event_publisher",
+  "src/inventory-acl/core",
+  "src/inventory-acl/lambdas/product_created_handler",
+  "src/inventory-ordering/core",
+  "src/inventory-ordering/lambdas/product_added_handler",
   "src/observability"
 ]
 
 [workspace.dependencies]
-anyhow = "1.0.87"
+anyhow = "1.0"
 thiserror = "1.0"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 serde = "1.0"

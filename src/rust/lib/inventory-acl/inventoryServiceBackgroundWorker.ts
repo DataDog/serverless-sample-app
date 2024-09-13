@@ -32,8 +32,8 @@ export class InventoryServiceACL extends Construct {
   constructor(scope: Construct, id: string, props: InventoryServiceACLProps) {
     super(scope, id);
 
-    const newProductAdded = new Topic(this, "NodeInventoryProductAddedTopic", {
-      topicName: `NodeInventoryNewProductAddedTopic-${props.sharedProps.environment}`,
+    const newProductAdded = new Topic(this, "RustInventoryProductAddedTopic", {
+      topicName: `RustInventoryNewProductAddedTopic-${props.sharedProps.environment}`,
     });
 
     this.orderCreatedPublicEventQueue = new ResiliantQueue(
@@ -41,24 +41,22 @@ export class InventoryServiceACL extends Construct {
       "OrderCreatedEventQueue",
       {
         sharedProps: props.sharedProps,
-        queueName: "NodeInventoryOrderCreatedEventQueue",
+        queueName: "RustInventoryOrderCreatedEventQueue",
       }
     ).queue;
 
     this.inventoryServiceACLFunction = new InstrumentedLambdaFunction(
       this,
-      "NodeInventoryServiceACL",
+      "RustInventoryServiceACL",
       {
         sharedProps: props.sharedProps,
-        functionName: "NodeInventoryServiceACL",
+        functionName: "RustInventoryServiceACL",
         handler: "index.handler",
         environment: {
           PRODUCT_ADDED_TOPIC_ARN: newProductAdded.topicArn,
           DD_SERVICE_MAPPING: `lambda_sns:${newProductAdded.topicName},lambda_sqs:${this.orderCreatedPublicEventQueue.queueName}`,
         },
-        buildDef:
-          "./src/inventory-acl/adapters/buildProductCreatedPublicEventHandler.js",
-        outDir: "./out/productCreatedPublicEventHandler",
+        manifestPath: "./src/inventory-acl/lambdas/product_created_handler/Cargo.toml"
       }
     ).function;
     newProductAdded.grantPublish(this.inventoryServiceACLFunction);
@@ -74,24 +72,24 @@ export class InventoryServiceACL extends Construct {
     });
     rule.addEventPattern({
       detailType: ["product.productCreated.v1"],
-      source: [`${props.sharedProps.environment}.orders`],
+      source: [`${props.sharedProps.environment}.products`],
     });
     rule.addTarget(new SqsQueue(this.orderCreatedPublicEventQueue));
 
     const productAddedTopicArnParameter = new StringParameter(
       this,
-      "NodeInventoryProductAddedArnParameter",
+      "RustInventoryProductAddedArnParameter",
       {
-        parameterName: "/node/inventory/product-added-topic",
+        parameterName: "/rust/inventory/product-added-topic",
         stringValue: newProductAdded.topicArn,
       }
     );
 
     const productAddedTopicNameParameter = new StringParameter(
       this,
-      "NodeInventoryProductAddedNameParameter",
+      "RustInventoryProductAddedNameParameter",
       {
-        parameterName: "/node/inventory/product-added-topic-name",
+        parameterName: "/rust/inventory/product-added-topic-name",
         stringValue: newProductAdded.topicName,
       }
     );

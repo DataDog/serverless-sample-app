@@ -39,15 +39,15 @@ const productApiWorkerStack = new ProductApiWorkerStack(
 productApiWorkerStack.addDependency(apiStack);
 productApiWorkerStack.addDependency(productPricingStack);
 
-// const inventoryAcl = new InventoryAclStack(app, "RustInventoryAcl", {});
-// inventoryAcl.addDependency(sharedStack);
+const inventoryAcl = new InventoryAclStack(app, "RustInventoryAcl", {});
+inventoryAcl.addDependency(sharedStack);
 
-// const inventoryOrderingService = new InventoryOrderServiceStack(
-//   app,
-//   "RustInventoryOrderingService",
-//   {}
-// );
-// inventoryOrderingService.addDependency(inventoryAcl);
+const inventoryOrderingService = new InventoryOrderServiceStack(
+  app,
+  "RustInventoryOrderingService",
+  {}
+);
+inventoryOrderingService.addDependency(inventoryAcl);
 
 // const analyticsService = new AnalyticsBackendStack(app, "AnalyticsStack", {});
 // analyticsService.addDependency(sharedStack);

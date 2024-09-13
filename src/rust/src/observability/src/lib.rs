@@ -1,3 +1,4 @@
+use aws_lambda_events::cloudwatch_events::CloudWatchEvent;
 use aws_lambda_events::sns::{SnsMessage, SnsRecord};
 use opentelemetry::trace::{
     FutureExt, Span, SpanContext, SpanId, SpanKind, TraceContextExt, TraceFlags, TraceId, TraceState, Tracer
@@ -167,6 +168,28 @@ impl From<SnsRecord> for TracedMessage {
     }
 }
 
+impl From<CloudWatchEvent> for TracedMessage {
+    fn from(value: CloudWatchEvent) -> Self {
+        let mut traced_message: TracedMessage =
+            serde_json::from_value(value.detail.clone().unwrap()).unwrap();
+
+        let trace_id = TraceId::from_hex(traced_message.trace_id.as_str()).unwrap();
+        let span_id = SpanId::from_hex(traced_message.span_id.as_str()).unwrap();
+
+        let span_context = SpanContext::new(
+            trace_id,
+            span_id,
+            TraceFlags::SAMPLED,
+            false,
+            TraceState::NONE,
+        );
+
+        traced_message.ctx = Some(Context::new().with_remote_span_context(span_context.clone()));
+
+        traced_message
+    }
+}
+
 impl From<&SqsMessage> for TracedMessage {
     fn from(value: &SqsMessage) -> Self {
         let sent_timestamp = value.attributes.get_key_value("SentTimestamp");
@@ -182,7 +205,7 @@ impl From<&SqsMessage> for TracedMessage {
             None => SystemTime::now(),
         };
 
-        let traced_message = TracedMessage::check_body_for_sns(value, timestamp);
+        let traced_message = TracedMessage::check_body_for_upstream_message(value, timestamp);
 
         let traced_message = match traced_message {
             Some(mut message) => {
@@ -255,6 +278,50 @@ impl TracedMessage {
         
         span.set_attribute(KeyValue::new("peer.messaging.destination", topic_name.clone()));
         span.set_attribute(KeyValue::new("event_subscription_arn",record.event_subscription_arn.clone()));
+
+        let inflight_ctx = Context::new().with_remote_span_context(span.span_context().clone());
+
+        tracing::Span::current().set_parent(inflight_ctx.clone());
+        self.inflight_ctx = Some(inflight_ctx);
+
+    }
+
+    fn generate_inflight_span_for_event_bridge(&mut self, record: &CloudWatchEvent, sqs_start_time: Option<SystemTime>) {
+        let current_context = match &self.ctx {
+            None => &tracing::Span::current().context(),
+            Some(ctx) => ctx,
+        };
+
+        let bus_name = parse_name_from_arn(&record.source.clone().unwrap());
+
+        let tracer = global::tracer(bus_name.clone());
+
+        let start_time =
+            UNIX_EPOCH + Duration::from_millis(self.publish_time.parse::<u64>().unwrap());
+
+            let end_time = match sqs_start_time {
+                Some(end_time) => end_time,
+                None => SystemTime::now(),
+            };
+
+        let mut span = tracer
+            .span_builder("aws.sns")
+            .with_kind(SpanKind::Internal)
+            .with_start_time(start_time)
+            .with_end_time(SystemTime::now())
+            .start_with_context(&tracer, current_context);
+
+        span.set_attribute(KeyValue::new("operation_name", "aws.sns"));
+        span.set_attribute(KeyValue::new("resource_names", bus_name.clone()));
+        span.set_attribute(KeyValue::new("service", bus_name.clone()));
+        span.set_attribute(KeyValue::new("service.name", bus_name.clone()));
+        span.set_attribute(KeyValue::new("span.type", "web"));
+        span.set_attribute(KeyValue::new("resource.name", bus_name.clone()));
+        span.set_attribute(KeyValue::new("peer.service", env::var("DD_SERVICE").unwrap_or("".to_string())));
+        span.set_attribute(KeyValue::new("_inferred_span.tag_source", "self"));
+        span.set_attribute(KeyValue::new("_inferred_span.synchronicity", "async"));
+        
+        span.set_attribute(KeyValue::new("peer.messaging.destination", bus_name.clone()));
 
         let inflight_ctx = Context::new().with_remote_span_context(span.span_context().clone());
 
@@ -363,7 +430,7 @@ impl TracedMessage {
         timestamp
     }
 
-    fn check_body_for_sns(record: &SqsMessage, sqs_start_time: SystemTime) -> Option<Self> {
+    fn check_body_for_upstream_message(record: &SqsMessage, sqs_start_time: SystemTime) -> Option<Self> {
         let body_json = serde_json::from_str::<serde_json::Value>(&record.body.clone().unwrap());
 
         if body_json.is_err() {
@@ -394,6 +461,19 @@ impl TracedMessage {
             return Some(traced_message);
         }
 
+        if json_object.contains_key("detail") {
+            // Body is an CloudWatch Event, generate the inferred span
+
+            info!("JSON object contains 'Detail'");
+            let sns_message:CloudWatchEvent =  serde_json::from_str(&record.body.clone().unwrap()).unwrap();
+
+            let mut traced_message: TracedMessage = sns_message.clone().into();
+
+            traced_message.generate_inflight_span_for_event_bridge(&sns_message, Some(sqs_start_time));
+
+            return Some(traced_message);
+        }
+
         None
     }
 }
@@ -405,7 +485,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn can_parse_body_from_sns_message() {
+    fn can_parse_sns_from_sqs_body() {
         let body = r#"{
             "Type" : "Notification",
             "MessageId" : "040c2217-c596-5eb8-b743-7d49cdd8bb45",
@@ -431,8 +511,72 @@ mod tests {
             aws_region: None,
         };
 
-        let message = TracedMessage::check_body_for_sns(&sqs_message, SystemTime::now());
+        let message = TracedMessage::check_body_for_upstream_message(&sqs_message, SystemTime::now());
 
         assert!(message.is_some());
+    }
+
+    #[test]
+    fn can_parse_body_for_event_bridge_message() {
+        let body = r#"{
+            "version": "0",
+            "id": "f460262a-48d3-3d43-ca66-2998bcc6d039",
+            "detail-type": "product.productCreated.v1",
+            "source": "dev.products",
+            "account": "",
+            "time": "2024-09-13T13:54:57Z",
+            "region": "eu-west-1",
+            "resources": [],
+            "detail": {
+                "trace_id": "540414187ffb9f96aa6990fc7a28366e",
+                "span_id": "9385fb4d763c5093",
+                "message": "{\"product_id\":\"b15b4b7e-12d7-4e28-be9e-7e435af367f9\"}",
+                "publish_time": "1726235697648"
+            }
+        }"#;
+
+        let sqs_message = SqsMessage{
+            body: Some(body.to_string()),
+            message_id: None,
+            receipt_handle: None,
+            md5_of_body: None,
+            md5_of_message_attributes: None,
+            attributes: HashMap::new(),
+            message_attributes: HashMap::new(),
+            event_source_arn: None,
+            event_source: None,
+            aws_region: None,
+        };
+
+        let message = TracedMessage::check_body_for_upstream_message(&sqs_message, SystemTime::now());
+
+        assert!(message.is_some());
+    }
+
+    #[test]
+    fn can_parse_from_sqs() {
+        let body = r#"{
+            "trace_id": "540414187ffb9f96aa6990fc7a28366e",
+            "span_id": "9385fb4d763c5093",
+            "message": "{\"product_id\":\"b15b4b7e-12d7-4e28-be9e-7e435af367f9\"}",
+            "publish_time": "1726235697648"
+        }"#;
+
+        let sqs_message = SqsMessage{
+            body: Some(body.to_string()),
+            message_id: None,
+            receipt_handle: None,
+            md5_of_body: None,
+            md5_of_message_attributes: None,
+            attributes: HashMap::new(),
+            message_attributes: HashMap::new(),
+            event_source_arn: None,
+            event_source: None,
+            aws_region: None,
+        };
+
+        let message = TracedMessage::check_body_for_upstream_message(&sqs_message, SystemTime::now());
+
+        assert!(message.is_none());
     }
 }

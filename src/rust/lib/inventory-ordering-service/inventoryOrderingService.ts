@@ -42,27 +42,27 @@ export class InventoryOrderingService extends Construct {
 
     const newProductAddedTopicParam = StringParameter.fromStringParameterName(
       this,
-      "NodeNewProductAddedTopicParam",
-      "/node/inventory/product-added-topic"
+      "RustNewProductAddedTopicParam",
+      "/rust/inventory/product-added-topic"
     );
 
     const topic = Topic.fromTopicArn(
       this,
-      "NodeNewProductAddedTopic",
+      "RustNewProductAddedTopic",
       newProductAddedTopicParam.stringValue
     );
 
     const workflowLogGroup = new LogGroup(
       this,
-      "NodeInventoryOrderingServiceLogGroup",
+      "RustInventoryOrderingServiceLogGroup",
       {
-        logGroupName: `/aws/vendedlogs/states/NodeInventoryOrderingServiceLogGroup-${props.sharedProps.environment}`,
+        logGroupName: `/aws/vendedlogs/states/RustInventoryOrderingServiceLogGroup-${props.sharedProps.environment}`,
         removalPolicy: RemovalPolicy.DESTROY,
       }
     );
 
-    const workflow = new StateMachine(this, "NodeInventoryOrderingService", {
-      stateMachineName: `NodeInventoryOrderingService-${props.sharedProps.environment}`,
+    const workflow = new StateMachine(this, "RustInventoryOrderingService", {
+      stateMachineName: `RustInventoryOrderingService-${props.sharedProps.environment}`,
       definitionBody: DefinitionBody.fromFile(
         "./lib/inventory-ordering-service/workflows/workflow.sample.asl.json"
       ),
@@ -77,18 +77,15 @@ export class InventoryOrderingService extends Construct {
 
     this.inventoryOrderingWorkflowTrigger = new InstrumentedLambdaFunction(
       this,
-      "NodeInventoryOrderingWorkflowTrigger",
+      "RustInventoryOrderingWorkflowTrigger",
       {
         sharedProps: props.sharedProps,
-        functionName: "NodeInventoryOrderingWorkflow",
+        functionName: "RustInventoryOrderingWorkflow",
         handler: "index.handler",
         environment: {
-          DD_SERVICE_MAPPING: `lambda_sns:${topic.topicName}`,
           ORDERING_SERVICE_WORKFLOW_ARN: workflow.stateMachineArn,
         },
-        buildDef:
-          "./src/inventory-ordering-service/adapters/buildInventoryOrderingWorkflowTrigger.js",
-        outDir: "./out/inventoryOrderingWorkflowTrigger",
+        manifestPath: "./src/inventory-ordering/lambdas/product_added_handler/Cargo.toml"
       }
     ).function;
     this.inventoryOrderingWorkflowTrigger.addEventSource(

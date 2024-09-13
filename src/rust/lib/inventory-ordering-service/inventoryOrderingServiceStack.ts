@@ -23,12 +23,11 @@ export class InventoryOrderServiceStack extends cdk.Stack {
       process.env.DD_SECRET_ARN!
     );
 
-    const service = "NodeInventoryOrderingService";
+    const service = "RustInventoryOrderingService";
     const env = process.env.ENV ?? "dev";
     const version = process.env["COMMIT_HASH"] ?? "latest";
 
     const datadogConfiguration = new Datadog(this, "Datadog", {
-      nodeLayerVersion: 115,
       extensionLayerVersion: 62,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
@@ -40,7 +39,7 @@ export class InventoryOrderServiceStack extends cdk.Stack {
       captureLambdaPayload: true,
     });
 
-    const sharedEventBus = EventBus.fromEventBusName(this, "SharedEventBus", "NodeTracingEventBus");
+    const sharedEventBus = EventBus.fromEventBusName(this, "SharedEventBus", "RustTracingEventBus");
 
     const sharedProps: SharedProps = {
       environment: env,
@@ -51,7 +50,7 @@ export class InventoryOrderServiceStack extends cdk.Stack {
 
     const aclStack = new InventoryOrderingService(
       this,
-      "NodeInventoryOrderingService",
+      "RustInventoryOrderingService",
       {
         sharedProps,
         ddApiKeySecret: ddApiKey,

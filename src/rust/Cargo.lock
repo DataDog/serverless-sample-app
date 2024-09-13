@@ -212,6 +212,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "aws-sdk-sfn"
+version = "1.45.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4bbfd762dead68126d08a2e5cbee1398693dc81ead7b9ffeca0213a023964110"
+dependencies = [
+ "aws-credential-types",
+ "aws-runtime",
+ "aws-smithy-async",
+ "aws-smithy-http",
+ "aws-smithy-json",
+ "aws-smithy-runtime",
+ "aws-smithy-runtime-api",
+ "aws-smithy-types",
+ "aws-types",
+ "bytes",
+ "fastrand",
+ "http 0.2.12",
+ "once_cell",
+ "regex-lite",
+ "tracing",
+]
+
+[[package]]
 name = "aws-sdk-sns"
 version = "1.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1124,6 +1147,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "handle_product_created_event"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-sns",
+ "aws_lambda_events",
+ "inventory-acl-core",
+ "lambda_runtime",
+ "observability",
+ "opentelemetry",
+ "opentelemetry-datadog",
+ "opentelemetry-http",
+ "opentelemetry-semantic-conventions 0.25.0",
+ "opentelemetry-stdout",
+ "opentelemetry_sdk",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1372,6 +1419,54 @@ dependencies = [
  "equivalent",
  "hashbrown 0.14.5",
  "serde",
+]
+
+[[package]]
+name = "inventory-acl-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "aws-sdk-sns",
+ "observability",
+ "opentelemetry",
+ "opentelemetry-datadog",
+ "opentelemetry-http",
+ "opentelemetry-semantic-conventions 0.25.0",
+ "opentelemetry-stdout",
+ "opentelemetry_sdk",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "inventory-ordering-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "aws-sdk-sfn",
+ "observability",
+ "opentelemetry",
+ "opentelemetry-datadog",
+ "opentelemetry-http",
+ "opentelemetry-semantic-conventions 0.25.0",
+ "opentelemetry-stdout",
+ "opentelemetry_sdk",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
@@ -1856,6 +1951,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "product-added-handler"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-sfn",
+ "aws_lambda_events",
+ "inventory-ordering-core",
+ "lambda_runtime",
+ "observability",
+ "opentelemetry",
+ "opentelemetry-datadog",
+ "opentelemetry-http",
+ "opentelemetry-semantic-conventions 0.25.0",
+ "opentelemetry-stdout",
+ "opentelemetry_sdk",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
 ]
 
 [[package]]
