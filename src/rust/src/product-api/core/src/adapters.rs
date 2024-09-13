@@ -24,8 +24,6 @@ impl DynamoDbRepository {
             "resource.name",
             format!("DynamoDB.PutItem {}", &self.table_name),
         );
-        tracing::Span::current().set_attribute("peer.db.system", "dynamodb");
-        tracing::Span::current().set_attribute("span.type", "dynamodb");
         let res = self
             .client
             .put_item()
@@ -67,9 +65,8 @@ impl Repository for DynamoDbRepository {
         self.put_to_dynamo(body).await
     }
 
-    #[instrument(name = "get-product", skip(self, id), fields(peer.aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = id))]
+    #[instrument(name = "get-product", skip(self, id), fields(peer.aws.dynamodb.table_name = self.table_name, peer.db.name = self.table_name, tablename = self.table_name, product.id = id))]
     async fn get_product(&self, id: &str) -> Result<crate::core::Product, RepositoryError> {
-        Span::current().set_attribute("span.type", "dynamodb");
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
@@ -124,16 +121,14 @@ impl Repository for DynamoDbRepository {
         }
     }
 
-    #[instrument(name = "update-product", skip(self, body), fields(peer.aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = body.product_id))]
+    #[instrument(name = "update-product", skip(self, body), fields(peer.aws.dynamodb.table_name = self.table_name, peer.db.name = self.table_name, tablename = self.table_name, product.id = body.product_id))]
     async fn update_product(&self, body: &Product) -> Result<(), RepositoryError> {
-        tracing::Span::current().set_attribute("span.type", "dynamodb");
         Span::current().set_attribute("peer.service", self.table_name.clone());
         self.put_to_dynamo(body).await
     }
 
-    #[instrument(name = "delete-product", skip(self, id), fields(peer.aws.dynamodb.table_name = self.table_name, tablename = self.table_name, product.id = id))]
+    #[instrument(name = "delete-product", skip(self, id), fields(peer.aws.dynamodb.table_name = self.table_name, peer.db.name = self.table_name, tablename = self.table_name, product.id = id))]
     async fn delete_product(&self, id: &str) -> Result<(), RepositoryError> {
-        Span::current().set_attribute("span.type", "dynamodb");
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",

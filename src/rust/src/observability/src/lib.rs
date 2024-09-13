@@ -224,7 +224,9 @@ impl TracedMessage {
             Some(ctx) => ctx,
         };
 
-        let tracer = global::tracer("sns");
+        let topic_name = parse_name_from_arn(&record.sns.topic_arn);
+
+        let tracer = global::tracer(topic_name.clone());
 
         let start_time =
             UNIX_EPOCH + Duration::from_millis(self.publish_time.parse::<u64>().unwrap());
@@ -235,8 +237,6 @@ impl TracedMessage {
             .with_start_time(start_time)
             .with_end_time(SystemTime::now())
             .start_with_context(&tracer, current_context);
-
-        let topic_name = parse_name_from_arn(&record.sns.topic_arn);
 
         span.set_attribute(KeyValue::new("operation_name", "aws.sns"));
         span.set_attribute(KeyValue::new("resource_names", topic_name.clone()));
@@ -254,7 +254,6 @@ impl TracedMessage {
         span.set_attribute(KeyValue::new("topic_arn", record.sns.topic_arn.clone()));
         
         span.set_attribute(KeyValue::new("peer.messaging.destination", topic_name.clone()));
-        span.set_attribute(KeyValue::new("peer.messaging.system", "sns"));
         span.set_attribute(KeyValue::new("event_subscription_arn",record.event_subscription_arn.clone()));
 
         let inflight_ctx = Context::new().with_remote_span_context(span.span_context().clone());
@@ -270,7 +269,9 @@ impl TracedMessage {
             Some(ctx) => ctx,
         };
 
-        let tracer = global::tracer("sns");
+        let topic_name = parse_name_from_arn(&record.topic_arn);
+
+        let tracer = global::tracer(topic_name.clone());
 
         let start_time =
             UNIX_EPOCH + Duration::from_millis(self.publish_time.parse::<u64>().unwrap());
@@ -287,8 +288,6 @@ impl TracedMessage {
             .with_end_time(end_time)
             .start_with_context(&tracer, current_context);
 
-        let topic_name = parse_name_from_arn(&record.topic_arn);
-
         span.set_attribute(KeyValue::new("operation_name", "aws.sns"));
         span.set_attribute(KeyValue::new("resource_names", topic_name.clone()));
         span.set_attribute(KeyValue::new("service", topic_name.clone()));
@@ -304,7 +303,6 @@ impl TracedMessage {
         span.set_attribute(KeyValue::new("topicname", topic_name.clone()));
         span.set_attribute(KeyValue::new("topic_arn", record.topic_arn.clone()));
         span.set_attribute(KeyValue::new("peer.messaging.destination", topic_name.clone()));
-        span.set_attribute(KeyValue::new("peer.messaging.system", "sns"));
 
         let inflight_ctx = Context::new().with_remote_span_context(span.span_context().clone());
 
@@ -321,8 +319,12 @@ impl TracedMessage {
                 Some(ctx) => ctx,
             },
         };
+        
+        let event_source_arn = record.event_source_arn.clone().unwrap();
 
-        let tracer = global::tracer("sqs");
+        let queue_name = parse_name_from_arn(&event_source_arn);
+
+        let tracer = global::tracer(queue_name.clone());
 
         let mut span = tracer
             .span_builder("aws.sqs")
@@ -330,10 +332,6 @@ impl TracedMessage {
             .with_start_time(timestamp)
             .with_end_time(SystemTime::now())
             .start_with_context(&tracer, parent_ctx);
-        
-        let event_source_arn = record.event_source_arn.clone().unwrap();
-
-        let queue_name = parse_name_from_arn(&event_source_arn);
 
         span.set_attribute(KeyValue::new("operation_name", "aws.sqs"));
         span.set_attribute(KeyValue::new("resource_names", queue_name.clone()));
