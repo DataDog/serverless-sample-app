@@ -4,21 +4,30 @@ updates:
   - package-ecosystem: "maven"
     directory: "/src/java"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
   - package-ecosystem: "npm"
-    directory: "/src/nodejs"
+    directories:
+      - "/src/nodejs"
+      - "/src/rust"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
   - package-ecosystem: "nuget"
     directory: "/src/dotnet"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
   - package-ecosystem: "terraform"
     directories:
       - "/src/java/infra"
       - "/src/nodejs/infra"
+      - "/src/dotnet/infra"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+
+  - package-ecosystem: "cargo"
+    directories:
+      - "/src/rust"
+    schedule:
+      interval: "monthly"
