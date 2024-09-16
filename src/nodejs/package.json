@@ -24,7 +24,7 @@
     "@aws-sdk/client-sfn": "^3.650.0",
     "@aws-sdk/client-sns": "^3.650.0",
     "@aws-sdk/client-sqs": "^3.650.0",
-    "@aws-sdk/client-ssm": "^3.650.0",
+    "@aws-sdk/client-ssm": "^3.651.1",
     "@types/aws-lambda": "8.10.145",
     "@types/jest": "^29.5.12",
     "@types/node": "22.5.4",
