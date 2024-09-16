@@ -50,7 +50,7 @@
     "uuid": "^10.0.0"
   },
   "dependencies": {
-    "@aws-lambda-powertools/logger": "^2.7.0",
+    "@aws-lambda-powertools/logger": "^2.8.0",
     "zod": "^3.23.8"
   }
 }
