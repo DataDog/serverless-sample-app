@@ -1,0 +1,19 @@
+service: serverless-shared
+frameworkVersion: "3"
+
+provider:
+  name: aws
+
+resources:
+  Resources:
+    RustSharedEventBus:
+      Type: AWS::Events::EventBus
+      Properties: 
+          Name: "RustTracingEventBus"
+
+    SharedEventBusNameParameter:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /rust/shared/event-bus-name
+        Type: String
+        Value: !Ref RustSharedEventBus

@@ -1,0 +1,127 @@
+#
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2024 Datadog, Inc.
+#
+
+service: serverless-inventory-acl
+frameworkVersion: "3"
+
+plugins:
+  - serverless-plugin-datadog
+
+custom:
+  serviceName: RustInventoryAcl
+  datadog:
+    apiKeySecretArn: ${param:DD_SECRET_ARN}
+    site: ${param:DD_SITE}
+    env: ${sls:stage}
+    service: ${self:custom.serviceName}
+    version: latest
+    # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
+    captureLambdaPayload: true
+    propagateUpstreamTrace: true
+
+provider:
+  name: aws
+  runtime: provided.al2023
+  environment:
+    DD_EXTENSION_VERSION: "next"
+    ENV: ${sls:stage}
+    RUST_LOG: "info"
+    POWERTOOLS_SERVICE_NAME: ${self:custom.serviceName}
+    POWERTOOLS_LOG_LEVEL: 'INFO'
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource: ${param:DD_SECRET_ARN}
+        - Effect: Allow
+          Action:
+            - sns:Publish
+          Resource:
+            - !Ref NewProductAddedTopic
+
+functions:
+  publishPublicEvents:
+    handler: bootstrap
+    package:
+      artifact: ./out/productCreatedPublicEventHandler/productCreatedPublicEventHandler.zip
+      individually: true
+    environment:
+      PRODUCT_ADDED_TOPIC_ARN: !Ref NewProductAddedTopic
+      DD_SERVICE_MAPPING: !Sub "lambda_sqs:${RustInventoryProductCreatedEventQueue.QueueName}"
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [RustInventoryProductCreatedEventQueue, Arn]
+
+resources:
+  Resources:
+    NewProductAddedTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: !Sub "RustInventoryNewProductAddedTopic-${sls:stage}"
+    
+    NewProductAddedTopicArn:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /rust/inventory/new-product-added-topic
+        Type: String
+        Value: !Ref NewProductAddedTopic
+    
+    NewProductAddedTopicName:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /rust/inventory/new-product-added-topic-name
+        Type: String
+        Value: !GetAtt NewProductAddedTopic.TopicName
+
+    RustInventoryProductCreatedEventDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: !Sub "RustInventoryProductCreatedEventDLQ-${sls:stage}"
+
+    RustInventoryProductCreatedEventQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: !Sub "RustInventoryProductCreatedEventQueue-${sls:stage}"
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - "RustInventoryProductCreatedEventDLQ"
+              - "Arn"
+          maxReceiveCount: 3
+
+    ProductCreatedEventRule:
+      Type: AWS::Events::Rule
+      Properties:
+        EventBusName: "${ssm:/rust/shared/event-bus-name}"
+        Name: inventory-product-created
+        State: ENABLED
+        EventPattern:
+          source:
+            - !Sub "${sls:stage}.orders"
+          detail-type:
+            - "product.productCreated.v1"
+        Targets:
+          - Id: ProductCreatedEventQueue
+            Arn: !GetAtt RustInventoryProductCreatedEventQueue.Arn
+
+    SnsToQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties: 
+        Queues:
+          - !Ref RustInventoryProductCreatedEventQueue
+        PolicyDocument: 
+          Version: '2012-10-17'
+          Statement:
+            - Sid: allow-eb-send-message-messages
+              Effect: Allow
+              Principal:
+                Service: "events.amazonaws.com"
+              Resource: !GetAtt RustInventoryProductCreatedEventQueue.Arn
+              Action: SQS:SendMessage

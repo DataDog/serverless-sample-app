@@ -1,0 +1,100 @@
+#
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2024 Datadog, Inc.
+#
+
+service: serverless-analytics-service
+frameworkVersion: "3"
+
+plugins:
+  - serverless-plugin-datadog
+
+custom:
+  serviceName: RustAnalyticsBackend
+  datadog:
+    apiKeySecretArn: ${param:DD_SECRET_ARN}
+    site: ${param:DD_SITE}
+    env: ${sls:stage}
+    service: ${self:custom.serviceName}
+    version: latest
+    # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
+    captureLambdaPayload: true
+    propagateUpstreamTrace: true
+
+provider:
+  name: aws
+  runtime: provided.al2023
+  environment:
+    DD_EXTENSION_VERSION: "next"
+    ENV: ${sls:stage}
+    RUST_LOG: "info"
+    POWERTOOLS_SERVICE_NAME: ${self:custom.serviceName}
+    POWERTOOLS_LOG_LEVEL: 'INFO'
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource: ${param:DD_SECRET_ARN}
+
+functions:
+  analyticsHandler:
+    handler: bootstrap
+    package:
+      artifact: ./out/analyticsEventHandler/analyticsEventHandler.zip
+      individually: true
+    environment:
+      DD_TRACE_PROPAGATION_STYLE: "none"
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [RustAnalyticsEventQueue, Arn]
+
+resources:
+  Resources:
+    RustAnalyticsEventDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: !Sub "RustAnalyticsEventDLQ-${sls:stage}"
+
+    RustAnalyticsEventQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: !Sub "RustAnalyticsEventQueue-${sls:stage}"
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - "RustAnalyticsEventDLQ"
+              - "Arn"
+          maxReceiveCount: 3
+
+    AnalyticsCatchAllRule:
+      Type: AWS::Events::Rule
+      Properties:
+        EventBusName: ${ssm:/rust/shared/event-bus-name}
+        Name: analytics-catch-all
+        State: ENABLED
+        EventPattern:
+          source:
+            - prefix: !Sub "${sls:stage}."
+        Targets:
+          - Id: RustAnalyticsEventQueue
+            Arn: !GetAtt RustAnalyticsEventQueue.Arn
+
+    EBToQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref RustAnalyticsEventQueue
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Sid: allow-eb-send-message-messages
+              Effect: Allow
+              Principal:
+                Service: "events.amazonaws.com"
+              Resource: !GetAtt RustAnalyticsEventQueue.Arn
+              Action: SQS:SendMessage

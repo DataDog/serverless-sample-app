@@ -215,4 +215,59 @@ To cleanup all Terraform resources run:
 cd infra
 terraform destroy --var-file dev.tfvars
 
+```
+
 ## Serverless Framework
+
+Datadog provides a [plugin](https://www.serverless.com/plugins/serverless-plugin-datadog) to simply configuration of your serverless applications when using the [serverless framework](https://www.serverless.com/). Inside your `serverless.yml` add a `custom.datadog` block. The available configuration options are available in the [documentation](https://www.serverless.com/plugins/serverless-plugin-datadog#configuration-parameters).
+
+> **IMPORTANT** Ensure you add permissions to `secretsmanager:GetSecretValue` for the Secrets Manager secret holding your Datadog API key
+
+```yaml
+custom:
+  datadog:
+    apiKeySecretArn: ${param:DD_SECRET_ARN}
+    site: ${param:DD_SITE}
+    env: ${sls:stage}
+    service: ${self:custom.serviceName}
+    version: latest
+    # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
+    captureLambdaPayload: true
+    propagateUpstreamTrace: true
+```
+
+### Deploy
+
+Ensure you have set the below environment variables before starting deployment:
+
+- `DD_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
+- `DD_SITE`: The Datadog site to use
+- `AWS_REGION`: The AWS region you want to deploy to
+
+Once set, use the below commands to deploy each of the individual backend services on by one.
+
+```sh
+serverless deploy --stage dev --region=${AWS_REGION} --config serverless-shared.yml &&
+serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api.yml &&
+serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-pricing-service.yml &&
+serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api-worker.yml &&
+serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-product-event-publisher.yml &&
+serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-acl.yml &&
+serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-ordering-service.yml &&
+serverless deploy --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-analytics-service.yml
+```
+
+### Cleanup
+
+The same commands can be used to cleanup all resources, but replacing `deploy` with `remove`.
+
+```sh
+serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-analytics-service.yml &&
+serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-ordering-service.yml &&
+serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-acl.yml &&
+serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-product-event-publisher.yml &&
+serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api-worker.yml &&
+serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-pricing-service.yml &&
+serverless remove --param="DD_SECRET_ARN=${DD_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api.yml &&
+serverless remove --stage dev --region=${AWS_REGION} --config serverless-shared.yml
+```
