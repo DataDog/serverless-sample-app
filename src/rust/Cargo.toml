@@ -16,6 +16,7 @@ members = [
   "src/inventory-acl/lambdas/product_created_handler",
   "src/inventory-ordering/core",
   "src/inventory-ordering/lambdas/product_added_handler",
+  "src/analytics/lambdas/analytics",
   "src/observability"
 ]
 

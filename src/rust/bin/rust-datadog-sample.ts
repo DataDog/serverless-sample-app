@@ -49,5 +49,5 @@ const inventoryOrderingService = new InventoryOrderServiceStack(
 );
 inventoryOrderingService.addDependency(inventoryAcl);
 
-// const analyticsService = new AnalyticsBackendStack(app, "AnalyticsStack", {});
-// analyticsService.addDependency(sharedStack);
+const analyticsService = new AnalyticsBackendStack(app, "AnalyticsStack", {});
+analyticsService.addDependency(sharedStack);

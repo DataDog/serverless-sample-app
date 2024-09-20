@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use aws_lambda_events::sqs::SqsMessage;
-use tracing::{info, instrument, Subscriber};
+use tracing::{info, Subscriber};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing_subscriber::{layer::SubscriberExt, Registry};
 
@@ -50,9 +50,13 @@ pub struct TracedMessage {
     pub message: String,
     publish_time: String,
     #[serde(skip_serializing, skip_deserializing)]
+    span_ctx: Option<SpanContext>,
+    #[serde(skip_serializing, skip_deserializing)]
     ctx: Option<Context>,
     #[serde(skip_serializing, skip_deserializing)]
     inflight_ctx: Option<Context>,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub message_type: Option<String>
 }
 
 impl TracedMessage {
@@ -82,7 +86,9 @@ impl TracedMessage {
                 message: serde_json::to_string(&message).unwrap(),
                 publish_time: since_the_epoch.as_millis().to_string(),
                 ctx: None,
-                inflight_ctx: None
+                inflight_ctx: None,
+                span_ctx: None,
+                message_type: None
             }
         } else {
             // No valid span context found
@@ -92,7 +98,9 @@ impl TracedMessage {
                 message: serde_json::to_string(&message).unwrap(),
                 publish_time: since_the_epoch.as_millis().to_string(),
                 ctx: None,
-                inflight_ctx: None
+                inflight_ctx: None,
+                span_ctx: None,
+                message_type: None
             }
         }
     }
@@ -103,20 +111,9 @@ impl From<&SnsRecord> for TracedMessage {
         let mut traced_message: TracedMessage =
             serde_json::from_str(value.sns.message.as_str()).unwrap();
 
-        let trace_id = TraceId::from_hex(traced_message.trace_id.as_str()).unwrap();
-        let span_id = SpanId::from_hex(traced_message.span_id.as_str()).unwrap();
+        traced_message.generate_span_context();
 
-        let span_context = SpanContext::new(
-            trace_id,
-            span_id,
-            TraceFlags::SAMPLED,
-            false,
-            TraceState::NONE,
-        );
-
-        traced_message.ctx = Some(Context::new().with_remote_span_context(span_context.clone()));
-
-        traced_message.generate_inflight_span_for(value);
+        traced_message.generate_inflight_span_for_sns(value);
 
         traced_message
     }
@@ -127,18 +124,7 @@ impl From<SnsMessage> for TracedMessage {
         let mut traced_message: TracedMessage =
             serde_json::from_str(value.message.as_str()).unwrap();
 
-        let trace_id = TraceId::from_hex(traced_message.trace_id.as_str()).unwrap();
-        let span_id = SpanId::from_hex(traced_message.span_id.as_str()).unwrap();
-
-        let span_context = SpanContext::new(
-            trace_id,
-            span_id,
-            TraceFlags::SAMPLED,
-            false,
-            TraceState::NONE,
-        );
-
-        traced_message.ctx = Some(Context::new().with_remote_span_context(span_context.clone()));
+        traced_message.generate_span_context();
 
         traced_message
     }
@@ -149,20 +135,9 @@ impl From<SnsRecord> for TracedMessage {
         let mut traced_message: TracedMessage =
             serde_json::from_str(value.sns.message.as_str()).unwrap();
 
-        let trace_id = TraceId::from_hex(traced_message.trace_id.as_str()).unwrap();
-        let span_id = SpanId::from_hex(traced_message.span_id.as_str()).unwrap();
+        traced_message.generate_span_context();
 
-        let span_context = SpanContext::new(
-            trace_id,
-            span_id,
-            TraceFlags::SAMPLED,
-            false,
-            TraceState::NONE,
-        );
-
-        traced_message.ctx = Some(Context::new().with_remote_span_context(span_context.clone()));
-
-        traced_message.generate_inflight_span_for(&value);
+        traced_message.generate_inflight_span_for_sns(&value);
 
         traced_message
     }
@@ -173,18 +148,9 @@ impl From<CloudWatchEvent> for TracedMessage {
         let mut traced_message: TracedMessage =
             serde_json::from_value(value.detail.clone().unwrap()).unwrap();
 
-        let trace_id = TraceId::from_hex(traced_message.trace_id.as_str()).unwrap();
-        let span_id = SpanId::from_hex(traced_message.span_id.as_str()).unwrap();
+        traced_message.generate_span_context();
 
-        let span_context = SpanContext::new(
-            trace_id,
-            span_id,
-            TraceFlags::SAMPLED,
-            false,
-            TraceState::NONE,
-        );
-
-        traced_message.ctx = Some(Context::new().with_remote_span_context(span_context.clone()));
+        traced_message.generate_inflight_span_for_event_bridge(&value, None);
 
         traced_message
     }
@@ -217,18 +183,7 @@ impl From<&SqsMessage> for TracedMessage {
                 let mut traced_message: TracedMessage =
                 serde_json::from_str(value.clone().body.unwrap().as_str()).unwrap();
 
-                let trace_id = TraceId::from_hex(traced_message.trace_id.as_str()).unwrap();
-                let span_id = SpanId::from_hex(traced_message.span_id.as_str()).unwrap();
-
-                let span_context = SpanContext::new(
-                    trace_id,
-                    span_id,
-                    TraceFlags::SAMPLED,
-                    false,
-                    TraceState::NONE,
-                );
-
-                traced_message.ctx = Some(Context::new().with_remote_span_context(span_context.clone()));
+                traced_message.generate_span_context();
 
                 traced_message.generate_inflight_span_for_sqs(value, timestamp);
 
@@ -241,7 +196,23 @@ impl From<&SqsMessage> for TracedMessage {
 }
 
 impl TracedMessage {
-    fn generate_inflight_span_for(&mut self, record: &SnsRecord) {
+    fn generate_span_context(&mut self) {
+        let trace_id = TraceId::from_hex(&self.trace_id.as_str()).unwrap();
+        let span_id = SpanId::from_hex(&self.span_id.as_str()).unwrap();
+
+        let span_context = SpanContext::new(
+            trace_id,
+            span_id,
+            TraceFlags::SAMPLED,
+            false,
+            TraceState::NONE,
+        );
+
+        self.span_ctx = Some(span_context.clone());
+        self.ctx = Some(Context::new().with_remote_span_context(span_context.clone()));
+    }
+
+    fn generate_inflight_span_for_sns(&mut self, record: &SnsRecord) {
         let current_context = match &self.ctx {
             None => &tracing::Span::current().context(),
             Some(ctx) => ctx,
@@ -281,8 +252,7 @@ impl TracedMessage {
 
         let inflight_ctx = Context::new().with_remote_span_context(span.span_context().clone());
 
-        tracing::Span::current().set_parent(inflight_ctx.clone());
-        self.inflight_ctx = Some(inflight_ctx);
+        self.update_current_context(inflight_ctx);
 
     }
 
@@ -299,16 +269,16 @@ impl TracedMessage {
         let start_time =
             UNIX_EPOCH + Duration::from_millis(self.publish_time.parse::<u64>().unwrap());
 
-            let end_time = match sqs_start_time {
-                Some(end_time) => end_time,
-                None => SystemTime::now(),
-            };
+        let end_time = match sqs_start_time {
+            Some(end_time) => end_time,
+            None => SystemTime::now(),
+        };
 
         let mut span = tracer
             .span_builder("aws.sns")
             .with_kind(SpanKind::Internal)
             .with_start_time(start_time)
-            .with_end_time(SystemTime::now())
+            .with_end_time(end_time)
             .start_with_context(&tracer, current_context);
 
         span.set_attribute(KeyValue::new("operation_name", "aws.sns"));
@@ -325,8 +295,7 @@ impl TracedMessage {
 
         let inflight_ctx = Context::new().with_remote_span_context(span.span_context().clone());
 
-        tracing::Span::current().set_parent(inflight_ctx.clone());
-        self.inflight_ctx = Some(inflight_ctx);
+        self.update_current_context(inflight_ctx);
 
     }
 
@@ -372,9 +341,7 @@ impl TracedMessage {
         span.set_attribute(KeyValue::new("peer.messaging.destination", topic_name.clone()));
 
         let inflight_ctx = Context::new().with_remote_span_context(span.span_context().clone());
-        tracing::Span::current().set_parent(inflight_ctx.clone());
-        
-        self.inflight_ctx = Some(inflight_ctx);
+        self.update_current_context(inflight_ctx);
 
     }
 
@@ -424,8 +391,7 @@ impl TracedMessage {
 
         let inflight_ctx = Context::new().with_remote_span_context(span.span_context().clone());
 
-        tracing::Span::current().set_parent(inflight_ctx.clone());
-        self.inflight_ctx = Some(inflight_ctx);
+        self.update_current_context(inflight_ctx);
 
         timestamp
     }
@@ -450,7 +416,6 @@ impl TracedMessage {
         let json_object = body_object.unwrap();
 
         if json_object.contains_key("TopicArn") && json_object.contains_key("Timestamp") {
-            info!("JSON object contains 'TopicArn' and 'Timestamp' keys");
             // Body is an SNSMessage, generate the inferred span
             let sns_message:SnsMessage =  serde_json::from_str(&record.body.clone().unwrap()).unwrap();
 
@@ -463,18 +428,29 @@ impl TracedMessage {
 
         if json_object.contains_key("detail") {
             // Body is an CloudWatch Event, generate the inferred span
-
-            info!("JSON object contains 'Detail'");
             let sns_message:CloudWatchEvent =  serde_json::from_str(&record.body.clone().unwrap()).unwrap();
 
             let mut traced_message: TracedMessage = sns_message.clone().into();
 
+            traced_message.message_type = Some(sns_message.detail_type.clone().unwrap_or("Unknown message".to_string()));
             traced_message.generate_inflight_span_for_event_bridge(&sns_message, Some(sqs_start_time));
 
             return Some(traced_message);
         }
 
         None
+    }
+
+    fn update_current_context(&mut self, inflight_ctx: Context) {
+        self.inflight_ctx = Some(inflight_ctx.clone());
+
+        match std::env::var("USE_SPAN_LINK") {
+            Ok(use_links) => match use_links.as_str() {
+                "true" => tracing::Span::current().add_link(self.span_ctx.clone().unwrap()),
+                _ => tracing::Span::current().set_parent(inflight_ctx.clone())
+            },
+            Err(_) => tracing::Span::current().set_parent(inflight_ctx.clone()),
+        }
     }
 }
 
