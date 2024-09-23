@@ -23,12 +23,11 @@ export class AnalyticsBackendStack extends cdk.Stack {
       process.env.DD_SECRET_ARN!
     );
 
-    const service = "NodeAnalyticsBackend";
+    const service = "RustAnalyticsBackend";
     const env = process.env.ENV ?? "dev";
     const version = process.env["COMMIT_HASH"] ?? "latest";
 
     const datadogConfiguration = new Datadog(this, "Datadog", {
-      nodeLayerVersion: 115,
       extensionLayerVersion: 62,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
@@ -43,7 +42,7 @@ export class AnalyticsBackendStack extends cdk.Stack {
     const sharedEventBus = EventBus.fromEventBusName(
       this,
       "SharedEventBus",
-      "NodeTracingEventBus"
+      "RustTracingEventBus"
     );
 
     const sharedProps: SharedProps = {

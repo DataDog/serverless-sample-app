@@ -1,0 +1,239 @@
+#
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2024 Datadog, Inc.
+#
+
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: 
+  - AWS::Serverless-2016-10-31
+Description: A sample SAM template for deploying Lambda functions.
+
+Parameters: 
+  ServiceName: 
+    Type: String
+    Default: RustProductApi
+  Env: 
+    Type: String
+    Default: dev
+  CommitHash:
+    Type: String
+    Default: latest
+  DDApiKeySecretArn:
+    Type: String
+  DDSite:
+    Type: String
+    Type: String
+
+Globals:
+  Function:
+    Runtime: provided.al2023
+    Timeout: 29
+    MemorySize: 512
+    Layers:
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:65
+    Environment:
+      Variables:
+        ENV: !Ref Env
+        DD_ENV: !Ref Env
+        DD_API_KEY_SECRET_ARN: !Ref DDApiKeySecretArn
+        DD_SITE: !Ref DDSite
+        DD_VERSION: !Ref CommitHash
+        DD_EXTENSION_VERSION: "next"
+        DD_SERVICE: !Ref ServiceName
+        TABLE_NAME: !Ref ProductApiTable
+        POWERTOOLS_SERVICE_NAME: !Ref ServiceName
+        POWERTOOLS_LOG_LEVEL: 'INFO'
+        RUST_LOG: "info"
+    Architectures:
+      - x86_64
+
+Resources:
+  GetProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/product-api/lambdas/get_product/
+      Handler: bootstrap
+      FunctionName: !Sub GetProductFunction-${Env}
+      Events:
+        GetProduct:
+          Type: HttpApi
+          Properties: 
+            Path: /product/{productId}
+            Method: get
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName:
+              !Ref ProductApiTable
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      BuildMethod: rust-cargolambda
+  CreateProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/product-api/lambdas/create_product/
+      Handler: bootstrap
+      FunctionName: !Sub CreateProductFunction-${Env}
+      Events:
+        GetProduct:
+          Type: HttpApi
+          Properties: 
+            Path: /product
+            Method: post
+      Environment:
+        Variables:
+          PRODUCT_CREATED_TOPIC_ARN: !Ref ProductCreatedTopic
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+              Resource: !GetAtt ProductApiTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ProductCreatedTopic.TopicName
+    Metadata:
+      BuildMethod: rust-cargolambda
+  UpdateProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/product-api/lambdas/update_product/
+      Handler: bootstrap
+      FunctionName: !Sub UpdateProductFunction-${Env}
+      Events:
+        GetProduct:
+          Type: HttpApi
+          Properties: 
+            Path: /product
+            Method: put
+      Environment:
+        Variables:
+          PRODUCT_UPDATED_TOPIC_ARN: !Ref ProductUpdatedTopic
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+              Resource: !GetAtt ProductApiTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ProductUpdatedTopic.TopicName
+    Metadata:
+      BuildMethod: rust-cargolambda
+  DeleteProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/product-api/lambdas/delete_product/
+      Handler: bootstrap
+      FunctionName: !Sub DeleteProductFunction-${Env}
+      Events:
+        GetProduct:
+          Type: HttpApi
+          Properties: 
+            Path: /product/{productId}
+            Method: delete
+      Environment:
+        Variables:
+          PRODUCT_DELETED_TOPIC_ARN: !Ref ProductDeletedTopic
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:DeleteItem
+                - dynamodb:GetItem
+              Resource: !GetAtt ProductApiTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ProductDeletedTopic.TopicName
+    Metadata:
+      BuildMethod: rust-cargolambda
+  
+  ProductCreatedTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "ProductCreatedTopic-${Env}"
+  ProductUpdatedTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "ProductUpdatedTopic-${Env}"
+  ProductDeletedTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "ProductDeletedTopic-${Env}"
+  
+  ProductCreatedTopicArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /rust/product/product-created-topic
+      Type: String
+      Value: !Ref ProductCreatedTopic
+  ProductUpdatedTopicArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /rust/product/product-updated-topic
+      Type: String
+      Value: !Ref ProductUpdatedTopic
+  ProductDeletedTopicArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /rust/product/product-deleted-topic
+      Type: String
+      Value: !Ref ProductDeletedTopic
+  ProductApiTableName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /rust/product/product-table-name
+      Type: String
+      Value: !Ref ProductApiTable
+
+  ProductApiTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub RustProducts-${Env}
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+
+  ApiEndpoint:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /rust/product/api-endpoint
+      Type: String
+      Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+
+Outputs:
+  RustProductApiEndpoint:
+    Description: Product API Endpoint
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+    Export:
+      Name: RustProductApiEndpoint

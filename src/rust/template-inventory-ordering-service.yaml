@@ -1,0 +1,115 @@
+#
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2024 Datadog, Inc.
+#
+
+AWSTemplateFormatVersion: "2010-09-09"
+Transform:
+  - AWS::Serverless-2016-10-31
+Description: A sample SAM template for deploying Lambda functions.
+
+Parameters:
+  ServiceName:
+    Type: String
+    Default: RustInventoryOrderingService
+  Env:
+    Type: String
+    Default: dev
+  CommitHash:
+    Type: String
+    Default: latest
+  DDApiKeySecretArn:
+    Type: String
+  TopicArn:
+    Type: String
+    Default: '{{resolve:ssm:/rust/inventory/new-product-added-topic:1}}' 
+  DDSite:
+    Type: String
+
+Globals:
+  Function:
+    Runtime: provided.al2023
+    Timeout: 29
+    MemorySize: 512
+    Layers:
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:65
+    Environment:
+      Variables:
+        ENV: !Ref Env
+        DD_ENV: !Ref Env
+        DD_API_KEY_SECRET_ARN: !Ref DDApiKeySecretArn
+        DD_SITE: !Ref DDSite
+        DD_VERSION: !Ref CommitHash
+        DD_EXTENSION_VERSION: "next"
+        DD_SERVICE: !Ref ServiceName
+        POWERTOOLS_SERVICE_NAME: !Ref ServiceName
+        POWERTOOLS_LOG_LEVEL: "INFO"
+        RUST_LOG: "info"
+    Architectures:
+      - x86_64
+
+Resources:
+  RustInventoryOrderingWorkflow:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/inventory-ordering/lambdas/product_added_handler/
+      Handler: bootstrap
+      FunctionName: !Sub RustInventoryOrderingWorkflow-${Env}
+      Environment:
+        Variables:
+          DD_SERVICE_MAPPING: !Sub "lambda_sns:${TopicArn}"
+          ORDERING_SERVICE_WORKFLOW_ARN: !Ref RustInventoryOrderingService
+      Events:
+        NewProductAddedTopic:
+          Type: SNS
+          Properties:
+            Topic: !Ref TopicArn
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt RustInventoryOrderingService.Name
+    Metadata:
+      BuildMethod: rust-cargolambda
+
+  InventoryOrderingServiceLogGroup: 
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      RetentionInDays: 1
+      LogGroupName: !Sub "/aws/vendedlogs/states/RustInventoryOrderingServiceLogGroup-${Env}"
+
+  RustInventoryOrderingService:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: lib/inventory-ordering-service/workflows/workflow.sample.asl.json
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "logs:CreateLogDelivery"
+                - "logs:CreateLogStream"
+                - "logs:GetLogDelivery"
+                - "logs:UpdateLogDelivery"
+                - "logs:DeleteLogDelivery"
+                - "logs:ListLogDeliveries"
+                - "logs:PutLogEvents"
+                - "logs:PutResourcePolicy"
+                - "logs:DescribeResourcePolicies"
+                - "logs:DescribeLogGroups"
+              Resource: "*"
+      Logging:
+        IncludeExecutionData: true
+        Level: ALL
+        Destinations:
+           - CloudWatchLogsLogGroup: 
+              LogGroupArn: !GetAtt InventoryOrderingServiceLogGroup.Arn
+      Tags:
+        DD_ENHANCED_METRICS: "true"
+        DD_TRACE_ENABLED: "true"

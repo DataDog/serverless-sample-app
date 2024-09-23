@@ -33,23 +33,22 @@ export class AnalyticsService extends Construct {
       "AnalyticsEventQueue",
       {
         sharedProps: props.sharedProps,
-        queueName: "NodeAnalyticsEventQueue",
+        queueName: "RustAnalyticsEventQueue",
       }
     ).queue;
 
     this.analyticsServiceFunction = new InstrumentedLambdaFunction(
       this,
-      "NodeAnalyticsService",
+      "RustAnalyticsService",
       {
         sharedProps: props.sharedProps,
-        functionName: "NodeAnalyticsService",
+        functionName: "RustAnalyticsService",
         handler: "index.handler",
         environment: {
           DD_TRACE_PROPAGATION_STYLE: "none",
+          USE_SPAN_LINK: "true"
         },
-        buildDef:
-          "./src/analytics-backend/adapters/buildAnalyticsEventHandler.js",
-        outDir: "./out/analyticsEventHandler",
+        manifestPath: "./src/analytics/lambdas/analytics"
       }
     ).function;
 

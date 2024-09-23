@@ -40,6 +40,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "analytics_handler"
+version = "0.1.0"
+dependencies = [
+ "aws_lambda_events",
+ "dogstatsd",
+ "lambda_runtime",
+ "observability",
+ "opentelemetry",
+ "opentelemetry-datadog",
+ "opentelemetry-http",
+ "opentelemetry-semantic-conventions 0.25.0",
+ "opentelemetry-stdout",
+ "opentelemetry_sdk",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "android-tzdata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -828,6 +850,16 @@ dependencies = [
  "block-buffer",
  "crypto-common",
  "subtle",
+]
+
+[[package]]
+name = "dogstatsd"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10cb25c17d5e77ecf625128ddbdad4bec9972d4d82e222218b38da375f5d0cf7"
+dependencies = [
+ "chrono",
+ "retry",
 ]
 
 [[package]]
@@ -2183,6 +2215,15 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "winreg",
+]
+
+[[package]]
+name = "retry"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9166d72162de3575f950507683fac47e30f6f2c3836b71b7fbc61aa517c9c5f4"
+dependencies = [
+ "rand",
 ]
 
 [[package]]
