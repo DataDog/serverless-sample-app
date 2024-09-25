@@ -36,6 +36,11 @@ export const handler = async (
     return {
       statusCode: 400,
       body: "Must provide productId",
+      headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "POST,GET,PUT,DELETE"
+      }
     };
   }
 
@@ -50,6 +55,9 @@ export const handler = async (
     body: JSON.stringify(result),
     headers: {
       "Content-Type": "application-json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "POST,GET,PUT,DELETE"
     },
   };
 };

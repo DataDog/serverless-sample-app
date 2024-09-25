@@ -7,41 +7,21 @@
 
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { tracer } from "dd-trace";
-import { GetProductHandler } from "../core/get-product/getProductHandler";
 import { DynamoDbProductRepository } from "./dynamoDbProductRepository";
+import { ListProductsHandler } from "../core/list-products/listProductsHandler";
 
 const dynamoDbClient = new DynamoDBClient();
-const queryHandler = new GetProductHandler(
+const queryHandler = new ListProductsHandler(
   new DynamoDbProductRepository(dynamoDbClient)
 );
 
 export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
-  const mainSpan = tracer.scope().active();
-
-  const productId = event.pathParameters!["productId"];
-
-  if (productId === undefined) {
-    return {
-      statusCode: 400,
-      body: "Must provide productId",
-      headers: {
-        "Content-Type": "application-json",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "*",
-        "Access-Control-Allow-Methods": "*"
-      }
-    };
-  }
-
-  const result = await queryHandler.handle({
-    productId,
-  });
+  const result = await queryHandler.handle({});
 
   return {
-    statusCode: result.success ? 200 : 404,
+    statusCode: result.success ? 200 : 500,
     body: JSON.stringify(result),
     headers: {
       "Content-Type": "application-json",

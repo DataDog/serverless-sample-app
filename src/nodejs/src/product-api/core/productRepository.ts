@@ -8,6 +8,7 @@
 import { Product } from "./product";
 
 export interface ProductRepository {
+  getProducts(): Promise<Product[]>;
   getProduct(productId: string): Promise<Product | undefined>;
   createProduct(product: Product): Promise<Product>;
   updateProduct(product: Product): Promise<Product>;

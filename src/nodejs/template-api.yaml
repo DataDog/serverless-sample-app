@@ -76,6 +76,29 @@ Resources:
                 - secretsmanager:GetSecretValue
                 - dynamodb:GetItem
               Resource: !Ref DDApiKeySecretArn
+  ListProductsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: listProductsFunction.handler
+      FunctionName: !Sub ListProductFunction-${Env}
+      Events:
+        GetProduct:
+          Type: HttpApi
+          Properties: 
+            Path: /product
+            Method: get
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName:
+              !Ref ProductApiTable
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+                - dynamodb:GetItem
+              Resource: !Ref DDApiKeySecretArn
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

@@ -10,6 +10,7 @@ import {
   DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
+  ScanCommand,
 } from "@aws-sdk/client-dynamodb";
 import { Product } from "../core/product";
 import { ProductRepository } from "../core/productRepository";
@@ -19,6 +20,28 @@ export class DynamoDbProductRepository implements ProductRepository {
 
   constructor(client: DynamoDBClient) {
     this.client = client;
+  }
+  async getProducts(): Promise<Product[]> {
+    const scanResponse = await this.client.send(
+      new ScanCommand({
+        TableName: process.env.TABLE_NAME,
+      })
+    );
+
+    const products = scanResponse.Items?.map(item => {
+      let product = new Product(
+        item["Name"].S!,
+        parseFloat(item["Price"].N!)
+      );
+      product.productId = item["ProductId"].S!;
+      product.priceBrackets = JSON.parse(
+        item["PriceBrackets"].S!
+      );
+
+      return product;
+    }) ?? [];
+
+    return products;
   }
 
   async getProduct(productId: string): Promise<Product | undefined> {

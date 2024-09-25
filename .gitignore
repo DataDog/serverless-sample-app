@@ -349,3 +349,4 @@ terraform.rc
 # sst
 .sst
 .build
+src/frontend/src/config.js

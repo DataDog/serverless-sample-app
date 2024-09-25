@@ -1,0 +1,26 @@
+{
+    "scripts": {
+        "build:app": "rm -r -f dist && mkdir dist && cp -r ./src/ ./dist && browserify -e ./src/app.js -o ./dist/app.js",
+        "start": "rm -r -f dist && mkdir dist && cp -r ./src/ ./dist && browserify -e ./src/app.js -o ./dist/app.js && cd dist && npx http-server -c-1"
+    },
+    "devDependencies": {
+        "babel-core": "6.3.x",
+        "babel-preset-es2015": "6.3.x",
+        "babelify": "7.2.x"
+    },
+    "browserify": {
+        "transform": [
+            [
+                "babelify",
+                {
+                    "presets": [
+                        "es2015"
+                    ]
+                }
+            ]
+        ]
+    },
+    "dependencies": {
+        "browserify": "^17.0.0"
+    }
+}

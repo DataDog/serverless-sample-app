@@ -91,6 +91,12 @@ functions:
       - httpApi:
           path: /product/{productId}
           method: get
+  list:
+    handler: src/product-api/adapters/listProductsFunction.handler
+    events:
+      - httpApi:
+          path: /product
+          method: get
   update:
     handler: src/product-api/adapters/updateProductFunction.handler
     environment:
