@@ -1,0 +1,91 @@
+#
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2024 Datadog, Inc.
+#
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters: 
+  DDApiKeySecretArn:
+    Type: String
+  DDSite:
+    Type: String
+
+Resources:
+    Shared:
+      Type: AWS::Serverless::Application
+      Properties:
+        Location: template-shared.yaml
+
+    ProductApi:
+      Type: AWS::Serverless::Application
+      Properties:
+        Location: template-api.yaml
+        Parameters:
+          DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
+      DependsOn: Shared
+
+    ProductPricingService:
+      Type: AWS::Serverless::Application
+      Properties:
+        Location: template-pricing-service.yaml
+        Parameters:
+          DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
+      DependsOn:
+        - Shared
+        - ProductApi
+
+    ProductApiWorker:
+      Type: AWS::Serverless::Application
+      Properties:
+        Location: template-product-api-worker.yaml
+        Parameters:
+          DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
+      DependsOn:
+        - ProductPricingService
+    
+    ProductPublicEventPublisher:
+      Type: AWS::Serverless::Application
+      Properties:
+        Location: template-product-event-publisher.yaml
+        Parameters:
+          DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
+      DependsOn:
+        - ProductApi
+    
+    InventoryAcl:
+      Type: AWS::Serverless::Application
+      Properties:
+        Location: template-inventory-acl.yaml
+        Parameters:
+          DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
+      DependsOn:
+        - Shared
+    
+    InventoryOrderingService:
+      Type: AWS::Serverless::Application
+      Properties:
+        Location: template-inventory-ordering-service.yaml
+        Parameters:
+          DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
+      DependsOn:
+        - InventoryAcl
+   
+    AnalyticsService:
+      Type: AWS::Serverless::Application
+      Properties:
+        Location: template-analytics-service.yaml
+        Parameters:
+          DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
+      DependsOn:
+        - Shared
