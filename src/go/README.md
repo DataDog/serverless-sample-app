@@ -2,7 +2,6 @@
 
 This README contains relevant instructions for deploying the sample application with each of the available IaC tools. As well as details on any Node specific implementation details when instrumenting with Datadog. The current implementation of the Go tracer does not support automatic trace propagation through messaging services. The Go examples use SpanLinks as the primary method of linking systems together.
 
-
 ```go
 span, context := tracer.StartSpanFromContext(ctx, "process.message", tracer.WithSpanLinks(spanLinks))
 defer span.Finish()
@@ -13,27 +12,33 @@ defer span.Finish()
 The [Datadog CDK Construct](https://docs.datadoghq.com/serverless/libraries_integrations/cdk/) simplifies the setup when instrumenting with Datadog. To get started:
 
 ```sh
-npm i --save-dev datadog-cdk-constructs-v2
+go get github.com/DataDog/datadog-cdk-constructs-go/ddcdkconstruct
 ```
 
-Once installed, you can use the Construct to configure all of your Datadog settings. And then use the `addLambdaFunctions` function to instrument your Lambda functions.
+Once installed, you can use the Construct to configure all of your Datadog settings. And then use the `AddLambdaFunctions` function to instrument your Lambda functions.
 
-```typescript
-const datadogConfiguration = new Datadog(this, "Datadog", {
-  nodeLayerVersion: 115,
-  extensionLayerVersion: 62,
-  site: process.env.DD_SITE,
-  apiKeySecret: ddApiKey,
-  service,
-  version,
-  env,
-  enableColdStartTracing: true,
-  enableDatadogTracing: true,
-  captureLambdaPayload: true,
-});
+```go
+datadog := ddcdkconstruct.NewDatadog(
+		stack,
+		jsii.String("Datadog"),
+		&ddcdkconstruct.DatadogProps{
+			ExtensionLayerVersion:  jsii.Number(65),
+			AddLayers:              jsii.Bool(true),
+			Site:                   jsii.String(os.Getenv("DD_SITE")),
+			ApiKeySecret:           ddApiKeySecret,
+			Service:                &serviceName,
+			Env:                    &env,
+			Version:                &version,
+			EnableColdStartTracing: jsii.Bool(true),
+			CaptureLambdaPayload:   jsii.Bool(true),
+			EnableDatadogTracing:   jsii.Bool(true),
+			EnableDatadogASM:       jsii.Bool(true),
+		})
+
+atadog.AddLambdaFunctions(&[]interface{}{function.Function}, nil)
 ```
 
-This CDK implementation uses a [custom `InstrumentedFunction` L3 construct](./lib/constructs/lambdaFunction.ts) to ensure all Lambda functions are instrumented correctly and consistently.
+This CDK implementation uses a [custom `InstrumentedFunction` L3 construct](./cdk/sharedConstructs/instrumentedFunction.go) to ensure all Lambda functions are instrumented correctly and consistently. This also removes the ability for the Lambda function to send logs to CloudWatch using a custom IAM policy. Logs are shipped using the Datadog extension, and aren't required to log to CloudWatch.
 
 ### Deploy
 
@@ -41,17 +46,10 @@ To simplify deployment, all of the different microservices are managed in the sa
 
 Each microservice is implemented as a seperate CloudFormation Stack, and there are no direct dependencies between stacks. Each stack stores relevant resource ARN's (SNS Topic ARN etc) in SSM Parameter Store, and the other stacks dynamically load the ARN's:
 
-```typescript
-const productCreatedTopicArn = StringParameter.fromStringParameterName(
-  this,
-  "ProductCreatedTopicArn",
-  "/node/product/product-created-topic"
-);
-const productCreatedTopic = Topic.fromTopicArn(
-  this,
-  "ProductCreatedTopic",
-  productCreatedTopicArn.stringValue
-);
+```go
+productCreatedTopicParam := awsssm.StringParameter_FromStringParameterName(stack, jsii.String("ProductCreatedTopicParam"), jsii.String("/go/product/product-created-topic"))
+
+productCreatedTopic := awssns.Topic_FromTopicArn(stack, jsii.String("ProductCreatedTopic"), productCreatedTopicParam.StringValue())
 ```
 
 The Datadog extension retrieves your Datadog API key from a Secrets Manager secret. For this to work, ensure you create a secret in your account containing your API key and set the `DD_SECRET_ARN` environment variable before deployment.
@@ -61,22 +59,8 @@ To deploy all stacks and resources, run:
 ```sh
 export DD_SECRET_ARN=<YOUR SECRET ARN>
 export DD_SITE=<YOUR PREFERRED DATADOG SITE>
+cd cdk
 cdk deploy --all --require-approval never
-```
-
-If you wish to deploy individual stacks, you can do that by running the respective command below:
-
-```sh
-cdk deploy NodeSharedStack --require-approval never
-cdk deploy NodeProductApiStack --require-approval never
-cdk deploy NodeProductPublicEventPublisherStack --require-approval never
-cdk deploy NodeProductPricingServiceStack --require-approval never
-```
-
-Post deployment, run the below command to execute an integration test and populate the system with the full end to end flow.
-
-```sh
-npm run test -- product-service
 ```
 
 ### Cleanup
@@ -127,13 +111,7 @@ sam deploy --stack-name GoTracing --parameter-overrides ParameterKey=DDApiKeySec
 Use the below `sh` script to cleanup resources deployed with AWS SAM.
 
 ```sh
-sam delete --stack-name GoInventoryOrderingService --region $AWS_REGION --no-prompts &&
-sam delete --stack-name GoInventoryAcl --region $AWS_REGION --no-prompts &&
-sam delete --stack-name GoProductApiWorkerStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name GoProductPublicEventPublisherStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name GoProductPricingServiceStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name GoProductApiStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name GoSharedStack --region $AWS_REGION --no-prompts
+sam delete --stack-name GoTracing --region $AWS_REGION --no-prompts
 ```
 
 ## Terraform
