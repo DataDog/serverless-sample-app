@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "aws-cdk": "2.157.0",
-    "aws-cdk-lib": "^2.157.0",
+    "aws-cdk-lib": "^2.160.0",
     "constructs": "^10.3.0",
     "datadog-cdk-constructs-v2": "^1.16.1",
     "ts-node": "^10.9.2",
@@ -25,7 +25,7 @@
     "typescript": "~5.5.3"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.157.0",
+    "aws-cdk-lib": "2.160.0",
     "constructs": "^10.0.0",
     "source-map-support": "^0.5.21"
   }
