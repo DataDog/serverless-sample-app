@@ -52,6 +52,6 @@ variable "dd_site" {
 }
 
 variable "enable_cloudwatch_logging" {
-  default = true
+  default = false
   type    = bool
 }
