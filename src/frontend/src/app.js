@@ -1,4 +1,6 @@
-import config from './config.js';
+import config from "./config.js";
+
+let activeProduct = "";
 
 window.DD_RUM &&
   window.DD_RUM.init({
@@ -20,13 +22,13 @@ window.DD_RUM &&
     allowedTracingUrls: [(url) => url.startsWith("https://")],
     sessionSampleRate: 100,
     enablePrivacyForActionName: true,
-});
+  });
 
 $(document).ready(function () {
   refreshData();
 });
 
-function createProduct() {
+export function createProduct() {
   const createBtn = document.getElementById("createProductBtn");
   createBtn.ariaBusy = "true";
   createBtn.ariaLabel = "Creating...";
@@ -67,7 +69,50 @@ function createProduct() {
   };
 }
 
-function deleteProduct(productId, btnElement){
+export function updateProduct() {
+  const name = document.getElementById("updateProductName").value;
+  const price = document.getElementById("updateProductPrice").value;
+
+  if (name.length <= 0) {
+    alert("Name must not be empty");
+    return;
+  }
+
+  if (price.length <= 0) {
+    alert("Price must not be empty");
+    return;
+  }
+
+  const createBtn = document.getElementById("updateProductBtn");
+  createBtn.ariaBusy = "true";
+  createBtn.ariaLabel = "Updating...";
+  createBtn.innerText = "Updating...";
+
+  var xhr = new XMLHttpRequest();
+  xhr.open("PUT", `${config.API_ENDPOINT}/product`, true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.send(
+    JSON.stringify({
+      name: name,
+      price: Number.parseFloat(price),
+      productId: activeProduct,
+    })
+  );
+  xhr.onload = () => {
+    if (xhr.readyState == 4 && xhr.status == 200) {
+      refreshData();
+      closeModal();
+    } else {
+      console.log(`Error: ${xhr.status}`);
+    }
+
+    createBtn.ariaBusy = "false";
+    createBtn.ariaLabel = "";
+    createBtn.innerText = "Create";
+  };
+}
+
+function deleteProduct(productId, btnElement) {
   btnElement.ariaBusy = "true";
   btnElement.ariaLabel = "Deleting...";
   btnElement.innerText = "Deleting...";
@@ -83,6 +128,58 @@ function deleteProduct(productId, btnElement){
       console.log(`Error: ${xhr.status}`);
     }
   };
+}
+
+function viewProduct(productId, btnElement) {
+  btnElement.ariaBusy = "true";
+  btnElement.ariaLabel = "Opening...";
+  btnElement.innerText = "Opening...";
+
+  $.ajax({
+    url: `${config.API_ENDPOINT}/product/${productId}`,
+    method: "GET",
+    contentType: "application/json",
+    success: function (response) {
+      let updateNameElement = document.getElementById("updateProductName");
+      updateNameElement.value = response.data.name;
+      let updatePriceElement = document.getElementById("updateProductPrice");
+      updatePriceElement.value = response.data.price;
+
+      let tableBodyElement = document.getElementById("pricingTableBody");
+      tableBodyElement.innerHTML = "";
+
+      let productTitle = document.getElementById("productName");
+      productTitle.innerText = response.data.name;
+
+      response.data.priceBreakdown.forEach((breakdown) => {
+        const price = breakdown.price;
+        const quantity = breakdown.quantity;
+
+        var rowElement = document.createElement("tr");
+        var priceCellElement = document.createElement("td");
+        priceCellElement.innerText = price;
+        var quantityCellElement = document.createElement("td");
+        quantityCellElement.innerText = quantity;
+
+        rowElement.appendChild(priceCellElement);
+        rowElement.appendChild(quantityCellElement);
+
+        tableBodyElement.appendChild(rowElement);
+      });
+
+      activeProduct = productId;
+
+      let productModal = document.getElementById("productModal");
+      productModal.setAttribute("open", "true");
+    },
+    error: function (xhr, status, error) {
+      alert("Failure loading product: " + error);
+    },
+  });
+
+  btnElement.ariaBusy = "false";
+  btnElement.ariaLabel = "View";
+  btnElement.innerText = "View";
 }
 
 function refreshData() {
@@ -104,17 +201,27 @@ function refreshData() {
         var priceCellElement = document.createElement("td");
         priceCellElement.innerText = price;
 
-        var deleteButtonElement = document.createElement("td");
+        var deleteButtonTableCell = document.createElement("td");
         var deleteButton = document.createElement("button");
         deleteButton.innerText = "Delete";
         deleteButton.onclick = function () {
           deleteProduct(message.productId, deleteButton);
         };
-        deleteButtonElement.appendChild(deleteButton);
+        deleteButtonTableCell.appendChild(deleteButton);
+
+        var viewButtonTableCell = document.createElement("td");
+        var openButton = document.createElement("button");
+        openButton.innerText = "Open";
+        openButton.onclick = function () {
+          viewProduct(message.productId, openButton);
+        };
+
+        viewButtonTableCell.appendChild(openButton);
 
         rowElement.appendChild(nameCellElement);
         rowElement.appendChild(priceCellElement);
-        rowElement.appendChild(deleteButtonElement);
+        rowElement.appendChild(viewButtonTableCell);
+        rowElement.appendChild(deleteButtonTableCell);
 
         tableBodyElement.appendChild(rowElement);
       });
@@ -124,3 +231,21 @@ function refreshData() {
     },
   });
 }
+
+function closeModal() {
+  activeProduct = "";
+  let tableBodyElement = document.getElementById("pricingTableBody");
+  tableBodyElement.innerHTML = "";
+  let productModal = document.getElementById("productModal");
+
+  let updateNameElement = document.getElementById("updateProductName");
+  updateNameElement.value = "";
+  let updatePriceElement = document.getElementById("updateProductPrice");
+  updatePriceElement.value = "";
+
+  productModal.setAttribute("open", "false");
+}
+
+window.updateProduct = updateProduct;
+window.createProduct = createProduct;
+window.closeModal = closeModal;
