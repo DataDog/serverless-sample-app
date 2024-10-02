@@ -7,6 +7,9 @@ span, context := tracer.StartSpanFromContext(ctx, "process.message", tracer.With
 defer span.Finish()
 ```
 
+> [!IMPORTANT]  
+> The Datadog Lambda extension sends logs directly to Datadog without the need for CloudWatch. The examples in this repository disable Cloudwatch Logs for all Lambda functions. 
+
 ## AWS CDK
 
 The [Datadog CDK Construct](https://docs.datadoghq.com/serverless/libraries_integrations/cdk/) simplifies the setup when instrumenting with Datadog. To get started:
