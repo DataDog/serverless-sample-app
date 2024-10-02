@@ -52,6 +52,11 @@ Globals:
         AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
     Architectures:
       - x86_64
+  Api:
+    Cors:
+      AllowMethods: "'POST, GET, PUT, DELETE'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'http://localhost:8080'"
 
 Resources:
   GetProductFunction:

@@ -20,6 +20,7 @@ import { InstrumentedLambdaFunction } from "../constructs/lambdaFunction";
 import { HttpApi, HttpMethod } from "aws-cdk-lib/aws-apigatewayv2";
 import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import { RemovalPolicy } from "aws-cdk-lib";
+import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
 
 export interface ApiProps {
   sharedProps: SharedProps;
@@ -30,7 +31,7 @@ export class Api extends Construct {
   productCreatedTopic: ITopic;
   productUpdatedTopic: ITopic;
   productDeletedTopic: ITopic;
-  api: HttpApi;
+  api: RestApi;
   table: ITable;
 
   constructor(scope: Construct, id: string, props: ApiProps) {
@@ -57,6 +58,9 @@ export class Api extends Construct {
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
+    const listProductIntegration = this.buildListProductsFunction(
+      props.sharedProps
+    );
     const getProductIntegration = this.buildGetProductFunction(
       props.sharedProps
     );
@@ -70,30 +74,48 @@ export class Api extends Construct {
       props.sharedProps
     );
 
-    this.api = new HttpApi(this, "ProductRustApi");
-    this.api.addRoutes({
-      path: "/product/{productId}",
-      methods: [HttpMethod.GET],
-      integration: getProductIntegration,
+    this.api = new RestApi(this, "ProductRestNodeApi", {
+      defaultCorsPreflightOptions: {
+        allowOrigins: ["http://localhost:8080"],
+        allowHeaders: ["*"],
+        allowMethods: ["GET,PUT,POST,DELETE"]
+      }
     });
-    this.api.addRoutes({
-      path: "/product",
-      methods: [HttpMethod.POST],
-      integration: createProductIntegration,
-    });
-    this.api.addRoutes({
-      path: "/product",
-      methods: [HttpMethod.PUT],
-      integration: updateProductIntegration,
-    });
-    this.api.addRoutes({
-      path: "/product/{productId}",
-      methods: [HttpMethod.DELETE],
-      integration: deleteProductIntegration,
-    });
+
+    const productResource = this.api.root.addResource("product");
+    productResource.addMethod("GET", listProductIntegration);
+    productResource.addMethod("POST", createProductIntegration);
+
+    const specificProductResource = productResource.addResource("{productId}");
+    specificProductResource.addMethod("GET", getProductIntegration);
+    specificProductResource.addMethod("PUT", updateProductIntegration);
+    specificProductResource.addMethod("DELETE", deleteProductIntegration);
   }
 
-  buildGetProductFunction(props: SharedProps): HttpLambdaIntegration {
+  buildListProductsFunction(props: SharedProps): LambdaIntegration {
+    const listProductsFunction = new InstrumentedLambdaFunction(
+      this,
+      "ListProductsNodeFunction",
+      {
+        sharedProps: props,
+        functionName: "GetProductRustFunction",
+        handler: "index.handler",
+        environment: {
+          TABLE_NAME: this.table.tableName,
+          
+        },
+        manifestPath: "./src/product-api/lambdas/list_products/Cargo.toml"
+      }
+    );
+    const listProductsIntegration = new LambdaIntegration(
+      listProductsFunction.function
+    );
+    this.table.grantReadData(listProductsFunction.function);
+
+    return listProductsIntegration;
+  }
+
+  buildGetProductFunction(props: SharedProps): LambdaIntegration {
     const getProductFunction = new InstrumentedLambdaFunction(
       this,
       "GetProductRustFunction",
@@ -108,8 +130,7 @@ export class Api extends Construct {
         manifestPath: "./src/product-api/lambdas/get_product/Cargo.toml"
       }
     );
-    const getProductIntegration = new HttpLambdaIntegration(
-      "GetProductFunctionIntegration",
+    const getProductIntegration = new LambdaIntegration(
       getProductFunction.function
     );
     this.table.grantReadData(getProductFunction.function);
@@ -117,7 +138,7 @@ export class Api extends Construct {
     return getProductIntegration;
   }
 
-  buildCreateProductFunction(props: SharedProps): HttpLambdaIntegration {
+  buildCreateProductFunction(props: SharedProps): LambdaIntegration {
     const createProductFunction = new InstrumentedLambdaFunction(
       this,
       "CreateProductRustFunction",
@@ -132,8 +153,7 @@ export class Api extends Construct {
         manifestPath: "./src/product-api/lambdas/create_product/Cargo.toml"
       }
     );
-    const createProductIntegration = new HttpLambdaIntegration(
-      "CreateProductFunctionIntegration",
+    const createProductIntegration = new LambdaIntegration(
       createProductFunction.function
     );
     this.table.grantReadWriteData(createProductFunction.function);
@@ -142,7 +162,7 @@ export class Api extends Construct {
     return createProductIntegration;
   }
 
-  buildUpdateProductFunction(props: SharedProps): HttpLambdaIntegration {
+  buildUpdateProductFunction(props: SharedProps): LambdaIntegration {
     const updateProductFunction = new InstrumentedLambdaFunction(
       this,
       "UpdateProductRustFunction",
@@ -157,8 +177,7 @@ export class Api extends Construct {
         manifestPath: "./src/product-api/lambdas/update_product/Cargo.toml"
       }
     );
-    const updateProductIntegration = new HttpLambdaIntegration(
-      "UpdateProductFunctionIntegration",
+    const updateProductIntegration = new LambdaIntegration(
       updateProductFunction.function
     );
     this.table.grantReadWriteData(updateProductFunction.function);
@@ -167,7 +186,7 @@ export class Api extends Construct {
     return updateProductIntegration;
   }
 
-  buildDeleteProductFunction(props: SharedProps): HttpLambdaIntegration {
+  buildDeleteProductFunction(props: SharedProps): LambdaIntegration {
     const deleteProductFunction = new InstrumentedLambdaFunction(
       this,
       "DeleteProductRustFunction",
@@ -182,8 +201,7 @@ export class Api extends Construct {
         manifestPath: "./src/product-api/lambdas/delete_product/Cargo.toml"
       }
     );
-    const deleteProductIntegration = new HttpLambdaIntegration(
-      "DeleteProductFunctionIntegration",
+    const deleteProductIntegration = new LambdaIntegration(
       deleteProductFunction.function
     );
     this.table.grantReadWriteData(deleteProductFunction.function);

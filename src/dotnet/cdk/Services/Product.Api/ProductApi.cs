@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using Amazon.CDK;
+using Amazon.CDK.AWS.APIGateway;
 using Amazon.CDK.AWS.Apigatewayv2;
 using Amazon.CDK.AWS.DynamoDB;
 using Amazon.CDK.AWS.SecretsManager;
@@ -59,29 +60,28 @@ public class ProductApi : Construct
             { "TABLE_NAME", Table.TableName },
         };
         
+        var listProductsFunction = new InstrumentedFunction(this, "GetProductFunction",
+            new FunctionProps(props.Shared,"ListProducts", "../src/Product.Api/ProductApi.Adapters/",
+                "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_ListProducts_Generated::ListProducts", apiEnvironmentVariables, props.DdApiKeySecret));
+        Table.GrantReadData(listProductsFunction.Function);
+        
         var getProductFunction = new InstrumentedFunction(this, "GetProductFunction",
             new FunctionProps(props.Shared,"GetProduct", "../src/Product.Api/ProductApi.Adapters/",
                 "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_GetProduct_Generated::GetProduct", apiEnvironmentVariables, props.DdApiKeySecret));
-        var getProductIntegration = new HttpLambdaIntegration("GetProductIntegration", getProductFunction.Function);
         Table.GrantReadData(getProductFunction.Function);
+        
 
         var createProductFunction = new InstrumentedFunction(this, "CreateProductFunction",
             new FunctionProps(props.Shared,"CreateProduct", "../src/Product.Api/ProductApi.Adapters/",
                 "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_CreateProduct_Generated::CreateProduct", apiEnvironmentVariables, props.DdApiKeySecret));
         
-        var createProductIntegration = new HttpLambdaIntegration("CreateProductIntegration", createProductFunction.Function);
-        
         var deleteProductFunction = new InstrumentedFunction(this, "DeleteProductFunction",
             new FunctionProps(props.Shared,"DeleteProduct", "../src/Product.Api/ProductApi.Adapters/",
                 "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_DeleteProduct_Generated::DeleteProduct", apiEnvironmentVariables, props.DdApiKeySecret));
         
-        var deleteProductIntegration = new HttpLambdaIntegration("DeleteProductIntegration", deleteProductFunction.Function);
-        
         var updateProductFunction = new InstrumentedFunction(this, "UpdateProductFunction",
             new FunctionProps(props.Shared,"UpdateProduct", "../src/Product.Api/ProductApi.Adapters/",
                 "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_UpdateProduct_Generated::UpdateProduct", apiEnvironmentVariables, props.DdApiKeySecret));
-        
-        var updateProductIntegration = new HttpLambdaIntegration("UpdateProductIntegration", updateProductFunction.Function);
 
         Table.GrantReadData(updateProductFunction.Function);
         Table.GrantWriteData(updateProductFunction.Function);
@@ -92,31 +92,24 @@ public class ProductApi : Construct
         ProductUpdatedTopic.GrantPublish(updateProductFunction.Function);
         ProductDeletedTopic.GrantPublish(deleteProductFunction.Function);
         
-        var httpAPi = new HttpApi(this, "TracedDotnetApi");
-        httpAPi.AddRoutes(new AddRoutesOptions()
+        var httpAPi = new RestApi(this, "TracedDotnetApi", new RestApiProps()
         {
-            Path = "/product",
-            Methods = [HttpMethod.POST],
-            Integration = createProductIntegration
+            DefaultCorsPreflightOptions = new CorsOptions()
+            {
+                AllowHeaders = ["*"],
+                AllowOrigins = ["http://localhost:8080"],
+                AllowMethods = ["GET", "POST", "PUT", "DELETE"],
+            }
         });
-        httpAPi.AddRoutes(new AddRoutesOptions()
-        {
-            Path = "/product",
-            Methods = [HttpMethod.PUT],
-            Integration = updateProductIntegration
-        });
-        httpAPi.AddRoutes(new AddRoutesOptions()
-        {
-            Path = "/product/{productId}",
-            Methods = [HttpMethod.GET],
-            Integration = getProductIntegration
-        });
-        httpAPi.AddRoutes(new AddRoutesOptions()
-        {
-            Path = "/product/{productId}",
-            Methods = [HttpMethod.DELETE],
-            Integration = deleteProductIntegration
-        });
+        var productResource = httpAPi.Root.AddResource("product");
+        productResource.AddMethod("GET", new LambdaIntegration(listProductsFunction.Function));
+        productResource.AddMethod("POST", new LambdaIntegration(createProductFunction.Function));
+        productResource.AddMethod("PUT", new LambdaIntegration(updateProductFunction.Function));
+        
+        var specificProductResource = productResource.AddResource("{productId}");
+        specificProductResource.AddMethod("GET", new LambdaIntegration(getProductFunction.Function));
+        specificProductResource.AddMethod("DELETE", new LambdaIntegration(deleteProductFunction.Function));
+        
 
         var productCreatedTopicArnParameter = new StringParameter(this, "ProductCreatedTopicArnParameter",
             new StringParameterProps()

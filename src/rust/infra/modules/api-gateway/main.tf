@@ -8,6 +8,11 @@
 resource "aws_apigatewayv2_api" "lambda" {
   name          = var.api_name
   protocol_type = "HTTP"
+  cors_configuration {
+    allow_headers = ["*"]
+    allow_methods = ["GET","PUT","POST","DELETE"]
+    allow_origins = ["http://localhost:8080"]
+  }
 }
 
 resource "aws_apigatewayv2_stage" "lambda" {
