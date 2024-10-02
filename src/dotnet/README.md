@@ -17,7 +17,7 @@ You also need to ensure you manually add the Datadog Lambda layers, one for the 
 ```c#
 Layers =
 [
-    LayerVersion.FromLayerVersionArn(this, "DDExtension", "arn:aws:lambda:eu-west-1:464622532012:layer:Datadog-Extension-ARM:64"),
+    LayerVersion.FromLayerVersionArn(this, "DDExtension", "arn:aws:lambda:eu-west-1:464622532012:layer:Datadog-Extension-ARM:65"),
     LayerVersion.FromLayerVersionArn(this, "DDTrace", "arn:aws:lambda:eu-west-1:464622532012:layer:dd-trace-dotnet-ARM:15"),
 ],
 ```
@@ -148,7 +148,7 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 64
+  datadog_extension_layer_version = 65
   datadog_dotnet_layer_version      = 15
 }
 ```
