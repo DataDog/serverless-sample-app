@@ -11,6 +11,10 @@ import com.cdk.constructs.InstrumentedFunctionProps;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.aws_apigatewayv2_integrations.HttpLambdaIntegration;
+import software.amazon.awscdk.services.apigateway.CorsOptions;
+import software.amazon.awscdk.services.apigateway.LambdaIntegration;
+import software.amazon.awscdk.services.apigateway.RestApi;
+import software.amazon.awscdk.services.apigateway.RestApiProps;
 import software.amazon.awscdk.services.apigatewayv2.AddRoutesOptions;
 import software.amazon.awscdk.services.apigatewayv2.HttpApi;
 import software.amazon.awscdk.services.apigatewayv2.HttpMethod;
@@ -29,7 +33,7 @@ import java.util.List;
 
 public class ProductApi extends Construct {
     private final ITable table;
-    private final HttpApi api;
+    private final RestApi api;
     
     public ProductApi(@NotNull Construct scope, @NotNull String id, @NotNull ProductApiProps props) {
         super(scope, id);
@@ -63,10 +67,14 @@ public class ProductApi extends Construct {
         String apiJarFile = "../product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar";
         String packageName = "com.product.api";
 
+        IFunction listProductFunction = new InstrumentedFunction(this, "ListProductJavaFunction",
+                new InstrumentedFunctionProps(props.sharedProps(), packageName, apiJarFile,"handleListProduct", apiEnvironmentVariables)).getFunction();
+
+        this.table.grantReadData(listProductFunction);
+        
         IFunction getProductFunction = new InstrumentedFunction(this, "GetProductJavaFunction",
                 new InstrumentedFunctionProps(props.sharedProps(), packageName, apiJarFile,"handleGetProduct", apiEnvironmentVariables)).getFunction();
         
-        HttpLambdaIntegration getProductFunctionIntegration = new HttpLambdaIntegration("GetProductFunctionIntegration", getProductFunction);
         this.table.grantReadData(getProductFunction);
         
         HashMap<String, String> createProductFunctionEnvVars = new HashMap<>();
@@ -75,7 +83,6 @@ public class ProductApi extends Construct {
         
         IFunction createProductFunction = new InstrumentedFunction(this, "CreateProductJavaFunction",
                 new InstrumentedFunctionProps(props.sharedProps(), packageName, apiJarFile, "handleCreateProduct", createProductFunctionEnvVars)).getFunction();
-        HttpLambdaIntegration createProductFunctionIntegration = new HttpLambdaIntegration("CreateProductFunctionIntegration", createProductFunction);
         this.table.grantReadWriteData(createProductFunction);
         productCreatedTopic.grantPublish(createProductFunction);
 
@@ -85,7 +92,6 @@ public class ProductApi extends Construct {
 
         IFunction updateProductFunction = new InstrumentedFunction(this, "UpdateProductJavaFunction",
                 new InstrumentedFunctionProps(props.sharedProps(), packageName, apiJarFile, "handleUpdateProduct", updateProductFunctionEnvVars)).getFunction();
-        HttpLambdaIntegration updateProductFunctionIntegration = new HttpLambdaIntegration("UpdateProductFunctionIntegration", updateProductFunction);
         this.table.grantReadWriteData(updateProductFunction);
         productUpdatedTopic.grantPublish(updateProductFunction);
 
@@ -95,31 +101,25 @@ public class ProductApi extends Construct {
         
         IFunction deleteProductFunction = new InstrumentedFunction(this, "DeleteProductJavaFunction",
                 new InstrumentedFunctionProps(props.sharedProps(), packageName, apiJarFile, "handleDeleteProduct", deleteProductFunctionEnvVars)).getFunction();
-        HttpLambdaIntegration deleteProductFunctionIntegration = new HttpLambdaIntegration("DeleteProductFunctionIntegration", deleteProductFunction);
         this.table.grantReadWriteData(deleteProductFunction);
         productDeletedTopic.grantPublish(deleteProductFunction);
 
-        this.api = new HttpApi(this, "TracedJavaApi");
-        this.api.addRoutes(AddRoutesOptions.builder()
-                        .integration(getProductFunctionIntegration)
-                        .methods(List.of(HttpMethod.GET))
-                        .path("/product/{productId}")
+        this.api = new RestApi(this, "TracedJavaApi", RestApiProps.builder()
+                .defaultCorsPreflightOptions(CorsOptions.builder()
+                        .allowMethods(List.of("GET", "PUT", "POST", "DELETE"))
+                        .allowOrigins(List.of("http://localhost:8080"))
+                        .allowHeaders(List.of("*"))
+                        .build())
                 .build());
-        this.api.addRoutes(AddRoutesOptions.builder()
-                .integration(createProductFunctionIntegration)
-                .methods(List.of(HttpMethod.POST))
-                .path("/product")
-                .build());
-        this.api.addRoutes(AddRoutesOptions.builder()
-                .integration(updateProductFunctionIntegration)
-                .methods(List.of(HttpMethod.PUT))
-                .path("/product")
-                .build());
-        this.api.addRoutes(AddRoutesOptions.builder()
-                .integration(deleteProductFunctionIntegration)
-                .methods(List.of(HttpMethod.DELETE))
-                .path("/product/{productId}")
-                .build());
+        var productApiResource = this.api.getRoot().addResource("product");
+        productApiResource.addMethod("GET", new LambdaIntegration(listProductFunction));
+        productApiResource.addMethod("POST", new LambdaIntegration(createProductFunction));
+        productApiResource.addMethod("PUT", new LambdaIntegration(updateProductFunction));
+        
+        var specificProductResource = productApiResource.addResource("{productId}");
+        specificProductResource.addMethod("GET", new LambdaIntegration(getProductFunction));
+        specificProductResource.addMethod("DELETE", new LambdaIntegration(deleteProductFunction));
+        
 
         StringParameter productCreatedTopicArnParam = new StringParameter(this, "ProductCreatedTopicArn", StringParameterProps.builder()
                 .parameterName("/java/product-api/product-created-topic")
@@ -154,7 +154,7 @@ public class ProductApi extends Construct {
 
         StringParameter apiEndpoint = new StringParameter(this, "ApiEndpoint", StringParameterProps.builder()
                 .parameterName("/java/product-api/api-endpoint")
-                .stringValue(this.api.getApiEndpoint())
+                .stringValue(this.api.getUrl())
                 .build());
         
     }

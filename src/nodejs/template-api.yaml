@@ -51,6 +51,11 @@ Globals:
         POWERTOOLS_LOG_LEVEL: 'INFO'
     Architectures:
       - x86_64
+  Api:
+    Cors:
+      AllowMethods: "'POST, GET, PUT, DELETE'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'http://localhost:8080'"
 
 Resources:
   GetProductFunction:

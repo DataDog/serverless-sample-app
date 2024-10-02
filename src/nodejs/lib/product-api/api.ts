@@ -68,9 +68,9 @@ export class Api extends Construct {
 
     this.api = new RestApi(this, "ProductRestNodeApi", {
       defaultCorsPreflightOptions: {
-        allowOrigins: ["*"],
+        allowOrigins: ["http://localhost:8080"],
         allowHeaders: ["*"],
-        allowMethods: ["ANY"]
+        allowMethods: ["GET,PUT,POST,DELETE"]
       }
     });
 

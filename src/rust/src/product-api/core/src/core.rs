@@ -40,9 +40,11 @@ pub trait Repository {
 
 #[derive(Serialize)]
 pub struct ProductDTO {
+    #[serde(rename = "productId")]
     product_id: String,
     name: String,
     price: f32,
+    #[serde(rename = "pricingBrackets")]
     price_brackets: Vec<ProductPriceBracket>,
 }
 

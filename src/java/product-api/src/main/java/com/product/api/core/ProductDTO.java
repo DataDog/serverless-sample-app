@@ -12,17 +12,17 @@ public class ProductDTO {
     private final String productId;
     private final String name;
     private final Double price;
-    private final List<ProductPriceBracket> priceBrackets;
+    private final List<ProductPriceBracket> pricingBrackets;
 
     public ProductDTO(Product product) {
         this.productId = product.getProductId();
         this.name = product.getName();
         this.price = product.getPrice();
-        this.priceBrackets = product.getPriceBrackets();
+        this.pricingBrackets = product.getPriceBrackets();
     }
 
-    public List<ProductPriceBracket> getPriceBrackets() {
-        return priceBrackets;
+    public List<ProductPriceBracket> getPricingBrackets() {
+        return pricingBrackets;
     }
 
     public Double getPrice() {

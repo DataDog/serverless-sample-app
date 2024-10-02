@@ -101,7 +101,7 @@ type ProductDTO struct {
 	ProductId      string         `json:"productId"`
 	Name           string         `json:"name"`
 	Price          float32        `json:"price"`
-	PriceBreakdown []ProductPrice `json:"priceBreakdown"`
+	PriceBreakdown []ProductPrice `json:"pricingBrackets"`
 }
 
 type ProductListDTO struct {

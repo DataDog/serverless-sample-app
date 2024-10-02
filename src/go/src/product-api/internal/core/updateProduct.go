@@ -10,7 +10,7 @@ package core
 import "context"
 
 type UpdateProductCommand struct {
-	ProductId string  `json:"productId"`
+	ProductId string  `json:"id"`
 	Name      string  `json:"name"`
 	Price     float32 `json:"price"`
 }

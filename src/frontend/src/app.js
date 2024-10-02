@@ -95,7 +95,7 @@ export function updateProduct() {
     JSON.stringify({
       name: name,
       price: Number.parseFloat(price),
-      productId: activeProduct,
+      id: activeProduct,
     })
   );
   xhr.onload = () => {
@@ -151,7 +151,7 @@ function viewProduct(productId, btnElement) {
       let productTitle = document.getElementById("productName");
       productTitle.innerText = response.data.name;
 
-      response.data.priceBreakdown.forEach((breakdown) => {
+      response.data.pricingBrackets.forEach((breakdown) => {
         const price = breakdown.price;
         const quantity = breakdown.quantity;
 

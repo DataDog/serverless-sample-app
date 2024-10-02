@@ -43,6 +43,7 @@ pub async fn handle_create_product<TRepo: Repository, TEventPublisher: EventPubl
 
 #[derive(Deserialize)]
 pub struct UpdateProductCommand {
+    #[serde(rename = "id")]
     product_id: String,
     name: String,
     price: f32,
