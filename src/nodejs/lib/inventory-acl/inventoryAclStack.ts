@@ -29,7 +29,7 @@ export class InventoryAclStack extends cdk.Stack {
 
     const datadogConfiguration = new Datadog(this, "Datadog", {
       nodeLayerVersion: 115,
-      extensionLayerVersion: 62,
+      extensionLayerVersion: 65,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
       service,

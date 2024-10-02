@@ -12,7 +12,7 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
-      extensionLayerVersion: "64"
+      extensionLayerVersion: "65"
       dotnetLayerVersion: "15"
       service: !Ref ServiceName
       env: !Ref Env

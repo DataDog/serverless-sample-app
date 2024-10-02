@@ -28,7 +28,7 @@ export class AnalyticsBackendStack extends cdk.Stack {
     const version = process.env["COMMIT_HASH"] ?? "latest";
 
     const datadogConfiguration = new Datadog(this, "Datadog", {
-      extensionLayerVersion: 62,
+      extensionLayerVersion: 65,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
       service,

@@ -70,12 +70,12 @@ package-ListProductsFunction:
 	zip -r -j out/GoListProducts/GoListProducts.zip out/GoListProducts/bootstrap
 
 package-ProductUpdatedPricingServiceFunction:
-	cd src/product-pricing-service;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-product-updated/main.go;cp bootstrap ../../out/GoProductCreatedPricingHandler/bootstrap
-	zip -r -j out/GoProductCreatedPricingHandler/GoProductCreatedPricingHandler.zip out/GoProductCreatedPricingHandler/bootstrap
+	cd src/product-pricing-service;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-product-updated/main.go;cp bootstrap ../../out/GoProductUpdatedPricingHandler/bootstrap
+	zip -r -j out/GoProductUpdatedPricingHandler/GoProductUpdatedPricingHandler.zip out/GoProductUpdatedPricingHandler/bootstrap
 
 package-ProductCreatedPricingServiceFunction:
-	cd src/product-pricing-service;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-product-created/main.go;cp bootstrap ../../out/GoProductUpdatedPricingHandler/bootstrap
-	zip -r -j out/GoProductUpdatedPricingHandler/GoProductUpdatedPricingHandler.zip out/GoProductUpdatedPricingHandler/bootstrap
+	cd src/product-pricing-service;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-product-created/main.go;cp bootstrap ../../out/GoProductCreatedPricingHandler/bootstrap
+	zip -r -j out/GoProductCreatedPricingHandler/GoProductCreatedPricingHandler.zip out/GoProductCreatedPricingHandler/bootstrap
 
 package-ProductApiPricingWorker:
 	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-pricing-changed/main.go;cp bootstrap ../../out/PriceCalculatedHandlerFunction/bootstrap

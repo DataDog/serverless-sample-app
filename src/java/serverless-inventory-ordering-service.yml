@@ -19,7 +19,7 @@ custom:
     site: ${param:DD_SITE}
     env: ${sls:stage}
     service: ${self:custom.serviceName}
-    version: 64
+    version: 65
     # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
     captureLambdaPayload: true
     propagateUpstreamTrace: true
