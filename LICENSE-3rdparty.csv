@@ -67,7 +67,7 @@ tokio,https://github.com/tokio-rs/tokio,MIT,
 serde,https://github.com/serde-rs/serde,MIT,
 serde_json,https://github.com/serde-rs/json,MIT,
 tracing,https://github.com/tokio-rs/tracing,MIT,
-opentelemetry,https://github.com/open-telemetry/opentelemetry-rust,Apache-2.0
+opentelemetry,https://github.com/open-telemetry/opentelemetry-rust,Apache-2.0,
 opentelemetry-datadog,https://github.com/open-telemetry/opentelemetry-rust-contrib/tree/main/opentelemetry-datadog,Apache-2.0,
 aws_lambda_events,https://github.com/awslabs/aws-lambda-rust-runtime,Apache-2.0,Amazon Web Services
 lambda_runtime,https://github.com/awslabs/aws-lambda-rust-runtime,Apache-2.0,Amazon Web Services
