@@ -350,3 +350,5 @@ terraform.rc
 .sst
 .build
 src/frontend/src/config.js
+
+**/bootstrap
