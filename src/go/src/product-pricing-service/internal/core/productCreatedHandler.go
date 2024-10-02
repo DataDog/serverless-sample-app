@@ -1,3 +1,10 @@
+//
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the Apache License Version 2.0.
+// This product includes software developed at Datadog (https://www.datadoghq.com/).
+// Copyright 2024 Datadog, Inc.
+//
+
 package core
 
 import (
@@ -28,7 +35,7 @@ func (handler *ProductCreatedEventHandler) Handle(ctx context.Context, evt Produ
 	priceBreakdowns, err := handler.pricingService.calculatePricesFor(evt.Price)
 
 	if err != nil {
-		log.Warn(fmt.Sprintf("Pricing service handled event with a price less than or equal to zero: %s", evt.ProductId))
+		log.Warn(fmt.Sprintf("Pricing service handled event with a price (%f) less than or equal to zero: %s", evt.Price, evt.ProductId))
 		return "", err
 	}
 

@@ -4,8 +4,6 @@ go 1.22.0
 
 toolchain go1.22.4
 
-require github.com/datadog/serverless-sample-observability v0.0.0
-
 replace github.com/datadog/serverless-sample-observability v0.0.0 => ../observability
 
 require github.com/aws/aws-lambda-go v1.47.0

@@ -1,3 +1,10 @@
+//
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the Apache License Version 2.0.
+// This product includes software developed at Datadog (https://www.datadoghq.com/).
+// Copyright 2024 Datadog, Inc.
+//
+
 package adapters
 
 import (
@@ -12,7 +19,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
 
-	"github.com/datadog/serverless-sample-observability"
+	observability "github.com/datadog/serverless-sample-observability"
 )
 
 type EventBridgeEventPublisher struct {

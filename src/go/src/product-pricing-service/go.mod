@@ -4,8 +4,6 @@ go 1.22.0
 
 toolchain go1.22.4
 
-require github.com/datadog/serverless-sample-observability v0.0.0
-
 replace github.com/datadog/serverless-sample-observability v0.0.0 => ../observability
 
 require github.com/aws/aws-lambda-go v1.47.0
@@ -17,13 +15,14 @@ require github.com/aws/aws-sdk-go-v2/service/sns v1.31.0
 require github.com/aws/aws-sdk-go-v2/service/dynamodb v1.35.1 // indirect
 
 require (
+	github.com/DataDog/appsec-internal-go v1.7.0
 	github.com/DataDog/datadog-lambda-go v1.19.0
 	github.com/aws/aws-sdk-go-v2/config v1.26.6
+	go.opentelemetry.io/otel v1.24.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.68.0
 )
 
 require (
-	github.com/DataDog/appsec-internal-go v1.7.0 // indirect
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.50.2 // indirect
 	github.com/DataDog/datadog-agent/pkg/remoteconfig/state v0.50.2 // indirect
 	github.com/DataDog/datadog-go/v5 v5.5.0 // indirect
@@ -75,7 +74,6 @@ require (
 	github.com/tinylib/msgp v1.1.9 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.51.0 // indirect
-	go.opentelemetry.io/otel v1.24.0 // indirect
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect

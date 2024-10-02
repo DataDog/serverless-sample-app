@@ -77,3 +77,12 @@ aws-sdk-sfn,https://github.com/awslabs/aws-sdk-rust,Apache-2.0,Amazon Web Servic
 aws-sdk-sns,https://github.com/awslabs/aws-sdk-rust,Apache-2.0,Amazon Web Services
 aws-sdk-eventbridge,https://github.com/awslabs/aws-sdk-rust,Apache-2.0,Amazon Web Services
 aws-sdk-dynamodb,https://github.com/awslabs/aws-sdk-rust,Apache-2.0,Amazon Web Services
+github.com/aws/aws-lambda-go,https://github.com/aws/aws-lambda-go,Apache-2.0,Amazon Web Services
+github.com/aws/aws-sdk-go-v2,https://github.com/aws/aws-sdk-go-v2,Apache-2.0,Amazon Web Services
+github.com/DataDog/datadog-cdk-constructs-go/ddcdkconstruct,https://github.com/DataDog/datadog-cdk-constructs-go,,Datadog
+github.com/aws/aws-cdk-go/awscdklambdagoalpha/v2,https://github.com/aws/aws-cdk-go,Apache-2.0,Amazon Web Services
+github.com/aws/constructs-go/constructs/v10,https://github.com/aws/constructs-go,Apache-2.0,Amazon Web Services
+github.com/aws/jsii-runtime-go,https://github.com/aws/jsii-runtime-go,Apache-2.0,Amazon Web Services
+github.com/google/uuid,https://github.com/google/uuid,Google,Google
+go.opentelemetry.io/otel,https://github.com/open-telemetry/opentelemetry-go,Apache-2.0,
+gopkg.in/DataDog/dd-trace-go.v1,https://github.com/DataDog/dd-trace-go,Apache-2.0,Datadog
