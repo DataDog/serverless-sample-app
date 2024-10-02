@@ -116,7 +116,13 @@ sam delete --stack-name GoTracing --region $AWS_REGION --no-prompts
 
 ## Terraform
 
-Terraform does not natively support compiling Go code. When deploying with Terraform, you first need to compile and ZIP up the Go code. The [`deploy.sh`](./deploy.sh) script performs this action.
+Terraform does not natively support compiling Go code. When deploying with Terraform, you first need to compile and ZIP up the Go code. The [`Makefile`](./Makefile) provides scripts to ensure code is correctly packaged before deploying.
+
+```
+package-GetProductFunction:
+	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap get-product/main.go;cp bootstrap ../../out/GoGetProduct/bootstrap
+	zip -r -j out/GoGetProduct/GoGetProduct.zip out/GoGetProduct/bootstrap
+```
 
 ### Configuration
 
@@ -154,8 +160,7 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 62
-  datadog_node_layer_version      = 112
+  datadog_extension_layer_version = 65
 }
 ```
 
@@ -173,8 +178,10 @@ There's a single `main.tf` that contains all 7 backend services as modules. This
 The root of the repository contains a `deploy.sh` file, this will transpile all Typescript code, generate the ZIP files and run `terraform apply`. To deploy the Terraform example, simply run:
 
 ```sh
-./deploy.sh
+make tf-deploy
 ```
+
+The `tf-deploy` command will compile and package your Lambda functions one by one, and then run `terraform apply --var-file dev.tfvars`.
 
 ### Cleanup
 
@@ -184,6 +191,3 @@ To cleanup all Terraform resources run:
 cd infra
 terraform destroy --var-file dev.tfvars
 ```
-
-## Serverless Framework
-
