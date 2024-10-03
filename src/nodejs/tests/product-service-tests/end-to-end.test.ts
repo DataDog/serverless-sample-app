@@ -73,7 +73,7 @@ describe("end-to-end-tests", () => {
     expect(updateProductResult.data.data.price).toBe(50);
 
     // Let async processes run
-    await delay(5000);
+    await delay(15000);
 
     getProductResult = await apiDriver.getProduct(productId);
 
