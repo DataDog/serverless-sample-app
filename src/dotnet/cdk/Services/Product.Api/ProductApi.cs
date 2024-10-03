@@ -135,5 +135,11 @@ public class ProductApi : Construct
                 ParameterName = "/dotnet/product-api/table-arn",
                 StringValue = Table.TableArn
             });
+        var apiEndpointParameter = new StringParameter(this, "ProductApiEndpointParameter",
+            new StringParameterProps()
+            {
+                ParameterName = "/dotnet/product/api-endpoint",
+                StringValue = httpAPi.Url
+            });
     }
 }
