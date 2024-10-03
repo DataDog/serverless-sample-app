@@ -1,4 +1,4 @@
-name: NodeJS CDK Deploy
+name: .NET CDK Deploy
 
 on:
     push:
