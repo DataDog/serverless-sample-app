@@ -86,3 +86,6 @@ github.com/aws/jsii-runtime-go,https://github.com/aws/jsii-runtime-go,Apache-2.0
 github.com/google/uuid,https://github.com/google/uuid,Google,Google
 go.opentelemetry.io/otel,https://github.com/open-telemetry/opentelemetry-go,Apache-2.0,
 gopkg.in/DataDog/dd-trace-go.v1,https://github.com/DataDog/dd-trace-go,Apache-2.0,Datadog
+babel-core,https://github.com/babel/babel/tree/master/packages/babel-core,MIT,
+babel-preset-env,https://github.com/babel/babel,MIT,
+babelify,https://github.com/babel/babelify,MIT,
