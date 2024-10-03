@@ -1,0 +1,51 @@
+name: Go CDK Deploy
+
+on:
+    push:
+      paths:
+        - src/go/**
+    workflow_dispatch:
+    pull_request:
+      types: [opened]
+      paths:
+        - src/go/**
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  package-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+      - name: Install CDK
+        run: |
+          npm install -g aws-cdk
+      - uses: actions/setup-go@v5
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: "eu-west-1"
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Deploy to AWS
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: ${{ env.sha_short }}
+          DD_SECRET_ARN: ${{secrets.DD_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          make cdk-go
+          

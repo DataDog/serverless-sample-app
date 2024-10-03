@@ -28,6 +28,9 @@ cdk-dotnet:
 cdk-java:
 	cd src/java;mvn clean package;cd cdk;cdk deploy --all --require-approval never --concurrency 3
 
+cdk-go:
+	cd src/go/cdk; cdk deploy --require-approval never --all --concurrency 3
+
 cdk-dotnet-dev:
 	cd src/dotnet/cdk; cdk deploy --require-approval never --all --hotswap-fallback --concurrency 3
 
