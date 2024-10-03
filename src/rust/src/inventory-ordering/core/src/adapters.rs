@@ -3,7 +3,6 @@ use opentelemetry::trace::TraceContextExt;
 use serde::Serialize;
 use tracing::instrument;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
-use tracing_subscriber::registry::Data;
 
 use crate::core::OrderingWorkflow;
 

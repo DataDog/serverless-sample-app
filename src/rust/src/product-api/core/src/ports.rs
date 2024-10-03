@@ -135,7 +135,7 @@ impl ListProductsQuery {
 
 pub async fn execute_list_products_query<T: Repository>(
     repository: &T,
-    get_product_query: ListProductsQuery,
+    _list_products_query: ListProductsQuery,
 ) -> Result<Vec<ProductDTO>, ApplicationError> {
     let products = repository
         .list_products()

@@ -3,7 +3,7 @@ use aws_lambda_events::http::HeaderMap;
 use aws_lambda_events::sns::{SnsMessage, SnsRecord};
 use aws_lambda_events::sqs::SqsMessage;
 use opentelemetry::trace::{
-    FutureExt, Span, SpanContext, SpanId, SpanKind, TraceContextExt, TraceFlags, TraceId,
+    Span, SpanContext, SpanId, SpanKind, TraceContextExt, TraceFlags, TraceId,
     TraceState, Tracer,
 };
 use opentelemetry::{global, Context, KeyValue};
