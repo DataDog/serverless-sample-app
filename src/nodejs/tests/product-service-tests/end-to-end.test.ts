@@ -10,8 +10,9 @@ import axios from "axios";
 
 import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 import { SFNClient, ListStateMachinesCommand, ListExecutionsCommand } from "@aws-sdk/client-sfn";
+import { ApiDriver } from "./apiDriver";
 
-let apiEndpoint = "";
+let apiDriver: ApiDriver
 let stepFunctionsClient: SFNClient;
 let stepFunctionArn = "";
 
@@ -19,7 +20,7 @@ let stepFunctionArn = "";
 describe("end-to-end-tests", () => {
   beforeAll(async () => {
     if (process.env.API_ENDPOINT !== undefined) {
-      apiEndpoint = process.env.API_ENDPOINT;
+      apiDriver = new ApiDriver(process.env.API_ENDPOINT);
       return;
     }
 
@@ -29,7 +30,7 @@ describe("end-to-end-tests", () => {
         Name: "/node/product/api-endpoint",
       })
     );
-    apiEndpoint = parameter.Parameter!.Value!;
+    apiDriver = new ApiDriver(parameter.Parameter!.Value!);
 
     stepFunctionsClient = new SFNClient();
     const allStepFunctions = await stepFunctionsClient.send(
@@ -47,10 +48,7 @@ describe("end-to-end-tests", () => {
   it("should be able to run through entire product lifecycle, CRUD", async () => {
     const testStart = new Date();
     const testProductName = uuidv4();
-    const createProductResult = await axios.post(`${apiEndpoint}/product`, {
-      name: testProductName,
-      price: 12.99,
-    });
+    const createProductResult = await apiDriver.createProduct(testProductName, 12.99);
 
     expect(createProductResult.status).toBe(201);
     expect(createProductResult.data.data.productId).toBe(
@@ -60,45 +58,38 @@ describe("end-to-end-tests", () => {
     const productId = createProductResult.data.data.productId;
     console.log(`ProductID is ${productId}`);
 
-    const listProductResult = await axios.get(
-      `${apiEndpoint}/product`
-    );
+    const listProductResult = await apiDriver.listProducts();
 
     expect(listProductResult.status).toBe(200);
 
-    let getProductResult = await axios.get<HandlerResponse<ProductDTO>>(
-      `${apiEndpoint}/product/${productId}`
-    );
+    let getProductResult = await apiDriver.getProduct(productId);
 
     expect(getProductResult.status).toBe(200);
     expect(getProductResult.data.data!.name).toBe(testProductName);
     expect(getProductResult.data.data!.price).toBe(12.99);
 
-    const updateProductResult = await axios.put(`${apiEndpoint}/product`, {
-      id: productId,
-      name: "New name",
-      price: 15.99,
-    });
+    const updateProductResult = await apiDriver.updateProduct(productId, "New Name", 50);
 
     expect(updateProductResult.status).toBe(200);
-    expect(updateProductResult.data.data.name).toBe("New name");
-    expect(updateProductResult.data.data.price).toBe(15.99);
+    expect(updateProductResult.data.data.name).toBe("New Name");
+    expect(updateProductResult.data.data.price).toBe(50);
 
-    const deleteProductResult = await axios.delete(
-      `${apiEndpoint}/product/${productId}`
-    );
+    // Let async processes run
+    await delay(5000);
+
+    getProductResult = await apiDriver.getProduct(productId);
+
+    expect(getProductResult.data.data!.pricingBrackets.length).toBe(5);
+
+    const deleteProductResult = await apiDriver.deleteProduct(productId);
 
     expect(deleteProductResult.status).toBe(200);
 
     try {
-      await axios.get(
-        `${apiEndpoint}/product/${productId}`
-      );
+      await apiDriver.getProduct(productId);
     } catch (error: any) {
       expect(error.response.status).toBe(404);
     }
-
-    await delay(5000);
 
     const stepFunctionExecutions = await stepFunctionsClient.send(new ListExecutionsCommand({
       stateMachineArn: stepFunctionArn
@@ -107,12 +98,6 @@ describe("end-to-end-tests", () => {
     const recentExecution = stepFunctionExecutions.executions?.filter(execution => execution.startDate! > testStart);
 
     expect(recentExecution?.length).toBe(1)
-
-    getProductResult = await axios.get<HandlerResponse<ProductDTO>>(
-      `${apiEndpoint}/product/${productId}`
-    );
-
-    expect(getProductResult.data.data!.pricingBrackets.length).toBe(5);
 
   }, 20000);
 });
