@@ -54,6 +54,7 @@ jobs:
           ENV: "test"
           DD_SECRET_ARN: ${{secrets.DD_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
+          RUNTIME: "Node"
         run: |
-          make end-to-end-test-nodejs
+          make end-to-end-test
           

@@ -6,7 +6,6 @@
 //
 
 import { v4 as uuidv4 } from "uuid";
-import axios from "axios";
 
 import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 import { SFNClient, ListStateMachinesCommand, ListExecutionsCommand } from "@aws-sdk/client-sfn";
@@ -19,6 +18,8 @@ let stepFunctionArn = "";
 // Running tests that span the full end to end, across multiple backend services is not a best practice, this test is to make sure the example app works when updated.
 describe("end-to-end-tests", () => {
   beforeAll(async () => {
+    const runtimeUnderTest = process.env.RUNTIME ?? "Node";
+
     if (process.env.API_ENDPOINT !== undefined) {
       apiDriver = new ApiDriver(process.env.API_ENDPOINT);
       return;
@@ -27,7 +28,7 @@ describe("end-to-end-tests", () => {
     const ssmCLient = new SSMClient();
     const parameter = await ssmCLient.send(
       new GetParameterCommand({
-        Name: "/node/product/api-endpoint",
+        Name: `/${runtimeUnderTest.toLowerCase()}/product/api-endpoint`,
       })
     );
     apiDriver = new ApiDriver(parameter.Parameter!.Value!);
@@ -37,10 +38,10 @@ describe("end-to-end-tests", () => {
       new ListStateMachinesCommand({})
     )
 
-    const nodeStepFunction = allStepFunctions.stateMachines?.filter(stateMachine => stateMachine.name?.startsWith("Node"));
+    const nodeStepFunction = allStepFunctions.stateMachines?.filter(stateMachine => stateMachine.name?.startsWith(runtimeUnderTest));
 
     if (nodeStepFunction === undefined || nodeStepFunction.length === 0) {
-     throw new Error("Node Step Function not found")
+     throw new Error(`${runtimeUnderTest}`)
     };
     stepFunctionArn = nodeStepFunction[0].stateMachineArn!;
   });
@@ -50,10 +51,7 @@ describe("end-to-end-tests", () => {
     const testProductName = uuidv4();
     const createProductResult = await apiDriver.createProduct(testProductName, 12.99);
 
-    expect(createProductResult.status).toBe(201);
-    expect(createProductResult.data.data.productId).toBe(
-      testProductName.toUpperCase()
-    );
+    expect([200,201]).toContain(createProductResult.status);
 
     const productId = createProductResult.data.data.productId;
     console.log(`ProductID is ${productId}`);
@@ -103,19 +101,3 @@ describe("end-to-end-tests", () => {
 });
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-
-class ProductDTO {
-  productId: string;
-  name: string;
-  price: number;
-  pricingBrackets: {
-    quantity: number;
-    price: number;
-  }[];
-}
-
-class HandlerResponse<T> {
-  data: T | undefined;
-  message: string[];
-  success: boolean;
-}

@@ -22,7 +22,7 @@ cdk-rust:
 cdk-nodejs:
 	cd src/nodejs; npm i; cdk deploy --require-approval never --all --concurrency 3
 
-end-to-end-test-nodejs:
+end-to-end-test:
 	cd src/nodejs; npm i; npm run test -- product-service
 
 cdk-dotnet:
