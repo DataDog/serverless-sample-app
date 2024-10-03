@@ -6,18 +6,17 @@
 //
 
 import { v4 as uuidv4 } from "uuid";
-import exp = require("constants");
 import axios from "axios";
-import {
-  CloudFormationClient,
-  DescribeStacksCommand,
-} from "@aws-sdk/client-cloudformation";
 
 import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
+import { SFNClient, ListStateMachinesCommand, ListExecutionsCommand } from "@aws-sdk/client-sfn";
 
 let apiEndpoint = "";
+let stepFunctionsClient: SFNClient;
+let stepFunctionArn = "";
 
-describe("product-service-tests", () => {
+// Running tests that span the full end to end, across multiple backend services is not a best practice, this test is to make sure the example app works when updated.
+describe("end-to-end-tests", () => {
   beforeAll(async () => {
     if (process.env.API_ENDPOINT !== undefined) {
       apiEndpoint = process.env.API_ENDPOINT;
@@ -31,9 +30,24 @@ describe("product-service-tests", () => {
       })
     );
     apiEndpoint = parameter.Parameter!.Value!;
+
+    stepFunctionsClient = new SFNClient();
+    const allStepFunctions = await stepFunctionsClient.send(
+      new ListStateMachinesCommand({})
+    )
+
+    allStepFunctions.stateMachines?.forEach(machine => console.log(machine.name));
+
+    const nodeStepFunction = allStepFunctions.stateMachines?.filter(stateMachine => stateMachine.name?.startsWith("Node"));
+
+    if (nodeStepFunction === undefined || nodeStepFunction.length === 0) {
+     throw new Error("Node Step Function not found")
+    };
+    stepFunctionArn = nodeStepFunction[0].stateMachineArn!;
   });
 
   it("should be able to run through entire product lifecycle, CRUD", async () => {
+    const testStart = new Date();
     const testProductName = uuidv4();
     const createProductResult = await axios.post(`${apiEndpoint}/product`, {
       name: testProductName,
@@ -46,6 +60,13 @@ describe("product-service-tests", () => {
     );
 
     const productId = createProductResult.data.data.productId;
+
+    const listProductResult = await axios.get(
+      `${apiEndpoint}/product`
+    );
+
+    expect(listProductResult.status).toBe(200);
+    expect(listProductResult.data.data.len).toBeGreaterThan(0);
 
     const getProductResult = await axios.get(
       `${apiEndpoint}/product/${productId}`
@@ -78,5 +99,14 @@ describe("product-service-tests", () => {
     } catch (error: any) {
       expect(error.response.status).toBe(404);
     }
+
+    const stepFunctionExecutions = await stepFunctionsClient.send(new ListExecutionsCommand({
+      stateMachineArn: stepFunctionArn
+    }));
+
+    const recentExecution = stepFunctionExecutions.executions?.filter(execution => execution.startDate! > testStart)
+
+    expect(recentExecution?.length).toBe(1)
+
   }, 15000);
 });
