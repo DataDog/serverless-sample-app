@@ -66,13 +66,13 @@ describe("end-to-end-tests", () => {
 
     expect(listProductResult.status).toBe(200);
 
-    const getProductResult = await axios.get(
+    let getProductResult = await axios.get<HandlerResponse<ProductDTO>>(
       `${apiEndpoint}/product/${productId}`
     );
 
     expect(getProductResult.status).toBe(200);
-    expect(getProductResult.data.data.name).toBe(testProductName);
-    expect(getProductResult.data.data.price).toBe(12.99);
+    expect(getProductResult.data.data!.name).toBe(testProductName);
+    expect(getProductResult.data.data!.price).toBe(12.99);
 
     const updateProductResult = await axios.put(`${apiEndpoint}/product`, {
       id: productId,
@@ -108,7 +108,29 @@ describe("end-to-end-tests", () => {
 
     expect(recentExecution?.length).toBe(1)
 
+    getProductResult = await axios.get<HandlerResponse<ProductDTO>>(
+      `${apiEndpoint}/product/${productId}`
+    );
+
+    expect(getProductResult.data.data!.pricingBrackets.length).toBe(5);
+
   }, 20000);
 });
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+class ProductDTO {
+  productId: string;
+  name: string;
+  price: number;
+  pricingBrackets: {
+    quantity: number;
+    price: number;
+  }[];
+}
+
+class HandlerResponse<T> {
+  data: T | undefined;
+  message: string[];
+  success: boolean;
+}
