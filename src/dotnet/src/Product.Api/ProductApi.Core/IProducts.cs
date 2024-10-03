@@ -6,6 +6,8 @@ namespace ProductApi.Core;
 
 public interface IProducts
 {
+    Task<List<Product>> All();
+    
     Task<Product?> WithId(string productId);
     
     Task RemoveWithId(string productId);

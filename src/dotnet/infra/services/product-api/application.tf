@@ -68,7 +68,6 @@ resource "aws_iam_role_policy_attachment" "get_product_lambda_dynamo_db_read" {
   policy_arn = aws_iam_policy.dynamo_db_read.arn
 }
 
-
 module "get_product_lambda_api" {
   source        = "../../modules/api-gateway-lambda-integration"
   api_id        = module.api_gateway.api_id
@@ -77,6 +76,34 @@ module "get_product_lambda_api" {
   function_name = module.get_product_lambda.function_name
   http_method   = "GET"
   route         = "/product/{productId}"
+}
+
+module "list_products_lambda" {
+  publish_directory = "../src/Product.Api/ProductApi.Adapters/bin/Release/net8.0/ProductApi.Adapters.zip"
+  service_name   = "DotnetProductApi"
+  source         = "../../modules/lambda-function"
+  function_name  = "DotnetListProducts"
+  lambda_handler = "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_ListProducts_Generated::ListProducts"
+  environment_variables = {
+    "TABLE_NAME" : aws_dynamodb_table.dotnet_product_api.name
+  }
+  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
+}
+
+resource "aws_iam_role_policy_attachment" "list_products_lambda_dynamo_db_read" {
+  role       = module.list_products_lambda.function_role_name
+  policy_arn = aws_iam_policy.dynamo_db_read.arn
+}
+
+module "list_products_lambda_api" {
+  source        = "../../modules/api-gateway-lambda-integration"
+  api_id        = module.api_gateway.api_id
+  api_arn       = module.api_gateway.api_arn
+  function_arn  = module.list_products_lambda.function_arn
+  function_name = module.list_products_lambda.function_name
+  http_method   = "GET"
+  route         = "/product"
 }
 
 resource "aws_sns_topic" "product_updated" {

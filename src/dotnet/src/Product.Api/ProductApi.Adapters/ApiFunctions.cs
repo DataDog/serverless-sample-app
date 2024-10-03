@@ -9,6 +9,7 @@ using Datadog.Trace;
 using ProductApi.Core.CreateProduct;
 using ProductApi.Core.DeleteProduct;
 using ProductApi.Core.GetProduct;
+using ProductApi.Core.ListProducts;
 using ProductApi.Core.UpdateProduct;
 
 namespace ProductApi.Adapters;
@@ -17,10 +18,31 @@ public class ApiFunctions(
     CreateProductCommandHandler createProductHandler,
     DeleteProductCommandHandler deleteProductHandler,
     UpdateProductCommandHandler updateProductHandler,
-    GetProductQueryHandler getProductQueryHandler)
+    GetProductQueryHandler getProductQueryHandler,
+    ListProductsQueryHandler listProductsQueryHandler)
 {
     [LambdaFunction]
-    [HttpApi(LambdaHttpMethod.Get, "/product/{productId}")]
+    [RestApi(LambdaHttpMethod.Get, "/product")]
+    public async Task<IHttpResult> ListProducts()
+    {
+        var activeSpan = Tracer.Instance.ActiveScope?.Span;
+        
+        try
+        {
+            var result = await listProductsQueryHandler.Handle(new ListProductsQuery());
+
+            return result.IsSuccess ? HttpResults.Ok(result) : HttpResults.BadRequest(result);
+        }
+        catch (Exception ex)
+        {
+            activeSpan?.SetException(ex);
+            Logger.LogError(ex, "Failure retrieving product");
+            return HttpResults.NotFound();
+        }
+    }
+    
+    [LambdaFunction]
+    [RestApi(LambdaHttpMethod.Get, "/product/{productId}")]
     public async Task<IHttpResult> GetProduct(string productId)
     {
         var activeSpan = Tracer.Instance.ActiveScope?.Span;
@@ -44,7 +66,7 @@ public class ApiFunctions(
     
     
     [LambdaFunction]
-    [HttpApi(LambdaHttpMethod.Post, "/product")]
+    [RestApi(LambdaHttpMethod.Post, "/product")]
     public async Task<IHttpResult> CreateProduct([FromBody] CreateProductCommand command)
     {
         var activeSpan = Tracer.Instance.ActiveScope?.Span;
@@ -67,7 +89,7 @@ public class ApiFunctions(
     }
 
     [LambdaFunction]
-    [HttpApi(LambdaHttpMethod.Delete, "/product/{productId}")]
+    [RestApi(LambdaHttpMethod.Delete, "/product/{productId}")]
     public async Task<IHttpResult> DeleteProduct(string productId)
     {
         var activeSpan = Tracer.Instance.ActiveScope?.Span;
@@ -90,7 +112,7 @@ public class ApiFunctions(
     }
 
     [LambdaFunction]
-    [HttpApi(LambdaHttpMethod.Put, "/product")]
+    [RestApi(LambdaHttpMethod.Put, "/product")]
     public async Task<IHttpResult> UpdateProduct([FromBody] UpdateProductCommand command)
     {
         var activeSpan = Tracer.Instance.ActiveScope?.Span;

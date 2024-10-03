@@ -19,6 +19,22 @@ public class DynamoDbProducts(
     private const string NameItemKey = "Name";
     private const string PriceItemKey = "Price";
     private const string PriceBracketsItemKey = "PriceBrackets";
+    public async Task<List<Product>> All()
+    {
+        var productScanResult = await dynamoDbClient.ScanAsync(new ScanRequest(configuration["TABLE_NAME"]));
+        
+        var products = new List<Product>();
+
+        foreach (var productItem in productScanResult.Items)
+        {
+            var priceBracketProperty = productItem[PriceBracketsItemKey]?.S ?? "[]";
+            
+            products.Add(Product.From(new ProductId(productItem[PartitionKeyItemKey].S), new ProductName(productItem[NameItemKey].S), new ProductPrice(decimal.Parse(productItem[PriceItemKey].N)), JsonSerializer.Deserialize<List<ProductPriceBracket>>(priceBracketProperty)!));
+        }
+        
+        return products;
+    }
+
     public async Task<Product?> WithId(string productId)
     {
         var product = await dynamoDbClient.GetItemAsync(configuration["TABLE_NAME"],

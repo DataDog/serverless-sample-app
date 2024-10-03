@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ProductApi.Core.CreateProduct;
 using ProductApi.Core.DeleteProduct;
 using ProductApi.Core.GetProduct;
+using ProductApi.Core.ListProducts;
 using ProductApi.Core.PricingChanged;
 using ProductApi.Core.UpdateProduct;
 
@@ -19,6 +20,7 @@ public static class Startup
         services.AddSingleton<DeleteProductCommandHandler>();
         services.AddSingleton<UpdateProductCommandHandler>();
         services.AddSingleton<GetProductQueryHandler>();
+        services.AddSingleton<ListProductsQueryHandler>();
         services.AddSingleton<PricingUpdatedEventHandler>();
 
         return services;

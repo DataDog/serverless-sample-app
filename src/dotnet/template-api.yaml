@@ -58,6 +58,30 @@ Globals:
       AllowOrigin: "'http://localhost:8080'"
 
 Resources:
+  ListProductsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/Product.Api/ProductApi.Adapters/
+      Handler: ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_ListProducts_Generated::ListProducts
+      FunctionName: !Sub ListProductFunctions-${Env}
+      Events:
+        GetProduct:
+          Type: Api
+          Properties: 
+            Path: /product
+            Method: get
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName:
+              !Ref ProductApiTable
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+                - dynamodb:GetItem
+              Resource: !Ref DDApiKeySecretArn
+
   GetProductFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -66,13 +90,10 @@ Resources:
       FunctionName: !Sub GetProductFunction-${Env}
       Events:
         GetProduct:
-          Type: HttpApi
+          Type: Api
           Properties: 
             Path: /product/{productId}
             Method: get
-      Environment:
-        Variables:
-          spring_cloud_function_definition: handleGetProduct
       Policies:
         - DynamoDBReadPolicy:
             TableName:
@@ -93,7 +114,7 @@ Resources:
       FunctionName: !Sub CreateProductFunction-${Env}
       Events:
         GetProduct:
-          Type: HttpApi
+          Type: Api
           Properties: 
             Path: /product
             Method: post
@@ -126,7 +147,7 @@ Resources:
       FunctionName: !Sub UpdateProductFunction-${Env}
       Events:
         GetProduct:
-          Type: HttpApi
+          Type: Api
           Properties: 
             Path: /product
             Method: put
@@ -158,7 +179,7 @@ Resources:
       FunctionName: !Sub DeleteProductFunction-${Env}
       Events:
         GetProduct:
-          Type: HttpApi
+          Type: Api
           Properties: 
             Path: /product/{productId}
             Method: delete
@@ -238,11 +259,11 @@ Resources:
     Properties:
       Name: /dotnet/product/api-endpoint
       Type: String
-      Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
 
 Outputs:
   DotnetProductApiEndpoint:
     Description: Product API Endpoint
-    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
     Export:
       Name: DotnetProductApiEndpoint

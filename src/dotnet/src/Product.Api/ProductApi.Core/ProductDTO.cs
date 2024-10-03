@@ -18,6 +18,5 @@ public class ProductDto(Product product)
     public decimal Price { get; set; } = product.Details.Price;
 
     [JsonPropertyName("pricingBrackets")]
-    public Dictionary<decimal, decimal> PriceBrackets { get; set; } = product.PriceBrackets
-        .Select(bracket => new KeyValuePair<decimal, decimal>(bracket.Quantity, bracket.Price)).ToDictionary();
+    public List<ProductPriceBracket> PriceBrackets { get; set; } = product.PriceBrackets;
 }
