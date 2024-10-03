@@ -153,7 +153,7 @@ public class ProductApi extends Construct {
                 .build());
 
         StringParameter apiEndpoint = new StringParameter(this, "ApiEndpoint", StringParameterProps.builder()
-                .parameterName("/java/product-api/api-endpoint")
+                .parameterName("/java/product/api-endpoint")
                 .stringValue(this.api.getUrl())
                 .build());
         
