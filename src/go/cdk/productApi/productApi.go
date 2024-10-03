@@ -58,7 +58,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	listProductsFunction := sharedconstructs.NewInstrumentedFunction(scope, "ListProductsFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.SharedProps,
 		Entry:                "../src/product-api/list-products/",
-		FunctionName:         fmt.Sprintf("ListProducts-%s", props.SharedProps.Env),
+		FunctionName:         fmt.Sprintf("GoListProducts-%s", props.SharedProps.Env),
 		EnvironmentVariables: environmentVariables,
 	})
 
@@ -67,7 +67,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	createProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "CreateProductFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.SharedProps,
 		Entry:                "../src/product-api/create-product/",
-		FunctionName:         fmt.Sprintf("CreateProduct-%s", props.SharedProps.Env),
+		FunctionName:         fmt.Sprintf("GoCreateProduct-%s", props.SharedProps.Env),
 		EnvironmentVariables: environmentVariables,
 	})
 	table.GrantReadWriteData(createProductFunction.Function)
@@ -76,7 +76,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	getProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "GetProductFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.SharedProps,
 		Entry:                "../src/product-api/get-product/",
-		FunctionName:         fmt.Sprintf("GetProduct-%s", props.SharedProps.Env),
+		FunctionName:         fmt.Sprintf("GoGetProduct-%s", props.SharedProps.Env),
 		EnvironmentVariables: environmentVariables,
 	})
 
@@ -85,7 +85,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	updateProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "UpdateProductFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.SharedProps,
 		Entry:                "../src/product-api/update-product/",
-		FunctionName:         fmt.Sprintf("UpdateProduct-%s", props.SharedProps.Env),
+		FunctionName:         fmt.Sprintf("GoUpdateProduct-%s", props.SharedProps.Env),
 		EnvironmentVariables: environmentVariables,
 	})
 	table.GrantReadWriteData(updateProductFunction.Function)
@@ -94,7 +94,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	deleteProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "DeleteProductFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.SharedProps,
 		Entry:                "../src/product-api/delete-product/",
-		FunctionName:         fmt.Sprintf("DeleteProduct-%s", props.SharedProps.Env),
+		FunctionName:         fmt.Sprintf("GoDeleteProduct-%s", props.SharedProps.Env),
 		EnvironmentVariables: environmentVariables,
 	})
 	table.GrantReadWriteData(deleteProductFunction.Function)

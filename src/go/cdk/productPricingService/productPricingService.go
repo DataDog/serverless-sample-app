@@ -36,7 +36,7 @@ func NewProductPricingService(scope constructs.Construct, id string, props *Prod
 	handleProductCreatedFunction := sharedconstructs.NewInstrumentedFunction(scope, "PricingHandleProductCreated", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.SharedProps,
 		Entry:                "../src/product-pricing-service/handle-product-created/",
-		FunctionName:         fmt.Sprintf("PricingHandlerProductCreated-%s", props.SharedProps.Env),
+		FunctionName:         fmt.Sprintf("GoPricingHandlerProductCreated-%s", props.SharedProps.Env),
 		EnvironmentVariables: environmentVariables,
 	})
 
@@ -52,7 +52,7 @@ func NewProductPricingService(scope constructs.Construct, id string, props *Prod
 	handleProductUpdatedFunction := sharedconstructs.NewInstrumentedFunction(scope, "PricingHandleProductUpdated", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.SharedProps,
 		Entry:                "../src/product-pricing-service/handle-product-updated/",
-		FunctionName:         fmt.Sprintf("PricingHandlerProductUpdated-%s", props.SharedProps.Env),
+		FunctionName:         fmt.Sprintf("GoPricingHandlerProductUpdated-%s", props.SharedProps.Env),
 		EnvironmentVariables: environmentVariables,
 	})
 	priceCalculatedTopic.GrantPublish(handleProductUpdatedFunction.Function)

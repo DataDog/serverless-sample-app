@@ -33,7 +33,7 @@ func NewProductApiWorkerService(scope constructs.Construct, id string, props *Pr
 	handlePricingChangedFunction := sharedconstructs.NewInstrumentedFunction(scope, "ProductApiHandlerPricingChanged", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.SharedProps,
 		Entry:                "../src/product-api/handle-pricing-changed/",
-		FunctionName:         fmt.Sprintf("ProductApiHandlePricingChanged-%s", props.SharedProps.Env),
+		FunctionName:         fmt.Sprintf("GoProductApiHandlePricingChanged-%s", props.SharedProps.Env),
 		EnvironmentVariables: environmentVariables,
 	})
 
