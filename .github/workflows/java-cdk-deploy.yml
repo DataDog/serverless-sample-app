@@ -1,14 +1,14 @@
-name: NodeJS CDK Deploy
+name: .NET CDK Deploy
 
 on:
     push:
       paths:
-        - src/nodejs/**
+        - src/java/**
     workflow_dispatch:
     pull_request:
       types: [opened]
       paths:
-        - src/nodejs/**
+        - src/java/**
 
 permissions:
   id-token: write
@@ -25,9 +25,15 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "20"
-      - name: Install Python dependencies and CDK
+      - name: Install CDK
         run: |
           npm install -g aws-cdk
+      - name: Set up Java 21 for x64
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+          architecture: x64
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@master
         with:
@@ -46,5 +52,5 @@ jobs:
           DD_SECRET_ARN: ${{secrets.DD_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
         run: |
-          make cdk-nodejs
+          make cdk-java
           
