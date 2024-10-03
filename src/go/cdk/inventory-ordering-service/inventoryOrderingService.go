@@ -30,7 +30,7 @@ type InventoryOrderingServiceProps struct {
 
 func NewInventoryOrderingService(scope constructs.Construct, id string, props *InventoryOrderingServiceProps) {
 	workflowLogGroup := awslogs.NewLogGroup(scope, jsii.String("InventoryOrderingWorkflowLogGroup"), &awslogs.LogGroupProps{
-		LogGroupName:  jsii.Sprintf("/aws/vendedlogs/states/NodeInventoryOrderingServiceLogGroup-%s", props.SharedProps.Env),
+		LogGroupName:  jsii.Sprintf("/aws/vendedlogs/states/GoInventoryOrderingServiceLogGroup-%s", props.SharedProps.Env),
 		RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
 	})
 
