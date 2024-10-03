@@ -51,11 +51,8 @@ tf-dotnet-deploy:
 tf-dotnet-destroy:
 	cd src/dotnet/infra; terraform destroy --var-file dev.tfvars
 
-cdk-rust:
-	cd src/rust; cdk deploy --require-approval never --all
-
 cdk-rust-dev:
-	cd src/rust; cdk deploy --require-approval never --all --hotswap-fallback --concurrency 3
+	cd src/rust; npm i; cdk deploy --require-approval never --all --hotswap-fallback --concurrency 3
 
 cdk-rust-destroy:
 	cd src/rust; cdk destroy --all --require-approval never
