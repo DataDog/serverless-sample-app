@@ -54,7 +54,7 @@ public class ApiFunctions(
 
             var result = await getProductQueryHandler.Handle(new GetProductQuery(productId));
 
-            return result.IsSuccess ? HttpResults.Ok(result) : HttpResults.BadRequest(result);
+            return result.IsSuccess ? HttpResults.Ok(result) : HttpResults.NotFound(result);
         }
         catch (Exception ex)
         {

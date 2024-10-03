@@ -19,7 +19,7 @@ public class GetProductQueryHandler
 
         if (product is null)
         {
-            return new HandlerResponse<ProductDto>(null, false, new List<string>(1) { "Producty not found" });
+            return new HandlerResponse<ProductDto>(null, false, new List<string>(1) { "Product not found" });
         }
 
         return new HandlerResponse<ProductDto>(new ProductDto(product), true, new List<string>());
