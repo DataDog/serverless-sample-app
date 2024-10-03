@@ -23,6 +23,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -37,6 +38,29 @@ public class FunctionConfiguration {
 
     public static void main(String[] args) {
         SpringApplication.run(FunctionConfiguration.class, args);
+    }
+
+    @Bean
+    public Function<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> handleListProducts() {
+        return value -> {
+            HandlerResponse<List<ProductDTO>> products = service.listProducts();
+
+            try {
+                return APIGatewayV2HTTPResponse.builder()
+                        .withStatusCode(products.isSuccess() ? 200 : 404)
+                        .withBody(this.objectMapper.writeValueAsString(products))
+                        .withHeaders(Map.of("Content-Type", "application/json"))
+                        .build();
+            } catch (JsonProcessingException e) {
+                logger.error("an error occurred", e);
+
+                return APIGatewayV2HTTPResponse.builder()
+                        .withStatusCode(500)
+                        .withBody("{}")
+                        .withHeaders(Map.of("Content-Type", "application/json"))
+                        .build();
+            }
+        };
     }
 
     @Bean

@@ -9,6 +9,7 @@ package com.product.api.core;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.product.api.core.events.internal.ProductPriceCalculatedEvent;
 
+import com.sun.source.tree.VariableTree;
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
 import io.opentracing.tag.Tags;
@@ -30,6 +31,27 @@ public class ProductService {
     public ProductService(ProductRepository repository, EventPublisher eventPublisher) {
         this.repository = repository;
         this.eventPublisher = eventPublisher;
+    }
+
+    public HandlerResponse<List<ProductDTO>> listProducts() {
+        final Span span = GlobalTracer.get().activeSpan();
+        try {
+            var products = this.repository.listProducts();
+
+            ArrayList<ProductDTO> productResponse = new ArrayList<>();
+
+            for (Product product : products) {
+                productResponse.add(new ProductDTO(product));
+            }
+
+            return new HandlerResponse<>(productResponse, List.of("OK"), true);
+        } catch (Error error) {
+            logger.error("An exception occurred!", error);
+            span.setTag(Tags.ERROR, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, error));
+
+            return new HandlerResponse<>(null, List.of("Unknown error"), false);
+        }
     }
 
     public HandlerResponse<ProductDTO> getProduct(String productId) {

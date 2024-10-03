@@ -163,7 +163,7 @@ public class ProductApi extends Construct {
         return this.table;
     }
 
-    public IHttpApi getApi() {
+    public RestApi getApi() {
         return api;
     }
 }

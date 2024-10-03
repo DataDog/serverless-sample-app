@@ -59,6 +59,34 @@ Globals:
       AllowOrigin: "'http://localhost:8080'"
 
 Resources:
+  ListProductsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      FunctionName: !Sub ListProductsFunction-${Env}
+      Events:
+        GetProduct:
+          Type: Api
+          Properties:
+            Path: /product
+            Method: get
+      Environment:
+        Variables:
+          spring_cloud_function_definition: handleListProducts
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName:
+              !Ref ProductApiTable
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+                - dynamodb:GetItem
+              Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      SkipBuild: True
   GetProductFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -67,7 +95,7 @@ Resources:
       FunctionName: !Sub GetProductFunction-${Env}
       Events:
         GetProduct:
-          Type: HttpApi
+          Type: Api
           Properties: 
             Path: /product/{productId}
             Method: get
@@ -96,7 +124,7 @@ Resources:
       FunctionName: !Sub CreateProductFunction-${Env}
       Events:
         GetProduct:
-          Type: HttpApi
+          Type: Api
           Properties: 
             Path: /product
             Method: post
@@ -132,7 +160,7 @@ Resources:
       FunctionName: !Sub UpdateProductFunction-${Env}
       Events:
         GetProduct:
-          Type: HttpApi
+          Type: Api
           Properties: 
             Path: /product
             Method: put
@@ -167,7 +195,7 @@ Resources:
       FunctionName: !Sub DeleteProductFunction-${Env}
       Events:
         GetProduct:
-          Type: HttpApi
+          Type: Api
           Properties: 
             Path: /product/{productId}
             Method: delete
@@ -250,11 +278,11 @@ Resources:
     Properties:
       Name: /java/product/api-endpoint
       Type: String
-      Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
 
 Outputs:
   JavaProductApiEndpoint:
     Description: Product API Endpoint
-    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
     Export:
       Name: JavaProductApiEndpoint

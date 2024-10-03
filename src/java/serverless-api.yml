@@ -62,6 +62,17 @@ provider:
             - !Ref ProductDeletedTopic
 
 functions:
+  list:
+    handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+    environment:
+      spring_cloud_function_definition: handleListProducts
+    package:
+      artifact: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
+      individually: true
+    events:
+      - httpApi:
+          path: /product
+          method: get
   create:
     handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
     environment:

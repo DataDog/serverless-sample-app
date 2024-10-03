@@ -35,7 +35,7 @@ public class ProductApiStack extends Stack {
         var api = new ProductApi(this, "JavaProductApi", new ProductApiProps(sharedProps));
         
         var apiEndpointOutput = new CfnOutput(this, "JavaApiUrlOutput", CfnOutputProps.builder()
-                .value(api.getApi().getApiEndpoint())
+                .value(api.getApi().getUrl())
                 .exportName("ApiEndpoint")
                 .build());
     }

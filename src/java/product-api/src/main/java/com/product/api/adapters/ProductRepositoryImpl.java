@@ -20,6 +20,7 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
 import javax.management.AttributeValueExp;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,39 @@ public class ProductRepositoryImpl implements ProductRepository {
     public ProductRepositoryImpl(DynamoDbClient dynamoDB, ObjectMapper mapper) {
         this.dynamoDB = dynamoDB;
         this.mapper = mapper;
+    }
+
+    @Override
+    public List<Product> listProducts() {
+        ScanRequest request = ScanRequest.builder()
+                .tableName(System.getenv("TABLE_NAME"))
+                .build();
+        
+        var scanResult = dynamoDB.scan(request);
+        
+        ArrayList<Product> products = new ArrayList<>();
+
+        for (Map<String, AttributeValue> item : scanResult.items()) {
+            if (item.isEmpty() || !item.containsKey(NAME_KEY)) {
+                return null;
+            }
+
+            try {
+                String priceBracketString = item.get(PRICE_BRACKET_KEY).s();
+
+                logger.info(priceBracketString);
+
+                List<ProductPriceBracket> brackets = this.mapper.readValue(priceBracketString, new TypeReference<>() {});
+
+                products.add(new Product(item.get(PARTITION_KEY).s(), item.get(NAME_KEY).s(), Double.parseDouble(item.get(PRICE_KEY).n()), brackets));
+            }
+            catch (JsonProcessingException error){
+                logger.error("An exception occurred!", error);
+                products.add(new Product(item.get(PARTITION_KEY).s(), item.get(NAME_KEY).s(), Double.parseDouble(item.get(PRICE_KEY).n()), List.of()));
+            }
+        }
+        
+        return products;
     }
 
     @Override

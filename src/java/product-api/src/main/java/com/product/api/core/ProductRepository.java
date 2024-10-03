@@ -8,7 +8,10 @@ package com.product.api.core;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
+import java.util.List;
+
 public interface ProductRepository {
+    List<Product> listProducts();
     Product getProduct(String productId);
     Product createProduct(Product product) throws JsonProcessingException;
     Product updateProduct(Product product) throws JsonProcessingException;
