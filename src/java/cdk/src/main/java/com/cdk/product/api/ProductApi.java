@@ -68,7 +68,7 @@ public class ProductApi extends Construct {
         String packageName = "com.product.api";
 
         IFunction listProductFunction = new InstrumentedFunction(this, "ListProductJavaFunction",
-                new InstrumentedFunctionProps(props.sharedProps(), packageName, apiJarFile,"handleListProduct", apiEnvironmentVariables)).getFunction();
+                new InstrumentedFunctionProps(props.sharedProps(), packageName, apiJarFile,"handleListProducts", apiEnvironmentVariables)).getFunction();
 
         this.table.grantReadData(listProductFunction);
         
