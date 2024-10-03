@@ -41,37 +41,34 @@ public class FunctionConfiguration {
     }
 
     @Bean
-    public Function<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> handleListProducts() {
+    public Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> handleListProducts() {
         return value -> {
             HandlerResponse<List<ProductDTO>> products = service.listProducts();
 
             try {
-                return APIGatewayV2HTTPResponse.builder()
+                return new APIGatewayProxyResponseEvent()
                         .withStatusCode(products.isSuccess() ? 200 : 404)
                         .withBody(this.objectMapper.writeValueAsString(products))
-                        .withHeaders(Map.of("Content-Type", "application/json"))
-                        .build();
+                        .withHeaders(Map.of("Content-Type", "application/json"));
             } catch (JsonProcessingException e) {
                 logger.error("an error occurred", e);
 
-                return APIGatewayV2HTTPResponse.builder()
+                return new APIGatewayProxyResponseEvent()
                         .withStatusCode(500)
                         .withBody("{}")
-                        .withHeaders(Map.of("Content-Type", "application/json"))
-                        .build();
+                        .withHeaders(Map.of("Content-Type", "application/json"));
             }
         };
     }
 
     @Bean
-    public Function<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> handleGetProduct() {
+    public Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> handleGetProduct() {
         return value -> {
             if (!value.getPathParameters().containsKey("productId")) {
-                return APIGatewayV2HTTPResponse.builder()
+                return new APIGatewayProxyResponseEvent()
                         .withStatusCode(400)
                         .withBody("{}")
-                        .withHeaders(Map.of("Content-Type", "application/json"))
-                        .build();
+                        .withHeaders(Map.of("Content-Type", "application/json"));
             }
 
             String productId = value.getPathParameters().get("productId");
@@ -79,32 +76,32 @@ public class FunctionConfiguration {
             HandlerResponse<ProductDTO> productDTO = service.getProduct(productId);
 
             try {
-                return APIGatewayV2HTTPResponse.builder()
+                return new APIGatewayProxyResponseEvent()
                         .withStatusCode(productDTO.isSuccess() ? 200 : 404)
                         .withBody(this.objectMapper.writeValueAsString(productDTO))
                         .withHeaders(Map.of("Content-Type", "application/json"))
-                        .build();
+                        ;
             } catch (JsonProcessingException e) {
                 logger.error("an error occurred", e);
 
-                return APIGatewayV2HTTPResponse.builder()
+                return new APIGatewayProxyResponseEvent()
                         .withStatusCode(500)
                         .withBody("{}")
                         .withHeaders(Map.of("Content-Type", "application/json"))
-                        .build();
+                        ;
             }
         };
     }
 
     @Bean
-    public Function<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> handleCreateProduct() {
+    public Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> handleCreateProduct() {
         return value -> {
             if (value.getBody() == null) {
-                return APIGatewayV2HTTPResponse.builder()
+                return new APIGatewayProxyResponseEvent()
                         .withStatusCode(400)
                         .withBody("{}")
                         .withHeaders(Map.of("Content-Type", "application/json"))
-                        .build();
+                        ;
             }
 
             try {
@@ -112,32 +109,32 @@ public class FunctionConfiguration {
 
                 var result = this.service.createProduct(request);
 
-                return APIGatewayV2HTTPResponse.builder()
+                return new APIGatewayProxyResponseEvent()
                         .withStatusCode(result.isSuccess() ? 201 : 400)
                         .withBody(this.objectMapper.writeValueAsString(result))
                         .withHeaders(Map.of("Content-Type", "application/json"))
-                        .build();
+                        ;
             } catch (JsonProcessingException | Error e) {
                 logger.error("an exception occurred", e);
 
-                return APIGatewayV2HTTPResponse.builder()
+                return new APIGatewayProxyResponseEvent()
                         .withStatusCode(500)
                         .withBody("{}")
                         .withHeaders(Map.of("Content-Type", "application/json"))
-                        .build();
+                        ;
             }
         };
     }
 
     @Bean
-    public Function<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> handleUpdateProduct() {
+    public Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> handleUpdateProduct() {
         return value -> {
             if (value.getBody() == null) {
-                return APIGatewayV2HTTPResponse.builder()
+                return new APIGatewayProxyResponseEvent()
                         .withStatusCode(400)
                         .withBody("{}")
                         .withHeaders(Map.of("Content-Type", "application/json"))
-                        .build();
+                        ;
             }
 
             try {
@@ -145,32 +142,32 @@ public class FunctionConfiguration {
 
                 var result = this.service.updateProduct(request);
 
-                return APIGatewayV2HTTPResponse.builder()
+                return new APIGatewayProxyResponseEvent()
                         .withStatusCode(result.isSuccess() ? 200 : 400)
                         .withBody(this.objectMapper.writeValueAsString(result))
                         .withHeaders(Map.of("Content-Type", "application/json"))
-                        .build();
+                        ;
             } catch (JsonProcessingException | Error e) {
                 logger.error("an exception occurred", e);
 
-                return APIGatewayV2HTTPResponse.builder()
+                return new APIGatewayProxyResponseEvent()
                         .withStatusCode(500)
                         .withBody("{}")
                         .withHeaders(Map.of("Content-Type", "application/json"))
-                        .build();
+                        ;
             }
         };
     }
 
     @Bean
-    public Function<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> handleDeleteProduct() {
+    public Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> handleDeleteProduct() {
         return value -> {
             if (!value.getPathParameters().containsKey("productId")) {
-                return APIGatewayV2HTTPResponse.builder()
+                return new APIGatewayProxyResponseEvent()
                         .withStatusCode(400)
                         .withBody("{}")
                         .withHeaders(Map.of("Content-Type", "application/json"))
-                        .build();
+                        ;
             }
 
             String productId = value.getPathParameters().get("productId");
@@ -178,19 +175,19 @@ public class FunctionConfiguration {
             HandlerResponse<Boolean> result = service.deleteProduct(productId);
 
             try {
-                return APIGatewayV2HTTPResponse.builder()
+                return new APIGatewayProxyResponseEvent()
                         .withStatusCode(result.isSuccess() ? 200 : 404)
                         .withBody(this.objectMapper.writeValueAsString(result))
                         .withHeaders(Map.of("Content-Type", "application/json"))
-                        .build();
+                        ;
             } catch (JsonProcessingException e) {
                 logger.error("an exception occurred", e);
 
-                return APIGatewayV2HTTPResponse.builder()
+                return new APIGatewayProxyResponseEvent()
                         .withStatusCode(500)
                         .withBody("{}")
                         .withHeaders(Map.of("Content-Type", "application/json"))
-                        .build();
+                        ;
             }
         };
     }

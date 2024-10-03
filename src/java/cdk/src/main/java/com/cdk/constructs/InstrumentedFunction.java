@@ -63,13 +63,13 @@ public class InstrumentedFunction extends Construct {
                 .code(Code.fromBucket(bucket, fileAsset.getS3ObjectKey()))
                 .layers(layers);
         
-        if (props.sharedProps().env().equals("prod")) {
+        if (props.sharedProps().env().equals("prod") || props.sharedProps().env().equals("test")) {
             builder.snapStart(SnapStartConf.ON_PUBLISHED_VERSIONS);
         }
 
         this.function = builder.build();
         
-        if (props.sharedProps().env() == "prod") {
+        if (props.sharedProps().env().equals("prod") || props.sharedProps().env().equals("test")) {
             var version = new Version(this, String.format("%sVersion", id), VersionProps.builder()
                     .lambda(this.function)
                     .build());
