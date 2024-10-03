@@ -16,14 +16,17 @@ test-dotnet:
 	dotnet test src/dotnet/src/Inventory.Ordering/Inventory.Ordering.Core.Test/Inventory.Ordering.Core.Test.csproj
 	dotnet test src/dotnet/src/Inventory.Acl/Inventory.Acl.Core.Test/Inventory.Acl.Core.Test.csproj
 
+cdk-rust:
+	cd src/rust; npm i; cdk deploy --require-approval never --all --concurrency 3
+
 cdk-nodejs:
-	cd src/nodejs; npm i; cdk deploy --require-approval never --all
+	cd src/nodejs; npm i; cdk deploy --require-approval never --all --concurrency 3
 
 cdk-dotnet:
-	cd src/dotnet/cdk; dotnet tool install -g Amazon.Lambda.Tools; cdk deploy --require-approval never --all
+	cd src/dotnet/cdk; dotnet tool install -g Amazon.Lambda.Tools; cdk deploy --require-approval never --all --concurrency 3
 
 cdk-java:
-	cd src/java;mvn clean package;cd cdk;cdk deploy --all --require-approval never
+	cd src/java;mvn clean package;cd cdk;cdk deploy --all --require-approval never --concurrency 3
 
 cdk-dotnet-dev:
 	cd src/dotnet/cdk; cdk deploy --require-approval never --all --hotswap-fallback --concurrency 3
