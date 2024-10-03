@@ -28,7 +28,6 @@ type ProductApiWorkerServiceProps struct {
 
 func NewProductApiWorkerService(scope constructs.Construct, id string, props *ProductApiWorkerServiceProps) {
 	environmentVariables := make(map[string]*string)
-	environmentVariables["ENV"] = jsii.String(props.SharedProps.Env)
 	environmentVariables["TABLE_NAME"] = jsii.String(*props.ProductTable.TableName())
 
 	handlePricingChangedFunction := sharedconstructs.NewInstrumentedFunction(scope, "ProductApiHandlerPricingChanged", &sharedconstructs.InstrumentedFunctionProps{
