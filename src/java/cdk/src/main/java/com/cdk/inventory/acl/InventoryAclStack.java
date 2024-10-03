@@ -26,8 +26,8 @@ public class InventoryAclStack extends Stack {
         ISecret ddApiKeySecret = Secret.fromSecretCompleteArn(this, "DDApiKeySecret", System.getenv("DD_SECRET_ARN"));
         
         String serviceName = "JavaInventoryAcl";
-        String env = "dev";
-        String version = "latest";
+        String env = System.getenv("ENV") == null ? "dev" : System.getenv("ENV");
+        String version = System.getenv("VERSION") == null ? "dev" : System.getenv("VERSION");
         
         SharedProps sharedProps = new SharedProps(serviceName, env, version, ddApiKeySecret);
         

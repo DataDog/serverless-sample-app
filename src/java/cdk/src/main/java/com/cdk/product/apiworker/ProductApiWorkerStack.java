@@ -29,8 +29,8 @@ public class ProductApiWorkerStack extends Stack {
         ISecret ddApiKeySecret = Secret.fromSecretCompleteArn(this, "DDApiKeySecret", System.getenv("DD_SECRET_ARN"));
         
         String serviceName = "JavaProductApi";
-        String env = "dev";
-        String version = "latest";
+        String env = System.getenv("ENV") == null ? "dev" : System.getenv("ENV");
+        String version = System.getenv("VERSION") == null ? "dev" : System.getenv("VERSION");
         
         SharedProps sharedProps = new SharedProps(serviceName, env, version, ddApiKeySecret);
 
