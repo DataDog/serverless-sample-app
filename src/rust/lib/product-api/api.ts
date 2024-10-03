@@ -74,7 +74,7 @@ export class Api extends Construct {
       props.sharedProps
     );
 
-    this.api = new RestApi(this, "ProductRestNodeApi", {
+    this.api = new RestApi(this, "RustProductApi", {
       defaultCorsPreflightOptions: {
         allowOrigins: ["http://localhost:8080"],
         allowHeaders: ["*"],
@@ -95,7 +95,7 @@ export class Api extends Construct {
   buildListProductsFunction(props: SharedProps): LambdaIntegration {
     const listProductsFunction = new InstrumentedLambdaFunction(
       this,
-      "ListProductsNodeFunction",
+      "ListProductsRustFunction",
       {
         sharedProps: props,
         functionName: "GetProductRustFunction",
