@@ -20,7 +20,7 @@ cdk-nodejs:
 	cd src/nodejs; npm i; cdk deploy --require-approval never --all
 
 cdk-dotnet:
-	cd src/dotnet/cdk; cdk deploy --require-approval never --all
+	cd src/dotnet/cdk; dotnet tool install -g Amazon.Lambda.Tools; cdk deploy --require-approval never --all
 
 cdk-dotnet-dev:
 	cd src/dotnet/cdk; cdk deploy --require-approval never --all --hotswap-fallback --concurrency 3
