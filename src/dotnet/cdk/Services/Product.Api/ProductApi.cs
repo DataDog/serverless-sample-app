@@ -60,7 +60,7 @@ public class ProductApi : Construct
             { "TABLE_NAME", Table.TableName },
         };
         
-        var listProductsFunction = new InstrumentedFunction(this, "GetProductFunction",
+        var listProductsFunction = new InstrumentedFunction(this, "ListProductsFunction",
             new FunctionProps(props.Shared,"ListProducts", "../src/Product.Api/ProductApi.Adapters/",
                 "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_ListProducts_Generated::ListProducts", apiEnvironmentVariables, props.DdApiKeySecret));
         Table.GrantReadData(listProductsFunction.Function);
