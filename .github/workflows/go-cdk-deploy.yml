@@ -17,6 +17,8 @@ permissions:
 jobs:
   package-and-test:
     runs-on: ubuntu-latest
+    concurrency:
+        group: go-cdk
     steps:
       -
         name: Checkout

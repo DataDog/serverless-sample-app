@@ -17,6 +17,8 @@ permissions:
 jobs:
   package-and-test:
     runs-on: ubuntu-latest
+    concurrency:
+        group: nodejs-cdk
     steps:
       -
         name: Checkout
