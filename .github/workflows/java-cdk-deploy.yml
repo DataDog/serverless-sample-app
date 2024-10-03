@@ -1,4 +1,4 @@
-name: .NET CDK Deploy
+name: Java CDK Deploy
 
 on:
     push:
