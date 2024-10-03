@@ -39,16 +39,16 @@ export class ProductPublicEventPublisher extends Construct {
 
     this.integrationEventPublisherQueue = new ResiliantQueue(
       this,
-      "ProductPublicEventPublisherQueue",
+      "NodeProductPublicEventPublisherQueue",
       {
         sharedProps: props.sharedProps,
-        queueName: "ProductPublicEventPublisherQueue",
+        queueName: "NodeProductPublicEventPublisherQueue",
       }
     ).queue;
 
     this.integrationEventPublisherFunction = new InstrumentedLambdaFunction(
       this,
-      "ProductPublicEventPublisher",
+      "NodeProductPublicEventPublisher",
       {
         sharedProps: props.sharedProps,
         functionName: "NodeProductPublicEventPublisher",

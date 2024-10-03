@@ -51,7 +51,7 @@ export class ApiWorker extends Construct {
 
     const productPricingDeadLetterQueue = new Queue(
       this,
-      "ProductApiPricingChangedDLQ",
+      "NodeProductApiPricingChangedDLQ",
       {
         queueName: `NodeProductApiPricingChangedDLQ-${props.environment}`,
       }
@@ -59,7 +59,7 @@ export class ApiWorker extends Construct {
 
     const priceCalculatedHandlerFunction = new InstrumentedLambdaFunction(
       this,
-      "PriceCalculatedHandlerFunction",
+      "NodePriceCalculatedHandlerFunction",
       {
         sharedProps: props,
         functionName: "NodePriceCalculatedHandlerFunction",
