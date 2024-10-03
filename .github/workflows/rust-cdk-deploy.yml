@@ -29,6 +29,11 @@ jobs:
         run: |
           npm install -g aws-cdk
       - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Update Homebrew
+        run: |
+          brew update --preinstall
+          brew tap cargo-lambda/cargo-lambda
+          brew install cargo-lambda
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@master
         with:
