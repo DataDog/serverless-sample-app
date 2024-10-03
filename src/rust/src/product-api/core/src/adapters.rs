@@ -65,6 +65,55 @@ impl Repository for DynamoDbRepository {
         self.put_to_dynamo(body).await
     }
 
+    #[instrument(name = "get-product", skip(self), fields(peer.aws.dynamodb.table_name = self.table_name, peer.db.name = self.table_name, tablename = self.table_name))]
+    async fn list_products(&self) -> Result<Vec<crate::core::Product>, RepositoryError> {
+        Span::current().set_attribute("peer.service", self.table_name.clone());
+        Span::current().set_attribute(
+            "resource.name",
+            format!("DynamoDB.Scan {}", &self.table_name),
+        );
+
+        let res = self.client.scan().table_name(&self.table_name).send().await;
+
+        match res {
+            Ok(item) => Ok({
+                let mut products = vec![];
+
+                for attributes in item.items.unwrap() {
+                    let product = Product {
+                        product_id: attributes.get("ProductId").unwrap().as_s().unwrap().clone(),
+                        name: attributes.get("Name").unwrap().as_s().unwrap().clone(),
+                        price: attributes
+                            .get("Price")
+                            .unwrap()
+                            .as_n()
+                            .unwrap()
+                            .clone()
+                            .parse::<f32>()
+                            .unwrap(),
+                        previous_price: -1.0,
+                        previous_name: "".to_string(),
+                        updated: false,
+                        price_brackets: serde_json::from_str(
+                            &attributes
+                                .get("PriceBrackets")
+                                .unwrap()
+                                .as_s()
+                                .unwrap()
+                                .clone(),
+                        )
+                        .unwrap(),
+                    };
+
+                    products.push(product);
+                }
+
+                products
+            }),
+            Err(_e) => Err(RepositoryError::NotFound),
+        }
+    }
+
     #[instrument(name = "get-product", skip(self, id), fields(peer.aws.dynamodb.table_name = self.table_name, peer.db.name = self.table_name, tablename = self.table_name, product.id = id))]
     async fn get_product(&self, id: &str) -> Result<crate::core::Product, RepositoryError> {
         Span::current().set_attribute("peer.service", self.table_name.clone());
@@ -167,8 +216,14 @@ impl EventPublisher for SnsEventPublisher {
         &self,
         product_created_event: ProductCreatedEvent,
     ) -> Result<(), ()> {
-        Span::current().set_attribute("peer.service", parse_name_from_arn(&std::env::var("PRODUCT_CREATED_TOPIC_ARN").unwrap()));
-        tracing::Span::current().set_attribute("peer.messaging.destination", std::env::var("PRODUCT_CREATED_TOPIC_ARN").unwrap());
+        Span::current().set_attribute(
+            "peer.service",
+            parse_name_from_arn(&std::env::var("PRODUCT_CREATED_TOPIC_ARN").unwrap()),
+        );
+        tracing::Span::current().set_attribute(
+            "peer.messaging.destination",
+            std::env::var("PRODUCT_CREATED_TOPIC_ARN").unwrap(),
+        );
         let _publish_res = &self
             .client
             .publish()
@@ -188,8 +243,14 @@ impl EventPublisher for SnsEventPublisher {
         &self,
         product_updated_event: ProductUpdatedEvent,
     ) -> Result<(), ()> {
-        Span::current().set_attribute("peer.service", parse_name_from_arn(&std::env::var("PRODUCT_UPDATED_TOPIC_ARN").unwrap()));
-        tracing::Span::current().set_attribute("peer.messaging.destination", std::env::var("PRODUCT_UPDATED_TOPIC_ARN").unwrap());
+        Span::current().set_attribute(
+            "peer.service",
+            parse_name_from_arn(&std::env::var("PRODUCT_UPDATED_TOPIC_ARN").unwrap()),
+        );
+        tracing::Span::current().set_attribute(
+            "peer.messaging.destination",
+            std::env::var("PRODUCT_UPDATED_TOPIC_ARN").unwrap(),
+        );
         let _publish_res = &self
             .client
             .publish()
@@ -209,8 +270,14 @@ impl EventPublisher for SnsEventPublisher {
         &self,
         product_deleted_event: ProductDeletedEvent,
     ) -> Result<(), ()> {
-        Span::current().set_attribute("peer.service", parse_name_from_arn(&std::env::var("PRODUCT_DELETED_TOPIC_ARN").unwrap()));
-        tracing::Span::current().set_attribute("peer.messaging.destination", std::env::var("PRODUCT_DELETED_TOPIC_ARN").unwrap());
+        Span::current().set_attribute(
+            "peer.service",
+            parse_name_from_arn(&std::env::var("PRODUCT_DELETED_TOPIC_ARN").unwrap()),
+        );
+        tracing::Span::current().set_attribute(
+            "peer.messaging.destination",
+            std::env::var("PRODUCT_DELETED_TOPIC_ARN").unwrap(),
+        );
         let _publish_res = &self
             .client
             .publish()

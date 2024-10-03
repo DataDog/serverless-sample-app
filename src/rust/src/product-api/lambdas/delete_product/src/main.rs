@@ -4,7 +4,7 @@ use lambda_http::{
     tracing::{self, instrument},
     Error, IntoResponse, Request, RequestExt,
 };
-use observability::observability;
+use observability::{observability, TracedMessage};
 use shared::adapters::{DynamoDbRepository, SnsEventPublisher};
 use shared::core::{EventPublisher, Repository};
 use shared::ports::{handle_delete_product, DeleteProductCommand};
@@ -19,6 +19,7 @@ async fn function_handler<TRepository: Repository, TEventPublisher: EventPublish
     event: Request,
 ) -> Result<impl IntoResponse, Error>
 {
+    let _: Result<TracedMessage, &str> = event.headers().try_into();
     tracing::info!("Received event: {:?}", event);
 
     let product_id = event

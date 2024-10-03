@@ -124,6 +124,37 @@ pub async fn handle_delete_product<TRepo: Repository, TEventPublisher: EventPubl
 }
 
 #[derive(Deserialize)]
+pub struct ListProductsQuery {
+}
+
+impl ListProductsQuery {
+    pub fn new() -> Self {
+        Self { }
+    }
+}
+
+pub async fn execute_list_products_query<T: Repository>(
+    repository: &T,
+    get_product_query: ListProductsQuery,
+) -> Result<Vec<ProductDTO>, ApplicationError> {
+    let products = repository
+        .list_products()
+        .await
+        .map_err(|e| match e {
+            RepositoryError::NotFound => ApplicationError::NotFound,
+            RepositoryError::InternalError(e) => ApplicationError::InternalError(e),
+        })?;
+
+    let mut product_response = vec![];
+
+    for product in products {
+        product_response.push(product.as_dto());
+    }
+
+    Ok(product_response)
+}
+
+#[derive(Deserialize)]
 pub struct GetProductQuery {
     product_id: String,
 }

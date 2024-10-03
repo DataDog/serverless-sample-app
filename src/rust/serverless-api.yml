@@ -70,6 +70,15 @@ functions:
       - httpApi:
           path: /product
           method: post
+  list:
+    handler: bootstrap
+    package:
+      artifact: ./out/listProductsFunction/listProductsFunction.zip
+      individually: true
+    events:
+      - httpApi:
+          path: /product
+          method: get
   get:
     handler: bootstrap
     package:

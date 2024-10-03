@@ -85,10 +85,10 @@ export class Api extends Construct {
     const productResource = this.api.root.addResource("product");
     productResource.addMethod("GET", listProductIntegration);
     productResource.addMethod("POST", createProductIntegration);
+    productResource.addMethod("PUT", updateProductIntegration);
 
     const specificProductResource = productResource.addResource("{productId}");
     specificProductResource.addMethod("GET", getProductIntegration);
-    specificProductResource.addMethod("PUT", updateProductIntegration);
     specificProductResource.addMethod("DELETE", deleteProductIntegration);
   }
 

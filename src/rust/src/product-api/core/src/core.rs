@@ -29,6 +29,8 @@ pub trait EventPublisher {
 
 #[async_trait]
 pub trait Repository {
+    async fn list_products(&self) -> Result<Vec<Product>, RepositoryError>;
+
     async fn store_product(&self, body: &Product) -> Result<(), RepositoryError>;
 
     async fn get_product(&self, id: &str) -> Result<Product, RepositoryError>;

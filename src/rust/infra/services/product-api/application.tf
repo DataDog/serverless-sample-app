@@ -50,6 +50,35 @@ module "create_product_lambda_api" {
   route         = "/product"
 }
 
+module "list_products_lambda" {
+  service_name   = "RustProductApi"
+  source         = "../../modules/lambda-function"
+  zip_file       = "../out/listProductsFunction/listProductsFunction.zip"
+  function_name  = "RustListProducts"
+  lambda_handler = "index.handler"
+  environment_variables = {
+    "TABLE_NAME" : aws_dynamodb_table.rust_product_api.name
+  }
+  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
+}
+
+resource "aws_iam_role_policy_attachment" "list_products_lambda_dynamo_db_read" {
+  role       = module.list_products_lambda.function_role_name
+  policy_arn = aws_iam_policy.dynamo_db_read.arn
+}
+
+
+module "list_products_lambda_api" {
+  source        = "../../modules/api-gateway-lambda-integration"
+  api_id        = module.api_gateway.api_id
+  api_arn       = module.api_gateway.api_arn
+  function_arn  = module.list_products_lambda.function_arn
+  function_name = module.list_products_lambda.function_name
+  http_method   = "GET"
+  route         = "/product"
+}
+
 module "get_product_lambda" {
   service_name   = "RustProductApi"
   source         = "../../modules/lambda-function"

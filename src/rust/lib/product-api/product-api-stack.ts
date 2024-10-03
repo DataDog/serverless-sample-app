@@ -105,13 +105,13 @@ export class ProductApiStack extends cdk.Stack {
       "RustProductApiEndpointParameter",
       {
         parameterName: "/rust/product/api-endpoint",
-        stringValue: api.api.apiEndpoint,
+        stringValue: api.api.url,
       }
     );
 
     const apiEndpoint = new cdk.CfnOutput(this, "RustProductApiEndpoint", {
       exportName: "RustProductApiEndpoint",
-      value: api.api.apiEndpoint,
+      value: api.api.url,
     });
   }
 }

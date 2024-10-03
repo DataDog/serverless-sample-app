@@ -7,12 +7,12 @@ use lambda_http::{
 use observability::{observability, TracedMessage};
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
-use shared::ports::{execute_get_product_query, ApplicationError, GetProductQuery};
+use shared::ports::{execute_list_products_query, ApplicationError, ListProductsQuery};
 use shared::response::{empty_response, json_response};
 use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
 
-#[instrument(name = "GET /{productId}", skip(client, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]
+#[instrument(name = "GET /", skip(client, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]
 async fn function_handler<T: Repository>(
     client: &T,
     event: Request,
@@ -21,17 +21,8 @@ async fn function_handler<T: Repository>(
 
     tracing::info!("Received event: {:?}", event);
 
-    let product_id = event
-        .path_parameters_ref()
-        .and_then(|params| params.first("productId"))
-        .unwrap_or("");
-
-    if product_id.is_empty() {
-        return empty_response(&StatusCode::NOT_FOUND);
-    }
-
-    let query = GetProductQuery::new(product_id.to_string());
-    let result = execute_get_product_query(client, query).await;
+    let query = ListProductsQuery::new();
+    let result = execute_list_products_query(client, query).await;
 
     match result {
         Ok(product) => json_response(&StatusCode::OK, &product),

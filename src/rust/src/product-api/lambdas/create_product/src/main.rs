@@ -6,7 +6,7 @@ use lambda_http::{
 };
 use shared::response::{empty_response, json_response};
 
-use observability::observability;
+use observability::{observability, TracedMessage};
 use shared::adapters::{DynamoDbRepository, SnsEventPublisher};
 use shared::core::{EventPublisher, Repository};
 use shared::ports::{handle_create_product, CreateProductCommand};
@@ -20,6 +20,8 @@ async fn function_handler<TRepository: Repository, TEventPublisher: EventPublish
     event: Request,
 ) -> Result<impl IntoResponse, Error>
 {
+    let _: Result<TracedMessage, &str> = event.headers().try_into();
+
     tracing::info!("Received event: {:?}", event);
 
     let request_body = event.payload::<CreateProductCommand>()?;

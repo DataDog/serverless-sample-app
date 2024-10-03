@@ -55,6 +55,30 @@ Globals:
       AllowOrigin: "'http://localhost:8080'"
 
 Resources:
+  ListProductsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/product-api/lambdas/list_products/
+      Handler: bootstrap
+      FunctionName: !Sub ListProductsFunction-${Env}
+      Events:
+        GetProduct:
+          Type: Api
+          Properties: 
+            Path: /product
+            Method: get
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName:
+              !Ref ProductApiTable
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      BuildMethod: rust-cargolambda
   GetProductFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -63,7 +87,7 @@ Resources:
       FunctionName: !Sub GetProductFunction-${Env}
       Events:
         GetProduct:
-          Type: HttpApi
+          Type: Api
           Properties: 
             Path: /product/{productId}
             Method: get
@@ -87,7 +111,7 @@ Resources:
       FunctionName: !Sub CreateProductFunction-${Env}
       Events:
         GetProduct:
-          Type: HttpApi
+          Type: Api
           Properties: 
             Path: /product
             Method: post
@@ -120,7 +144,7 @@ Resources:
       FunctionName: !Sub UpdateProductFunction-${Env}
       Events:
         GetProduct:
-          Type: HttpApi
+          Type: Api
           Properties: 
             Path: /product
             Method: put
@@ -153,7 +177,7 @@ Resources:
       FunctionName: !Sub DeleteProductFunction-${Env}
       Events:
         GetProduct:
-          Type: HttpApi
+          Type: Api
           Properties: 
             Path: /product/{productId}
             Method: delete
@@ -234,11 +258,11 @@ Resources:
     Properties:
       Name: /rust/product/api-endpoint
       Type: String
-      Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
 
 Outputs:
   RustProductApiEndpoint:
     Description: Product API Endpoint
-    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
     Export:
       Name: RustProductApiEndpoint

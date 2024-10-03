@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
   "src/product-api/lambdas/create_product",
+  "src/product-api/lambdas/list_products",
   "src/product-api/lambdas/get_product",
   "src/product-api/lambdas/update_product",
   "src/product-api/lambdas/delete_product",

@@ -1,14 +1,16 @@
 use aws_lambda_events::cloudwatch_events::CloudWatchEvent;
+use aws_lambda_events::http::HeaderMap;
 use aws_lambda_events::sns::{SnsMessage, SnsRecord};
+use aws_lambda_events::sqs::SqsMessage;
 use opentelemetry::trace::{
-    FutureExt, Span, SpanContext, SpanId, SpanKind, TraceContextExt, TraceFlags, TraceId, TraceState, Tracer
+    FutureExt, Span, SpanContext, SpanId, SpanKind, TraceContextExt, TraceFlags, TraceId,
+    TraceState, Tracer,
 };
 use opentelemetry::{global, Context, KeyValue};
 use opentelemetry_datadog::new_pipeline;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use aws_lambda_events::sqs::SqsMessage;
 use tracing::{info, Subscriber};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing_subscriber::{layer::SubscriberExt, Registry};
@@ -56,7 +58,7 @@ pub struct TracedMessage {
     #[serde(skip_serializing, skip_deserializing)]
     inflight_ctx: Option<Context>,
     #[serde(skip_serializing, skip_deserializing)]
-    pub message_type: Option<String>
+    pub message_type: Option<String>,
 }
 
 impl TracedMessage {
@@ -88,7 +90,7 @@ impl TracedMessage {
                 ctx: None,
                 inflight_ctx: None,
                 span_ctx: None,
-                message_type: None
+                message_type: None,
             }
         } else {
             // No valid span context found
@@ -100,7 +102,7 @@ impl TracedMessage {
                 ctx: None,
                 inflight_ctx: None,
                 span_ctx: None,
-                message_type: None
+                message_type: None,
             }
         }
     }
@@ -167,7 +169,7 @@ impl From<&SqsMessage> for TracedMessage {
                     Ok(epoch_timstamp) => UNIX_EPOCH + Duration::from_millis(epoch_timstamp),
                     Err(_) => SystemTime::now(),
                 }
-            },
+            }
             None => SystemTime::now(),
         };
 
@@ -178,20 +180,64 @@ impl From<&SqsMessage> for TracedMessage {
                 message.generate_inflight_span_for_sqs(value, timestamp);
 
                 message
-            },
+            }
             None => {
                 let mut traced_message: TracedMessage =
-                serde_json::from_str(value.clone().body.unwrap().as_str()).unwrap();
+                    serde_json::from_str(value.clone().body.unwrap().as_str()).unwrap();
 
                 traced_message.generate_span_context();
 
                 traced_message.generate_inflight_span_for_sqs(value, timestamp);
 
                 traced_message
-            },
+            }
         };
 
         traced_message
+    }
+}
+
+impl TryFrom<&HeaderMap> for TracedMessage {
+    type Error = &'static str;
+
+    fn try_from(value: &HeaderMap) -> Result<Self, Self::Error> {
+        let traceparent_header = value.get("traceparent");
+
+        match traceparent_header {
+            Some(header_value) => {
+                tracing::info!("Found traceparent header: {:?}", header_value);
+
+                let traceparent = header_value.to_str().unwrap().to_string();
+                let parts: Vec<&str> = traceparent.split("-").collect();
+
+                let trace_id = TraceId::from_hex(parts[1]).unwrap();
+                let span_id = SpanId::from_hex(parts[2]).unwrap();
+
+                let span_context = SpanContext::new(
+                    trace_id,
+                    span_id,
+                    TraceFlags::SAMPLED,
+                    false,
+                    TraceState::NONE,
+                );
+
+                let mut traced_message = TracedMessage {
+                    trace_id: parts[1].to_string(),
+                    span_id: parts[2].to_string(),
+                    message: "".to_string(),
+                    publish_time: "".to_string(),
+                    ctx: Some(Context::new().with_remote_span_context(span_context.clone())),
+                    span_ctx: None,
+                    inflight_ctx: None,
+                    message_type: None,
+                };
+
+                traced_message.update_current_context(Context::new().with_remote_span_context(span_context));
+
+                Ok(traced_message)
+            }
+            None => Err("No traceparent header"),
+        }
     }
 }
 
@@ -238,25 +284,40 @@ impl TracedMessage {
         span.set_attribute(KeyValue::new("service.name", topic_name.clone()));
         span.set_attribute(KeyValue::new("span.type", "web"));
         span.set_attribute(KeyValue::new("resource.name", topic_name.clone()));
-        span.set_attribute(KeyValue::new("peer.service", env::var("DD_SERVICE").unwrap()));
+        span.set_attribute(KeyValue::new(
+            "peer.service",
+            env::var("DD_SERVICE").unwrap(),
+        ));
         span.set_attribute(KeyValue::new("_inferred_span.tag_source", "self"));
         span.set_attribute(KeyValue::new("_inferred_span.synchronicity", "async"));
         span.set_attribute(KeyValue::new("type", record.sns.sns_message_type.clone()));
-        span.set_attribute(KeyValue::new("subject", record.sns.subject.clone().unwrap_or("".to_string())));
+        span.set_attribute(KeyValue::new(
+            "subject",
+            record.sns.subject.clone().unwrap_or("".to_string()),
+        ));
         span.set_attribute(KeyValue::new("message_id", record.sns.message_id.clone()));
         span.set_attribute(KeyValue::new("topicname", topic_name.clone()));
         span.set_attribute(KeyValue::new("topic_arn", record.sns.topic_arn.clone()));
-        
-        span.set_attribute(KeyValue::new("peer.messaging.destination", topic_name.clone()));
-        span.set_attribute(KeyValue::new("event_subscription_arn",record.event_subscription_arn.clone()));
+
+        span.set_attribute(KeyValue::new(
+            "peer.messaging.destination",
+            topic_name.clone(),
+        ));
+        span.set_attribute(KeyValue::new(
+            "event_subscription_arn",
+            record.event_subscription_arn.clone(),
+        ));
 
         let inflight_ctx = Context::new().with_remote_span_context(span.span_context().clone());
 
         self.update_current_context(inflight_ctx);
-
     }
 
-    fn generate_inflight_span_for_event_bridge(&mut self, record: &CloudWatchEvent, sqs_start_time: Option<SystemTime>) {
+    fn generate_inflight_span_for_event_bridge(
+        &mut self,
+        record: &CloudWatchEvent,
+        sqs_start_time: Option<SystemTime>,
+    ) {
         let current_context = match &self.ctx {
             None => &tracing::Span::current().context(),
             Some(ctx) => ctx,
@@ -287,19 +348,28 @@ impl TracedMessage {
         span.set_attribute(KeyValue::new("service.name", bus_name.clone()));
         span.set_attribute(KeyValue::new("span.type", "web"));
         span.set_attribute(KeyValue::new("resource.name", bus_name.clone()));
-        span.set_attribute(KeyValue::new("peer.service", env::var("DD_SERVICE").unwrap_or("".to_string())));
+        span.set_attribute(KeyValue::new(
+            "peer.service",
+            env::var("DD_SERVICE").unwrap_or("".to_string()),
+        ));
         span.set_attribute(KeyValue::new("_inferred_span.tag_source", "self"));
         span.set_attribute(KeyValue::new("_inferred_span.synchronicity", "async"));
-        
-        span.set_attribute(KeyValue::new("peer.messaging.destination", bus_name.clone()));
+
+        span.set_attribute(KeyValue::new(
+            "peer.messaging.destination",
+            bus_name.clone(),
+        ));
 
         let inflight_ctx = Context::new().with_remote_span_context(span.span_context().clone());
 
         self.update_current_context(inflight_ctx);
-
     }
 
-    fn generate_inflight_span_for_sns_message(&mut self, record: &SnsMessage, sns_end_date: Option<SystemTime>) {
+    fn generate_inflight_span_for_sns_message(
+        &mut self,
+        record: &SnsMessage,
+        sns_end_date: Option<SystemTime>,
+    ) {
         let current_context = match &self.ctx {
             None => &tracing::Span::current().context(),
             Some(ctx) => ctx,
@@ -312,10 +382,10 @@ impl TracedMessage {
         let start_time =
             UNIX_EPOCH + Duration::from_millis(self.publish_time.parse::<u64>().unwrap());
 
-            let end_time = match sns_end_date {
-                Some(end_time) => end_time,
-                None => SystemTime::now(),
-            };
+        let end_time = match sns_end_date {
+            Some(end_time) => end_time,
+            None => SystemTime::now(),
+        };
 
         let mut span = tracer
             .span_builder("aws.sns")
@@ -330,30 +400,42 @@ impl TracedMessage {
         span.set_attribute(KeyValue::new("service.name", topic_name.clone()));
         span.set_attribute(KeyValue::new("span.type", "web"));
         span.set_attribute(KeyValue::new("resource.name", topic_name.clone()));
-        span.set_attribute(KeyValue::new("peer.service", env::var("DD_SERVICE").unwrap_or("".to_string())));
+        span.set_attribute(KeyValue::new(
+            "peer.service",
+            env::var("DD_SERVICE").unwrap_or("".to_string()),
+        ));
         span.set_attribute(KeyValue::new("_inferred_span.tag_source", "self"));
         span.set_attribute(KeyValue::new("_inferred_span.synchronicity", "async"));
         span.set_attribute(KeyValue::new("type", record.sns_message_type.clone()));
-        span.set_attribute(KeyValue::new("subject", record.subject.clone().unwrap_or("".to_string())));
+        span.set_attribute(KeyValue::new(
+            "subject",
+            record.subject.clone().unwrap_or("".to_string()),
+        ));
         span.set_attribute(KeyValue::new("message_id", record.message_id.clone()));
         span.set_attribute(KeyValue::new("topicname", topic_name.clone()));
         span.set_attribute(KeyValue::new("topic_arn", record.topic_arn.clone()));
-        span.set_attribute(KeyValue::new("peer.messaging.destination", topic_name.clone()));
+        span.set_attribute(KeyValue::new(
+            "peer.messaging.destination",
+            topic_name.clone(),
+        ));
 
         let inflight_ctx = Context::new().with_remote_span_context(span.span_context().clone());
         self.update_current_context(inflight_ctx);
-
     }
 
-    fn generate_inflight_span_for_sqs(&mut self, record: &SqsMessage, timestamp: SystemTime) -> SystemTime {
-        let parent_ctx = match &self.inflight_ctx{
+    fn generate_inflight_span_for_sqs(
+        &mut self,
+        record: &SqsMessage,
+        timestamp: SystemTime,
+    ) -> SystemTime {
+        let parent_ctx = match &self.inflight_ctx {
             Some(ctx) => ctx,
             None => match &self.ctx {
                 None => &tracing::Span::current().context(),
                 Some(ctx) => ctx,
             },
         };
-        
+
         let event_source_arn = record.event_source_arn.clone().unwrap();
 
         let queue_name = parse_name_from_arn(&event_source_arn);
@@ -373,18 +455,27 @@ impl TracedMessage {
         span.set_attribute(KeyValue::new("service.name", queue_name.clone()));
         span.set_attribute(KeyValue::new("span.type", "web"));
         span.set_attribute(KeyValue::new("resource.name", queue_name.clone()));
-        span.set_attribute(KeyValue::new("peer.service", env::var("DD_SERVICE").unwrap()));
+        span.set_attribute(KeyValue::new(
+            "peer.service",
+            env::var("DD_SERVICE").unwrap(),
+        ));
         span.set_attribute(KeyValue::new("_inferred_span.tag_source", "self"));
         span.set_attribute(KeyValue::new("_inferred_span.synchronicity", "async"));
         span.set_attribute(KeyValue::new("queuename", queue_name.clone()));
-        span.set_attribute(KeyValue::new("event_source_arn", record.event_source_arn.clone().unwrap_or("".to_string())));
-        span.set_attribute(KeyValue::new("receipt_handle", record.receipt_handle.clone().unwrap_or("".to_string())));
+        span.set_attribute(KeyValue::new(
+            "event_source_arn",
+            record.event_source_arn.clone().unwrap_or("".to_string()),
+        ));
+        span.set_attribute(KeyValue::new(
+            "receipt_handle",
+            record.receipt_handle.clone().unwrap_or("".to_string()),
+        ));
 
-        match record.attributes.get_key_value("ApproximateReceiveCount"){
+        match record.attributes.get_key_value("ApproximateReceiveCount") {
             Some((_key, val)) => span.set_attribute(KeyValue::new("retry_count", val.clone())),
             None => (),
         }
-        match record.attributes.get_key_value("SenderId"){
+        match record.attributes.get_key_value("SenderId") {
             Some((_key, val)) => span.set_attribute(KeyValue::new("sender_id", val.clone())),
             None => (),
         }
@@ -396,7 +487,10 @@ impl TracedMessage {
         timestamp
     }
 
-    fn check_body_for_upstream_message(record: &SqsMessage, sqs_start_time: SystemTime) -> Option<Self> {
+    fn check_body_for_upstream_message(
+        record: &SqsMessage,
+        sqs_start_time: SystemTime,
+    ) -> Option<Self> {
         let body_json = serde_json::from_str::<serde_json::Value>(&record.body.clone().unwrap());
 
         if body_json.is_err() {
@@ -417,23 +511,32 @@ impl TracedMessage {
 
         if json_object.contains_key("TopicArn") && json_object.contains_key("Timestamp") {
             // Body is an SNSMessage, generate the inferred span
-            let sns_message:SnsMessage =  serde_json::from_str(&record.body.clone().unwrap()).unwrap();
+            let sns_message: SnsMessage =
+                serde_json::from_str(&record.body.clone().unwrap()).unwrap();
 
             let mut traced_message: TracedMessage = sns_message.clone().into();
 
-            traced_message.generate_inflight_span_for_sns_message(&sns_message, Some(sqs_start_time));
+            traced_message
+                .generate_inflight_span_for_sns_message(&sns_message, Some(sqs_start_time));
 
             return Some(traced_message);
         }
 
         if json_object.contains_key("detail") {
             // Body is an CloudWatch Event, generate the inferred span
-            let sns_message:CloudWatchEvent =  serde_json::from_str(&record.body.clone().unwrap()).unwrap();
+            let sns_message: CloudWatchEvent =
+                serde_json::from_str(&record.body.clone().unwrap()).unwrap();
 
             let mut traced_message: TracedMessage = sns_message.clone().into();
 
-            traced_message.message_type = Some(sns_message.detail_type.clone().unwrap_or("Unknown message".to_string()));
-            traced_message.generate_inflight_span_for_event_bridge(&sns_message, Some(sqs_start_time));
+            traced_message.message_type = Some(
+                sns_message
+                    .detail_type
+                    .clone()
+                    .unwrap_or("Unknown message".to_string()),
+            );
+            traced_message
+                .generate_inflight_span_for_event_bridge(&sns_message, Some(sqs_start_time));
 
             return Some(traced_message);
         }
@@ -447,7 +550,7 @@ impl TracedMessage {
         match std::env::var("USE_SPAN_LINK") {
             Ok(use_links) => match use_links.as_str() {
                 "true" => tracing::Span::current().add_link(self.span_ctx.clone().unwrap()),
-                _ => tracing::Span::current().set_parent(inflight_ctx.clone())
+                _ => tracing::Span::current().set_parent(inflight_ctx.clone()),
             },
             Err(_) => tracing::Span::current().set_parent(inflight_ctx.clone()),
         }
@@ -474,7 +577,7 @@ mod tests {
             "UnsubscribeURL" : ""
         }"#;
 
-        let sqs_message = SqsMessage{
+        let sqs_message = SqsMessage {
             body: Some(body.to_string()),
             message_id: None,
             receipt_handle: None,
@@ -487,7 +590,8 @@ mod tests {
             aws_region: None,
         };
 
-        let message = TracedMessage::check_body_for_upstream_message(&sqs_message, SystemTime::now());
+        let message =
+            TracedMessage::check_body_for_upstream_message(&sqs_message, SystemTime::now());
 
         assert!(message.is_some());
     }
@@ -511,7 +615,7 @@ mod tests {
             }
         }"#;
 
-        let sqs_message = SqsMessage{
+        let sqs_message = SqsMessage {
             body: Some(body.to_string()),
             message_id: None,
             receipt_handle: None,
@@ -524,7 +628,8 @@ mod tests {
             aws_region: None,
         };
 
-        let message = TracedMessage::check_body_for_upstream_message(&sqs_message, SystemTime::now());
+        let message =
+            TracedMessage::check_body_for_upstream_message(&sqs_message, SystemTime::now());
 
         assert!(message.is_some());
     }
@@ -538,7 +643,7 @@ mod tests {
             "publish_time": "1726235697648"
         }"#;
 
-        let sqs_message = SqsMessage{
+        let sqs_message = SqsMessage {
             body: Some(body.to_string()),
             message_id: None,
             receipt_handle: None,
@@ -551,7 +656,8 @@ mod tests {
             aws_region: None,
         };
 
-        let message = TracedMessage::check_body_for_upstream_message(&sqs_message, SystemTime::now());
+        let message =
+            TracedMessage::check_body_for_upstream_message(&sqs_message, SystemTime::now());
 
         assert!(message.is_none());
     }
