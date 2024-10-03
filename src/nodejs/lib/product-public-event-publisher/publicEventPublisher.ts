@@ -51,7 +51,7 @@ export class ProductPublicEventPublisher extends Construct {
       "ProductPublicEventPublisher",
       {
         sharedProps: props.sharedProps,
-        functionName: "ProductPublicEventPublisher",
+        functionName: "NodeProductPublicEventPublisher",
         handler: "index.handler",
         environment: {
           DD_SERVICE_MAPPING: `lambda_sqs:${this.integrationEventPublisherQueue.queueName}`,

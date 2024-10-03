@@ -51,7 +51,7 @@ export class ProductPublicEventPublisher extends Construct {
       "ProductPublicEventPublisher",
       {
         sharedProps: props.sharedProps,
-        functionName: "ProductPublicEventPublisher",
+        functionName: "RustProductPublicEventPublisher",
         handler: "index.handler",
         environment: {
           PRODUCT_CREATED_TOPIC_ARN: props.productCreatedTopic.topicArn,
