@@ -57,7 +57,7 @@ export function createProduct() {
     })
   );
   xhr.onload = () => {
-    if (xhr.readyState == 4 && xhr.status == 201) {
+    if (xhr.readyState == 4 && (xhr.status == 201 || xhr.status == 200)) {
       refreshData();
     } else {
       console.log(`Error: ${xhr.status}`);
@@ -140,6 +140,7 @@ function viewProduct(productId, btnElement) {
     method: "GET",
     contentType: "application/json",
     success: function (response) {
+      console.log(response);
       let updateNameElement = document.getElementById("updateProductName");
       updateNameElement.value = response.data.name;
       let updatePriceElement = document.getElementById("updateProductPrice");
@@ -183,6 +184,8 @@ function viewProduct(productId, btnElement) {
 }
 
 function refreshData() {
+  let loadingSpinner = document.getElementById("loading");
+  loadingSpinner.ariaBusy = true;
   let tableBodyElement = document.getElementById("tableBody");
   tableBodyElement.innerHTML = "";
 
@@ -191,6 +194,7 @@ function refreshData() {
     method: "GET",
     contentType: "application/json",
     success: function (response) {
+      loadingSpinner.ariaBusy = false;
       response.data.forEach((message) => {
         const productName = message.name;
         const price = message.price;
@@ -227,6 +231,7 @@ function refreshData() {
       });
     },
     error: function (xhr, status, error) {
+      loadingSpinner.ariaBusy = false;
       alert("Login failed: " + error);
     },
   });

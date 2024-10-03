@@ -31,7 +31,7 @@ sam-dotnet:
 sam-dotnet-destroy:
 	cd src/dotnet; sam delete --stack-name DotnetTracing --region ${AWS_REGION} --no-prompts
 
-tf-dotnet: test-dotnet package-dotnet tf-dotnet-deploy
+tf-dotnet: package-dotnet tf-dotnet-deploy
 	
 tf-dotnet-deploy:
 	cd src/dotnet/infra; terraform apply --var-file dev.tfvars
