@@ -22,6 +22,9 @@ cdk-rust:
 cdk-nodejs:
 	cd src/nodejs; npm i; cdk deploy --require-approval never --all --concurrency 3
 
+end-to-end-test-nodejs:
+	cd src/nodejs; npm i; npm run test -- product-service
+
 cdk-dotnet:
 	cd src/dotnet/cdk; dotnet tool install -g Amazon.Lambda.Tools; cdk deploy --require-approval never --all --concurrency 3
 

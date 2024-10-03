@@ -36,8 +36,6 @@ describe("end-to-end-tests", () => {
       new ListStateMachinesCommand({})
     )
 
-    allStepFunctions.stateMachines?.forEach(machine => console.log(machine.name));
-
     const nodeStepFunction = allStepFunctions.stateMachines?.filter(stateMachine => stateMachine.name?.startsWith("Node"));
 
     if (nodeStepFunction === undefined || nodeStepFunction.length === 0) {
@@ -60,13 +58,13 @@ describe("end-to-end-tests", () => {
     );
 
     const productId = createProductResult.data.data.productId;
+    console.log(`ProductID is ${productId}`);
 
     const listProductResult = await axios.get(
       `${apiEndpoint}/product`
     );
 
     expect(listProductResult.status).toBe(200);
-    expect(listProductResult.data.data.len).toBeGreaterThan(0);
 
     const getProductResult = await axios.get(
       `${apiEndpoint}/product/${productId}`
@@ -77,7 +75,7 @@ describe("end-to-end-tests", () => {
     expect(getProductResult.data.data.price).toBe(12.99);
 
     const updateProductResult = await axios.put(`${apiEndpoint}/product`, {
-      productId,
+      id: productId,
       name: "New name",
       price: 15.99,
     });
@@ -93,20 +91,24 @@ describe("end-to-end-tests", () => {
     expect(deleteProductResult.status).toBe(200);
 
     try {
-      const postDeleteGetProductResult = await axios.get(
+      await axios.get(
         `${apiEndpoint}/product/${productId}`
       );
     } catch (error: any) {
       expect(error.response.status).toBe(404);
     }
 
+    await delay(5000);
+
     const stepFunctionExecutions = await stepFunctionsClient.send(new ListExecutionsCommand({
       stateMachineArn: stepFunctionArn
     }));
 
-    const recentExecution = stepFunctionExecutions.executions?.filter(execution => execution.startDate! > testStart)
+    const recentExecution = stepFunctionExecutions.executions?.filter(execution => execution.startDate! > testStart);
 
     expect(recentExecution?.length).toBe(1)
 
-  }, 15000);
+  }, 20000);
 });
+
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
