@@ -16,6 +16,9 @@ test-dotnet:
 	dotnet test src/dotnet/src/Inventory.Ordering/Inventory.Ordering.Core.Test/Inventory.Ordering.Core.Test.csproj
 	dotnet test src/dotnet/src/Inventory.Acl/Inventory.Acl.Core.Test/Inventory.Acl.Core.Test.csproj
 
+cdk-nodejs:
+	cd src/nodejs; cdk deploy --require-approval never --all
+
 cdk-dotnet:
 	cd src/dotnet/cdk; cdk deploy --require-approval never --all
 
