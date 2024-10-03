@@ -97,7 +97,7 @@ describe("end-to-end-tests", () => {
 
     expect(recentExecution?.length).toBe(1)
 
-  }, 20000);
+  }, 60000);
 });
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));

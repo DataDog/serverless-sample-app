@@ -62,7 +62,7 @@ export class ApiWorker extends Construct {
       "PriceCalculatedHandlerFunction",
       {
         sharedProps: props,
-        functionName: "PriceCalculatedHandlerFunction",
+        functionName: "NodePriceCalculatedHandlerFunction",
         handler: "index.handler",
         environment: {
           TABLE_NAME: this.table.tableName,
