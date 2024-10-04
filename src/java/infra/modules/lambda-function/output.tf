@@ -6,7 +6,7 @@
 //
 
 output "function_arn" {
-  value       =  var.env == "prod" || var.env == "test" ? aws_lambda_alias.SnapStartAlias[0],arn : module.aws_lambda_function.arn
+  value       =  module.aws_lambda_function.arn
   description = "The arn of the lambda function."
 } 
 
