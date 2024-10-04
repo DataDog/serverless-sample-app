@@ -1,4 +1,4 @@
-name: Java CDK Deploy
+name: Java Terraform Deploy
 
 on:
     push:
@@ -9,8 +9,7 @@ on:
         - src/java/product-api/**
         - src/java/product-event-publisher/**
         - src/java/product-pricing/**
-        - src/java/cdk/**
-
+        - src/java/infra/**
     workflow_dispatch:
     pull_request:
       types: [opened]
@@ -21,7 +20,7 @@ on:
         - src/java/product-api/**
         - src/java/product-event-publisher/**
         - src/java/product-pricing/**
-        - src/java/cdk/**
+        - src/java/infra/**
 
 permissions:
   id-token: write
@@ -31,18 +30,12 @@ jobs:
   package-and-test:
     runs-on: ubuntu-latest
     concurrency:
-        group: java-cdk
+        group: java-tf
     steps:
       -
         name: Checkout
         uses: actions/checkout@v4
-      - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: "20"
-      - name: Install CDK
-        run: |
-          npm install -g aws-cdk
+      - uses: hashicorp/setup-terraform@v3
       - name: Set up Java 21 for x64
         uses: actions/setup-java@v4
         with:
@@ -54,7 +47,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-          aws-region: "eu-west-1"
+          aws-region: "eu-west-2"
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -66,16 +59,8 @@ jobs:
           ENV: "test"
           DD_SECRET_ARN: ${{secrets.DD_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
-          make cdk-java
-      - name: Run end to end test
-        shell: bash
-        env:
-          COMMIT_HASH: ${{ env.sha_short }}
-          ENV: "test"
-          DD_SECRET_ARN: ${{secrets.DD_SECRET_ARN}}
-          DD_SITE: "datadoghq.eu"
-          RUNTIME: "Java"
-        run: |
-          make end-to-end-test
+          make tf-java
           
