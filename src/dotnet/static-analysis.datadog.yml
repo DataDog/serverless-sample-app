@@ -1,0 +1,6 @@
+schema-version: v1
+rulesets:
+  - csharp-best-practices
+  - csharp-code-style
+  - csharp-inclusive
+  - csharp-security
