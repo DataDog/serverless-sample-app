@@ -14,12 +14,13 @@ import { ApiDriver } from "./apiDriver";
 let apiDriver: ApiDriver
 let stepFunctionsClient: SFNClient;
 let stepFunctionArn = "";
+const runtimeUnderTest = process.env.RUNTIME ?? "Node";
+const testTimeout = runtimeUnderTest === "Java" ? 300000 : 60000;
+const testDelay = runtimeUnderTest === "Java" ? 120000 : 15000;
 
 // Running tests that span the full end to end, across multiple backend services is not a best practice, this test is to make sure the example app works when updated.
 describe("end-to-end-tests", () => {
   beforeAll(async () => {
-    const runtimeUnderTest = process.env.RUNTIME ?? "Node";
-
     if (process.env.API_ENDPOINT !== undefined) {
       apiDriver = new ApiDriver(process.env.API_ENDPOINT);
       return;
@@ -73,7 +74,7 @@ describe("end-to-end-tests", () => {
     expect(updateProductResult.data.data.price).toBe(50);
 
     // Let async processes run
-    await delay(15000);
+    await delay(testDelay);
 
     getProductResult = await apiDriver.getProduct(productId);
 
@@ -97,7 +98,7 @@ describe("end-to-end-tests", () => {
 
     expect(recentExecution?.length).toBe(1)
 
-  }, 60000);
+  }, testTimeout); // Extend test timeout for Java to account for slow cold starts
 });
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));

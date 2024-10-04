@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "jest",
+    "test": "jest --no-cache",
     "cdk": "cdk",
     "dev:sst": "sst dev --stage=personal",
     "build:sst": "sst build --stage=dev",
