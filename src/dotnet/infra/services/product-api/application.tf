@@ -232,8 +232,11 @@ resource "aws_api_gateway_deployment" "rest_api_deployment" {
   rest_api_id = module.api_gateway.api_id
   triggers = {
     redeployment = sha1(jsonencode([
-      module.product_id_resource.resource,
-      module.product_resource.resource,
+      module.delete_product_lambda_api,
+      module.create_product_lambda_api,
+      module.update_product_lambda_api,
+      module.get_product_lambda_api,
+      module.list_products_lambda_api,
     ]))
   }
   lifecycle {
