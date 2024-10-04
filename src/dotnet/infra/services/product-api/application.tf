@@ -62,7 +62,7 @@ module "create_product_lambda_api" {
   source        = "../../modules/api-gateway-lambda-integration"
   api_id        = module.api_gateway.api_id
   api_arn       = module.api_gateway.api_arn
-  function_arn  = module.create_product_lambda.function_arn
+  function_arn  = module.create_product_lambda.function_invoke_arn
   function_name = module.create_product_lambda.function_name
   http_method   = "POST"
   api_resource_id   = module.product_resource.id
@@ -94,7 +94,7 @@ module "get_product_lambda_api" {
   source        = "../../modules/api-gateway-lambda-integration"
   api_id        = module.api_gateway.api_id
   api_arn       = module.api_gateway.api_arn
-  function_arn  = module.get_product_lambda.function_arn
+  function_arn  = module.get_product_lambda.function_invoke_arn
   function_name = module.get_product_lambda.function_name
   http_method   = "GET"
   api_resource_id   = module.product_id_resource.id
@@ -126,7 +126,7 @@ module "list_products_lambda_api" {
   source        = "../../modules/api-gateway-lambda-integration"
   api_id        = module.api_gateway.api_id
   api_arn       = module.api_gateway.api_arn
-  function_arn  = module.list_products_lambda.function_arn
+  function_arn  = module.list_products_lambda.function_invoke_arn
   function_name = module.list_products_lambda.function_name
   http_method   = "GET"
   api_resource_id   = module.product_resource.id
@@ -173,11 +173,11 @@ module "update_product_lambda_api" {
   source        = "../../modules/api-gateway-lambda-integration"
   api_id        = module.api_gateway.api_id
   api_arn       = module.api_gateway.api_arn
-  function_arn  = module.update_product_lambda.function_arn
+  function_arn  = module.update_product_lambda.function_invoke_arn
   function_name = module.update_product_lambda.function_name
   http_method   = "PUT"
-  api_resource_id   = module.product_id_resource.id
-  api_resource_path = module.product_id_resource.path_part
+  api_resource_id   = module.product_resource.id
+  api_resource_path = module.product_resource.path_part
   env = var.env
 }
 
@@ -220,7 +220,7 @@ module "delete_product_lambda_api" {
   source        = "../../modules/api-gateway-lambda-integration"
   api_id        = module.api_gateway.api_id
   api_arn       = module.api_gateway.api_arn
-  function_arn  = module.delete_product_lambda.function_arn
+  function_arn  = module.delete_product_lambda.function_invoke_arn
   function_name = module.delete_product_lambda.function_name
   http_method   = "DELETE"
   api_resource_id   = module.product_id_resource.id
