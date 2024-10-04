@@ -87,8 +87,8 @@ module "aws_lambda_function" {
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
   source_code_hash         = base64sha256(filebase64(var.jar_file))
   timeout                  = var.timeout
-  publish                  = var.env == "dev" || var.env == "prod" ? true : false
-  snap_start_apply_on      = var.env == "dev" || var.env == "prod" ? "PublishedVersions" : ""
+  publish                  = var.env == "test" || var.env == "prod" ? true : false
+  snap_start_apply_on      = var.env == "test" || var.env == "prod" ? "PublishedVersions" : "None"
 
   environment_variables = merge(tomap({
     "MAIN_CLASS" : "${var.package_name}.FunctionConfiguration"
@@ -109,7 +109,7 @@ module "aws_lambda_function" {
 }
 
 resource "aws_lambda_alias" "SnapStartAlias" {
-  count            = var.env == "dev" || var.env == "prod" ? 1 : 0
+  count            = var.env == "test" || var.env == "prod" ? 1 : 0
   name             = var.env
   description      = "Alias for SnapStart"
   function_name    = module.aws_lambda_function.function_name
