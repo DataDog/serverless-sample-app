@@ -6,7 +6,7 @@
 //
 
 resource "aws_sns_topic" "product_price_calculated" {
-  name = "java-price-calculated-topic"
+  name = "java-tf-price-calculated-topic-${var.env}"
 }
 
 module "product_pricing_created_handler" {
@@ -14,7 +14,7 @@ module "product_pricing_created_handler" {
   package_name = "com.product.pricing"
   source         = "../../modules/lambda-function"
   jar_file       = "../product-pricing/target/com.product.pricing-0.0.1-SNAPSHOT-aws.jar"
-  function_name  = "JavaProductCreatedPricingHandler"
+  function_name  = "ProductCreatedPricingHandler"
   lambda_handler = "handleProductCreated"
   environment_variables = {
     PRICE_CALCULATED_TOPIC_ARN: aws_sns_topic.product_price_calculated.arn
@@ -22,6 +22,7 @@ module "product_pricing_created_handler" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  env = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "product_created_handler_publish_permission" {
@@ -49,7 +50,7 @@ module "product_pricing_updated_handler" {
   package_name = "com.product.pricing"
   source         = "../../modules/lambda-function"
   jar_file       = "../product-pricing/target/com.product.pricing-0.0.1-SNAPSHOT-aws.jar"
-  function_name  = "JavaProductUpdatedPricingHandler"
+  function_name  = "ProductUpdatedPricingHandler"
   lambda_handler = "handleProductUpdated"
   environment_variables = {
     PRICE_CALCULATED_TOPIC_ARN: aws_sns_topic.product_price_calculated.arn
@@ -57,6 +58,7 @@ module "product_pricing_updated_handler" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  env = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "product_updated_handler_publish_permission" {

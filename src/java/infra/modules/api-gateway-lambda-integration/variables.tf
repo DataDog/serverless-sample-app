@@ -15,6 +15,16 @@ variable "api_arn" {
   type        = string
 }
 
+variable "api_resource_id" {
+  description = "The API Gateway resource."
+  type        = string
+}
+
+variable "api_resource_path" {
+  description = "The path of the API Gateway resource."
+  type        = string
+}
+
 variable "function_arn" {
   description = "The ARN of the Lambda function."
   type        = string
@@ -27,10 +37,5 @@ variable "function_name" {
 
 variable "http_method" {
   description = "The HTTP method to use (GET, PUT, POST, DELETE)."
-  type        = string
-}
-
-variable "route" {
-  description = "The API route."
   type        = string
 }

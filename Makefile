@@ -31,6 +31,9 @@ cdk-dotnet:
 cdk-java:
 	cd src/java;mvn clean package;cd cdk;cdk deploy --all --require-approval never --concurrency 3
 
+tf-java:
+	cd src/java;mvn clean package;cd infra;terraform apply -var dd_api_key_secret_arn=${DD_SECRET_ARN} -var dd_site=${DD_SITE} -var env=${ENV} -var region=${AWS_REGION} -var tf_state_bucket_name=${TF_STATE_BUCKET_NAME}
+
 cdk-go:
 	cd src/go/cdk; cdk deploy --require-approval never --all --concurrency 3
 

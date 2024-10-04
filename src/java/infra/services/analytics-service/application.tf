@@ -6,11 +6,11 @@
 //
 
 resource "aws_sqs_queue" "analytics_service_dlq" {
-  name = "analytics-service-dlq"
+  name = "java-tf-analytics-service-dlq-${var.env}"
 }
 
 resource "aws_sqs_queue" "analytics_service_queue" {
-  name                      = "analytics-service-queue"
+  name                      = "java-tf-analytics-service-queue-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.analytics_service_dlq.arn
@@ -27,7 +27,7 @@ module "analytics_service_function" {
   service_name   = "JavaAnalyticsBackend"
   source         = "../../modules/lambda-function"
   jar_file       = "../analytics-backend/target/com.analytics-0.0.1-SNAPSHOT-aws.jar"
-  function_name  = "JavaAnalyticsBackend"
+  function_name  = "TfAnalyticsBackend"
   lambda_handler = "handleEvents"
   package_name = "com.analytics"
   environment_variables = {
@@ -35,6 +35,7 @@ module "analytics_service_function" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  env = var.env
 }
 
 resource "aws_lambda_event_source_mapping" "analytics_backend_source" {

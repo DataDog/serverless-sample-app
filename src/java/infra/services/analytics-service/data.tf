@@ -9,7 +9,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_ssm_parameter" "eb_name" {
-  name = "/java/shared/event-bus-name"
+  name = "/java/tf/${var.env}/shared/event-bus-name"
 }
 
 data "aws_iam_policy_document" "analytics_service_queue_policy" {

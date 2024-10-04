@@ -6,11 +6,11 @@
 //
 
 resource "aws_sqs_queue" "public_event_acl_dlq" {
-  name = "inventory-acl-dlq"
+  name = "java-tf-inventory-acl-dlq-${var.env}"
 }
 
 resource "aws_sqs_queue" "public_event_acl_queue" {
-  name                      = "inventory-acl"
+  name                      = "java-tf-inventory-acl-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.public_event_acl_dlq.arn
@@ -19,7 +19,7 @@ resource "aws_sqs_queue" "public_event_acl_queue" {
 }
 
 resource "aws_sns_topic" "java_inventory_new_product_added" {
-  name = "java-inventory-new-product-added"
+  name = "java-tf-java-inventory-new-product-added-${var.env}"
 }
 
 resource "aws_sqs_queue_policy" "allow_eb_publish" {
@@ -32,7 +32,7 @@ module "inventory_acl_function" {
   package_name = "com.inventory.acl"
   source         = "../../modules/lambda-function"
   jar_file       = "../inventory-acl/target/com.inventory.acl-0.0.1-SNAPSHOT-aws.jar"
-  function_name  = "JavaInventoryAcl"
+  function_name  = "InventoryAcl"
   lambda_handler = "handleProductCreatedEvent"
   environment_variables = {
     PRODUCT_ADDED_TOPIC_ARN : aws_sns_topic.java_inventory_new_product_added.arn
@@ -40,6 +40,7 @@ module "inventory_acl_function" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  env = var.env
 }
 
 resource "aws_lambda_event_source_mapping" "public_event_publisher" {

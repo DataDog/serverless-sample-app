@@ -6,14 +6,14 @@
 //
 
 resource "aws_ssm_parameter" "product_pricing_changed_topic_arn" {
-  name  = "/java/product/pricing-calculated-topic"
+  name  = "/java/tf/${var.env}/product/pricing-calculated-topic"
   type  = "String"
   value = aws_sns_topic.product_price_calculated.arn
 }
 
 
 resource "aws_ssm_parameter" "product_pricing_changed_topic_name" {
-  name  = "/java/product/pricing-calculated-topic-name"
+  name  = "/java/tf/${var.env}/product/pricing-calculated-topic-name"
   type  = "String"
   value = aws_sns_topic.product_price_calculated.name
 }

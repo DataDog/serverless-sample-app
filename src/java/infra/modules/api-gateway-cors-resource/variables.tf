@@ -5,13 +5,16 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-resource "aws_dynamodb_table" "java_product_api" {
-  name           = "TfJavaProductApi-${var.env}"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "PK"
-
-  attribute {
-    name = "PK"
-    type = "S"
-  }
+variable "path_part" {
+  type = string
 }
+
+variable "parent_resource_id" {
+  type = string
+}
+
+variable "rest_api_id" {
+  type = string
+}
+
+

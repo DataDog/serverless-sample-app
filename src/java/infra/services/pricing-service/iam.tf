@@ -6,7 +6,7 @@
 //
 
 resource "aws_iam_policy" "sns_publish" {
-  name   = "pricing-service-sns_publish_policy"
+  name   = "java-tf-pricing-service-sns_publish_policy-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.sns_publish.json
 }

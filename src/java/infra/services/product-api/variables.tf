@@ -14,3 +14,8 @@ variable "dd_site" {
   type = string
   description = "The Datadog site"
 }
+
+variable "env" {
+  type = string
+  description = "The deployment environment"
+}

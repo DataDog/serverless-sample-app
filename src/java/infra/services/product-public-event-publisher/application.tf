@@ -6,11 +6,11 @@
 //
 
 resource "aws_sqs_queue" "public_event_publisher_dlq" {
-  name = "product-event-publisher-dlq"
+  name = "java-tf-product-event-publisher-dlq-${var.env}"
 }
 
 resource "aws_sqs_queue" "public_event_publisher_queue" {
-  name                      = "product-event-publisher-queue"
+  name                      = "java-tf-product-event-publisher-queue-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.public_event_publisher_dlq.arn
@@ -28,7 +28,7 @@ module "product_public_event_publisher" {
   package_name = "com.product.publisher"
   source         = "../../modules/lambda-function"
   jar_file       = "../product-event-publisher/target/com.product.publisher-0.0.1-SNAPSHOT-aws.jar"
-  function_name  = "JavaProductPublicEventPublisher"
+  function_name  = "ProductPublicEventPublisher"
   lambda_handler = "handleInternalEvents"
   environment_variables = {
     PRODUCT_CREATED_TOPIC_ARN : data.aws_ssm_parameter.product_created_topic_param.value
@@ -39,6 +39,7 @@ module "product_public_event_publisher" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  env = var.env
 }
 
 resource "aws_lambda_event_source_mapping" "public_event_publisher" {

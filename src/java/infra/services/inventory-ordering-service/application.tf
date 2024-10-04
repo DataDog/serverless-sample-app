@@ -10,7 +10,7 @@ module "inventory_ordering_service" {
   package_name = "com.inventory.ordering"
   source         = "../../modules/lambda-function"
   jar_file       = "../inventory-ordering-service/target/com.inventory.ordering-0.0.1-SNAPSHOT-aws.jar"
-  function_name  = "JavaInventoryOrderingService"
+  function_name  = "InventoryOrderingService"
   lambda_handler = "handleNewProductAdded"
   environment_variables = {
     ORDERING_SERVICE_WORKFLOW_ARN : aws_sfn_state_machine.inventory_ordering_state_machine.arn
@@ -18,6 +18,7 @@ module "inventory_ordering_service" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  env = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "product_created_handler_sqs_receive_permission" {
@@ -40,7 +41,7 @@ resource "aws_sns_topic_subscription" "product_created_sns_topic" {
 }
 
 resource "aws_cloudwatch_log_group" "sfn_log_group" {
-  name              = "/aws/vendedlogs/states/JavaInventoryOrderingServiceLogGroup"
+  name              = "/aws/vendedlogs/states/JavaTfInventoryOrderingServiceLogGroup-${var.env}"
   retention_in_days = 7
   lifecycle {
     prevent_destroy = false
@@ -49,7 +50,7 @@ resource "aws_cloudwatch_log_group" "sfn_log_group" {
 
 
 resource "aws_sfn_state_machine" "inventory_ordering_state_machine" {
-  name     = "inventory-ordering-service"
+  name     = "java-tf-inventory-ordering-service-${var.env}"
   role_arn = aws_iam_role.invetory_ordering_sfn_role.arn
   logging_configuration {
     log_destination        = "${aws_cloudwatch_log_group.sfn_log_group.arn}:*"

@@ -6,11 +6,11 @@
 //
 
 resource "aws_cloudwatch_event_bus" "shared_java_bus" {
-  name = "JavaTracingBus"
+  name = "JavaTfTracingBus-${var.env}"
 }
 
 resource "aws_ssm_parameter" "eb_name" {
-  name  = "/java/shared/event-bus-name"
+  name  = "/java/tf/${var.env}/shared/event-bus-name"
   type  = "String"
   value = aws_cloudwatch_event_bus.shared_java_bus.name
 }

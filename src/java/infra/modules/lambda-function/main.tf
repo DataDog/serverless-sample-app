@@ -79,7 +79,7 @@ module "aws_lambda_function" {
   version = "1.4.0"
 
   filename                 = var.jar_file
-  function_name            = "Java-${var.function_name}-${var.env}"
+  function_name            = "TfJava${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = "org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest"
   runtime                  = "java21"
@@ -87,6 +87,8 @@ module "aws_lambda_function" {
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
   source_code_hash         = base64sha256(filebase64(var.jar_file))
   timeout                  = var.timeout
+  publish                  = var.env == "dev" || var.env == "prod" ? true : false
+  snap_start_apply_on      = var.env == "dev" || var.env == "prod" ? "PublishedVersions" : ""
 
   environment_variables = merge(tomap({
     "MAIN_CLASS" : "${var.package_name}.FunctionConfiguration"
@@ -96,12 +98,20 @@ module "aws_lambda_function" {
     "ENV" : var.env
     "DD_VERSION" : var.app_version
     "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
-    "DD_CAPTURE_LAMBDA_PAYLOAD": "true"
-    "DD_LOGS_INJECTION": "true"
-    "spring_cloud_function_definition" : var.lambda_handler}),
+    "DD_CAPTURE_LAMBDA_PAYLOAD" : "true"
+    "DD_LOGS_INJECTION" : "true"
+    "spring_cloud_function_definition" : var.lambda_handler }),
     var.environment_variables
   )
 
   datadog_extension_layer_version = 65
   datadog_java_layer_version      = 15
+}
+
+resource "aws_lambda_alias" "SnapStartAlias" {
+  count            = var.env == "dev" || var.env == "prod" ? 1 : 0
+  name             = var.env
+  description      = "Alias for SnapStart"
+  function_name    = module.aws_lambda_function.function_name
+  function_version = module.aws_lambda_function.version
 }
