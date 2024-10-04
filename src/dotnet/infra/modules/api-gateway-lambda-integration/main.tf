@@ -5,26 +5,26 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-resource "aws_apigatewayv2_integration" "lambda_integration" {
-  api_id = var.api_id
-
-  integration_uri    = var.function_arn
-  integration_type   = "AWS_PROXY"
-  integration_method = var.http_method
+resource "aws_api_gateway_method" "method" {
+  rest_api_id   = var.api_id
+  resource_id   = var.api_resource_id
+  http_method   = var.http_method
+  authorization = "NONE"
 }
 
-resource "aws_apigatewayv2_route" "get_product_route" {
-  api_id = var.api_id
-
-  route_key = "${var.http_method} ${var.route}"
-  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+resource "aws_api_gateway_integration" "integration" {
+  rest_api_id             = var.api_id
+  resource_id             = var.api_resource_id
+  http_method             = aws_api_gateway_method.method.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = var.function_arn
 }
 
-resource "aws_lambda_permission" "get_lambda_api_gw" {
+resource "aws_lambda_permission" "lambda_permission" {
   statement_id  = "AllowLambdaExecutionFromAPIGateway_${var.function_name}"
   action        = "lambda:InvokeFunction"
   function_name = var.function_name
   principal     = "apigateway.amazonaws.com"
-
-  source_arn = "${var.api_arn}/*/*"
+  source_arn    = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${var.api_id}/*/${aws_api_gateway_method.method.http_method}${var.api_resource_path}"
 }

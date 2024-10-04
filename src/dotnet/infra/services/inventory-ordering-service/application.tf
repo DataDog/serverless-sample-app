@@ -9,7 +9,7 @@ module "inventory_ordering_service" {
   publish_directory = "../src/Inventory.Ordering/Inventory.Ordering.Adapters/bin/Release/net8.0/Inventory.Ordering.Adapters.zip"
   service_name   = "DotnetInventoryOrderingService"
   source         = "../../modules/lambda-function"
-  function_name  = "DotnetInventoryOrderingService"
+  function_name  = "InventoryOrderingService"
   lambda_handler = "Inventory.Ordering.Adapters::Inventory.Ordering.Adapters.Functions_HandleProductAdded_Generated::HandleProductAdded"
   environment_variables = {
     ORDERING_SERVICE_WORKFLOW_ARN : aws_sfn_state_machine.inventory_ordering_state_machine.arn
@@ -17,6 +17,8 @@ module "inventory_ordering_service" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "product_created_handler_sqs_receive_permission" {
@@ -39,7 +41,7 @@ resource "aws_sns_topic_subscription" "product_created_sns_topic" {
 }
 
 resource "aws_cloudwatch_log_group" "sfn_log_group" {
-  name              = "/aws/vendedlogs/states/DotnetInventoryOrderingServiceLogGroup"
+  name              = "/aws/vendedlogs/states/TfDotnetInventoryOrderingServiceLogGroup-${var.env}"
   retention_in_days = 7
   lifecycle {
     prevent_destroy = false
@@ -48,7 +50,7 @@ resource "aws_cloudwatch_log_group" "sfn_log_group" {
 
 
 resource "aws_sfn_state_machine" "inventory_ordering_state_machine" {
-  name     = "inventory-ordering-service"
+  name     = "tf-dotnet-inventory-ordering-service-${var.env}"
   role_arn = aws_iam_role.invetory_ordering_sfn_role.arn
   logging_configuration {
     log_destination        = "${aws_cloudwatch_log_group.sfn_log_group.arn}:*"

@@ -6,7 +6,7 @@
 //
 
 resource "aws_iam_policy" "eb_publish" {
-  name   = "product-event-publisher-publish-policy"
+  name   = "tf-dotnet-product-event-publisher-publish-policy-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.eb_publish.json
 }

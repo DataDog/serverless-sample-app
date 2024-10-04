@@ -6,11 +6,11 @@
 //
 
 resource "aws_sqs_queue" "analytics_service_dlq" {
-  name = "analytics-service-dlq"
+  name = "tf-dotnet-analytics-service-dlq-${var.env}"
 }
 
 resource "aws_sqs_queue" "analytics_service_queue" {
-  name                      = "analytics-service-queue"
+  name                      = "tf-dotnet-analytics-service-queue-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.analytics_service_dlq.arn
@@ -27,13 +27,15 @@ module "analytics_service_function" {
   publish_directory = "../src/Analytics/Analytics.Adapters/bin/Release/net8.0/Analytics.Adapters.zip"
   service_name   = "DotnetAnalyticsBackend"
   source         = "../../modules/lambda-function"
-  function_name  = "DotnetAnalyticsBackend"
+  function_name  = "AnalyticsBackend"
   lambda_handler = "Analytics.Adapters::Analytics.Adapters.HandlerFunctions_HandleEvents_Generated::HandleEvents"
   environment_variables = {
     DD_TRACE_PROPAGATION_STYLE: "none"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_lambda_event_source_mapping" "analytics_backend_source" {

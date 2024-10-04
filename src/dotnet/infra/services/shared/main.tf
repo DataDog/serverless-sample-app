@@ -6,11 +6,11 @@
 //
 
 resource "aws_cloudwatch_event_bus" "shared_dotnet_bus" {
-  name = "DotnetTracingBus"
+  name = "DotnetTfTracingBus-${var.env}"
 }
 
 resource "aws_ssm_parameter" "eb_name" {
-  name  = "/dotnet/shared/event-bus-name"
+  name  = "/dotnet/tf/${var.env}/shared/event-bus-name"
   type  = "String"
   value = aws_cloudwatch_event_bus.shared_dotnet_bus.name
 }

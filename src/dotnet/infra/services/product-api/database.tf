@@ -6,7 +6,7 @@
 //
 
 resource "aws_dynamodb_table" "dotnet_product_api" {
-  name           = "DotnetProductApi"
+  name           = "TfDotnetProductApi-${var.env}"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "PK"
 

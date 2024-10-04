@@ -14,3 +14,14 @@ variable "dd_site" {
   type = string
   description = "The Datadog site"
 }
+
+variable "env" {
+  type = string
+  description = "The deployment environment"
+}
+
+variable "app_version" {
+  type = string
+  description = "The version of the application being deployed"
+  default = "latest"
+}

@@ -6,14 +6,14 @@
 //
 
 resource "aws_sns_topic" "product_price_calculated" {
-  name = "dotnet-price-calculated-topic"
+  name = "tf-dotnet-dotnet-price-calculated-topic-${var.env}"
 }
 
 module "product_pricing_created_handler" {
   publish_directory = "../src/Product.Pricing/ProductPricingService.Lambda/bin/Release/net8.0/ProductPricingService.Lambda.zip"
   service_name   = "DotnetProductPricingService"
   source         = "../../modules/lambda-function"
-  function_name  = "DotnetProductCreatedPricingHandler"
+  function_name  = "ProductCreatedPricingHandler"
   lambda_handler = "ProductPricingService.Lambda::ProductPricingService.Lambda.Functions_HandleProductCreated_Generated::HandleProductCreated"
   environment_variables = {
     PRICE_CALCULATED_TOPIC_ARN: aws_sns_topic.product_price_calculated.arn
@@ -21,6 +21,8 @@ module "product_pricing_created_handler" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "product_created_handler_publish_permission" {
@@ -47,7 +49,7 @@ module "product_pricing_updated_handler" {
   publish_directory = "../src/Product.Pricing/ProductPricingService.Lambda/bin/Release/net8.0/ProductPricingService.Lambda.zip"
   service_name   = "DotnetProductPricingService"
   source         = "../../modules/lambda-function"
-  function_name  = "DotnetProductUpdatedPricingHandler"
+  function_name  = "ProductUpdatedPricingHandler"
   lambda_handler = "ProductPricingService.Lambda::ProductPricingService.Lambda.Functions_HandleProductUpdated_Generated::HandleProductUpdated"
   environment_variables = {
     PRICE_CALCULATED_TOPIC_ARN: aws_sns_topic.product_price_calculated.arn
@@ -55,6 +57,8 @@ module "product_pricing_updated_handler" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "product_updated_handler_publish_permission" {

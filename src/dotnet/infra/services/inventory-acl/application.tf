@@ -6,11 +6,11 @@
 //
 
 resource "aws_sqs_queue" "public_event_acl_dlq" {
-  name = "inventory-acl-dlq"
+  name = "tf-dotnet-inventory-acl-dlq-${var.env}"
 }
 
 resource "aws_sqs_queue" "public_event_acl_queue" {
-  name                      = "inventory-acl"
+  name                      = "tf-dotnet-inventory-acl-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.public_event_acl_dlq.arn
@@ -19,7 +19,7 @@ resource "aws_sqs_queue" "public_event_acl_queue" {
 }
 
 resource "aws_sns_topic" "dotnet_inventory_new_product_added" {
-  name = "dotnet-inventory-new-product-added"
+  name = "tf-dotnet-inventory-new-product-added-${var.env}"
 }
 
 resource "aws_sqs_queue_policy" "allow_eb_publish" {
@@ -29,7 +29,7 @@ resource "aws_sqs_queue_policy" "allow_eb_publish" {
 
 module "inventory_acl_function" {
   publish_directory = "../src/Inventory.Acl/Inventory.Acl.Adapters/bin/Release/net8.0/Inventory.Acl.Adapters.zip"
-  service_name   = "DotnetInventoryAcl"
+  service_name   = "InventoryAcl"
   source         = "../../modules/lambda-function"
   function_name  = "DotnetInventoryAcl"
   lambda_handler = "Inventory.Acl.Adapters::Inventory.Acl.Adapters.HandlerFunctions_HandleCreated_Generated::HandleCreated"
@@ -39,6 +39,8 @@ module "inventory_acl_function" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_lambda_event_source_mapping" "public_event_publisher" {

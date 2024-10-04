@@ -77,7 +77,7 @@ module "aws_lambda_function" {
   version = "1.4.0"
 
   filename                 = var.publish_directory
-  function_name            = "Dotnet-${var.function_name}-${var.env}"
+  function_name            = "TfDotnet-${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = var.lambda_handler
   runtime                  = "dotnet8"
