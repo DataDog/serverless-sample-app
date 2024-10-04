@@ -46,6 +46,7 @@ module "create_product_lambda" {
   dd_site               = var.dd_site
   env                   = var.env
   app_version           = var.app_version
+  enable_snap_start = var.env == "test" || var.env == "prod" ? true : false
 }
 
 resource "aws_iam_role_policy_attachment" "create_product_lambda_dynamo_db_write" {
@@ -68,6 +69,7 @@ module "create_product_lambda_api" {
   api_resource_id   = module.product_resource.id
   api_resource_path = module.product_resource.path_part
   env = var.env
+  add_env_qualifier = var.env == "test" || var.env == "prod" ? true : false
 }
 
 module "list_products_lambda" {
@@ -84,6 +86,7 @@ module "list_products_lambda" {
   dd_site               = var.dd_site
   env                   = var.env
   app_version           = var.app_version
+  enable_snap_start = var.env == "test" || var.env == "prod" ? true : false
 }
 
 resource "aws_iam_role_policy_attachment" "list_products_lambda_dynamo_db_read" {
@@ -101,6 +104,7 @@ module "list_products_lambda_api" {
   api_resource_id   = module.product_resource.id
   api_resource_path = module.product_resource.path_part
   env = var.env
+  add_env_qualifier = var.env == "test" || var.env == "prod" ? true : false
 }
 
 module "get_product_lambda" {
@@ -117,6 +121,7 @@ module "get_product_lambda" {
   dd_site               = var.dd_site
   env                   = var.env
   app_version           = var.app_version
+  enable_snap_start = var.env == "test" || var.env == "prod" ? true : false
 }
 
 resource "aws_iam_role_policy_attachment" "get_product_lambda_dynamo_db_read" {
@@ -135,6 +140,7 @@ module "get_product_lambda_api" {
   api_resource_id   = module.product_id_resource.id
   api_resource_path = module.product_id_resource.path_part
   env = var.env
+  add_env_qualifier = var.env == "test" || var.env == "prod" ? true : false
 }
 
 resource "aws_sns_topic" "product_updated" {
@@ -156,6 +162,7 @@ module "update_product_lambda" {
   dd_site               = var.dd_site
   env                   = var.env
   app_version           = var.app_version
+  enable_snap_start = var.env == "test" || var.env == "prod" ? true : false
 }
 
 resource "aws_iam_role_policy_attachment" "update_product_lambda_dynamo_db_read" {
@@ -183,6 +190,7 @@ module "update_product_lambda_api" {
   api_resource_id   = module.product_resource.id
   api_resource_path = module.product_resource.path_part
   env = var.env
+  add_env_qualifier = var.env == "test" || var.env == "prod" ? true : false
 }
 
 resource "aws_sns_topic" "product_deleted" {
@@ -204,6 +212,7 @@ module "delete_product_lambda" {
   dd_site               = var.dd_site
   env                   = var.env
   app_version           = var.app_version
+  enable_snap_start = var.env == "test" || var.env == "prod" ? true : false
 }
 
 resource "aws_iam_role_policy_attachment" "delete_product_lambda_dynamo_db_read" {
@@ -231,6 +240,7 @@ module "delete_product_lambda_api" {
   api_resource_id   = module.product_id_resource.id
   api_resource_path = module.product_id_resource.path_part
   env = var.env
+  add_env_qualifier = var.env == "test" || var.env == "prod" ? true : false
 }
 
 resource "aws_api_gateway_deployment" "rest_api_deployment" {

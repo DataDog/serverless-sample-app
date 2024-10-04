@@ -22,7 +22,7 @@ resource "aws_api_gateway_integration" "integration" {
 }
 
 resource "aws_lambda_permission" "qualified_lambda_permission" {
-  count = var.env == "test" || var.env == "prod" ? 1 : 0
+  count = var.add_env_qualifier ? 1 : 0
   statement_id  = "AllowLambdaExecutionFromAPIGateway_${var.function_name}"
   action        = "lambda:InvokeFunction"
   function_name = var.function_name
@@ -32,7 +32,7 @@ resource "aws_lambda_permission" "qualified_lambda_permission" {
 }
 
 resource "aws_lambda_permission" "ambda_permission" {
-  count = var.env == "test" || var.env == "prod" ? 0 : 1
+  count = var.add_env_qualifier ? 0 : 1
   statement_id  = "AllowLambdaExecutionFromAPIGateway_${var.function_name}"
   action        = "lambda:InvokeFunction"
   function_name = var.function_name

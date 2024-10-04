@@ -16,6 +16,12 @@ variable "env" {
   default     = "dev"
 }
 
+variable "enable_snap_start" {
+  description = "Should SnapStart be enabled"
+  type = bool
+  default = false
+}
+
 variable "app_version" {
   default     = "latest"
   description = "The version of the deployment"

@@ -44,3 +44,9 @@ variable "env" {
   description = "The environment to use."
   type        = string
 }
+
+variable "add_env_qualifier" {
+  description = "Should the environment be added as an integration qualifier"
+  type = bool
+  default = false
+}
