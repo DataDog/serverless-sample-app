@@ -9,7 +9,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_ssm_parameter" "product_created_topic_param" {
-  name = "/dotnet/tf/${var.env}//dotnet/product/product-created-topic"
+  name = "/dotnet/tf/${var.env}/product/product-created-topic"
 }
 
 data "aws_ssm_parameter" "product_updated_topic_param" {
