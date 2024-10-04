@@ -97,7 +97,7 @@ module "get_product_lambda_api" {
   function_arn  = module.get_product_lambda.function_arn
   function_name = module.get_product_lambda.function_name
   http_method   = "GET"
-  api_resource_id   = module.product_id_resource
+  api_resource_id   = module.product_id_resource.id
   api_resource_path = module.product_id_resource.path_part
   env = var.env
 }
@@ -129,8 +129,8 @@ module "list_products_lambda_api" {
   function_arn  = module.list_products_lambda.function_arn
   function_name = module.list_products_lambda.function_name
   http_method   = "GET"
-  api_resource_id   = module.product_resource
-  api_resource_path = module.product_resource.path_part
+  api_resource_id   = module.product_resource.id
+  api_resource_path = module.product_id_resource.path_part
   env = var.env
 }
 
@@ -176,7 +176,7 @@ module "update_product_lambda_api" {
   function_arn  = module.update_product_lambda.function_arn
   function_name = module.update_product_lambda.function_name
   http_method   = "PUT"
-  api_resource_id   = module.product_id_resource
+  api_resource_id   = module.product_id_resource.id
   api_resource_path = module.product_id_resource.path_part
   env = var.env
 }
@@ -223,7 +223,7 @@ module "delete_product_lambda_api" {
   function_arn  = module.delete_product_lambda.function_arn
   function_name = module.delete_product_lambda.function_name
   http_method   = "DELETE"
-  api_resource_id   = module.product_id_resource
+  api_resource_id   = module.product_id_resource.id
   api_resource_path = module.product_id_resource.path_part
   env = var.env
 }
@@ -234,11 +234,6 @@ resource "aws_api_gateway_deployment" "rest_api_deployment" {
     redeployment = sha1(jsonencode([
       module.product_id_resource.resource,
       module.product_resource.resource,
-      module.create_product_lambda_api,
-      module.delete_product_lambda_api,
-      module.get_product_lambda_api,
-      module.list_products_lambda_api,
-      module.update_product_lambda_api
     ]))
   }
   lifecycle {
