@@ -19,6 +19,7 @@ module "inventory_ordering_service" {
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
   env = var.env
+  app_version = var.app_version
 }
 
 resource "aws_iam_role_policy_attachment" "product_created_handler_sqs_receive_permission" {

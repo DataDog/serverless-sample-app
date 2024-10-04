@@ -40,6 +40,7 @@ module "product_public_event_publisher" {
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
   env = var.env
+  app_version = var.app_version
 }
 
 resource "aws_lambda_event_source_mapping" "public_event_publisher" {

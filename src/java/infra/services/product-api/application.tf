@@ -45,6 +45,7 @@ module "create_product_lambda" {
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   env                   = var.env
+  app_version = var.app_version
 }
 
 resource "aws_iam_role_policy_attachment" "create_product_lambda_dynamo_db_write" {
@@ -81,6 +82,7 @@ module "list_products_lambda" {
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   env                   = var.env
+  app_version = var.app_version
 }
 
 resource "aws_iam_role_policy_attachment" "list_products_lambda_dynamo_db_read" {
@@ -112,6 +114,7 @@ module "get_product_lambda" {
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   env                   = var.env
+  app_version = var.app_version
 }
 
 resource "aws_iam_role_policy_attachment" "get_product_lambda_dynamo_db_read" {
@@ -149,6 +152,7 @@ module "update_product_lambda" {
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   env                   = var.env
+  app_version = var.app_version
 }
 
 resource "aws_iam_role_policy_attachment" "update_product_lambda_dynamo_db_read" {
@@ -195,6 +199,7 @@ module "delete_product_lambda" {
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   env                   = var.env
+  app_version = var.app_version
 }
 
 resource "aws_iam_role_policy_attachment" "delete_product_lambda_dynamo_db_read" {

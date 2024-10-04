@@ -22,6 +22,12 @@ variable "env" {
   default = "dev"
 }
 
+variable "app_version" {
+  type = string
+  description = "The version of the application being deployed"
+  default = "latest"
+}
+
 variable "region" {
   type = string
   description = "The AWS region to deploy to"

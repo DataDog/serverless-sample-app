@@ -20,3 +20,9 @@ variable "env" {
   description = "The environment deploying to"
   default = "dev"
 }
+
+variable "app_version" {
+  type = string
+  description = "The version of the application being deployed"
+  default = "latest"
+}

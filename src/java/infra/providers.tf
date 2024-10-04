@@ -13,9 +13,7 @@ terraform {
     }
   }
  backend "s3" {
-   bucket = var.tf_state_bucket_name
    key    = "java/terraform.tfstate"
-   region = var.region
  }
 }
 
