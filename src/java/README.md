@@ -164,6 +164,35 @@ To deploy, first create a file named `infra/dev.tfvars`. In your tfvars file, yo
 ```tf
 dd_api_key_secret_arn="<DD_SECRET_ARN>"
 dd_site="<YOUR PREFERRED DATADOG SITE>
+region="<YOUR PREFERRED AWS_REGION>"
+```
+
+You can optionally provide an S3 backend to use as your state store, to do this set the below environment variables and run `terraform init`
+
+```sh
+export AWS_REGION=<YOUR PREFERRED AWS_REGION>
+export TF_STATE_BUCKET_NAME=<THE NAME OF THE S3 BUCKET>
+terraform init -backend-config "bucket=${TF_STATE_BUCKET_NAME}" -backend-config "region=${AWS_REGION}"
+```
+
+Alternatively, comment out the S3 backend section in [`providers.tf'](./infra/providers.tf).
+
+```tf
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.61"
+    }
+  }
+#  backend "s3" {
+#    key    = "java/terraform.tfstate"
+#  }
+}
+
+provider "aws" {
+  region = var.region
+}
 ```
 
 There's a single `main.tf` that contains all 7 backend services as modules. This is **not** recommended in production, and you should deploy backend services independenly. However, to simplify this demo deployment a single file is used.

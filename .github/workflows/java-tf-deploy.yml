@@ -52,7 +52,18 @@ jobs:
         shell: bash
         run: |
           echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
-      - name: Deploy to AWS
+      - name: Package Java application
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "test"
+          DD_SECRET_ARN: ${{secrets.EU_WEST_2_DD_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          make package-java
+      - name: Terraform apply
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
