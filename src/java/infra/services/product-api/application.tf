@@ -279,5 +279,5 @@ resource "aws_ssm_parameter" "table_name_param" {
 resource "aws_ssm_parameter" "api_endpoint" {
   name  = "/java/tf/${var.env}/product/api-endpoint"
   type  = "String"
-  value = "${aws_api_gateway_stage.rest_api_stage.invoke_url}/${var.env}"
+  value = "${aws_api_gateway_stage.rest_api_stage.invoke_url}"
 }
