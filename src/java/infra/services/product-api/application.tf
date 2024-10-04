@@ -67,6 +67,7 @@ module "create_product_lambda_api" {
   http_method       = "POST"
   api_resource_id   = module.product_resource.id
   api_resource_path = module.product_resource.path_part
+  env = var.env
 }
 
 module "list_products_lambda" {
@@ -99,6 +100,7 @@ module "list_products_lambda_api" {
   http_method       = "GET"
   api_resource_id   = module.product_resource.id
   api_resource_path = module.product_resource.path_part
+  env = var.env
 }
 
 module "get_product_lambda" {
@@ -132,6 +134,7 @@ module "get_product_lambda_api" {
   http_method       = "GET"
   api_resource_id   = module.product_id_resource.id
   api_resource_path = module.product_id_resource.path_part
+  env = var.env
 }
 
 resource "aws_sns_topic" "product_updated" {
@@ -179,6 +182,7 @@ module "update_product_lambda_api" {
   http_method       = "PUT"
   api_resource_id   = module.product_id_resource.id
   api_resource_path = module.product_id_resource.path_part
+  env = var.env
 }
 
 resource "aws_sns_topic" "product_deleted" {
@@ -226,6 +230,7 @@ module "delete_product_lambda_api" {
   http_method       = "DELETE"
   api_resource_id   = module.product_id_resource.id
   api_resource_path = module.product_id_resource.path_part
+  env = var.env
 }
 
 resource "aws_api_gateway_deployment" "rest_api_deployment" {

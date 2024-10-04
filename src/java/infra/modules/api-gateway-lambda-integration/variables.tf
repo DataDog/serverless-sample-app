@@ -39,3 +39,8 @@ variable "http_method" {
   description = "The HTTP method to use (GET, PUT, POST, DELETE)."
   type        = string
 }
+
+variable "env" {
+  description = "The environment to use."
+  type        = string
+}

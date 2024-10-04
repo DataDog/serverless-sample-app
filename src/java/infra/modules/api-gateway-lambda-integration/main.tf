@@ -22,9 +22,20 @@ resource "aws_api_gateway_integration" "integration" {
 }
 
 resource "aws_lambda_permission" "get_lambda_api_gw" {
+  count = var.env == "test" || var.env == "prod" ? 1 : 0
   statement_id  = "AllowLambdaExecutionFromAPIGateway_${var.function_name}"
   action        = "lambda:InvokeFunction"
   function_name = var.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${var.api_id}/*/${aws_api_gateway_method.method.http_method}${var.api_resource_path}"
+  qualifier     = [var.env]
+  source_arn    = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${var.api_id}/*/${aws_api_gateway_method.method.http_method}${var.api_resource_path}"
+}
+
+resource "aws_lambda_permission" "get_lambda_api_gw" {
+  count = var.env == "test" || var.env == "prod" ? 0 : 1
+  statement_id  = "AllowLambdaExecutionFromAPIGateway_${var.function_name}"
+  action        = "lambda:InvokeFunction"
+  function_name = var.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${var.api_id}/*/${aws_api_gateway_method.method.http_method}${var.api_resource_path}"
 }

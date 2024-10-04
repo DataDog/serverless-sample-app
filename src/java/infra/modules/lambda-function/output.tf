@@ -6,7 +6,7 @@
 //
 
 output "function_arn" {
-  value       =  module.aws_lambda_function.arn
+  value       =  var.env == "prod" || var.env == "test" ? aws_lambda_alias.SnapStartAlias[0],arn : module.aws_lambda_function.arn
   description = "The arn of the lambda function."
 } 
 
@@ -14,7 +14,6 @@ output "function_invoke_arn" {
   value       =  var.env == "prod" || var.env == "test" ? aws_lambda_alias.SnapStartAlias[0].invoke_arn : module.aws_lambda_function.invoke_arn
   description = "The invoke ARN of the lambda function."
 } 
-
 
 output "function_name" {
   value       =  module.aws_lambda_function.function_name
