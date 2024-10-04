@@ -1,4 +1,4 @@
-name: Java Terraform Deploy
+name: .NET Terraform Deploy
 
 on:
     push:
@@ -20,7 +20,7 @@ jobs:
   package-and-test:
     runs-on: ubuntu-latest
     concurrency:
-        group: java-tf
+        group: dotnet-tf
     steps:
       -
         name: Checkout
