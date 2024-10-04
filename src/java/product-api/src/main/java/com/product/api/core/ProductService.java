@@ -9,7 +9,6 @@ package com.product.api.core;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.product.api.core.events.internal.ProductPriceCalculatedEvent;
 
-import com.sun.source.tree.VariableTree;
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
 import io.opentracing.tag.Tags;

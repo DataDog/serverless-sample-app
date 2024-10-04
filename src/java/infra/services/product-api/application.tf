@@ -180,8 +180,8 @@ module "update_product_lambda_api" {
   function_arn      = module.update_product_lambda.function_invoke_arn
   function_name     = module.update_product_lambda.function_name
   http_method       = "PUT"
-  api_resource_id   = module.product_id_resource.id
-  api_resource_path = module.product_id_resource.path_part
+  api_resource_id   = module.product_resource.id
+  api_resource_path = module.product_resource.path_part
   env = var.env
 }
 

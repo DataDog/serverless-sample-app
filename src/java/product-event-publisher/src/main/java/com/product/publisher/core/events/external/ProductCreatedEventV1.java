@@ -8,9 +8,7 @@ package com.product.publisher.core.events.external;
 
 import io.opentracing.Span;
 
-import java.io.Serializable;
-
-public class ProductCreatedEventV1 extends TracedEvent implements Serializable {
+public class ProductCreatedEventV1 extends TracedEvent {
     private final String productId;
     
     public ProductCreatedEventV1(Span activeSpan, String productId){

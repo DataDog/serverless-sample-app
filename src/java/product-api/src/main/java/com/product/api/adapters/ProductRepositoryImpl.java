@@ -19,7 +19,6 @@ import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
-import javax.management.AttributeValueExp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

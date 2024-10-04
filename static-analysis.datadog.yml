@@ -1,6 +1,13 @@
 schema-version: v1
 rulesets:
-  - tsx-react
+  - csharp-best-practices
+  - csharp-code-style
+  - csharp-inclusive
+  - csharp-security
+  - java-best-practices
+  - java-code-style
+  - java-inclusive
+  - java-security
   - typescript-best-practices
   - typescript-browser-security
   - typescript-code-style
@@ -8,3 +15,5 @@ rulesets:
   - typescript-express
   - typescript-inclusive
   - typescript-node-security
+  - go-best-practices
+  - go-security

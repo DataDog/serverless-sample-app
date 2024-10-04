@@ -11,8 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inventory.acl.core.EventPublisher;
 
 import com.inventory.acl.core.events.internal.NewProductAddedEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
@@ -21,7 +19,6 @@ import software.amazon.awssdk.services.sns.model.PublishRequest;
 public class EventPublisherImpl implements EventPublisher {
     private final SnsClient snsClient;
     private final ObjectMapper mapper;
-    private final Logger logger = LoggerFactory.getLogger(EventPublisher.class);
 
     public EventPublisherImpl(SnsClient snsClient, ObjectMapper mapper) {
         this.snsClient = snsClient;
