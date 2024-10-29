@@ -7,6 +7,8 @@
 
 package core
 
+import "time"
+
 type PricingResult struct {
 	quantityToOrder int
 	price           float32
@@ -17,6 +19,14 @@ type PricingService struct{}
 func (pricingService *PricingService) calculatePricesFor(price float32) ([]PricingResult, error) {
 	if price <= 0 {
 		return []PricingResult{}, &PriceLessThanZeroError{}
+	}
+
+	if price > 50 && price < 60 {
+		time.Sleep(5 * time.Second)
+	}
+
+	if price > 90 && price < 95 {
+		return []PricingResult{}, &PricingGenerationError{}
 	}
 
 	pricingResults := []PricingResult{

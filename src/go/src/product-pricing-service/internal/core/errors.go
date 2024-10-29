@@ -7,6 +7,12 @@
 
 package core
 
+type PricingGenerationError struct{ Detail string }
+
+func (e *PricingGenerationError) Error() string {
+	return "Failure in pricing service"
+}
+
 type PriceLessThanZeroError struct{ Detail string }
 
 func (e *PriceLessThanZeroError) Error() string {

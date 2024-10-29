@@ -34,6 +34,14 @@ pub(crate) struct PricingResult {
 
 impl PricingService {
     pub(crate) fn calculate_pricing_for(price: f32) -> Vec<PricingResult> {
+        if (price > 50 && price < 60){
+            std::thread::sleep(time::Duration::from_secs(5));
+        }
+
+        if (price > 90 && price < 95) {
+            panic!("Failure in pricing service");
+        }
+
         let results = vec![
             PricingResult {
                 quantity_to_order: 5,
