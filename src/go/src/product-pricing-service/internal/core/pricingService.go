@@ -22,7 +22,7 @@ func (pricingService *PricingService) calculatePricesFor(price float32) ([]Prici
 	}
 
 	if price > 50 && price < 60 {
-		time.Sleep(5 * time.Second)
+		time.Sleep(40 * time.Second)
 	}
 
 	if price > 90 && price < 95 {

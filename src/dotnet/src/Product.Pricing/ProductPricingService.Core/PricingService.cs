@@ -9,7 +9,7 @@ public class PricingService(IEventPublisher eventPublisher)
     public async Task GeneratePricingFor(string productId, ProductPrice price)
     {
         if (price.Value > 50 && price.Value < 60){
-            await Task.Delay(TimeSpan.FromSeconds(5));
+            await Task.Delay(TimeSpan.FromSeconds(40));
         }
 
         if (price.Value > 90 && price.Value < 95) {

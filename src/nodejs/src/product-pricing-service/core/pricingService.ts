@@ -16,7 +16,7 @@ export class PricingService {
   public async calculate(price: number): Promise<PricingResult[]> {
     // This is functionality to force errors and demonstrate capabilities
     if (price > 50 && price < 60) {
-      await setTimeout(5000);
+      await setTimeout(40000);
     }
 
     if (price > 90 && price < 95){
