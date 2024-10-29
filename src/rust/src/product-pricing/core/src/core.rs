@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use serde::Serialize;
-use std::{thread, time};
+use std::time;
 
 #[async_trait]
 pub trait EventPublisher {
@@ -35,11 +35,11 @@ pub(crate) struct PricingResult {
 
 impl PricingService {
     pub(crate) fn calculate_pricing_for(price: f32) -> Vec<PricingResult> {
-        if (price > 50.0 && price < 60.0){
+        if price > 50.0 && price < 60.0 {
             std::thread::sleep(time::Duration::from_secs(5));
         }
 
-        if (price > 90.0 && price < 95.0) {
+        if price > 90.0 && price < 95.0 {
             panic!("Failure in pricing service");
         }
 
