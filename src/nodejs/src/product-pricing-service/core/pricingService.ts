@@ -5,6 +5,8 @@
 // Copyright 2024 Datadog, Inc.
 //
 
+import { setTimeout } from "timers/promises";
+
 export interface PricingResult {
   quantityToOrder: number;
   price: number;
@@ -12,7 +14,15 @@ export interface PricingResult {
 
 export class PricingService {
   public async calculate(price: number): Promise<PricingResult[]> {
-    
+    // This is functionality to force errors and demonstrate capabilities
+    if (price > 50 && price < 60) {
+      await setTimeout(5000);
+    }
+
+    if (price > 90 && price < 95){
+      throw Error('Failure generating prices')
+    }
+
     const pricingResults: PricingResult[] = [
       {
         quantityToOrder: 5,

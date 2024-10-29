@@ -12,6 +12,38 @@ config:
       arrivalRate: 5
     - duration: 120
       arrivalRate: 1
+    - duration: 20
+      arrivalRate: 10
+    - duration: 10
+      arrivalRate: 5
+    - duration: 120
+      arrivalRate: 1
+    - duration: 30
+      arrivalRate: 10
+    - duration: 10
+      arrivalRate: 5
+    - duration: 120
+      arrivalRate: 1
+    - duration: 30
+      arrivalRate: 1
+    - duration: 20
+      arrivalRate: 10
+    - duration: 10
+      arrivalRate: 5
+    - duration: 120
+      arrivalRate: 1
+    - duration: 20
+      arrivalRate: 10
+    - duration: 10
+      arrivalRate: 5
+    - duration: 120
+      arrivalRate: 1
+    - duration: 30
+      arrivalRate: 10
+    - duration: 10
+      arrivalRate: 5
+    - duration: 120
+      arrivalRate: 1
 
 scenarios:
   - name: "Product end to end"
