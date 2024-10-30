@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
-      - name: Terraform apply
+      - name: Terraform Destroy
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}

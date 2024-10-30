@@ -53,6 +53,9 @@ package-java:
 cdk-java:
 	cd src/java;mvn clean package;cd cdk;cdk deploy --all --require-approval never --concurrency 3
 
+cdk-java-destroy:
+	cd src/java;mvn clean package;cd cdk;cdk destroy --all --require-approval never
+
 tf-java:
 	cd src/java/infra;terraform init -backend-config "bucket=${TF_STATE_BUCKET_NAME}" -backend-config "region=${AWS_REGION}";terraform apply -var dd_api_key_secret_arn=${DD_SECRET_ARN} -var dd_site=${DD_SITE} -var env=${ENV} -var app_version=${COMMIT_HASH} -var region=${AWS_REGION} -var tf_state_bucket_name=${TF_STATE_BUCKET_NAME} -auto-approve
 
@@ -72,6 +75,9 @@ package-node:
 
 cdk-nodejs:
 	cd src/nodejs; npm i; cdk deploy --require-approval never --all --concurrency 3
+
+cdk-nodejs-destroy:
+	cd src/nodejs; npm i; cdk destroy --require-approval never --all
 
 tf-node: package-node
 	cd src/nodejs/infra;terraform init -backend-config "bucket=${TF_STATE_BUCKET_NAME}" -backend-config "region=${AWS_REGION}";terraform apply -var dd_api_key_secret_arn=${DD_SECRET_ARN} -var dd_site=${DD_SITE} -var env=${ENV} -var app_version=${COMMIT_HASH} -var region=${AWS_REGION} -var tf_state_bucket_name=${TF_STATE_BUCKET_NAME} -auto-approve
@@ -115,4 +121,7 @@ tf-rust-local-destroy:
 
 cdk-go:
 	cd src/go/cdk; cdk deploy --require-approval never --all --concurrency 3
+
+cdk-go-destroy:
+	cd src/go/cdk; cdk destroy --require-approval never --all
 

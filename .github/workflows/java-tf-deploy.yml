@@ -73,4 +73,16 @@ jobs:
           RUNTIME: "Java"
         run: |
           make end-to-end-test
+      - name: Teardown test resources
+        if: always()
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "test"
+          DD_SECRET_ARN: ${{secrets.EU_WEST_2_DD_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          make tf-java-destroy
           

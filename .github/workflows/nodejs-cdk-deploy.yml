@@ -57,4 +57,14 @@ jobs:
           RUNTIME: "Node"
         run: |
           make end-to-end-test
+      - name: Teardown
+        if: always()
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "test"
+          DD_SECRET_ARN: ${{secrets.DD_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          make cdk-nodejs-destroy
           
