@@ -34,6 +34,7 @@ describe("end-to-end-tests", () => {
       })
     );
 
+    // no-dd-sa:typescript-best-practices/no-console
     console.log(`API endpoint under test is: ${parameter.Parameter!.Value!}`);
 
     apiDriver = new ApiDriver(parameter.Parameter!.Value!);
@@ -59,6 +60,8 @@ describe("end-to-end-tests", () => {
     expect([200,201]).toContain(createProductResult.status);
 
     const productId = createProductResult.data.data.productId;
+
+    // no-dd-sa:typescript-best-practices/no-console
     console.log(`ProductID is ${productId}`);
 
     const listProductResult = await apiDriver.listProducts();
