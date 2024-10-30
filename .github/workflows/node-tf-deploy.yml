@@ -1,4 +1,4 @@
-name: .NET Terraform Deploy
+name: NodeJS Terraform Deploy
 
 on:
     push:
