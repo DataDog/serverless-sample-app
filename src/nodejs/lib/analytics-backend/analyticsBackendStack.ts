@@ -13,6 +13,7 @@ import { SharedProps } from "../constructs/sharedFunctionProps";
 import { EventBus } from "aws-cdk-lib/aws-events";
 import { AnalyticsService } from "./analyticsWorker";
 
+// no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class AnalyticsBackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);

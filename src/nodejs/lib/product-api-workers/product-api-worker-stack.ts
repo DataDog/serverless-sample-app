@@ -14,6 +14,7 @@ import { ApiWorker } from "./api";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { ITopic, Topic } from "aws-cdk-lib/aws-sns";
 
+// no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class ProductApiWorkerStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);

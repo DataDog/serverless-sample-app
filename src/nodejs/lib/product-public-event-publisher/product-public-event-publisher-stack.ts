@@ -15,6 +15,7 @@ import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { Topic } from "aws-cdk-lib/aws-sns";
 import { ProductPublicEventPublisher } from "./publicEventPublisher";
 
+// no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class ProductPublicEventPublisherStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);

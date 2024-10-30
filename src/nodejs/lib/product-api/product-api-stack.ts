@@ -12,8 +12,8 @@ import { Datadog } from "datadog-cdk-constructs-v2";
 import { SharedProps } from "../constructs/sharedFunctionProps";
 import { Api } from "./api";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
-import { ITopic, Topic } from "aws-cdk-lib/aws-sns";
 
+// no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class ProductApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);

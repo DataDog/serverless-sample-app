@@ -30,6 +30,7 @@ export const handler = async (
     });
 
     try {
+      // no-dd-sa:typescript-best-practices/no-explicit-any
       const parsedBody = JSON.parse(message.body) as EventBridgeEvent<any, any>;
 
       const manualContext = new ManualContext(
@@ -45,14 +46,22 @@ export const handler = async (
         "messaging.type": parsedBody["detail-type"],
       });
       tracer.dogstatsd.increment(parsedBody["detail-type"], 1);
-    } catch (error: any) {
-      logger.error(JSON.stringify(error));
-      const stack = error.stack.split("\n").slice(1, 4).join("\n");
-      mainSpan.addTags({
-        "error.stack": stack,
-        "error.message": error.message,
-        "error.type": "Error",
-      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        const e = error as Error;
+        logger.error(JSON.stringify(e));
+        const stack = e.stack!.split("\n").slice(1, 4).join("\n");
+        mainSpan.addTags({
+          "error.stack": stack,
+          "error.message": error.message,
+          "error.type": "Error",
+        });
+      } else {
+        logger.error(JSON.stringify(error));
+        mainSpan.addTags({
+          "error.type": "Error",
+        });
+      }
       batchItemFailures.push({
         itemIdentifier: message.messageId,
       });

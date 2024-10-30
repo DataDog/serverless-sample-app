@@ -36,14 +36,23 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
           itemIdentifier: message.messageId,
         });
       }
-    } catch (error: any) {
-      logger.error(JSON.stringify(error));
-      const stack = error.stack.split("\n").slice(1, 4).join("\n");
-      mainSpan.addTags({
-        "error.stack": stack,
-        "error.message": error.message,
-        "error.type": "Error",
-      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        const e = error as Error;
+        logger.error(JSON.stringify(e));
+        const stack = e.stack!.split("\n").slice(1, 4).join("\n");
+        mainSpan.addTags({
+          "error.stack": stack,
+          "error.message": error.message,
+          "error.type": "Error",
+        });
+      } else {
+        logger.error(JSON.stringify(error));
+        mainSpan.addTags({
+          "error.type": "Error",
+        });
+      }
+
       batchItemFailures.push({
         itemIdentifier: message.messageId,
       });

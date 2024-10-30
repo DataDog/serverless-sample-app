@@ -13,6 +13,7 @@ import { SharedProps } from "../constructs/sharedFunctionProps";
 import { EventBus } from "aws-cdk-lib/aws-events";
 import { InventoryServiceACL } from "./inventoryServiceBackgroundWorker";
 
+// no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class InventoryAclStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);

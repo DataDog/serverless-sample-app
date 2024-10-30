@@ -14,6 +14,7 @@ import { Topic } from "aws-cdk-lib/aws-sns";
 import { ProductPricingService } from "./productPricingService";
 import { SharedProps } from "../constructs/sharedFunctionProps";
 
+// no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class ProductPricingStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);

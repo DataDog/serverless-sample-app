@@ -36,14 +36,19 @@ export class EventAntiCorruptionLayer {
       });
 
       return true;
-    } catch (error: any) {
-      this.logger.error(JSON.stringify(error));
-      const stack = error.stack.split("\n").slice(1, 4).join("\n");
-
-      if (span !== null) {
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        const e = error as Error;
+        this.logger.error(JSON.stringify(e));
+        const stack = e.stack!.split("\n").slice(1, 4).join("\n");
         span.addTags({
           "error.stack": stack,
           "error.message": error.message,
+          "error.type": "Error",
+        });
+      } else {
+        this.logger.error(JSON.stringify(error));
+        span.addTags({
           "error.type": "Error",
         });
       }

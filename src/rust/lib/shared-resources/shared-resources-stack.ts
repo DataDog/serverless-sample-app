@@ -9,6 +9,7 @@ import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { EventBus } from "aws-cdk-lib/aws-events";
 
+// no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class SharedResourcesStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);

@@ -13,6 +13,7 @@ import { SharedProps } from "../constructs/sharedFunctionProps";
 import { Api } from "./api";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 
+// no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class ProductApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);

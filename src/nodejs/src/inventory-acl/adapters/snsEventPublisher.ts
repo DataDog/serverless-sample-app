@@ -43,13 +43,20 @@ export class SnsPrivateEventPublisher implements PrivateEventPublisher {
           Message: toPublish,
         })
       );
-    } catch (error: any) {
-      const stack = error.stack.split("\n").slice(1, 4).join("\n");
-      messagingSpan.addTags({
-        "error.stack": stack,
-        "error.message": error.message,
-        "error.type": "Error",
-      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        const e = error as Error;
+        const stack = e.stack!.split("\n").slice(1, 4).join("\n");
+        messagingSpan.addTags({
+          "error.stack": stack,
+          "error.message": error.message,
+          "error.type": "Error",
+        });
+      } else {
+        messagingSpan.addTags({
+          "error.type": "Error",
+        });
+      }
       return false;
     } finally {
       messagingSpan.finish();
