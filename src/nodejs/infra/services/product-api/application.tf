@@ -8,7 +8,7 @@
 module "api_gateway" {
   source            = "../../modules/api-gateway"
   api_name          = "tf-node-product-api-${var.env}"
-  stage_name        = "dev"
+  stage_name        = var.env
   stage_auto_deploy = true
   env               = var.env
 }
@@ -135,7 +135,7 @@ module "get_product_lambda_api" {
 }
 
 resource "aws_sns_topic" "product_updated" {
-  name = "product-updated-topic"
+  name = "tf-node-product-updated-topic-${var.env}"
 }
 
 module "update_product_lambda" {
@@ -182,7 +182,7 @@ module "update_product_lambda_api" {
 }
 
 resource "aws_sns_topic" "product_deleted" {
-  name = "product-deleted-topic"
+  name = "tf-node-product-deleted-topic-${var.env}"
 }
 
 module "delete_product_lambda" {

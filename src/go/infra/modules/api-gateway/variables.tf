@@ -23,5 +23,4 @@ variable "stage_auto_deploy" {
 variable "env" {
   description = "The enviornment to deploy to"
   type = string
-  default = "dev"
 }

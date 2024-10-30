@@ -13,7 +13,6 @@ variable "service_name" {
 variable "env" {
   description = "The deployment environment"
   type        = string
-  default     = "dev"
 }
 
 variable "enable_snap_start" {

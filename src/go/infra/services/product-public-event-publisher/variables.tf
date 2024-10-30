@@ -18,7 +18,6 @@ variable "dd_site" {
 variable "env" {
   type = string
   description = "The environment deploying to"
-  default = "dev"
 }
 
 variable "app_version" {

@@ -8,7 +8,7 @@
 module "api_gateway" {
   source            = "../../modules/api-gateway"
   api_name          = "tf-rust-product-api-${var.env}"
-  stage_name        = "dev"
+  stage_name        = var.env
   stage_auto_deploy = true
   env               = var.env
 }

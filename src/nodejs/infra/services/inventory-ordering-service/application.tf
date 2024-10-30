@@ -41,7 +41,7 @@ resource "aws_sns_topic_subscription" "product_created_sns_topic" {
 }
 
 resource "aws_cloudwatch_log_group" "sfn_log_group" {
-  name              = "/aws/vendedlogs/states/NodeInventoryOrderingServiceLogGroup"
+  name              = "/aws/vendedlogs/states/NodeInventoryOrderingServiceLogGroup-${var.env}"
   retention_in_days = 7
   lifecycle {
     prevent_destroy = false
