@@ -140,7 +140,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		StringValue:   table.TableName(),
 	})
 	awsssm.NewStringParameter(scope, jsii.String("GoProductApiEndpoint"), &awsssm.StringParameterProps{
-		ParameterName: jsii.String("/go/product/api-endpoint"),
+		ParameterName: jsii.String(fmt.Sprintf("/go/%s/product/api-endpoint", props.SharedProps.Env)),
 		StringValue:   api.Url(),
 	})
 }

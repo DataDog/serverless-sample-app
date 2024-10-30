@@ -138,7 +138,7 @@ public class ProductApi : Construct
         var apiEndpointParameter = new StringParameter(this, "ProductApiEndpointParameter",
             new StringParameterProps()
             {
-                ParameterName = "/dotnet/product/api-endpoint",
+                ParameterName = $"/dotnet/{props.Shared.Env}/product/api-endpoint",
                 StringValue = httpAPi.Url
             });
     }

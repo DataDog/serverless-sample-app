@@ -106,7 +106,7 @@ export class ProductApiStack extends cdk.Stack {
       this,
       "NodeProductApiEndpoint",
       {
-        parameterName: "/node/product/api-endpoint",
+        parameterName: `/node/${sharedProps.environment}/product/api-endpoint`,
         stringValue: api.api.url,
       }
     );
