@@ -49,6 +49,7 @@ export class InstrumentedLambdaFunction extends Construct {
         DD_EXTENSION_VERSION: 'next',
         DD_SERVERLESS_APPSEC_ENABLED: "true",
         DD_IAST_ENABLED: "true",
+        DD_PROFILING_ENABLED: "true",
         ...props.environment
       },
       bundling: {
