@@ -33,6 +33,9 @@ describe("end-to-end-tests", () => {
         Name: `/${runtimeUnderTest.toLowerCase()}/${environmentUnderTest.toLowerCase()}/product/api-endpoint`,
       })
     );
+
+    console.log(`API endpoint under test is: ${parameter.Parameter!.Value!}`);
+
     apiDriver = new ApiDriver(parameter.Parameter!.Value!);
 
     stepFunctionsClient = new SFNClient();
