@@ -12,8 +12,19 @@ permissions:
   contents: read
 
 jobs:
+  static-analysis:
+    uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yaml@main
+    with:
+      service-name: serverless-sample-dotnet-cdk
+      directory: src/dotnet
+    secrets:
+      dd_api_key: ${{secrets.DD_API_KEY}}
+      dd_app_key: ${{secrets.DD_APP_KEY}}
+
   package-and-test:
     runs-on: ubuntu-latest
+    needs:
+      - static-analysis
     concurrency:
         group: dotnet-cdk
     steps:

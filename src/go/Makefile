@@ -13,8 +13,8 @@ deploy:
             LogLevel="INFO" \
 		--capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
 
-cleanup-ARTIFACTS_DIR:
-	rm -r out
+cleanup:
+	rm -r out -f
 
 tf-pre-build:
 	mkdir out
@@ -31,11 +31,12 @@ tf-pre-build:
 	mkdir out/GoInventoryOrderingService
 	mkdir out/GoAnalyticsBackend
 	
+tf-local-deploy: tf-pre-build package-api-functions package-pricing-functions package-api-worker-functions package-event-publisher-functions package-inventory-acl-functions package-inventory-ordering-functions package-event-analytics-functions tf-local-apply
 
 tf-deploy: tf-pre-build package-api-functions package-pricing-functions package-api-worker-functions package-event-publisher-functions package-inventory-acl-functions package-inventory-ordering-functions package-event-analytics-functions tf-apply
 
 tf-local-apply:
-	cd infra;terraform apply --var-file dev.tfvars
+	cd infra;terraform init -backend-config "bucket=${TF_STATE_BUCKET_NAME}" -backend-config "region=${AWS_REGION}";terraform apply --var-file dev.tfvars
 
 tf-local-destroy:
 	cd infra;terraform apply --var-file dev.tfvars
