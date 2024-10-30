@@ -6,7 +6,7 @@
 //
 
 resource "aws_dynamodb_table" "go_product_api" {
-  name           = "GoProductApi"
+  name           = "TfGo-ProductApi-${var.env}"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "PK"
 

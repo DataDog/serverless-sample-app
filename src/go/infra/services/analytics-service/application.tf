@@ -6,11 +6,11 @@
 //
 
 resource "aws_sqs_queue" "analytics_service_dlq" {
-  name = "analytics-service-dlq"
+  name = "TfGo-analytics-service-dlq-${var.env}"
 }
 
 resource "aws_sqs_queue" "analytics_service_queue" {
-  name                      = "analytics-service-queue"
+  name                      = "TfGo-analytics-service-queue-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.analytics_service_dlq.arn
@@ -34,6 +34,8 @@ module "analytics_service_function" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_lambda_event_source_mapping" "analytics_backend_source" {

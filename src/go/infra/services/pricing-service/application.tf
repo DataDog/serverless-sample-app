@@ -6,7 +6,7 @@
 //
 
 resource "aws_sns_topic" "product_price_calculated" {
-  name = "go-price-calculated-topic"
+  name = "tfgo-price-calculated-topic-${var.env}"
 }
 
 module "product_pricing_created_handler" {
@@ -21,6 +21,8 @@ module "product_pricing_created_handler" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "product_created_handler_publish_permission" {
@@ -55,6 +57,8 @@ module "product_pricing_updated_handler" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "product_updated_handler_publish_permission" {

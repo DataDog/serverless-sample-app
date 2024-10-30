@@ -6,11 +6,11 @@
 //
 
 resource "aws_sqs_queue" "public_event_acl_dlq" {
-  name = "inventory-acl-dlq"
+  name = "TfGo-inventory-acl-dlq-${var.env}"
 }
 
 resource "aws_sqs_queue" "public_event_acl_queue" {
-  name                      = "inventory-acl"
+  name                      = "TfGo-inventory-acl-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.public_event_acl_dlq.arn
@@ -19,7 +19,7 @@ resource "aws_sqs_queue" "public_event_acl_queue" {
 }
 
 resource "aws_sns_topic" "go_inventory_new_product_added" {
-  name = "go-inventory-new-product-added"
+  name = "TfGo-go-inventory-new-product-added-${var.env}"
 }
 
 resource "aws_sqs_queue_policy" "allow_eb_publish" {
@@ -39,6 +39,8 @@ module "inventory_acl_function" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_lambda_event_source_mapping" "public_event_publisher" {

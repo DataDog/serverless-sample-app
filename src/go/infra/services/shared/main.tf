@@ -6,11 +6,11 @@
 //
 
 resource "aws_cloudwatch_event_bus" "shared_go_bus" {
-  name = "GoProductEventBus"
+  name = "TfGo-ProductEventBus-${var.env}"
 }
 
 resource "aws_ssm_parameter" "eb_name" {
-  name  = "/go/shared/event-bus-name"
+  name  = "/go/shared/${var.env}/event-bus-name"
   type  = "String"
   value = aws_cloudwatch_event_bus.shared_go_bus.name
 }

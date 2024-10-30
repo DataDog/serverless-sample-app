@@ -7,13 +7,13 @@
 
 module "api_gateway" {
   source            = "../../modules/api-gateway"
-  api_name          = "go-product-api"
-  stage_name        = "dev"
+  api_name          = "tfgo-product-api-${var.env}"
+  stage_name        = var.env
   stage_auto_deploy = true
 }
 
 resource "aws_sns_topic" "product_created" {
-  name = "product-created-topic"
+  name = "tfgo-product-created-topic-${var.env}"
 }
 
 module "create_product_lambda" {
@@ -28,6 +28,8 @@ module "create_product_lambda" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "create_product_lambda_dynamo_db_write" {
@@ -61,6 +63,8 @@ module "list_products_lambda" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "list_products_lambda_dynamo_db_read" {
@@ -90,6 +94,8 @@ module "get_product_lambda" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "get_product_lambda_dynamo_db_read" {
@@ -124,6 +130,8 @@ module "update_product_lambda" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "update_product_lambda_dynamo_db_read" {
@@ -167,6 +175,8 @@ module "delete_product_lambda" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "delete_product_lambda_dynamo_db_read" {
@@ -195,31 +205,31 @@ module "delete_product_lambda_api" {
 }
 
 resource "aws_ssm_parameter" "product_created_topic_arn" {
-  name  = "/go/product/product-created-topic"
+  name  = "/go/product/${var.env}/product-created-topic"
   type  = "String"
   value = aws_sns_topic.product_created.arn
 }
 
 resource "aws_ssm_parameter" "product_updated_topic_arn" {
-  name  = "/go/product/product-updated-topic"
+  name  = "/go/product/${var.env}/product-updated-topic"
   type  = "String"
   value = aws_sns_topic.product_updated.arn
 }
 
 resource "aws_ssm_parameter" "product_deleted_topic_arn" {
-  name  = "/go/product/product-deleted-topic"
+  name  = "/go/product/${var.env}/product-deleted-topic"
   type  = "String"
   value = aws_sns_topic.product_deleted.arn
 }
 
 resource "aws_ssm_parameter" "table_name_param" {
-  name  = "/go/product/table-name"
+  name  = "/go/product/${var.env}/table-name"
   type  = "String"
   value = aws_dynamodb_table.go_product_api.name
 }
 
 resource "aws_ssm_parameter" "api_endpoint" {
-  name  = "/go/product/api-endpoint"
+  name  = "/go/product/${var.env}/api-endpoint"
   type  = "String"
-  value = "${module.api_gateway.api_endpoint}/dev"
+  value = "${module.api_gateway.api_endpoint}/${var.env}"
 }

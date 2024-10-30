@@ -6,11 +6,11 @@
 //
 
 resource "aws_sqs_queue" "public_event_publisher_dlq" {
-  name = "product-event-publisher-dlq"
+  name = "tfgo-product-event-publisher-dlq-${var.env}"
 }
 
 resource "aws_sqs_queue" "public_event_publisher_queue" {
-  name                      = "product-event-publisher-queue"
+  name                      = "tfgo-product-event-publisher-queue-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.public_event_publisher_dlq.arn
@@ -38,6 +38,8 @@ module "product_public_event_publisher" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_lambda_event_source_mapping" "public_event_publisher" {

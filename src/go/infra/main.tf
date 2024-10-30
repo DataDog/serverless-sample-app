@@ -9,6 +9,7 @@
 
 module "shared" {
   source = "./services/shared"
+  env = var.env
 }
 
 module "product-api" {
@@ -16,6 +17,8 @@ module "product-api" {
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   depends_on            = [module.shared]
+  env                   = var.env
+  app_version           = var.app_version
 }
 
 module "pricing-service" {
@@ -23,6 +26,8 @@ module "pricing-service" {
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   depends_on            = [module.product-api]
+  env                   = var.env
+  app_version           = var.app_version
 }
 
 module "product-api-worker" {
@@ -30,6 +35,8 @@ module "product-api-worker" {
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   depends_on            = [module.pricing-service]
+  env                   = var.env
+  app_version           = var.app_version
 }
 
 module "product-event-publisher" {
@@ -37,6 +44,8 @@ module "product-event-publisher" {
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   depends_on            = [module.shared, module.product-api]
+  env                   = var.env
+  app_version           = var.app_version
 }
 
 
@@ -45,6 +54,8 @@ module "inventory-acl" {
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   depends_on            = [module.shared]
+  env                   = var.env
+  app_version           = var.app_version
 }
 
 module "inventory-ordering-service" {
@@ -52,6 +63,8 @@ module "inventory-ordering-service" {
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   depends_on            = [module.inventory-acl]
+  env                   = var.env
+  app_version           = var.app_version
 }
 
 module "analytics-service" {
@@ -59,4 +72,6 @@ module "analytics-service" {
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   depends_on            = [module.shared]
+  env                   = var.env
+  app_version           = var.app_version
 }

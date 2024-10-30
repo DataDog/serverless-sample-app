@@ -6,13 +6,13 @@
 //
 
 resource "aws_iam_policy" "sqs_receive_policy" {
-  name   = "inventory-acl-sqs-policy"
+  name   = "tfgo-inventory-acl-sqs-policy-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.sqs_receive.json
 }
 
 resource "aws_iam_policy" "sns_publish" {
-  name   = "inventory-acl-sns_publish"
+  name   = "tfgo-inventory-acl-sns_publish-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.sns_publish.json
 }

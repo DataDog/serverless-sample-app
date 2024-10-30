@@ -5,8 +5,8 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-resource "aws_iam_policy" "sns_publish" {
-  name   = "tfgo-pricing-service-sns_publish_policy-${var.env}"
-  path   = "/"
-  policy = data.aws_iam_policy_document.sns_publish.json
+variable "env" {
+  type = string
+  description = "The environment deploying to"
+  default = "dev"
 }

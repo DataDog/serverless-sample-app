@@ -6,7 +6,7 @@
 //
 
 resource "aws_apigatewayv2_api" "lambda" {
-  name          = var.api_name
+  name          = "TfGo-${var.api_name}"
   protocol_type = "HTTP"
   cors_configuration {
     allow_headers = ["*"]

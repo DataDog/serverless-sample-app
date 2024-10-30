@@ -32,8 +32,11 @@ tf-pre-build:
 
 tf-deploy: tf-pre-build package-api-functions package-pricing-functions package-api-worker-functions package-event-publisher-functions package-inventory-acl-functions package-inventory-ordering-functions package-event-analytics-functions tf-apply
 
-tf-apply:
+tf-local-apply:
 	cd infra;terraform apply --var-file dev.tfvars
+
+tf-apply:
+	cd infra;terraform init -backend-config "bucket=${TF_STATE_BUCKET_NAME}" -backend-config "region=${AWS_REGION}";terraform apply -var dd_api_key_secret_arn=${DD_SECRET_ARN} -var dd_site=${DD_SITE} -var env=${ENV} -var app_version=${COMMIT_HASH} -var region=${AWS_REGION} -var tf_state_bucket_name=${TF_STATE_BUCKET_NAME} -auto-approve
 
 package-api-functions: package-GetProductFunction package-CreateProductFunction package-DeleteProductFunction package-UpdateProductFunction package-ListProductsFunction
 

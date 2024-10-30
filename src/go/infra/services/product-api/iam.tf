@@ -7,31 +7,31 @@
 
 # Create a set of IAM policies our application will need
 resource "aws_iam_policy" "dynamo_db_read" {
-  name   = "product-api-dynamo_db_read_policy"
+  name   = "tfgo-product-api-dynamo_db_read_policy-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.dynamo_db_read.json
 }
 
 resource "aws_iam_policy" "dynamo_db_write" {
-  name   = "product-api-dynamo_db_write_policy"
+  name   = "tfgo-product-api-dynamo_db_write_policy-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.dynamo_db_write.json
 }
 
 resource "aws_iam_policy" "sns_publish_create" {
-  name   = "product-api-sns_publish_create_policy"
+  name   = "tfgo-product-api-sns_publish_create_policy-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.sns_publish_create.json
 }
 
 resource "aws_iam_policy" "sns_publish_update" {
-  name   = "product-api-sns_publish_update_policy"
+  name   = "tfgo-product-api-sns_publish_update_policy-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.sns_publish_update.json
 }
 
 resource "aws_iam_policy" "sns_publish_delete" {
-  name   = "product-api-sns_publish_delete_policy"
+  name   = "tfgo-product-api-sns_publish_delete_policy-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.sns_publish_deleted.json
 }

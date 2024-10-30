@@ -6,7 +6,7 @@
 //
 
 resource "aws_iam_policy" "sqs_receive_policy" {
-  name   = "analytics-service-sqs-policy"
+  name   = "TfGo-analytics-service-sqs-policy-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.sqs_receive.json
 }

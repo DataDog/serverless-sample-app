@@ -9,7 +9,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_ssm_parameter" "product_added_topic" {
-  name = "/go/inventory/product-added-topic"
+  name = "/go/inventory/${var.env}/product-added-topic"
 }
 
 data "aws_iam_policy_document" "stepfunctions_start_execution" {
