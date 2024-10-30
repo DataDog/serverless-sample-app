@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   static-analysis:
-    uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yaml@main
+    uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
     with:
       service-name: serverless-sample-dotnet-cdk
       directory: src/dotnet
