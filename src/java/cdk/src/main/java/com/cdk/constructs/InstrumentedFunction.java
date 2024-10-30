@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.services.lambda.*;
 import software.amazon.awscdk.services.lambda.Runtime;
+import software.amazon.awscdk.services.lambda.VersionProps;
 import software.amazon.awscdk.services.s3.Bucket;
 import software.amazon.awscdk.services.s3.IBucket;
 import software.amazon.awscdk.services.s3.assets.Asset;
@@ -40,6 +41,7 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.put("DD_VERSION", props.sharedProps().version());
         lambdaEnvironment.put("DD_API_KEY_SECRET_ARN", props.sharedProps().ddApiKeySecret().getSecretArn());
         lambdaEnvironment.put("DD_CAPTURE_LAMBDA_PAYLOAD", "true");
+        lambdaEnvironment.put("DD_SERVERLESS_APPSEC_ENABLED", "true");
         lambdaEnvironment.put("DD_LOGS_INJECTION", "true");
         lambdaEnvironment.put("spring_cloud_function_definition", props.routingExpression());
 

@@ -18,6 +18,8 @@ import software.amazon.awscdk.services.logs.LogGroup;
 import software.amazon.awscdk.services.logs.LogGroupProps;
 import software.amazon.awscdk.services.sqs.Queue;
 import software.amazon.awscdk.services.sqs.QueueProps;
+import software.amazon.awscdk.services.ssm.StringParameter;
+import software.amazon.awscdk.services.ssm.StringParameterProps;
 import software.amazon.awscdk.services.stepfunctions.*;
 import software.constructs.Construct;
 
@@ -65,6 +67,11 @@ public class InventoryOrderingService extends Construct {
                         .queueName(String.format("NewProductAddedEventSourceDLQ-%s", props.sharedProps().env()))
                         .build()))
                 .build()));
+                
+        StringParameter workflowArnParam = new StringParameter(this, "InventoryOrderingStateMachineArn", StringParameterProps.builder()
+                .parameterName(String.format("/java/%s/inventory-ordering/state-machine-arn", props.sharedProps().env()))
+                .stringValue(workflow.getStateMachineArn())
+                .build());
         
     }
 }

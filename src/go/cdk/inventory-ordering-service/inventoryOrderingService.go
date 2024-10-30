@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3assets"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssns"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsssm"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsstepfunctions"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
@@ -63,4 +64,9 @@ func NewInventoryOrderingService(scope constructs.Construct, id string, props *I
 	}))
 
 	workflow.GrantStartExecution(startWorkflowFunction.Function)
+
+	awsssm.NewStringParameter(scope, jsii.String("GoProductApiEndpoint"), &awsssm.StringParameterProps{
+		ParameterName: jsii.String(fmt.Sprintf("/go/%s/inventory-ordering/state-machine-arn", props.SharedProps.Env)),
+		StringValue:   jsii.String(*workflow.StateMachineArn()),
+	})
 }

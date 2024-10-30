@@ -95,5 +95,15 @@ export class InventoryOrderingService extends Construct {
       new SnsEventSource(topic)
     );
     workflow.grantStartExecution(this.inventoryOrderingWorkflowTrigger);
+
+    const inventoryStateMachineArnParam = new StringParameter(
+      this,
+      "NodeInventoryOrderingWorkflowArn",
+      {
+        parameterName: `/node/${props.sharedProps.environment}/inventory-ordering/state-machine-arn`,
+        stringValue: workflow.stateMachineArn,
+      }
+    );
+
   }
 }

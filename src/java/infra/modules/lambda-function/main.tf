@@ -66,7 +66,7 @@ resource "aws_iam_role_policy_attachment" "secrets_retrieval_policy_attachment" 
 }
 
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
-  name              = "/aws/lambda/Java-${var.function_name}-${var.env}"
+  name              = "/aws/lambda/TfJava-${var.function_name}-${var.env}"
   retention_in_days = 7
   lifecycle {
     prevent_destroy = false
@@ -79,7 +79,7 @@ module "aws_lambda_function" {
   version = "1.4.0"
 
   filename                 = var.jar_file
-  function_name            = "TfJava${var.function_name}-${var.env}"
+  function_name            = "TfJava-${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = "org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest"
   runtime                  = "java21"
@@ -99,6 +99,7 @@ module "aws_lambda_function" {
     "DD_VERSION" : var.app_version
     "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
     "DD_CAPTURE_LAMBDA_PAYLOAD" : "true"
+    "DD_SERVERLESS_APPSEC_ENABLED": "true"
     "DD_LOGS_INJECTION" : "true"
     "spring_cloud_function_definition" : var.lambda_handler }),
     var.environment_variables

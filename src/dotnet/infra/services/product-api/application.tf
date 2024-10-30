@@ -230,6 +230,12 @@ module "delete_product_lambda_api" {
 
 resource "aws_api_gateway_deployment" "rest_api_deployment" {
   rest_api_id = module.api_gateway.api_id
+  depends_on = [module.delete_product_lambda_api,
+    module.create_product_lambda_api,
+    module.update_product_lambda_api,
+    module.get_product_lambda_api,
+    module.list_products_lambda_api
+  ]
   triggers = {
     redeployment = sha1(jsonencode([
       module.delete_product_lambda_api,
@@ -238,6 +244,9 @@ resource "aws_api_gateway_deployment" "rest_api_deployment" {
       module.get_product_lambda_api,
       module.list_products_lambda_api,
     ]))
+  }
+  variables = {
+    deployed_at = "${timestamp()}"
   }
   lifecycle {
     create_before_destroy = true

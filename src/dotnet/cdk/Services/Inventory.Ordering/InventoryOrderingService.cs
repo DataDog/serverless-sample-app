@@ -8,6 +8,7 @@ using Amazon.CDK.AWS.Lambda.EventSources;
 using Amazon.CDK.AWS.Logs;
 using Amazon.CDK.AWS.SecretsManager;
 using Amazon.CDK.AWS.SNS;
+using Amazon.CDK.AWS.SSM;
 using Amazon.CDK.AWS.StepFunctions;
 using Constructs;
 using ServerlessGettingStarted.CDK.Constructs;
@@ -39,17 +40,23 @@ public class InventoryOrderingService : Construct
         });
         Tags.Of(workflow).Add("DD_ENHANCED_METRICS", "true");
         Tags.Of(workflow).Add("DD_TRACE_ENABLED", "true");
-        
+
         var apiEnvironmentVariables = new Dictionary<string, string>(1)
         {
             {"ORDERING_SERVICE_WORKFLOW_ARN", workflow.StateMachineArn}
         };
-        
+
         var handleProductCreatedFunction = new InstrumentedFunction(this, "HandleNewProductAddedFunction",
-            new FunctionProps(props.Shared,"HandleNewProductAdded", "../src/Inventory.Ordering/Inventory.Ordering.Adapters/",
+            new FunctionProps(props.Shared, "HandleNewProductAdded", "../src/Inventory.Ordering/Inventory.Ordering.Adapters/",
                 "Inventory.Ordering.Adapters::Inventory.Ordering.Adapters.Functions_HandleProductAdded_Generated::HandleProductAdded", apiEnvironmentVariables, props.DdApiKeySecret));
         workflow.GrantStartExecution(handleProductCreatedFunction.Function);
         handleProductCreatedFunction.Function.AddEventSource(new SnsEventSource(props.NewProductAddedTopic));
 
+        new StringParameter(this, "InventoryOrderingStateMachineArn",
+            new StringParameterProps()
+            {
+                ParameterName = $"/dotnet/{props.Shared.Env}/inventory-ordering/state-machine-arn",
+                StringValue = workflow.StateMachineArn
+            });
     }
 }
