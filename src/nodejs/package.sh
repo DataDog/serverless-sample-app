@@ -23,6 +23,6 @@ function deploy {
     cd ../../
   done
 }
-
+npm i 
 deploy
 

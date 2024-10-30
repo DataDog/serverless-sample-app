@@ -16,6 +16,11 @@ variable "dd_site" {
   default = "datadoghq.com"
 }
 
+variable "env" {
+  type = string
+  description = "The deployment environment"
+}
+
 variable "app_version" {
   type = string
   description = "The version of the application being deployed"
