@@ -49,6 +49,13 @@ jobs:
           DD_SITE: "datadoghq.eu"
         run: |
           make cdk-dotnet
+      - name: Configure Datadog Test Visibility
+        uses: datadog/test-visibility-github-action@v2
+        with:
+          languages: js
+          service: serverless-sample-dotnet-cdk
+          api_key: ${{ secrets.DD_API_KEY }}
+          site: datadoghq.eu
       - name: Run end to end test
         shell: bash
         env:
