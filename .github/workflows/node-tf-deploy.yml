@@ -56,6 +56,13 @@ jobs:
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
           make tf-node
+      - name: Configure Datadog Test Visibility
+        uses: datadog/test-visibility-github-action@v2
+        with:
+          languages: js
+          service: serverless-sample-node-tf
+          api_key: ${{ secrets.DD_API_KEY }}
+          site: datadoghq.eu
       - name: Run end to end test
         shell: bash
         env:
@@ -64,6 +71,7 @@ jobs:
           DD_SECRET_ARN: ${{secrets.DD_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
           RUNTIME: "Node"
+          NODE_OPTIONS: -r ${{ env.DD_TRACE_PACKAGE }}
         run: |
           make end-to-end-test
       - name: Teardown test resources
