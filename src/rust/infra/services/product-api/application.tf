@@ -42,9 +42,9 @@ module "create_product_lambda" {
     "PRODUCT_CREATED_TOPIC_ARN" : aws_sns_topic.product_created.arn
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
-  dd_site = var.dd_site
-  app_version = var.app_version
-  env = var.env
+  dd_site               = var.dd_site
+  app_version           = var.app_version
+  env                   = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "create_product_lambda_dynamo_db_write" {
@@ -58,15 +58,15 @@ resource "aws_iam_role_policy_attachment" "create_product_lambda_sns_publish" {
 }
 
 module "create_product_lambda_api" {
-  source        = "../../modules/api-gateway-lambda-integration"
-  api_id        = module.api_gateway.api_id
-  api_arn       = module.api_gateway.api_arn
-  function_arn  = module.create_product_lambda.function_invoke_arn
-  function_name = module.create_product_lambda.function_name
-  http_method   = "POST"
+  source            = "../../modules/api-gateway-lambda-integration"
+  api_id            = module.api_gateway.api_id
+  api_arn           = module.api_gateway.api_arn
+  function_arn      = module.create_product_lambda.function_invoke_arn
+  function_name     = module.create_product_lambda.function_name
+  http_method       = "POST"
   api_resource_id   = module.product_resource.id
   api_resource_path = module.product_resource.path_part
-  env = var.env
+  env               = var.env
 }
 
 module "list_products_lambda" {
@@ -79,9 +79,9 @@ module "list_products_lambda" {
     "TABLE_NAME" : aws_dynamodb_table.rust_product_api.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
-  dd_site = var.dd_site
-  app_version = var.app_version
-  env = var.env
+  dd_site               = var.dd_site
+  app_version           = var.app_version
+  env                   = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "list_products_lambda_dynamo_db_read" {
@@ -91,15 +91,15 @@ resource "aws_iam_role_policy_attachment" "list_products_lambda_dynamo_db_read" 
 
 
 module "list_products_lambda_api" {
-  source        = "../../modules/api-gateway-lambda-integration"
-  api_id        = module.api_gateway.api_id
-  api_arn       = module.api_gateway.api_arn
-  function_arn  = module.list_products_lambda.function_invoke_arn
-  function_name = module.list_products_lambda.function_name
-  http_method   = "GET"
+  source            = "../../modules/api-gateway-lambda-integration"
+  api_id            = module.api_gateway.api_id
+  api_arn           = module.api_gateway.api_arn
+  function_arn      = module.list_products_lambda.function_invoke_arn
+  function_name     = module.list_products_lambda.function_name
+  http_method       = "GET"
   api_resource_id   = module.product_resource.id
   api_resource_path = module.product_id_resource.path_part
-  env = var.env
+  env               = var.env
 }
 
 module "get_product_lambda" {
@@ -112,9 +112,9 @@ module "get_product_lambda" {
     "TABLE_NAME" : aws_dynamodb_table.rust_product_api.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
-  dd_site = var.dd_site
-  app_version = var.app_version
-  env = var.env
+  dd_site               = var.dd_site
+  app_version           = var.app_version
+  env                   = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "get_product_lambda_dynamo_db_read" {
@@ -124,15 +124,15 @@ resource "aws_iam_role_policy_attachment" "get_product_lambda_dynamo_db_read" {
 
 
 module "get_product_lambda_api" {
-  source        = "../../modules/api-gateway-lambda-integration"
-  api_id        = module.api_gateway.api_id
-  api_arn       = module.api_gateway.api_arn
-  function_arn  = module.get_product_lambda.function_invoke_arn
-  function_name = module.get_product_lambda.function_name
-  http_method   = "GET"
+  source            = "../../modules/api-gateway-lambda-integration"
+  api_id            = module.api_gateway.api_id
+  api_arn           = module.api_gateway.api_arn
+  function_arn      = module.get_product_lambda.function_invoke_arn
+  function_name     = module.get_product_lambda.function_name
+  http_method       = "GET"
   api_resource_id   = module.product_id_resource.id
   api_resource_path = module.product_id_resource.path_part
-  env = var.env
+  env               = var.env
 }
 
 resource "aws_sns_topic" "product_updated" {
@@ -150,9 +150,9 @@ module "update_product_lambda" {
     "PRODUCT_UPDATED_TOPIC_ARN" : aws_sns_topic.product_updated.arn
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
-  dd_site = var.dd_site
-  app_version = var.app_version
-  env = var.env
+  dd_site               = var.dd_site
+  app_version           = var.app_version
+  env                   = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "update_product_lambda_dynamo_db_read" {
@@ -171,15 +171,15 @@ resource "aws_iam_role_policy_attachment" "update_product_lambda_sns_publish" {
 }
 
 module "update_product_lambda_api" {
-  source        = "../../modules/api-gateway-lambda-integration"
-  api_id        = module.api_gateway.api_id
-  api_arn       = module.api_gateway.api_arn
-  function_arn  = module.update_product_lambda.function_invoke_arn
-  function_name = module.update_product_lambda.function_name
-  http_method   = "PUT"
+  source            = "../../modules/api-gateway-lambda-integration"
+  api_id            = module.api_gateway.api_id
+  api_arn           = module.api_gateway.api_arn
+  function_arn      = module.update_product_lambda.function_invoke_arn
+  function_name     = module.update_product_lambda.function_name
+  http_method       = "PUT"
   api_resource_id   = module.product_resource.id
   api_resource_path = module.product_resource.path_part
-  env = var.env
+  env               = var.env
 }
 
 resource "aws_sns_topic" "product_deleted" {
@@ -197,9 +197,9 @@ module "delete_product_lambda" {
     "PRODUCT_DELETED_TOPIC_ARN" : aws_sns_topic.product_deleted.arn
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
-  dd_site = var.dd_site
-  app_version = var.app_version
-  env = var.env
+  dd_site               = var.dd_site
+  app_version           = var.app_version
+  env                   = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "delete_product_lambda_dynamo_db_read" {
@@ -218,19 +218,25 @@ resource "aws_iam_role_policy_attachment" "delete_product_lambda_sns_publish" {
 }
 
 module "delete_product_lambda_api" {
-  source        = "../../modules/api-gateway-lambda-integration"
-  api_id        = module.api_gateway.api_id
-  api_arn       = module.api_gateway.api_arn
-  function_arn  = module.delete_product_lambda.function_invoke_arn
-  function_name = module.delete_product_lambda.function_name
-  http_method   = "DELETE"
+  source            = "../../modules/api-gateway-lambda-integration"
+  api_id            = module.api_gateway.api_id
+  api_arn           = module.api_gateway.api_arn
+  function_arn      = module.delete_product_lambda.function_invoke_arn
+  function_name     = module.delete_product_lambda.function_name
+  http_method       = "DELETE"
   api_resource_id   = module.product_id_resource.id
   api_resource_path = module.product_id_resource.path_part
-  env = var.env
+  env               = var.env
 }
 
 resource "aws_api_gateway_deployment" "rest_api_deployment" {
   rest_api_id = module.api_gateway.api_id
+  depends_on = [module.delete_product_lambda_api,
+    module.create_product_lambda_api,
+    module.update_product_lambda_api,
+    module.get_product_lambda_api,
+    module.list_products_lambda_api
+  ]
   triggers = {
     redeployment = sha1(jsonencode([
       module.delete_product_lambda_api,
@@ -239,6 +245,9 @@ resource "aws_api_gateway_deployment" "rest_api_deployment" {
       module.get_product_lambda_api,
       module.list_products_lambda_api,
     ]))
+  }
+  variables = {
+    deployed_at = "${timestamp()}"
   }
   lifecycle {
     create_before_destroy = true
