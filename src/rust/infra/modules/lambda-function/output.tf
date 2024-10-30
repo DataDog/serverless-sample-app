@@ -10,6 +10,11 @@ output "function_arn" {
   description = "The arn of the lambda function."
 } 
 
+output "function_invoke_arn" {
+  value       =  module.aws_lambda_function.invoke_arn
+  description = "The invoke ARN of the lambda function."
+} 
+
 output "function_name" {
   value       =  module.aws_lambda_function.function_name
   description = "The name of the lambda function."

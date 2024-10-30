@@ -5,18 +5,14 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.61"
-    }
-  }
- backend "s3" {
-   key    = "nodejs/terraform.tfstate"
- }
+output "id" {
+  value = aws_api_gateway_resource.cors_resource.id
 }
 
-provider "aws" {
-  region = var.region
+output "path_part" {
+  value = aws_api_gateway_resource.cors_resource.path_part
+}
+
+output "resource" {
+  value = aws_api_gateway_resource.cors_resource
 }

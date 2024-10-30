@@ -9,6 +9,7 @@
 
 module "shared" {
   source = "./services/shared"
+  env = var.env
 }
 
 module "product-api" {

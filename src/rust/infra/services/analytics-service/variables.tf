@@ -16,7 +16,13 @@ variable "dd_site" {
 }
 
 variable "env" {
-  type        = string
+  type = string
   description = "The environment deploying to"
-  default     = "dev"
+  default = "dev"
+}
+
+variable "app_version" {
+  type = string
+  description = "The deployed version of the application"
+  default = "latest"
 }

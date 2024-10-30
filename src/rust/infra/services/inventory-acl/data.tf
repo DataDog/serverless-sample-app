@@ -9,7 +9,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_ssm_parameter" "eb_name" {
-  name = "/rust/shared/event-bus-name"
+  name = "/rust/shared/${var.env}/event-bus-name"
 }
 
 data "aws_iam_policy_document" "inventory_acl_queue_policy" {

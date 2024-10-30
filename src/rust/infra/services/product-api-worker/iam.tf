@@ -6,13 +6,13 @@
 //
 
 resource "aws_iam_policy" "dynamo_db_write" {
-  name   = "product-api-worker-dynamodb-write"
+  name   = "tf-rust-product-api-worker-dynamodb-write-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.dynamo_db_write.json
 }
 
 resource "aws_iam_policy" "dynamo_db_read" {
-  name   = "product-api-worker-dynamo_db_read_policy"
+  name   = "tf-rust-product-api-worker-dynamo_db_read_policy-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.dynamo_db_read.json
 }

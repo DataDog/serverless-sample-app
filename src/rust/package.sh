@@ -44,12 +44,8 @@ function deploy {
   cargo lambda build --release --manifest-path src/product-pricing/lambdas/product_updated_pricing_handler/Cargo.toml
   zip -r -j out/productUpdatedPricingHandler/productUpdatedPricingHandler.zip target/lambda/product-updated-pricing-handler/bootstrap
 
-
   cargo lambda build --release --manifest-path src/analytics/lambdas/analytics/Cargo.toml
   zip -r -j out/analyticsEventHandler/analyticsEventHandler.zip target/lambda/analytics_handler/bootstrap
-
-  cd infra
-  terraform apply --var-file dev.tfvars
 }
 
 deploy

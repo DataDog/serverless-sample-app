@@ -6,7 +6,7 @@
 //
 
 resource "aws_iam_policy" "sfn_start_execution" {
-  name   = "inventory-ordering-service-start-execution"
+  name   = "tf-rust-inventory-ordering-service-start-execution-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.stepfunctions_start_execution.json
 }
@@ -28,7 +28,7 @@ resource "aws_iam_role" "invetory_ordering_sfn_role" {
 }
 
 resource "aws_iam_policy" "function_logging_policy" {
-  name = "inventory-ordering-service-logging-policy"
+  name = "tf-rust-inventory-ordering-service-logging-policy-${var.env}"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [

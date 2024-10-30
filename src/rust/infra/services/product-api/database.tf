@@ -6,7 +6,7 @@
 //
 
 resource "aws_dynamodb_table" "rust_product_api" {
-  name           = "RustProductApi"
+  name           = "TfRustProductApi-${var.env}"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "PK"
 

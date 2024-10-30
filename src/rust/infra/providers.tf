@@ -12,13 +12,11 @@ terraform {
       version = "~> 5.61"
     }
   }
-#  backend "s3" {
-#    bucket = "<your unique bucket name>"
-#    key    = "my_lambda/terraform.tfstate"
-#    region = "eu-central-1"
-#  }
+ backend "s3" {
+   key    = "rust/terraform.tfstate"
+ }
 }
 
 provider "aws" {
-  region = "eu-west-1"
+  region = var.region
 }

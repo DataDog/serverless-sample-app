@@ -6,13 +6,13 @@
 //
 
 output "api_id" {
-  value = aws_apigatewayv2_api.lambda.id
+  value = aws_api_gateway_rest_api.rest_api.id
 }
 
 output "api_arn" {
-  value = aws_apigatewayv2_api.lambda.execution_arn
+  value = aws_api_gateway_rest_api.rest_api.arn
 }
 
-output "api_endpoint" {
-  value = aws_apigatewayv2_api.lambda.api_endpoint
+output "root_resource_id" {
+  value = aws_api_gateway_rest_api.rest_api.root_resource_id
 }

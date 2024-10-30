@@ -6,11 +6,11 @@
 //
 
 resource "aws_cloudwatch_event_bus" "shared_rust_bus" {
-  name = "RustTracingBus"
+  name = "TfRustTracingBus-${var.env}"
 }
 
 resource "aws_ssm_parameter" "eb_name" {
-  name  = "/rust/shared/event-bus-name"
+  name  = "/rust/shared/${var.env}/event-bus-name"
   type  = "String"
   value = aws_cloudwatch_event_bus.shared_rust_bus.name
 }

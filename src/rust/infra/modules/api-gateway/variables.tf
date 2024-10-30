@@ -5,6 +5,11 @@
 // Copyright 2024 Datadog, Inc.
 //
 
+variable "env" {
+  description = "The current environment."
+  type        = string
+}
+
 variable "api_name" {
   description = "The name of the HTTP API to create."
   type        = string

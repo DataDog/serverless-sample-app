@@ -6,13 +6,13 @@
 //
 
 resource "aws_iam_policy" "eb_publish" {
-  name   = "product-event-publisher-publish-policy"
+  name   = "tf-rust-product-event-publisher-publish-policy-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.eb_publish.json
 }
 
 resource "aws_iam_policy" "sqs_receive_policy" {
-  name   = "product-event-publisher-sqs-policy"
+  name   = "tf-rust-product-event-publisher-sqs-policy-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.sqs_receive.json
 }

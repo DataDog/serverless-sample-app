@@ -6,11 +6,11 @@
 //
 
 resource "aws_sqs_queue" "public_event_publisher_dlq" {
-  name = "product-event-publisher-dlq"
+  name = "tf-rust-product-event-publisher-dlq-${var.env}"
 }
 
 resource "aws_sqs_queue" "public_event_publisher_queue" {
-  name                      = "product-event-publisher-queue"
+  name                      = "tf-rust-product-event-publisher-queue-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.public_event_publisher_dlq.arn
@@ -27,7 +27,7 @@ module "product_public_event_publisher" {
   service_name   = "RustProductPublicEventPublisher"
   source         = "../../modules/lambda-function"
   zip_file       = "../out/publicEventPublisherFunction/publicEventPublisherFunction.zip"
-  function_name  = "RustProductPublicEventPublisher"
+  function_name  = "ProductPublicEventPublisher"
   lambda_handler = "index.handler"
   environment_variables = {
     PRODUCT_CREATED_TOPIC_ARN : data.aws_ssm_parameter.product_created_topic_param.value
@@ -38,6 +38,8 @@ module "product_public_event_publisher" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_lambda_event_source_mapping" "public_event_publisher" {
