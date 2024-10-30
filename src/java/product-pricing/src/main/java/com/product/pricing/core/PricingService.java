@@ -9,6 +9,7 @@ package com.product.pricing.core;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class PricingService {
@@ -19,6 +20,19 @@ public class PricingService {
     }
     
     public void calculatePricing(String productId, Double currentPrice) {
+        // Force a Lambda timeout
+        if (currentPrice > 50 && currentPrice < 60) {
+            try{
+                TimeUnit.SECONDS.sleep(40);
+            }
+            catch (InterruptedException e){}
+        }
+        
+        // Force an error
+        if (currentPrice > 90 && currentPrice < 95) {
+            throw new ProductPricingError();
+        }
+        
         HashMap<Double, Double> pricingBreakdown = new HashMap<>();
         pricingBreakdown.put(5.0, currentPrice * 0.95);
         pricingBreakdown.put(10.0, currentPrice * 0.9);
