@@ -9,7 +9,7 @@ module "inventory_ordering_service" {
   service_name   = "NodeInventoryOrderingService"
   source         = "../../modules/lambda-function"
   zip_file       = "../out/inventoryOrderingWorkflowTrigger/inventoryOrderingWorkflowTrigger.zip"
-  function_name  = "NodeInventoryOrderingService"
+  function_name  = "InventoryOrderingService"
   lambda_handler = "index.handler"
   environment_variables = {
     ORDERING_SERVICE_WORKFLOW_ARN : aws_sfn_state_machine.inventory_ordering_state_machine.arn
@@ -17,6 +17,8 @@ module "inventory_ordering_service" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "product_created_handler_sqs_receive_permission" {

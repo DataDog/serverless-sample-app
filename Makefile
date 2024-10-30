@@ -1,3 +1,5 @@
+.PHONY: package-node
+
 load:
 	cd loadtest; artillery run loadtest.yml; cd ..
 
@@ -12,6 +14,9 @@ package-dotnet:
 
 package-java:
 	cd src/java;mvn clean package
+
+package-node:
+	cd src/nodejs;./package.sh
 
 test-dotnet:
 	dotnet test src/dotnet/src/Product.Api/ProductApi.Core.Test/ProductApi.Core.Test.csproj
@@ -34,6 +39,9 @@ cdk-dotnet:
 
 cdk-java:
 	cd src/java;mvn clean package;cd cdk;cdk deploy --all --require-approval never --concurrency 3
+
+tf-node: package-node
+	cd src/nodejs/infra;terraform init -backend-config "bucket=${TF_STATE_BUCKET_NAME}" -backend-config "region=${AWS_REGION}";terraform apply -var dd_api_key_secret_arn=${DD_SECRET_ARN} -var dd_site=${DD_SITE} -var env=${ENV} -var app_version=${COMMIT_HASH} -var region=${AWS_REGION} -var tf_state_bucket_name=${TF_STATE_BUCKET_NAME} -auto-approve
 
 tf-java:
 	cd src/java/infra;terraform init -backend-config "bucket=${TF_STATE_BUCKET_NAME}" -backend-config "region=${AWS_REGION}";terraform apply -var dd_api_key_secret_arn=${DD_SECRET_ARN} -var dd_site=${DD_SITE} -var env=${ENV} -var app_version=${COMMIT_HASH} -var region=${AWS_REGION} -var tf_state_bucket_name=${TF_STATE_BUCKET_NAME} -auto-approve

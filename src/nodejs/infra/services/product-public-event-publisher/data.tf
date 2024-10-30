@@ -9,19 +9,19 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_ssm_parameter" "product_created_topic_param" {
-  name = "/node/product/product-created-topic"
+  name = "/node/product/${var.env}/product-created-topic"
 }
 
 data "aws_ssm_parameter" "product_updated_topic_param" {
-  name = "/node/product/product-updated-topic"
+  name = "/node/product/${var.env}/product-updated-topic"
 }
 
 data "aws_ssm_parameter" "product_deleted_topic_param" {
-  name = "/node/product/product-deleted-topic"
+  name = "/node/product/${var.env}/product-deleted-topic"
 }
 
 data "aws_ssm_parameter" "eb_name" {
-  name = "/node/shared/event-bus-name"
+  name = "/node/shared/${var.env}/event-bus-name"
 }
 
 data "aws_iam_policy_document" "eb_publish" {

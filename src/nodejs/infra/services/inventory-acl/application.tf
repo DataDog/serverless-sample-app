@@ -6,11 +6,11 @@
 //
 
 resource "aws_sqs_queue" "public_event_acl_dlq" {
-  name = "inventory-acl-dlq"
+  name = "tf-node-inventory-acl-dlq-${var.env}"
 }
 
 resource "aws_sqs_queue" "public_event_acl_queue" {
-  name                      = "inventory-acl"
+  name                      = "tf-node-inventory-acl-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.public_event_acl_dlq.arn
@@ -19,7 +19,7 @@ resource "aws_sqs_queue" "public_event_acl_queue" {
 }
 
 resource "aws_sns_topic" "node_inventory_new_product_added" {
-  name = "node-inventory-new-product-added"
+  name = "tf-node-node-inventory-new-product-added-${var.env}"
 }
 
 resource "aws_sqs_queue_policy" "allow_eb_publish" {
@@ -31,7 +31,7 @@ module "inventory_acl_function" {
   service_name   = "NodeInventoryAcl"
   source         = "../../modules/lambda-function"
   zip_file       = "../out/productCreatedPublicEventHandler/productCreatedPublicEventHandler.zip"
-  function_name  = "NodeInventoryAcl"
+  function_name  = "InventoryAcl"
   lambda_handler = "index.handler"
   environment_variables = {
     PRODUCT_ADDED_TOPIC_ARN : aws_sns_topic.node_inventory_new_product_added.arn
@@ -39,6 +39,8 @@ module "inventory_acl_function" {
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
+  app_version = var.app_version
+  env = var.env
 }
 
 resource "aws_lambda_event_source_mapping" "public_event_publisher" {

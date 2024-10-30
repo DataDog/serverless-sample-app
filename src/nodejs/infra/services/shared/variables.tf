@@ -5,18 +5,8 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.61"
-    }
-  }
- backend "s3" {
-   key    = "dotnet/terraform.tfstate"
- }
-}
-
-provider "aws" {
-  region = var.region
+variable "env" {
+  type = string
+  description = "The environment deploying to"
+  default = "dev"
 }

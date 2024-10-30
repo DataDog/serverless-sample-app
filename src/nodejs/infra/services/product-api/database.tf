@@ -6,7 +6,7 @@
 //
 
 resource "aws_dynamodb_table" "node_product_api" {
-  name           = "NodeProductApi"
+  name           = "TfNodeProductApi-${var.env}"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "PK"
 

@@ -39,7 +39,7 @@ resource "aws_iam_policy" "function_logging_policy" {
 }
 
 resource "aws_iam_policy" "dd_api_secret_policy" {
-  name = "tf-dotnet-${var.function_name}-${var.function_name}-api-key-secret-policy-${var.env}"
+  name = "tf-dotnet-${var.function_name}-api-key-secret-policy-${var.env}"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -70,7 +70,7 @@ resource "aws_cloudwatch_log_group" "lambda_log_group" {
   lifecycle {
     prevent_destroy = false
   }
-}
+} 
 
 module "aws_lambda_function" {
   source  = "DataDog/lambda-datadog/aws"

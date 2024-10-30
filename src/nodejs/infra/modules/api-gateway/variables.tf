@@ -19,3 +19,9 @@ variable "stage_auto_deploy" {
     description = "Should the API stage auto deploy."
     type        = bool
 }
+
+variable "env" {
+  description = "The enviornment to deploy to"
+  type = string
+  default = "dev"
+}

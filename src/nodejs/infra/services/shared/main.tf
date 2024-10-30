@@ -10,7 +10,7 @@ resource "aws_cloudwatch_event_bus" "shared_node_bus" {
 }
 
 resource "aws_ssm_parameter" "eb_name" {
-  name  = "/node/shared/event-bus-name"
+  name  = "/node/shared/${var.env}/event-bus-name"
   type  = "String"
   value = aws_cloudwatch_event_bus.shared_node_bus.name
 }

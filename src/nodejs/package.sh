@@ -22,9 +22,6 @@ function deploy {
     echo ""
     cd ../../
   done
-
-  cd infra
-  terraform apply --var-file dev.tfvars
 }
 
 deploy

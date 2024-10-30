@@ -9,15 +9,15 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 data "aws_ssm_parameter" "product_pricing_changed_topic" {
-  name = "/node/product/pricing-calculated-topic"
+  name = "/node/product/${var.env}/pricing-calculated-topic"
 }
 
 data "aws_ssm_parameter" "product_pricing_changed_topic_name" {
-  name = "/node/product/pricing-calculated-topic-name"
+  name = "/node/product/${var.env}/pricing-calculated-topic-name"
 }
 
 data "aws_ssm_parameter" "product_api_table_name" {
-  name = "/node/product/table-name"
+  name = "/node/product/${var.env}/table-name"
 }
 
 data "aws_iam_policy_document" "dynamo_db_read" {

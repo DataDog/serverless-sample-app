@@ -6,7 +6,7 @@
 //
 
 resource "aws_ssm_parameter" "product_pricing_changed_topic_arn" {
-  name  = "/node/inventory/product-added-topic"
+  name  = "/node/inventory/${var.env}/product-added-topic"
   type  = "String"
   value = aws_sns_topic.node_inventory_new_product_added.arn
 }
