@@ -42,6 +42,7 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.put("DD_API_KEY_SECRET_ARN", props.sharedProps().ddApiKeySecret().getSecretArn());
         lambdaEnvironment.put("DD_CAPTURE_LAMBDA_PAYLOAD", "true");
         lambdaEnvironment.put("DD_SERVERLESS_APPSEC_ENABLED", "true");
+        lambdaEnvironment.put("DD_IAST_ENABLED", "true");
         lambdaEnvironment.put("DD_LOGS_INJECTION", "true");
         lambdaEnvironment.put("spring_cloud_function_definition", props.routingExpression());
 

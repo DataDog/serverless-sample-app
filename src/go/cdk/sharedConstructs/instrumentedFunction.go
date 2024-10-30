@@ -36,6 +36,7 @@ func NewInstrumentedFunction(scope constructs.Construct, id string, props *Instr
 	defaultEnvironmentVariables := make(map[string]*string)
 	defaultEnvironmentVariables["ENV"] = jsii.String(props.SharedProps.Env)
 	defaultEnvironmentVariables["DD_SERVERLESS_APPSEC_ENABLED"] = jsii.String("true")
+	defaultEnvironmentVariables["DD_IAST_ENABLED"] = jsii.String("true")
 
 	for k, v := range props.EnvironmentVariables {
 		defaultEnvironmentVariables[k] = v

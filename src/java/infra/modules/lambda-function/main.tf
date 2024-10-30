@@ -100,6 +100,7 @@ module "aws_lambda_function" {
     "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
     "DD_CAPTURE_LAMBDA_PAYLOAD" : "true"
     "DD_SERVERLESS_APPSEC_ENABLED": "true"
+    "DD_IAST_ENABLED": "true"
     "DD_LOGS_INJECTION" : "true"
     "spring_cloud_function_definition" : var.lambda_handler }),
     var.environment_variables

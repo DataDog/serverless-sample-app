@@ -42,7 +42,8 @@ public class InstrumentedFunction : Construct
             { "DD_SERVICE", props.Shared.ServiceName },
             { "DD_API_KEY_SECRET_ARN", props.DdApiKeySecret.SecretArn },
             { "DD_CAPTURE_LAMBDA_PAYLOAD", "true" },
-            { "DD_SERVERLESS_APPSEC_ENABLED", "true"}
+            { "DD_SERVERLESS_APPSEC_ENABLED", "true"},
+            { "DD_IAST_ENABLED", "true"}
         };
         
         Function = new DotNetFunction(this, id,

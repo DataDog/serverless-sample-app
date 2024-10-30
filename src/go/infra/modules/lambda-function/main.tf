@@ -95,6 +95,7 @@ module "aws_lambda_function" {
     "DD_SITE" : var.dd_site
     "DD_VERSION" : var.app_version
     "DD_SERVERLESS_APPSEC_ENABLED": "true"
+    "DD_IAST_ENABLED": "true"
     "ENV" : var.env
     "POWERTOOLS_SERVICE_NAME" : var.service_name
     "POWERTOOLS_LOG_LEVEL" : "INFO" }),

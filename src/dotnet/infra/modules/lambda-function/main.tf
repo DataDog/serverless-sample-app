@@ -95,6 +95,7 @@ module "aws_lambda_function" {
     "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
     "DD_CAPTURE_LAMBDA_PAYLOAD": "true"
     "DD_SERVERLESS_APPSEC_ENABLED": "true"
+    "DD_IAST_ENABLED": "true"
     "AWS_LAMBDA_EXEC_WRAPPER": "/opt/datadog_wrapper"
     "DD_LOGS_INJECTION": "true"
     "POWERTOOLS_SERVICE_NAME": var.service_name
