@@ -66,7 +66,7 @@ resource "aws_sfn_state_machine" "inventory_ordering_state_machine" {
 }
 
 resource "aws_ssm_parameter" "api_endpoint" {
-  name  = "/java/${var.env}/inventory-ordering/state-machine-arn"
+  name  = "/node/${var.env}/inventory-ordering/state-machine-arn"
   type  = "String"
   value = aws_sfn_state_machine.inventory_ordering_state_machine.arn
 }

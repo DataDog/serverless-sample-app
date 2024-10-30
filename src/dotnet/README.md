@@ -107,12 +107,6 @@ sam delete --stack-name DotnetTracing --region $AWS_REGION --no-prompts
 
 Terraform does not natively support compiling .NET code. When deploying with Terraform, you first need to compile your .NET code. The publish directory is passed to the Lambda function resource as a .ZIP file. A [`make`](https://formulae.brew.sh/formula/make) command is used to test, package and deploy .NET code with terraform.
 
-From the repository root, run:
-
-```sh
-make tf-dotnet
-```
-
 ### Configuration
 
 A custom [`lambda_function`](./infra/modules/lambda-function/main.tf) module is used to group together all the functionality for deploying Lambda functions. This handles the creation of the CloudWatch Log Groups, and default IAM roles.
@@ -164,12 +158,39 @@ dd_site="<YOUR PREFERRED DATADOG SITE>
 
 There's a single `main.tf` that contains all 7 backend services as modules. This is **not** recommended in production, and you should deploy backend services independenly. However, to simplify this demo deployment a single file is used.
 
+You can optionally provide an S3 backend to use as your state store, to do this set the below environment variables and run `terraform init`
+
+```sh
+export AWS_REGION=<YOUR PREFERRED AWS_REGION>
+export TF_STATE_BUCKET_NAME=<THE NAME OF THE S3 BUCKET>
+export ENV=<ENVIRONMENT NAME>
+make tf-dotnet-local
+```
+
+Alternatively, comment out the S3 backend section in [`providers.tf'](./infra/providers.tf).
+
+```tf
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.61"
+    }
+  }
+#  backend "s3" {}
+}
+
+provider "aws" {
+  region = var.region
+}
+```
+
 ### Cleanup
 
 To cleanup all Terraform resources run:
 
 ```sh
-make tf-dotnet-destroy
+make tf-dotnet-local-destroy
 ```
 
 ## Serverless Framework

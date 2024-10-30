@@ -12,9 +12,7 @@ terraform {
       version = "~> 5.61"
     }
   }
- backend "s3" {
-   key    = "rust/terraform.tfstate"
- }
+  backend "s3" {}
 }
 
 provider "aws" {

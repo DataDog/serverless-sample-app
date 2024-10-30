@@ -172,7 +172,8 @@ You can optionally provide an S3 backend to use as your state store, to do this 
 ```sh
 export AWS_REGION=<YOUR PREFERRED AWS_REGION>
 export TF_STATE_BUCKET_NAME=<THE NAME OF THE S3 BUCKET>
-terraform init -backend-config "bucket=${TF_STATE_BUCKET_NAME}" -backend-config "region=${AWS_REGION}"
+export ENV=<ENVIRONMENT NAME>
+make tf-java-local
 ```
 
 Alternatively, comment out the S3 backend section in [`providers.tf'](./infra/providers.tf).

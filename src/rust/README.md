@@ -201,10 +201,33 @@ dd_site="<YOUR PREFERRED DATADOG SITE>"
 
 There's a single `main.tf` that contains all 7 backend services as modules. This is **not** recommended in production, and you should deploy backend services independenly. However, to simplify this demo deployment a single file is used.
 
-The root of the repository contains a `deploy.sh` file, this will transpile all Rust code, generate the ZIP files and run `terraform apply`. To deploy the Terraform example, simply run:
+The root of the repository contains a Makefile, this will transpile all Rust code, generate the ZIP files and run `terraform apply`. To deploy the Terraform example, simply run:
+
+You can optionally provide an S3 backend to use as your state store, to do this set the below environment variables and run `terraform init`
 
 ```sh
-./deploy.sh
+export AWS_REGION=<YOUR PREFERRED AWS_REGION>
+export TF_STATE_BUCKET_NAME=<THE NAME OF THE S3 BUCKET>
+export ENV=<ENVIRONMENT NAME>
+make tf-rust-local
+```
+
+Alternatively, comment out the S3 backend section in [`providers.tf'](./infra/providers.tf).
+
+```tf
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.61"
+    }
+  }
+#  backend "s3" {}
+}
+
+provider "aws" {
+  region = var.region
+}
 ```
 
 ### Cleanup
