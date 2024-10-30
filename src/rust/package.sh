@@ -1,11 +1,12 @@
 #!/bin/bash
 function deploy {
-  rm -r ./out/
+  rm -r ./out/ -f
   mkdir out
   mkdir out/createProductFunction
   mkdir out/updateProductFunction
   mkdir out/deleteProductFunction
   mkdir out/getProductFunction
+  mkdir out/listProductsFunction
   mkdir out/productCreatedPublicEventHandler
   mkdir out/inventoryOrderingWorkflowTrigger
   mkdir out/handlePricingChangedFunction
@@ -25,6 +26,9 @@ function deploy {
   
   cargo lambda build --release --manifest-path src/product-api/lambdas/get_product/Cargo.toml
   zip -r -j out/getProductFunction/getProductFunction.zip target/lambda/get-product/bootstrap
+
+  cargo lambda build --release --manifest-path src/product-api/lambdas/list_products/Cargo.toml
+  zip -r -j out/listProductsFunction/listProductsFunction.zip target/lambda/list-products/bootstrap
 
   cargo lambda build --release --manifest-path src/inventory-acl/lambdas/product_created_handler/Cargo.toml
   zip -r -j out/productCreatedPublicEventHandler/productCreatedPublicEventHandler.zip target/lambda/handle_product_created_event/bootstrap

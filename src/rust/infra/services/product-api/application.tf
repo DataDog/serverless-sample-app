@@ -264,7 +264,7 @@ resource "aws_ssm_parameter" "product_updated_topic_arn" {
 }
 
 resource "aws_ssm_parameter" "product_deleted_topic_arn" {
-  name  = "/rust/product/product-deleted-topic"
+  name  = "/rust/product/${var.env}/product-deleted-topic"
   type  = "String"
   value = aws_sns_topic.product_deleted.arn
 }
@@ -276,7 +276,7 @@ resource "aws_ssm_parameter" "table_name_param" {
 }
 
 resource "aws_ssm_parameter" "api_endpoint" {
-  name  = "/dotnet/tf/${var.env}/product/api-endpoint"
+  name  = "/rust/${var.env}/product/api-endpoint"
   type  = "String"
   value = aws_api_gateway_stage.rest_api_stage.invoke_url
 }

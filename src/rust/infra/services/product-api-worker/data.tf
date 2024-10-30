@@ -17,7 +17,7 @@ data "aws_ssm_parameter" "product_pricing_changed_topic_name" {
 }
 
 data "aws_ssm_parameter" "product_api_table_name" {
-  name = "/rust/product/table-name"
+  name = "/rust/product/${var.env}/table-name"
 }
 
 data "aws_iam_policy_document" "dynamo_db_read" {

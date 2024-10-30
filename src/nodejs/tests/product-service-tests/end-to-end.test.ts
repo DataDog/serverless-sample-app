@@ -15,6 +15,7 @@ let apiDriver: ApiDriver
 let stepFunctionsClient: SFNClient;
 let stepFunctionArn = "";
 const runtimeUnderTest = process.env.RUNTIME ?? "Node";
+const environmentUnderTest = process.env.ENV ?? "test";
 const testTimeout = runtimeUnderTest === "Java" ? 300000 : 60000;
 const testDelay = runtimeUnderTest === "Java" ? 120000 : 15000;
 
@@ -29,7 +30,7 @@ describe("end-to-end-tests", () => {
     const ssmCLient = new SSMClient();
     const parameter = await ssmCLient.send(
       new GetParameterCommand({
-        Name: `/${runtimeUnderTest.toLowerCase()}/product/api-endpoint`,
+        Name: `/${runtimeUnderTest.toLowerCase()}/${environmentUnderTest.toLowerCase()}/product/api-endpoint`,
       })
     );
     apiDriver = new ApiDriver(parameter.Parameter!.Value!);
@@ -39,7 +40,7 @@ describe("end-to-end-tests", () => {
       new ListStateMachinesCommand({})
     )
 
-    const nodeStepFunction = allStepFunctions.stateMachines?.filter(stateMachine => stateMachine.name?.startsWith(runtimeUnderTest));
+    const nodeStepFunction = allStepFunctions.stateMachines?.filter(stateMachine => stateMachine.name!.toLowerCase().indexOf(runtimeUnderTest.toLowerCase()) > -1 && stateMachine.name!.toLowerCase().indexOf(environmentUnderTest.toLowerCase()) > -1);
 
     if (nodeStepFunction === undefined || nodeStepFunction.length === 0) {
      throw new Error(`${runtimeUnderTest}`)
@@ -67,11 +68,11 @@ describe("end-to-end-tests", () => {
     expect(getProductResult.data.data!.name).toBe(testProductName);
     expect(getProductResult.data.data!.price).toBe(12.99);
 
-    const updateProductResult = await apiDriver.updateProduct(productId, "New Name", 50);
+    const updateProductResult = await apiDriver.updateProduct(productId, "New Name", 48);
 
     expect(updateProductResult.status).toBe(200);
     expect(updateProductResult.data.data.name).toBe("New Name");
-    expect(updateProductResult.data.data.price).toBe(50);
+    expect(updateProductResult.data.data.price).toBe(48);
 
     // Let async processes run
     await delay(testDelay);
