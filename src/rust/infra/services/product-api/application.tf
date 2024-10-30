@@ -28,7 +28,7 @@ module "product_id_resource" {
 }
 
 resource "aws_sns_topic" "product_created" {
-  name = "product-created-topic"
+  name = "tf-rust-product-created-topic-${var.env}"
 }
 
 module "create_product_lambda" {
@@ -136,7 +136,7 @@ module "get_product_lambda_api" {
 }
 
 resource "aws_sns_topic" "product_updated" {
-  name = "product-updated-topic"
+  name = "tf-rust-product-updated-topic-${var.env}"
 }
 
 module "update_product_lambda" {
@@ -183,7 +183,7 @@ module "update_product_lambda_api" {
 }
 
 resource "aws_sns_topic" "product_deleted" {
-  name = "product-deleted-topic"
+  name = "tf-rust-product-deleted-topic-${var.env}"
 }
 
 module "delete_product_lambda" {

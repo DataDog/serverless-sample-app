@@ -1,10 +1,11 @@
 use event_publisher_core::{adapters::EventBridgeEventPublisher, core::PublicEventPublisher, ports::{translate_created_event, translate_deleted_event, translate_updated_event, ApplicationError}};
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 use std::env;
 use aws_lambda_events::sns::SnsMessage;
 use aws_lambda_events::sqs::SqsEvent;
 use lambda_runtime::{run, service_fn, Error, LambdaEvent};
 use observability::{observability, TracedMessage};
-use tracing::instrument;
+use tracing::{info, instrument};
 use tracing_subscriber::util::SubscriberInitExt;
 
 enum TopicArn {
@@ -64,8 +65,11 @@ async fn main() -> Result<(), Error> {
 
 fn get_topic_arn(message: &SnsMessage) -> Result<TopicArn, ApplicationError> {
     let product_created_topic_arn = env::var("PRODUCT_CREATED_TOPIC_ARN").expect("PRODUCT_CREATED_TOPIC_ARN is not set");
-    let product_updated_topic_arn = env::var("PRODUCT_CREATED_TOPIC_ARN").expect("PRODUCT_CREATED_TOPIC_ARN is not set");
-    let product_deleted_topic_arn = env::var("PRODUCT_CREATED_TOPIC_ARN").expect("PRODUCT_CREATED_TOPIC_ARN is not set");
+    let product_updated_topic_arn = env::var("PRODUCT_UPDATED_TOPIC_ARN").expect("PRODUCT_UPDATED_TOPIC_ARN is not set");
+    let product_deleted_topic_arn = env::var("PRODUCT_DELETED_TOPIC_ARN").expect("PRODUCT_DELETED_TOPIC_ARN is not set");
+
+    info!("Topic ARN of message is {}", &message.topic_arn);
+    tracing::Span::current().set_attribute("message.topic.arn", message.topic_arn.clone());
     
     if message.topic_arn == product_created_topic_arn { 
         Ok(TopicArn::ProductCreated)

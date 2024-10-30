@@ -54,7 +54,6 @@ resource "aws_iam_policy" "dd_api_secret_policy" {
   })
 }
 
-
 resource "aws_iam_role_policy_attachment" "function_logging_policy_attachment" {
   role       = aws_iam_role.lambda_function_role.id
   policy_arn = aws_iam_policy.function_logging_policy.arn
@@ -65,7 +64,7 @@ resource "aws_iam_role_policy_attachment" "secrets_retrieval_policy_attachment" 
 }
 
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
-  name              = "/aws/lambda/tf-rust-${var.function_name}--${var.env}"
+  name              = "/aws/lambda/tf-rust-${var.function_name}-${var.env}"
   retention_in_days = 7
   lifecycle {
     prevent_destroy = false
@@ -78,9 +77,9 @@ module "aws_lambda_function" {
   version = "1.4.0"
 
   filename                 = var.zip_file
-  function_name            = var.function_name
+  function_name            = "tf-rust-${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
-  handler                  = "tf-rust-${var.function_name}-${var.env}"
+  handler                  = "bootstrap"
   runtime                  = "provided.al2023"
   memory_size              = 128
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
