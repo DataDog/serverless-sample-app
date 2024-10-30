@@ -1,0 +1,52 @@
+name: .NET Terraform Deploy
+
+on:
+    push:
+      paths:
+        - src/go/src/**
+        - src/go/infra/**
+    workflow_dispatch:
+    pull_request:
+      types: [opened]
+      paths:
+        - src/go/src/**
+        - src/go/infra/**
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  package-and-test:
+    runs-on: ubuntu-latest
+    concurrency:
+        group: go-tf
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: "eu-west-2"
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Deploy Terraform Go
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "test"
+          DD_SECRET_ARN: ${{secrets.EU_WEST_2_DD_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/go
+          make tf-deploy
+          
