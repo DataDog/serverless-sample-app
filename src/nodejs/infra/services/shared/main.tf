@@ -6,7 +6,7 @@
 //
 
 resource "aws_cloudwatch_event_bus" "shared_node_bus" {
-  name = "NodeTracingBus"
+  name = "TfNode-TracingBus-${var.env}"
 }
 
 resource "aws_ssm_parameter" "eb_name" {
