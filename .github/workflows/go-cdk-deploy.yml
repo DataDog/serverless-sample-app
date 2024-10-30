@@ -3,12 +3,14 @@ name: Go CDK Deploy
 on:
     push:
       paths:
-        - src/go/**
+        - src/go/src/**
+        - src/go/cdk/**
     workflow_dispatch:
     pull_request:
       types: [opened]
       paths:
-        - src/go/**
+        - src/go/src/**
+        - src/go/cdk/**
 
 permissions:
   id-token: write
