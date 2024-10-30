@@ -6,11 +6,6 @@ on:
         - src/go/src/**
         - src/go/infra/**
     workflow_dispatch:
-    pull_request:
-      types: [opened]
-      paths:
-        - src/go/src/**
-        - src/go/infra/**
 
 permissions:
   id-token: write

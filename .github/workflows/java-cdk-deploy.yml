@@ -12,16 +12,6 @@ on:
         - src/java/cdk/**
 
     workflow_dispatch:
-    pull_request:
-      types: [opened]
-      paths:
-        - src/java/inventory-acl/**
-        - src/java/inventory-ordering-service/**
-        - src/java/analytics-backend/**
-        - src/java/product-api/**
-        - src/java/product-event-publisher/**
-        - src/java/product-pricing/**
-        - src/java/cdk/**
 
 permissions:
   id-token: write

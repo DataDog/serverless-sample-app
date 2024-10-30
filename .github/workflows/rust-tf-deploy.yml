@@ -7,11 +7,6 @@ on:
         - src/rust/infra/**
         - /.github/workflows/rust-tf-deploy.yml
     workflow_dispatch:
-    pull_request:
-      types: [opened]
-      paths:
-        - src/rust/src/**
-        - src/rust/infra/**
 
 permissions:
   id-token: write

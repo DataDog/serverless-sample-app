@@ -7,12 +7,6 @@ on:
         - src/nodejs/lib/**
         - src/nodejs/src/**
     workflow_dispatch:
-    pull_request:
-      types: [opened]
-      paths:
-        - src/nodejs/bin/**
-        - src/nodejs/lib/**
-        - src/nodejs/src/**
 
 permissions:
   id-token: write

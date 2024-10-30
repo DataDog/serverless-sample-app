@@ -6,11 +6,6 @@ on:
         - src/nodejs/src/**
         - src/nodejs/infra/**
     workflow_dispatch:
-    pull_request:
-      types: [opened]
-      paths:
-        - src/nodejs/src/**
-        - src/nodejs/infra/**
 
 permissions:
   id-token: write
