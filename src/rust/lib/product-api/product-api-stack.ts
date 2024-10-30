@@ -104,7 +104,7 @@ export class ProductApiStack extends cdk.Stack {
       this,
       "RustProductApiEndpointParameter",
       {
-        parameterName: "/rust/product/api-endpoint",
+        parameterName: `/rust/${sharedProps.environment}/product/api-endpoint`,
         stringValue: api.api.url,
       }
     );
