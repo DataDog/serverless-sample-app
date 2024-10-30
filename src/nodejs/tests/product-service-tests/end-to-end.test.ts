@@ -93,6 +93,7 @@ describe("end-to-end-tests", () => {
 
     try {
       await apiDriver.getProduct(productId);
+    // no-dd-sa:typescript-best-practices/no-explicit-any
     } catch (error: any) {
       expect(error.response.status).toBe(404);
     }

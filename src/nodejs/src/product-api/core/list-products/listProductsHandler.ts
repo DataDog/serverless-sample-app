@@ -10,6 +10,7 @@ import { HandlerResponse } from "../handlerResponse";
 import { ProductRepository } from "../productRepository";
 import { ProductListDTO } from "../productListDto";
 
+// no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class ListProductsQuery {
 }
 

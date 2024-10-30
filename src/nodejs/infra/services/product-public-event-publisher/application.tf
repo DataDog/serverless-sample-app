@@ -58,14 +58,6 @@ resource "aws_iam_role_policy_attachment" "product_created_handler_sqs_receive_p
   policy_arn = aws_iam_policy.sqs_receive_policy.arn
 }
 
-resource "aws_lambda_permission" "product_created_sns" {
-  statement_id  = "AllowExecutionFromSNS"
-  action        = "lambda:InvokeFunction"
-  function_name = module.product_public_event_publisher.function_name
-  principal     = "sns.amazonaws.com"
-  source_arn    = data.aws_ssm_parameter.product_created_topic_param.value
-}
-
 resource "aws_sns_topic_subscription" "product_created_sns_topic" {
   topic_arn = data.aws_ssm_parameter.product_created_topic_param.value
   protocol  = "sqs"
