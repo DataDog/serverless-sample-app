@@ -1,5 +1,8 @@
 # Serverless Getting Started
 
+> [!CAUTION]
+> Deploying resources in this repository may incur costs in your AWS or DataDog account. Each runtime specific README contains instructions on deleting all resources, it is recommended you do this when not in use.
+
 This repository contains source code for demonstrating the getting started experience when using native tracing through various AWS serverless technologies. It implements the same architecture in all the available Lambda runtimes, and different IaC tools to provide a getting started experience for where ever you are today.
 
 ![Architecture Diagram](img/serverless-lambda-tracing.png)
