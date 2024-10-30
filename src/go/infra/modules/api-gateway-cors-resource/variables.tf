@@ -5,10 +5,16 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-resource "aws_api_gateway_rest_api" "rest_api" {
-  name = "${var.api_name}-${var.env}"
-
-  endpoint_configuration {
-    types = ["REGIONAL"]
-  }
+variable "path_part" {
+  type = string
 }
+
+variable "parent_resource_id" {
+  type = string
+}
+
+variable "rest_api_id" {
+  type = string
+}
+
+

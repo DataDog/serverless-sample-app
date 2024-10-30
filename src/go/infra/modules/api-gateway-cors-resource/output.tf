@@ -5,10 +5,14 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-resource "aws_api_gateway_rest_api" "rest_api" {
-  name = "${var.api_name}-${var.env}"
+output "id" {
+  value = aws_api_gateway_resource.cors_resource.id
+}
 
-  endpoint_configuration {
-    types = ["REGIONAL"]
-  }
+output "path_part" {
+  value = aws_api_gateway_resource.cors_resource.path_part
+}
+
+output "resource" {
+  value = aws_api_gateway_resource.cors_resource
 }

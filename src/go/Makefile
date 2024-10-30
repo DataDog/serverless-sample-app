@@ -13,8 +13,10 @@ deploy:
             LogLevel="INFO" \
 		--capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
 
-tf-pre-build:
+cleanup-ARTIFACTS_DIR:
 	rm -r out
+
+tf-pre-build:
 	mkdir out
 	mkdir out/GoGetProduct
 	mkdir out/GoListProducts
