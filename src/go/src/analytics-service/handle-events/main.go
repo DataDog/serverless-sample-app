@@ -35,7 +35,6 @@ func NewLambdaHandler(statsd statsd.Client) *LambdaHandler {
 
 func (lh *LambdaHandler) Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventResponse, error) {
 	failures := []events.SQSBatchItemFailure{}
-
 	for index := range request.Records {
 		record := request.Records[index]
 

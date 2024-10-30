@@ -1,4 +1,4 @@
-name: .NET Terraform Deploy
+name: Go Terraform Deploy
 
 on:
     push:
