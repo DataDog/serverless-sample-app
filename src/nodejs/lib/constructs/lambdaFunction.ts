@@ -47,9 +47,10 @@ export class InstrumentedLambdaFunction extends Construct {
         POWERTOOLS_LOG_LEVEL: 'INFO',
         ENV: props.sharedProps.environment,
         DD_EXTENSION_VERSION: 'next',
-        DD_SERVERLESS_APPSEC_ENABLED: "true",
-        DD_IAST_ENABLED: "true",
-        DD_PROFILING_ENABLED: "true",
+        // Disable temporarily to enable 'next' extension
+        // DD_SERVERLESS_APPSEC_ENABLED: "true",
+        // DD_IAST_ENABLED: "true",
+        //DD_PROFILING_ENABLED: "true",
         ...props.environment
       },
       bundling: {

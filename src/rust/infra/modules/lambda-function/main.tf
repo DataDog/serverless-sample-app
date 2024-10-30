@@ -93,8 +93,6 @@ module "aws_lambda_function" {
     "DD_SERVICE" : var.service_name
     "DD_SITE" : var.dd_site
     "DD_VERSION" : var.app_version
-    "DD_SERVERLESS_APPSEC_ENABLED": "true"
-    "DD_IAST_ENABLED": "true"
     "ENV": var.env
     "RUST_LOG": "info",
     "POWERTOOLS_SERVICE_NAME": var.service_name
