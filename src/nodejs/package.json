@@ -33,7 +33,7 @@
     "aws-cdk-lib": "^2.160.0",
     "axios": "^1.7.7",
     "constructs": "^10.3.0",
-    "datadog-cdk-constructs-v2": "^1.16.1",
+    "datadog-cdk-constructs-v2": "^1.18.0",
     "datadog-lambda-js": "^9.115.0",
     "dd-trace": "^5.22.0",
     "esbuild": "^0.20.2",
