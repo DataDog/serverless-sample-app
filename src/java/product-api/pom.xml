@@ -106,7 +106,7 @@
         <dependency>
             <groupId>com.datadoghq</groupId>
             <artifactId>dd-trace-api</artifactId>
-            <version>1.40.0</version>
+            <version>1.41.1</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
