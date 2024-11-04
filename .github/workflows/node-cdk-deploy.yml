@@ -6,6 +6,8 @@ on:
         - src/nodejs/bin/**
         - src/nodejs/lib/**
         - src/nodejs/src/**
+      branches:
+          - 'main'
     workflow_dispatch:
 
 permissions:

@@ -5,6 +5,8 @@ on:
       paths:
         - src/go/src/**
         - src/go/infra/**
+      branches:
+          - 'main'
     workflow_dispatch:
 
 permissions:

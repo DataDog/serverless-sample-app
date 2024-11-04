@@ -5,6 +5,8 @@ on:
       paths:
         - src/dotnet/src/**
         - src/dotnet/infra/**
+      branches:
+          - 'main'
     workflow_dispatch:
 
 permissions:

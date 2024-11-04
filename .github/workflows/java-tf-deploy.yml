@@ -10,6 +10,8 @@ on:
         - src/java/product-event-publisher/**
         - src/java/product-pricing/**
         - src/java/infra/**
+      branches:
+          - 'main'
     workflow_dispatch:
 
 permissions:

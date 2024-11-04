@@ -5,6 +5,8 @@ on:
       paths:
         - src/nodejs/src/**
         - src/nodejs/infra/**
+      branches:
+          - 'main'
     workflow_dispatch:
 
 permissions:

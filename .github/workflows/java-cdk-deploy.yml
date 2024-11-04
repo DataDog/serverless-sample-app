@@ -10,6 +10,8 @@ on:
         - src/java/product-event-publisher/**
         - src/java/product-pricing/**
         - src/java/cdk/**
+      branches:
+          - 'main'
 
     workflow_dispatch:
 

@@ -6,6 +6,8 @@ on:
         - src/rust/src/**
         - src/rust/bin/**
         - src/rust/lib/**
+      branches:
+          - 'main'
     workflow_dispatch:
 
 permissions:

@@ -6,6 +6,8 @@ on:
         - src/rust/src/**
         - src/rust/infra/**
         - /.github/workflows/rust-tf-deploy.yml
+      branches:
+          - 'main'
     workflow_dispatch:
 
 permissions:
