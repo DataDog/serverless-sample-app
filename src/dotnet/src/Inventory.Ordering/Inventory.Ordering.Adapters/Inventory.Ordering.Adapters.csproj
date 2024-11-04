@@ -18,7 +18,7 @@
         <PackageReference Include="Amazon.Lambda.Annotations" Version="1.5.0" />
         <PackageReference Include="Amazon.Lambda.SNSEvents" Version="2.1.0" />
         <PackageReference Include="Amazon.Lambda.SQSEvents" Version="2.2.0" />
-        <PackageReference Include="AWS.Lambda.Powertools.Logging" Version="1.6.0" />
+        <PackageReference Include="AWS.Lambda.Powertools.Logging" Version="1.6.2" />
         <PackageReference Include="AWSSDK.StepFunctions" Version="3.7.402.8" />
         <PackageReference Include="Datadog.Trace" Version="3.2.0" />
         <PackageReference Include="DogStatsD-CSharp-Client" Version="8.0.0" />
