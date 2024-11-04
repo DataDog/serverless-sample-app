@@ -7,7 +7,7 @@ edition = "2021"
 observability = {path = "../../observability"}
 lambda_http = "0.13"
 aws-sdk-dynamodb = "1.45"
-aws-sdk-sns = "1.44"
+aws-sdk-sns = "1.46"
 uuid = {version = "1.10.0", features = ["v4"]}
 async-trait = "0.1"
 
