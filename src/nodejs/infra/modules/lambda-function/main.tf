@@ -75,7 +75,7 @@ resource "aws_cloudwatch_log_group" "lambda_log_group" {
 
 module "aws_lambda_function" {
   source  = "DataDog/lambda-datadog/aws"
-  version = "1.4.0"
+  version = "1.5.0"
 
   filename                 = var.zip_file
   function_name            = "tf-node-${var.function_name}-${var.env}"
