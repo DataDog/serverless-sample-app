@@ -4,13 +4,19 @@ use lambda_http::{
     tracing::{self, instrument},
     Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
 };
+use opentelemetry::global::{BoxedSpan, ObjectSafeSpan};
+use opentelemetry::trace::{TraceContextExt, Tracer};
+use opentelemetry::{global, Context, KeyValue};
 use shared::response::{empty_response, json_response};
 
-use observability::{observability, TracedMessage};
+use observability::{observability, trace_request, TracedMessage};
 use shared::adapters::{DynamoDbRepository, SnsEventPublisher};
 use shared::core::{EventPublisher, Repository};
 use shared::ports::{handle_create_product, CreateProductCommand};
 use std::env;
+use std::sync::Arc;
+use tracing::Span;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 #[instrument(name = "POST /", skip(client, event_publisher, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]
@@ -18,8 +24,7 @@ async fn function_handler<TRepository: Repository, TEventPublisher: EventPublish
     client: &TRepository,
     event_publisher: &TEventPublisher,
     event: Request,
-) -> Result<impl IntoResponse, Error>
-{
+) -> Result<impl IntoResponse, Error> {
     let _: Result<TracedMessage, &str> = event.headers().try_into();
 
     tracing::info!("Received event: {:?}", event);
@@ -55,8 +60,18 @@ async fn main() -> Result<(), Error> {
     let sns_client = aws_sdk_sns::Client::new(&config);
     let event_publisher = SnsEventPublisher::new(sns_client);
 
-    run(service_fn(|event| {
-        function_handler(&repository, &event_publisher, event)
+    run(service_fn(|event: Request| async {
+        let mut handler_span = trace_request(&event);
+
+        let res = function_handler(&repository, &event_publisher, event).await;
+
+        unsafe {
+            observability::IS_COLD_START = 0;
+        }
+
+        handler_span.end();
+
+        res
     }))
     .await
 }

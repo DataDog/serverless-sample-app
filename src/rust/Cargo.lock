@@ -1737,6 +1737,7 @@ name = "observability"
 version = "0.1.0"
 dependencies = [
  "aws_lambda_events",
+ "lambda_http",
  "opentelemetry",
  "opentelemetry-datadog",
  "opentelemetry-http",

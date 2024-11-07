@@ -2,9 +2,13 @@ use aws_lambda_events::cloudwatch_events::CloudWatchEvent;
 use aws_lambda_events::http::HeaderMap;
 use aws_lambda_events::sns::{SnsMessage, SnsRecord};
 use aws_lambda_events::sqs::SqsMessage;
+use lambda_http::{
+    tracing::{self, instrument},
+    Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
+};
+use opentelemetry::global::BoxedSpan;
 use opentelemetry::trace::{
-    Span, SpanContext, SpanId, SpanKind, TraceContextExt, TraceFlags, TraceId,
-    TraceState, Tracer,
+    Span, SpanContext, SpanId, SpanKind, TraceContextExt, TraceFlags, TraceId, TraceState, Tracer,
 };
 use opentelemetry::{global, Context, KeyValue};
 use opentelemetry_datadog::new_pipeline;
@@ -18,6 +22,8 @@ use tracing_subscriber::{layer::SubscriberExt, Registry};
 mod utils;
 
 pub use utils::parse_name_from_arn;
+
+pub static mut IS_COLD_START: i32 = 1;
 
 pub fn observability() -> impl Subscriber + Send + Sync {
     let tracer = new_pipeline()
@@ -43,6 +49,50 @@ pub fn observability() -> impl Subscriber + Send + Sync {
         .with(telemetry_layer)
         .with(logger)
         .with(tracing_subscriber::EnvFilter::from_default_env())
+}
+
+pub fn trace_request(event: &Request) -> BoxedSpan {
+    let current_span = tracing::Span::current();
+
+    let tracer = global::tracer(env::var("DD_SERVICE").expect("DD_SERVICE is not set"));
+    let mut handler_span = tracer
+        .span_builder(String::from("aws.lambda"))
+        .with_kind(opentelemetry::trace::SpanKind::Internal)
+        .start(&tracer);
+
+    current_span
+        .set_parent(Context::new().with_remote_span_context(handler_span.span_context().clone()));
+
+    handler_span.set_attribute(KeyValue::new("service", "aws.lambda"));
+    handler_span.set_attribute(KeyValue::new("operation_name", "aws.lambda"));
+    handler_span.set_attribute(KeyValue::new("init_type", "on-demand"));
+    handler_span.set_attribute(KeyValue::new(
+        "request_id",
+        event.lambda_context().request_id,
+    ));
+    unsafe {
+        handler_span.set_attribute(KeyValue::new(
+            "cold_start",
+            IS_COLD_START.clone().to_string(),
+        ));
+    }
+
+    handler_span.set_attribute(KeyValue::new(
+        "base_service",
+        env::var("DD_SERVICE").unwrap(),
+    ));
+    handler_span.set_attribute(KeyValue::new("origin", String::from("lambda")));
+    handler_span.set_attribute(KeyValue::new("type", "serverless"));
+    handler_span.set_attribute(KeyValue::new(
+        "function_arn",
+        event.lambda_context().invoked_function_arn,
+    ));
+    handler_span.set_attribute(KeyValue::new(
+        "function_version",
+        event.lambda_context().env_config.version.clone(),
+    ));
+
+    handler_span
 }
 
 #[derive(Deserialize, Serialize)]
@@ -232,7 +282,8 @@ impl TryFrom<&HeaderMap> for TracedMessage {
                     message_type: None,
                 };
 
-                traced_message.update_current_context(Context::new().with_remote_span_context(span_context));
+                traced_message
+                    .update_current_context(Context::new().with_remote_span_context(span_context));
 
                 Ok(traced_message)
             }
