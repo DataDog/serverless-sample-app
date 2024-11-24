@@ -30,7 +30,7 @@ export class ProductApiWorkerStack extends cdk.Stack {
     const version = process.env["COMMIT_HASH"] ?? "latest";
 
     const datadogConfiguration = new Datadog(this, "Datadog", {
-      extensionLayerVersion: 65,
+      extensionLayerVersion: 66,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
       service,
