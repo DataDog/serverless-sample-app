@@ -49,7 +49,7 @@ func NewProductPublicEventPublisherStack(scope constructs.Construct, id string, 
 		stack,
 		jsii.String("Datadog"),
 		&ddcdkconstruct.DatadogProps{
-			ExtensionLayerVersion:  jsii.Number(65),
+			ExtensionLayerVersion:  jsii.Number(66),
 			AddLayers:              jsii.Bool(true),
 			Site:                   jsii.String(os.Getenv("DD_SITE")),
 			ApiKeySecret:           ddApiKeySecret,
