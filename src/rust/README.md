@@ -110,7 +110,7 @@ Globals:
     Timeout: 29
     MemorySize: 512
     Layers:
-      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:65
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:66
     Environment:
       Variables:
         ENV: !Ref Env
@@ -186,7 +186,7 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 65
+  datadog_extension_layer_version = 66
 }
 ```
 
