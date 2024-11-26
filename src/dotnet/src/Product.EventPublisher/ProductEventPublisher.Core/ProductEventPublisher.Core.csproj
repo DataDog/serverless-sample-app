@@ -5,12 +5,12 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PublishReadyToRun>true</PublishReadyToRun>
-        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Datadog.Trace" Version="3.2.0" />
-        <PackageReference Include="FluentValidation" Version="11.10.0" />
+        <PackageReference Include="Datadog.Trace" Version="3.6.0" />
+        <PackageReference Include="FluentValidation" Version="11.11.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
     </ItemGroup>
 

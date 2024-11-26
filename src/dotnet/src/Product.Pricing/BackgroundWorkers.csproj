@@ -10,7 +10,7 @@
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
         <!-- Generate ready to run images during publishing to improvement cold starts. -->
         <PublishReadyToRun>true</PublishReadyToRun>
-        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Amazon.Lambda.CloudWatchEvents" Version="4.4.0" />

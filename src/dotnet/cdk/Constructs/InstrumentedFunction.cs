@@ -38,12 +38,11 @@ public class InstrumentedFunction : Construct
             { "DD_SITE", Environment.GetEnvironmentVariable("DD_SITE") },
             { "DD_ENV", props.Shared.Env },
             { "ENV", props.Shared.Env },
+            { "DD_EXTENSION_VERSION", "next" },
             { "DD_VERSION", props.Shared.Version },
             { "DD_SERVICE", props.Shared.ServiceName },
             { "DD_API_KEY_SECRET_ARN", props.DdApiKeySecret.SecretArn },
             { "DD_CAPTURE_LAMBDA_PAYLOAD", "true" },
-            { "DD_SERVERLESS_APPSEC_ENABLED", "true"},
-            { "DD_IAST_ENABLED", "true"}
         };
         
         Function = new DotNetFunction(this, id,
