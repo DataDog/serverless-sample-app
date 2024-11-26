@@ -4,9 +4,7 @@ use lambda_http::{
     tracing::{self, instrument},
     Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
 };
-use opentelemetry::global::{BoxedSpan, ObjectSafeSpan};
-use opentelemetry::trace::{TraceContextExt, Tracer};
-use opentelemetry::{global, Context, KeyValue};
+use opentelemetry::global::ObjectSafeSpan;
 use shared::response::{empty_response, json_response};
 
 use observability::{observability, trace_request, TracedMessage};
@@ -14,9 +12,6 @@ use shared::adapters::{DynamoDbRepository, SnsEventPublisher};
 use shared::core::{EventPublisher, Repository};
 use shared::ports::{handle_create_product, CreateProductCommand};
 use std::env;
-use std::sync::Arc;
-use tracing::Span;
-use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 #[instrument(name = "POST /", skip(client, event_publisher, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]

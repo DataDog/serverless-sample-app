@@ -3,8 +3,8 @@ use aws_lambda_events::http::HeaderMap;
 use aws_lambda_events::sns::{SnsMessage, SnsRecord};
 use aws_lambda_events::sqs::SqsMessage;
 use lambda_http::{
-    tracing::{self, instrument},
-    Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
+    tracing::{self},
+    Request, RequestExt,
 };
 use opentelemetry::global::BoxedSpan;
 use opentelemetry::trace::{
