@@ -55,12 +55,12 @@ productCreatedTopicParam := awsssm.StringParameter_FromStringParameterName(stack
 productCreatedTopic := awssns.Topic_FromTopicArn(stack, jsii.String("ProductCreatedTopic"), productCreatedTopicParam.StringValue())
 ```
 
-The Datadog extension retrieves your Datadog API key from a Secrets Manager secret. For this to work, ensure you create a secret in your account containing your API key and set the `DD_SECRET_ARN` environment variable before deployment.
+The Datadog extension retrieves your Datadog API key from a Secrets Manager secret. For this to work, ensure you create a secret in your account containing your API key and set the `DD_API_KEY_SECRET_ARN` environment variable before deployment.
 
 To deploy all stacks and resources, run:
 
 ```sh
-export DD_SECRET_ARN=<YOUR SECRET ARN>
+export DD_API_KEY_SECRET_ARN=<YOUR SECRET ARN>
 export DD_SITE=<YOUR PREFERRED DATADOG SITE>
 cd cdk
 cdk deploy --all --require-approval never
@@ -78,7 +78,7 @@ cdk destroy --all
 
 Ensure you have set the below environment variables before starting deployment:
 
-- `DD_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
+- `DD_API_KEY_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
 - `DD_SITE`: The Datadog Site to use
 - `AWS_REGION`: The AWS region you want to deploy to
 
@@ -106,7 +106,7 @@ The `template.yaml` file contains an example of using a nested stack to deploy a
 
 ```sh
 sam build
-sam deploy --stack-name GoTracing --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_SECRET_ARN" ParameterKey=DDSite,ParameterValue="$DD_SITE" --resolve-s3 --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $AWS_REGION
+sam deploy --stack-name GoTracing --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_API_KEY_SECRET_ARN" ParameterKey=DDSite,ParameterValue="$DD_SITE" --resolve-s3 --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $AWS_REGION
 ```
 
 ### Cleanup
@@ -172,7 +172,7 @@ module "aws_lambda_function" {
 To deploy, first create a file named `infra/dev.tfvars`. In your tfvars file, you need to add your the AWS Secrets Manager ARN for the secret containing your Datadog API Key.
 
 ```tf
-dd_api_key_secret_arn="<DD_SECRET_ARN>"
+dd_api_key_secret_arn="<DD_API_KEY_SECRET_ARN>"
 dd_site="<YOUR PREFERRED DATADOG SITE>"
 ```
 

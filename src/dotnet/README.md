@@ -40,7 +40,7 @@ var defaultEnvironmentVariables = new Dictionary<string, string>()
 };
 ```
 
-The Datadog extension retrieves your Datadog API key from a Secrets Manager secret. For this to work, ensure you create a secret in your account containing your API key and set the `DD_SECRET_ARN` and `DD_SITE` environment variable before deployment. Eensure that you give your Lambda function permission to access the AWS Secrets Manager secret
+The Datadog extension retrieves your Datadog API key from a Secrets Manager secret. For this to work, ensure you create a secret in your account containing your API key and set the `DD_API_KEY_SECRET_ARN` and `DD_SITE` environment variable before deployment. Eensure that you give your Lambda function permission to access the AWS Secrets Manager secret
 
 ```c#
 props.DdApiKeySecret.GrantRead(Function);
@@ -60,7 +60,7 @@ var pricingUpdatedTopic = Topic.FromTopicArn(this, "PricingUpdatedTopic", pricin
 Run the below commands in order to deploy.
 
 ```sh
-export DD_SECRET_ARN=<YOUR SECRET ARN>
+export DD_API_KEY_SECRET_ARN=<YOUR SECRET ARN>
 export DD_SITE=<YOUR PREFERRED DATADOG SITE>
 cd cdk
 cdk deploy --all --require-approval never
@@ -80,7 +80,7 @@ The AWS SAM example leverages the Datadog CloudFormation Macro. The macro auto-i
 
 Ensure you have set the below environment variables before starting deployment:
 
-- `DD_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
+- `DD_API_KEY_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
 - `DD_SITE`: The Datadog Site to use
 - `AWS_REGION`: The AWS region you want to deploy to
 
@@ -92,7 +92,7 @@ The `template.yaml` file contains an example of using a nested stack to deploy a
 
 ```sh
 sam build
-sam deploy --stack-name DotnetTracing --parameter-overrides "ParameterKey=DDApiKeySecretArn,ParameterValue=$DD_SECRET_ARN" "ParameterKey=DDSite,ParameterValue=$DD_SITE" --resolve-s3 --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $AWS_REGION
+sam deploy --stack-name DotnetTracing --parameter-overrides "ParameterKey=DDApiKeySecretArn,ParameterValue=$DD_API_KEY_SECRET_ARN" "ParameterKey=DDSite,ParameterValue=$DD_SITE" --resolve-s3 --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $AWS_REGION
 ```
 
 ### Cleanup
@@ -152,7 +152,7 @@ module "aws_lambda_function" {
 To deploy, first create a file named `infra/dev.tfvars`. In your tfvars file, you need to add your the AWS Secrets Manager ARN for the secret containing your Datadog API Key.
 
 ```tf
-dd_api_key_secret_arn="<DD_SECRET_ARN>"
+dd_api_key_secret_arn="<DD_API_KEY_SECRET_ARN>"
 dd_site="<YOUR PREFERRED DATADOG SITE>
 ```
 

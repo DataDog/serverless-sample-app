@@ -32,7 +32,7 @@ func NewProductPricingServiceStack(scope constructs.Construct, id string, props 
 	}
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
-	ddApiKeySecret := awssecretsmanager.Secret_FromSecretCompleteArn(stack, jsii.String("DDApiKeySecret"), jsii.String(os.Getenv("DD_SECRET_ARN")))
+	ddApiKeySecret := awssecretsmanager.Secret_FromSecretCompleteArn(stack, jsii.String("DDApiKeySecret"), jsii.String(os.Getenv("DD_API_KEY_SECRET_ARN")))
 
 	serviceName := "GoProductPricingService"
 	env := os.Getenv("ENV")

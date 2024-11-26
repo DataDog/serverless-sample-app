@@ -22,7 +22,7 @@ export class ProductPricingStack extends cdk.Stack {
     const ddApiKey = Secret.fromSecretCompleteArn(
       this,
       "DDApiKeySecret",
-      process.env.DD_SECRET_ARN!
+      process.env.DD_API_KEY_SECRET_ARN!
     );
 
     const service = "NodeProductPricingService";

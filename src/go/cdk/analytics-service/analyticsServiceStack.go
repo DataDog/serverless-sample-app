@@ -32,7 +32,7 @@ func NewAnalyticsServiceStack(scope constructs.Construct, id string, props *Anal
 	}
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
-	ddApiKeySecret := awssecretsmanager.Secret_FromSecretCompleteArn(stack, jsii.String("DDApiKeySecret"), jsii.String(os.Getenv("DD_SECRET_ARN")))
+	ddApiKeySecret := awssecretsmanager.Secret_FromSecretCompleteArn(stack, jsii.String("DDApiKeySecret"), jsii.String(os.Getenv("DD_API_KEY_SECRET_ARN")))
 
 	serviceName := "GoInventoryOrderingService"
 	env := os.Getenv("ENV")

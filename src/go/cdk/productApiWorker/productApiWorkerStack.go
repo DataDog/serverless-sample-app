@@ -33,7 +33,7 @@ func NewProductApiWorkerStack(scope constructs.Construct, id string, props *Prod
 	}
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
-	ddApiKeySecret := awssecretsmanager.Secret_FromSecretCompleteArn(stack, jsii.String("DDApiKeySecret"), jsii.String(os.Getenv("DD_SECRET_ARN")))
+	ddApiKeySecret := awssecretsmanager.Secret_FromSecretCompleteArn(stack, jsii.String("DDApiKeySecret"), jsii.String(os.Getenv("DD_API_KEY_SECRET_ARN")))
 
 	serviceName := "GoProductApi"
 	env := os.Getenv("ENV")

@@ -21,7 +21,7 @@ public class AnalyticsBackendStack extends Stack {
     public AnalyticsBackendStack(final Construct scope, final String id, final StackProps props) {
         super(scope, id, props);
 
-        ISecret ddApiKeySecret = Secret.fromSecretCompleteArn(this, "DDApiKeySecret", System.getenv("DD_SECRET_ARN"));
+        ISecret ddApiKeySecret = Secret.fromSecretCompleteArn(this, "DDApiKeySecret", System.getenv("DD_API_KEY_SECRET_ARN"));
         
         String serviceName = "JavaAnalyticsBackend";
         String env = System.getenv("ENV") == null ? "dev" : System.getenv("ENV");

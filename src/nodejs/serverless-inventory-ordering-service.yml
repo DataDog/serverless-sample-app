@@ -16,7 +16,7 @@ plugins:
 custom:
   serviceName: NodeInventoryOrderingService
   datadog:
-    apiKeySecretArn: ${param:DD_SECRET_ARN}
+    apiKeySecretArn: ${param:DD_API_KEY_SECRET_ARN}
     site: ${param:DD_SITE}
     env: ${sls:stage}
     service: ${self:custom.serviceName}
@@ -56,7 +56,7 @@ provider:
         - Effect: Allow
           Action:
             - secretsmanager:GetSecretValue
-          Resource: ${param:DD_SECRET_ARN}
+          Resource: ${param:DD_API_KEY_SECRET_ARN}
         - Effect: Allow
           Action:
             - states:StartExecution

@@ -16,7 +16,7 @@ public class AnalyticsServiceStack : Stack
     internal AnalyticsServiceStack(Construct scope, string id, IStackProps props = null) : base(scope, id, props)
     {
         var secret = Secret.FromSecretCompleteArn(this, "DatadogApiKeySecret",
-            System.Environment.GetEnvironmentVariable("DD_SECRET_ARN"));
+            System.Environment.GetEnvironmentVariable("DD_API_KEY_SECRET_ARN"));
 
         var serviceName = "DotnetAnalyticsService";
         var env = System.Environment.GetEnvironmentVariable("ENV") ?? "dev";

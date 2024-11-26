@@ -16,7 +16,7 @@ public class InventoryOrderingServiceStack : Stack
     internal InventoryOrderingServiceStack(Construct scope, string id, IStackProps props = null) : base(scope, id, props)
     {
         var secret = Secret.FromSecretCompleteArn(this, "DatadogApiKeySecret",
-            System.Environment.GetEnvironmentVariable("DD_SECRET_ARN"));
+            System.Environment.GetEnvironmentVariable("DD_SECREDD_API_KEY_SECRET_ARNT_ARN"));
 
         var serviceName = "DotnetInventoryOrderingService";
         var env = System.Environment.GetEnvironmentVariable("ENV") ?? "dev";

@@ -61,7 +61,7 @@ jobs:
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "test"
-          DD_SECRET_ARN: ${{secrets.DD_SECRET_ARN}}
+          DD_API_KEY_SECRET_ARN: ${{secrets.DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
         run: |
           make cdk-rust
@@ -77,7 +77,7 @@ jobs:
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "test"
-          DD_SECRET_ARN: ${{secrets.DD_SECRET_ARN}}
+          DD_API_KEY_SECRET_ARN: ${{secrets.DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
           RUNTIME: "Rust"
           NODE_OPTIONS: -r ${{ env.DD_TRACE_PACKAGE }}
@@ -89,7 +89,7 @@ jobs:
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "test"
-          DD_SECRET_ARN: ${{secrets.DD_SECRET_ARN}}
+          DD_API_KEY_SECRET_ARN: ${{secrets.DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
         run: |
           make cdk-rust-destroy

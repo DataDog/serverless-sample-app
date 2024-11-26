@@ -40,7 +40,7 @@ func NewProductApiStack(scope constructs.Construct, id string, props *ProductApi
 		version = "latest"
 	}
 
-	ddApiKeySecret := awssecretsmanager.Secret_FromSecretCompleteArn(stack, jsii.String("DDApiKeySecret"), jsii.String(os.Getenv("DD_SECRET_ARN")))
+	ddApiKeySecret := awssecretsmanager.Secret_FromSecretCompleteArn(stack, jsii.String("DDApiKeySecret"), jsii.String(os.Getenv("DD_API_KEY_SECRET_ARN")))
 
 	datadog := ddcdkconstruct.NewDatadog(
 		stack,
