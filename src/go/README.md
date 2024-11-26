@@ -25,7 +25,7 @@ datadog := ddcdkconstruct.NewDatadog(
 		stack,
 		jsii.String("Datadog"),
 		&ddcdkconstruct.DatadogProps{
-			ExtensionLayerVersion:  jsii.Number(65),
+			ExtensionLayerVersion:  jsii.Number(66),
 			AddLayers:              jsii.Bool(true),
 			Site:                   jsii.String(os.Getenv("DD_SITE")),
 			ApiKeySecret:           ddApiKeySecret,
@@ -90,7 +90,7 @@ The AWS SAM & Go Instrumentation works by manually adding the Datadog extension 
 Globals:
   Function:
     Layers:
-      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension-ARM:65
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension-ARM:66
     Environment:
       Variables:
         DD_ENV: !Ref Env
@@ -163,7 +163,7 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 65
+  datadog_extension_layer_version = 66
 }
 ```
 

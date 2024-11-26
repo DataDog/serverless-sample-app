@@ -32,7 +32,7 @@ export class ProductPublicEventPublisherStack extends cdk.Stack {
 
     const datadogConfiguration = new Datadog(this, "Datadog", {
       nodeLayerVersion: 115,
-      extensionLayerVersion: 65,
+      extensionLayerVersion: 66,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
       service,
