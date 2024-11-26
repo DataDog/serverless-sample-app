@@ -50,8 +50,8 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.putAll(props.environmentVariables());
 
         List<ILayerVersion> layers = new ArrayList<>(2);
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", "arn:aws:lambda:eu-west-1:464622532012:layer:dd-trace-java:15"));
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", "arn:aws:lambda:eu-west-1:464622532012:layer:Datadog-Extension:66"));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:15",System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:66", System.getenv("AWS_REGION"))));
 
         IBucket bucket = Bucket.fromBucketName(this, "CDKBucket", fileAsset.getS3BucketName());
 
