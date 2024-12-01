@@ -35,4 +35,4 @@ opentelemetry-http = { version = "0.12", features = ["reqwest"] }
 opentelemetry-stdout = "0.4.0"
 opentelemetry-semantic-conventions = "0.25"
 tracing-opentelemetry = "0.24.0"
-tracing = "0.1.40"
+tracing = "0.1.41"
