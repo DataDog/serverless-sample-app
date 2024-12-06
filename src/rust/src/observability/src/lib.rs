@@ -23,8 +23,6 @@ mod utils;
 
 pub use utils::parse_name_from_arn;
 
-pub static mut IS_COLD_START: i32 = 1;
-
 pub fn observability() -> impl Subscriber + Send + Sync {
     let tracer = new_pipeline()
         .with_service_name(env::var("DD_SERVICE").expect("DD_SERVICE is not set"))
@@ -70,12 +68,6 @@ pub fn trace_request(event: &Request) -> BoxedSpan {
         "request_id",
         event.lambda_context().request_id,
     ));
-    unsafe {
-        handler_span.set_attribute(KeyValue::new(
-            "cold_start",
-            IS_COLD_START.clone().to_string(),
-        ));
-    }
 
     handler_span.set_attribute(KeyValue::new(
         "base_service",

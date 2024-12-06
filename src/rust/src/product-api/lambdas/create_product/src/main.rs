@@ -60,10 +60,6 @@ async fn main() -> Result<(), Error> {
 
         let res = function_handler(&repository, &event_publisher, event).await;
 
-        unsafe {
-            observability::IS_COLD_START = 0;
-        }
-
         handler_span.end();
 
         res
