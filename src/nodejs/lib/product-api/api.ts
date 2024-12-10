@@ -17,7 +17,6 @@ import { ITopic, Topic } from "aws-cdk-lib/aws-sns";
 import { Construct } from "constructs";
 import { SharedProps } from "../constructs/sharedFunctionProps";
 import { InstrumentedLambdaFunction } from "../constructs/lambdaFunction";
-import { CorsHttpMethod, HttpApi, HttpMethod } from "aws-cdk-lib/aws-apigatewayv2";
 import { RemovalPolicy } from "aws-cdk-lib";
 import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
 

@@ -14,7 +14,7 @@ esbuild.build({
   outfile: 'out/updateProductFunction/index.js',
   plugins: [ddPlugin],
   platform: 'node', // allows built-in modules to be required
-  target: ['node20'],
+  target: ['node22'],
   external: [
     // esbuild cannot bundle native modules
     '@datadog/native-metrics',

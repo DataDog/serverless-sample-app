@@ -12,8 +12,8 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
-      nodeLayerVersion: "115"
-      extensionLayerVersion: "66"
+      nodeLayerVersion: "117"
+      extensionLayerVersion: "67"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -41,7 +41,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: nodejs20.x
+    Runtime: nodejs22.x
     Timeout: 29
     MemorySize: 512
     Environment:
@@ -83,7 +83,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "node20"
+        Target: "node22"
         Sourcemap: true
         EntryPoints:
           - ./src/inventory-ordering-service/adapters/inventoryOrderingWorkflowTrigger.ts

@@ -133,7 +133,7 @@ export class SnsEventPublisher implements EventPublisher {
     const parentSpan = tracer.scope().active();
 
     const messagingSpan = tracer.startSpan("publish", {
-      childOf: parentSpan!,
+      childOf: parentSpan ?? undefined,
     });
 
     try {
@@ -149,7 +149,7 @@ export class SnsEventPublisher implements EventPublisher {
         cloudEventWrapper,
         "sns",
         process.env.PRODUCT_DELETED_TOPIC_ARN ?? "",
-        messagingSpan!,
+        messagingSpan,
         evt.productId,
         "private"
       );

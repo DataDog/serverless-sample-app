@@ -19,47 +19,46 @@ export class InstrumentedLambdaFunctionProps {
   buildDef: string;
   outDir: string;
   functionName: string;
-  environment: {[key: string]: string}
+  environment: { [key: string]: string };
 }
 
 export class InstrumentedLambdaFunction extends Construct {
   function: NodejsFunction;
 
-  constructor(scope: Construct, id: string, props: InstrumentedLambdaFunctionProps) {
+  constructor(
+    scope: Construct,
+    id: string,
+    props: InstrumentedLambdaFunctionProps
+  ) {
     super(scope, id);
 
     const pathToBuildFile = props.buildDef;
     const pathToOutputFile = props.outDir;
 
-    const code = Code.fromCustomCommand(
-      pathToOutputFile,
-      ['node', pathToBuildFile],
-    );
+    const code = Code.fromCustomCommand(pathToOutputFile, [
+      "node",
+      pathToBuildFile,
+    ]);
 
     this.function = new NodejsFunction(this, props.functionName, {
-      runtime: Runtime.NODEJS_20_X,
+      runtime: Runtime.NODEJS_22_X,
       functionName: `${id}-${props.sharedProps.environment}`,
       code: code,
       handler: props.handler,
       memorySize: 512,
       environment: {
         POWERTOOLS_SERVICE_NAME: props.sharedProps.serviceName,
-        POWERTOOLS_LOG_LEVEL: 'INFO',
+        POWERTOOLS_LOG_LEVEL: "INFO",
         ENV: props.sharedProps.environment,
-        DD_EXTENSION_VERSION: 'next',
-        // Disable temporarily to enable 'next' extension
-        // DD_SERVERLESS_APPSEC_ENABLED: "true",
-        // DD_IAST_ENABLED: "true",
-        //DD_PROFILING_ENABLED: "true",
-        ...props.environment
+        ...props.environment,
       },
       bundling: {
-        platform: 'node',
+        platform: "node",
         esbuildArgs: {
-          "--bundle": "true"
+          "--bundle": "true",
         },
-        target: 'node20'
-      }
+        target: "node22",
+      },
     });
 
     const kmsAlias = Alias.fromAliasName(this, "SSMAlias", "aws/ssm");

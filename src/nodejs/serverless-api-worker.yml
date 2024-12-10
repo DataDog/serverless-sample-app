@@ -25,7 +25,7 @@ custom:
     propagateUpstreamTrace: true
   esbuild:
     platform: "node"
-    target: "node20"
+    target: "node22"
     bundle: true
     minify: true
     exclude: 
@@ -43,7 +43,7 @@ custom:
 
 provider:
   name: aws
-  runtime: nodejs20.x
+  runtime: nodejs22.x
   environment:
     DD_EXTENSION_VERSION: "next"
     TABLE_NAME: ${ssm:/node/product/product-table-name}

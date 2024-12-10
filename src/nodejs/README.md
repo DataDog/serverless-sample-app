@@ -145,7 +145,7 @@ module "aws_lambda_function" {
   function_name            = var.function_name
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = var.lambda_handler
-  runtime                  = "nodejs20.x"
+  runtime                  = "nodejs22.x"
   memory_size              = 512
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
   source_code_hash = "${filebase64sha256(var.zip_file)}"

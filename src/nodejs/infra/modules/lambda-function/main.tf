@@ -81,7 +81,7 @@ module "aws_lambda_function" {
   function_name            = "tf-node-${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = var.lambda_handler
-  runtime                  = "nodejs20.x"
+  runtime                  = "nodejs22.x"
   memory_size              = 512
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
   source_code_hash = "${filebase64sha256(var.zip_file)}"
@@ -105,6 +105,6 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 66
-  datadog_node_layer_version      = 115
+  datadog_extension_layer_version = 67
+  datadog_node_layer_version      = 117
 }
