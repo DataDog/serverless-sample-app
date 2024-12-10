@@ -13,32 +13,55 @@ import {
 import { IntegrationEventPublisher } from "../core/integrationEventPublisher";
 import { IntegrationEvent } from "../core/integrationEvent";
 import { tracer } from "dd-trace";
+import { CloudEvent } from "cloudevents";
+import { addMessagingTags } from "../../observability/observability";
+import { randomUUID } from "crypto";
 
 export class EventBridgeEventPublisher implements IntegrationEventPublisher {
   private client: EventBridgeClient;
+  textEncoder: TextEncoder;
 
   constructor(client: EventBridgeClient) {
     this.client = client;
+    this.textEncoder = new TextEncoder();
   }
 
   async publish(evt: IntegrationEvent[]): Promise<void> {
-    const parentSpan = tracer.scope().active();
-    const messagingSpan = tracer.startSpan(evt[0].eventType, {
-      childOf: parentSpan!,
-    });
+    const parentSpan = tracer.scope().active()!;
     try {
       const evtEntries: PutEventsRequestEntry[] = evt.map((e) => {
-        messagingSpan.addTags({
-          "messaging.detailType": e.eventType,
-          "messaging.source": `${process.env.ENV}.orders`,
+        const cloudEventWrapper = new CloudEvent({
+          source: process.env.DOMAIN,
+          type: e.eventType,
+          datacontenttype: "application/json",
+          data: e.data,
+          traceparent: parentSpan?.context().toTraceparent(),
         });
+
+        const messagingSpan = tracer.startSpan("publish", {
+          childOf: parentSpan!,
+        });
+
+        addMessagingTags(
+          cloudEventWrapper,
+          "eventbridge",
+          process.env.EVENT_BUS_NAME ?? "",
+          messagingSpan,
+          undefined,
+          "public"
+        );
+        messagingSpan.finish();
 
         return {
           EventBusName: process.env.EVENT_BUS_NAME,
-          Detail: e.data,
+          Detail: JSON.stringify(cloudEventWrapper),
           DetailType: e.eventType,
           Source: `${process.env.ENV}.orders`,
         };
+      });
+
+      parentSpan.addTags({
+        "messaging.batch.message_count": evtEntries.length,
       });
 
       await this.client.send(
@@ -50,18 +73,16 @@ export class EventBridgeEventPublisher implements IntegrationEventPublisher {
       if (error instanceof Error) {
         const e = error as Error;
         const stack = e.stack!.split("\n").slice(1, 4).join("\n");
-        messagingSpan.addTags({
+        parentSpan?.addTags({
           "error.stack": stack,
           "error.message": error.message,
           "error.type": "Error",
         });
       } else {
-        messagingSpan.addTags({
+        parentSpan?.addTags({
           "error.type": "Error",
         });
       }
-    } finally {
-      messagingSpan.finish();
     }
 
     return;

@@ -36,6 +36,7 @@ module "inventory_acl_function" {
   environment_variables = {
     PRODUCT_ADDED_TOPIC_ARN : aws_sns_topic.node_inventory_new_product_added.arn
     DD_SERVICE_MAPPING : "lambda_sqs:${aws_sqs_queue.public_event_acl_queue.name}"
+    DOMAIN: "inventory"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site

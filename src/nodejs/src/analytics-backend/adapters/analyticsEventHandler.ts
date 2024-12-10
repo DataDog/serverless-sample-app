@@ -12,8 +12,10 @@ import {
   SQSBatchResponse,
   SQSEvent,
 } from "aws-lambda";
-import { SpanContext, tracer } from "dd-trace";
+import { Span, SpanContext, tracer } from "dd-trace";
 import { Logger } from "@aws-lambda-powertools/logger";
+import { CloudEvent } from "cloudevents";
+import { generateProcessingSpanFor } from "../../observability/observability";
 
 const logger = new Logger({});
 
@@ -25,9 +27,7 @@ export const handler = async (
   const batchItemFailures: SQSBatchItemFailure[] = [];
 
   for (const message of event.Records) {
-    const messageProcessingSpan = tracer.startSpan("process", {
-      childOf: mainSpan,
-    });
+    let messageProcessingSpan: Span | undefined = undefined;
 
     try {
       // no-dd-sa:typescript-best-practices/no-explicit-any
@@ -36,15 +36,17 @@ export const handler = async (
       const manualContext = new ManualContext(
         parsedBody.detail._datadog.traceparent
       );
+      const evtWrapper = parsedBody["detail"] as CloudEvent<any>;
+
+      messageProcessingSpan = generateProcessingSpanFor(
+        evtWrapper,
+        "sqs",
+        mainSpan,
+        undefined
+      );
 
       messageProcessingSpan.addLink(manualContext);
 
-      messageProcessingSpan.addTags({
-        "messaging.system": "sqs",
-        "messaging.operation.name": "process",
-        "messaging.operation.type": "receive",
-        "messaging.type": parsedBody["detail-type"],
-      });
       tracer.dogstatsd.increment(parsedBody["detail-type"], 1);
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -66,7 +68,7 @@ export const handler = async (
         itemIdentifier: message.messageId,
       });
     } finally {
-      messageProcessingSpan.finish();
+      messageProcessingSpan?.finish();
     }
   }
 

@@ -35,6 +35,7 @@ module "product_public_event_publisher" {
     PRODUCT_DELETED_TOPIC_ARN : data.aws_ssm_parameter.product_deleted_topic_param.value
     DD_SERVICE_MAPPING : "lambda_sqs:${aws_sqs_queue.public_event_publisher_queue.name}"
     EVENT_BUS_NAME : data.aws_ssm_parameter.eb_name.value
+    "DOMAIN": "products"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site

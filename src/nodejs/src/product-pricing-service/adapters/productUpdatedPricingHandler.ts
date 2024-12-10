@@ -7,7 +7,7 @@
 
 import { SNSClient } from "@aws-sdk/client-sns";
 import { SNSEvent, SQSEvent } from "aws-lambda";
-import { tracer } from "dd-trace";
+import { Span, tracer } from "dd-trace";
 import { PricingService } from "../core/pricingService";
 import { SnsEventPublisher } from "./snsEventPublisher";
 import {
@@ -15,6 +15,8 @@ import {
   ProductUpdatedEventHandler,
 } from "../core/productUpdatedEventHandler";
 import { Logger } from "@aws-lambda-powertools/logger";
+import { CloudEvent } from "cloudevents";
+import { generateProcessingSpanFor } from "../../observability/observability";
 const logger = new Logger({ serviceName: process.env.DD_SERVICE });
 const snsClient = new SNSClient();
 
@@ -24,23 +26,41 @@ const updateProductHandler = new ProductUpdatedEventHandler(
 );
 
 export const handler = async (event: SNSEvent): Promise<string> => {
-  const mainSpan = tracer.scope().active();
+  const mainSpan = tracer.scope().active()!;
+  mainSpan.addTags({
+    "messaging.operation.type": "receive",
+  });
 
   logger.info("Handling pricing updated event from SNS");
 
   for (const message of event.Records) {
+    let messageProcessingSpan: Span | undefined = undefined;
     try {
-      logger.info("Processing message:");
-      logger.info(message.Sns.Message);
+      const evtWrapper: CloudEvent<ProductUpdatedEvent> = JSON.parse(
+        message.Sns.Message
+      );
 
-      const data: ProductUpdatedEvent = JSON.parse(message.Sns.Message);
+      messageProcessingSpan = generateProcessingSpanFor(evtWrapper, "sns", mainSpan, evtWrapper.data?.productId);
+      
+      await updateProductHandler.handle(evtWrapper.data!);
 
-      await updateProductHandler.handle(data);
-
-      logger.info("Processing complete");
-    } catch (error) {
-      logger.error(JSON.stringify(error));
-      throw error;
+      messageProcessingSpan.finish();
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        const e = error as Error;
+        const stack = e.stack!.split("\n").slice(1, 4).join("\n");
+        messageProcessingSpan?.addTags({
+          "error.stack": stack,
+          "error.message": error.message,
+          "error.type": "Error",
+        });
+      } else {
+        messageProcessingSpan?.addTags({
+          "error.type": "Error",
+        });
+      }
+    } finally {
+      messageProcessingSpan?.finish();
     }
   }
 

@@ -6,12 +6,14 @@
 //
 
 import { SQSBatchItemFailure, SQSBatchResponse, SQSEvent } from "aws-lambda";
-import { tracer } from "dd-trace";
+import { Span, tracer } from "dd-trace";
 import { Logger } from "@aws-lambda-powertools/logger";
 import { OrderCreatedEventV1 } from "../public-events/orderCreatedEventV1";
 import { EventAntiCorruptionLayer } from "../core/eventAntiCorruptionLayer";
 import { SnsPrivateEventPublisher } from "./snsEventPublisher";
 import { SNSClient } from "@aws-sdk/client-sns";
+import { CloudEvent } from "cloudevents";
+import { generateProcessingSpanFor } from "../../observability/observability";
 
 const logger = new Logger({});
 const inventoryAcl = new EventAntiCorruptionLayer(
@@ -20,16 +22,23 @@ const inventoryAcl = new EventAntiCorruptionLayer(
 
 export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
   const mainSpan = tracer.scope().active()!;
+  mainSpan.addTags({
+    "messaging.operation.type": "receive",
+  });
   const batchItemFailures: SQSBatchItemFailure[] = [];
 
   for (const message of event.Records) {
+    let processingSpan: Span | undefined = undefined;
+
     try {
-      const evtWrapper: EventBridgeMessageWrapper<OrderCreatedEventV1> =
+      const evtWrapper: EventBridgeMessageWrapper<CloudEvent<string>> =
         JSON.parse(message.body);
 
-      const result = await inventoryAcl.processOrderCreatedEvent(
-        evtWrapper.detail
-      );
+      const productAddedEvent: OrderCreatedEventV1 = JSON.parse(evtWrapper.detail.data!);
+
+      processingSpan = generateProcessingSpanFor(evtWrapper.detail, "sqs", mainSpan, productAddedEvent.productId);
+
+      const result = await inventoryAcl.processOrderCreatedEvent(productAddedEvent);
 
       if (!result) {
         batchItemFailures.push({
@@ -57,7 +66,7 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
         itemIdentifier: message.messageId,
       });
     } finally {
-      mainSpan.finish();
+      processingSpan?.finish();
     }
   }
 
@@ -68,4 +77,6 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
 
 interface EventBridgeMessageWrapper<T> {
   detail: T;
+  detailType: string;
+  source: string;
 }

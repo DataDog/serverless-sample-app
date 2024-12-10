@@ -6,7 +6,7 @@
 //
 
 import { SQSBatchItemFailure, SQSBatchResponse, SQSEvent } from "aws-lambda";
-import { tracer } from "dd-trace";
+import { Span, tracer } from "dd-trace";
 import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
 import { Logger } from "@aws-lambda-powertools/logger";
 import { EventBridgeEventPublisher } from "./eventBridgeEventPublisher";
@@ -22,6 +22,8 @@ import {
   ProductDeletedEvent,
   ProductDeletedEventHandler,
 } from "../core/productDeletedEvent";
+import { CloudEvent } from "cloudevents";
+import { generateProcessingSpanFor } from "../../observability/observability";
 
 const integrationEventPublisher = new EventBridgeEventPublisher(
   new EventBridgeClient()
@@ -39,7 +41,7 @@ const productDeletedEventHandler = new ProductDeletedEventHandler(
 const logger = new Logger({});
 
 export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
-  const mainSpan = tracer.scope().active();
+  const mainSpan = tracer.scope().active()!;
   mainSpan?.addTags({
     "messaging.batch.message_count": event.Records.length,
     "messaging.operation.type": "receive",
@@ -49,14 +51,7 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
   const sqsFailures: SQSBatchItemFailure[] = [];
 
   for (const message of event.Records) {
-    const parentSpan = tracer.scope().active();
-    const processingSpan = tracer.startSpan("process", {
-      childOf: parentSpan!,
-    });
-    processingSpan.addTags({
-      "messaging.system": "aws_sqs",
-      "messaging.operation.type": "process",
-    });
+    let processingSpan: Span | undefined = undefined;
 
     try {
       const snsMessageWrapper: SnsMessageWrapper = JSON.parse(message.body);
@@ -65,35 +60,59 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
 
       switch (snsMessageWrapper.TopicArn) {
         case process.env.PRODUCT_CREATED_TOPIC_ARN:
-          const createdEvt: ProductCreatedEvent = JSON.parse(snsMessageWrapper.Message);
-          await productCreatedEventHandler.handle(createdEvt);
+          const createdEvt: CloudEvent<ProductCreatedEvent> = JSON.parse(
+            snsMessageWrapper.Message
+          );
+          processingSpan = generateProcessingSpanFor(
+            createdEvt,
+            "sqs",
+            mainSpan!,
+            createdEvt.data?.productId
+          );
+
+          await productCreatedEventHandler.handle(createdEvt.data!);
           break;
         case process.env.PRODUCT_UPDATED_TOPIC_ARN:
-          const updatedEvt:ProductUpdatedEvent = JSON.parse(snsMessageWrapper.Message)
-          await productUpdatedEventHandler.handle(updatedEvt);
+          const updatedEvt: CloudEvent<ProductUpdatedEvent> = JSON.parse(
+            snsMessageWrapper.Message
+          );
+          processingSpan = generateProcessingSpanFor(
+            updatedEvt,
+            "sqs",
+            mainSpan!,
+            updatedEvt.data?.productId
+          );
+
+          await productUpdatedEventHandler.handle(updatedEvt.data!);
           break;
         case process.env.PRODUCT_DELETED_TOPIC_ARN:
-          const deletedEvt: ProductDeletedEvent = JSON.parse(snsMessageWrapper.Message)
-          await productDeletedEventHandler.handle(deletedEvt);
+          const deletedEvt: CloudEvent<ProductDeletedEvent> = JSON.parse(
+            snsMessageWrapper.Message
+          );
+          processingSpan = generateProcessingSpanFor(
+            deletedEvt,
+            "sqs",
+            mainSpan!,
+            deletedEvt.data?.productId
+          );
+
+          await productDeletedEventHandler.handle(deletedEvt.data!);
           break;
         default:
           logger.warn(`Unknown event type: '${snsMessageWrapper.TopicArn}'`);
-          processingSpan.addTags({
-            "messaging.unknownType": snsMessageWrapper.TopicArn,
-          });
           sqsFailures.push({
             itemIdentifier: message.messageId,
           });
       }
     } catch (error) {
       logger.error(JSON.stringify(error));
-      processingSpan.logEvent("error", error);
+      processingSpan?.logEvent("error", error);
       sqsFailures.push({
         itemIdentifier: message.messageId,
       });
+    } finally {
+      processingSpan?.finish();
     }
-
-    processingSpan.finish();
   }
 
   return {

@@ -14,6 +14,7 @@ module "product_api_pricing_worker" {
   environment_variables = {
     TABLE_NAME : data.aws_ssm_parameter.product_api_table_name.value
     DD_SERVICE_MAPPING : "lambda_sns:${data.aws_ssm_parameter.product_pricing_changed_topic_name.value}"
+    "DOMAIN": "products"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site

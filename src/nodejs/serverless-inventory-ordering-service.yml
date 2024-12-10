@@ -50,6 +50,7 @@ provider:
     ENV: ${sls:stage}
     POWERTOOLS_SERVICE_NAME: ${self:custom.serviceName}
     POWERTOOLS_LOG_LEVEL: 'INFO'
+    DOMAIN: "inventory"
   iam:
     role:
       statements:

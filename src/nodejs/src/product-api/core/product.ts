@@ -6,6 +6,7 @@
 //
 
 import { z } from "zod";
+import { v4 as uuidv4 } from "uuid";
 
 export class Product {
   private productSchema = z
@@ -31,7 +32,7 @@ export class Product {
     });
     this.name = name;
     this.price = price;
-    this.productId = name.toUpperCase().replace(/\s/g, "").trim();
+    this.productId = uuidv4().toString();
   }
 
   update(name: string, price: number) {

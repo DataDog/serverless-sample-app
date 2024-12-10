@@ -67,6 +67,7 @@ export class ApiWorker extends Construct {
         environment: {
           TABLE_NAME: this.table.tableName,
           DD_SERVICE_MAPPING: `lambda_sns:${priceCalculatedTopic.topicName}`,
+          DOMAIN: "products"
         },
         buildDef:
           "./src/product-api/adapters/buildHandlePricingChangedFunction.js",

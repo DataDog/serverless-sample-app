@@ -85,6 +85,7 @@ export class InventoryOrderingService extends Construct {
         environment: {
           DD_SERVICE_MAPPING: `lambda_sns:${topic.topicName}`,
           ORDERING_SERVICE_WORKFLOW_ARN: workflow.stateMachineArn,
+          DOMAIN: "inventory"
         },
         buildDef:
           "./src/inventory-ordering-service/adapters/buildInventoryOrderingWorkflowTrigger.js",

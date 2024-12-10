@@ -6,24 +6,43 @@
 //
 
 import { SNSEvent } from "aws-lambda";
-import { tracer } from "dd-trace";
+import { Span, tracer } from "dd-trace";
 import { Logger } from "@aws-lambda-powertools/logger";
 import { SFNClient, StartExecutionCommand } from "@aws-sdk/client-sfn";
+import { CloudEvent } from "cloudevents";
+import { ProductAddedEvent } from "./productAddedEvent";
+import { generateProcessingSpanFor } from "../../observability/observability";
 
 const logger = new Logger({});
 const sfnClient = new SFNClient();
 
 export const handler = async (event: SNSEvent): Promise<void> => {
   const mainSpan = tracer.scope().active()!;
+  mainSpan.addTags({
+    "messaging.operation.type": "receive",
+  });
 
   for (const message of event.Records) {
+    let messageProcessingSpan: Span | undefined = undefined;
+
     try {
       logger.info(message.Sns.Message);
+
+      const evtWrapper: CloudEvent<ProductAddedEvent> = JSON.parse(
+        message.Sns.Message
+      );
+
+      messageProcessingSpan = generateProcessingSpanFor(
+        evtWrapper,
+        "sns",
+        mainSpan,
+        evtWrapper.data?.productId
+      );
 
       await sfnClient.send(
         new StartExecutionCommand({
           stateMachineArn: process.env.ORDERING_SERVICE_WORKFLOW_ARN,
-          input: message.Sns.Message,
+          input: JSON.stringify(evtWrapper.data!),
         })
       );
     } catch (error: unknown) {
@@ -43,7 +62,7 @@ export const handler = async (event: SNSEvent): Promise<void> => {
         });
       }
     } finally {
-      mainSpan.finish();
+      messageProcessingSpan?.finish();
     }
   }
 };

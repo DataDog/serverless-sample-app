@@ -7,13 +7,15 @@
 
 import { SNSClient } from "@aws-sdk/client-sns";
 import { SNSEvent, SQSEvent } from "aws-lambda";
-import { tracer } from "dd-trace";
+import { Span, tracer } from "dd-trace";
 import {
   ProductCreatedEvent,
   ProductCreatedEventHandler,
 } from "../core/productCreatedEventHandler";
 import { PricingService } from "../core/pricingService";
 import { SnsEventPublisher } from "./snsEventPublisher";
+import { CloudEvent } from "cloudevents";
+import { generateProcessingSpanFor } from "../../observability/observability";
 
 const snsClient = new SNSClient();
 
@@ -23,13 +25,42 @@ const createProductHandler = new ProductCreatedEventHandler(
 );
 
 export const handler = async (event: SNSEvent): Promise<string> => {
-  const mainSpan = tracer.scope().active();
-
+  const mainSpan = tracer.scope().active()!;
+  mainSpan.addTags({
+    "messaging.operation.type": "receive",
+  });
   for (const message of event.Records) {
-    const data: ProductCreatedEvent = JSON.parse(message.Sns.Message);
+    let messageProcessingSpan: Span | undefined = undefined;
+    try {
+      const evtWrapper: CloudEvent<ProductCreatedEvent> = JSON.parse(
+        message.Sns.Message
+      );
 
-    await createProductHandler.handle(data);
+      messageProcessingSpan = generateProcessingSpanFor(evtWrapper, "sns", mainSpan, evtWrapper.data?.productId);
+
+      await createProductHandler.handle(evtWrapper.data!);
+
+      messageProcessingSpan.finish();
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        const e = error as Error;
+        const stack = e.stack!.split("\n").slice(1, 4).join("\n");
+        messageProcessingSpan?.addTags({
+          "error.stack": stack,
+          "error.message": error.message,
+          "error.type": "Error",
+        });
+      } else {
+        messageProcessingSpan?.addTags({
+          "error.type": "Error",
+        });
+      }
+    } finally {
+      messageProcessingSpan?.finish();
+    }
   }
+
+  mainSpan.finish();
 
   return "OK";
 };

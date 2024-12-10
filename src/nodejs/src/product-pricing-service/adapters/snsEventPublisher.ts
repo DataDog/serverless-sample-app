@@ -7,8 +7,11 @@
 
 import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
 import { EventPublisher } from "../core/eventPublisher";
-import { tracer } from "dd-trace";
+import { Span, tracer } from "dd-trace";
 import { PriceCalculatedEvent } from "../core/priceCalculatedEvent";
+import { CloudEvent } from "cloudevents";
+import { randomUUID } from "crypto";
+import { addMessagingTags } from "../../observability/observability";
 
 export class SnsEventPublisher implements EventPublisher {
   client: SNSClient;
@@ -23,46 +26,51 @@ export class SnsEventPublisher implements EventPublisher {
   ): Promise<boolean> {
     const parentSpan = tracer.scope().active();
 
-    const messagingSpan = tracer.startSpan("products.priceCalculated", {
+    const messagingSpan = tracer.startSpan("publish", {
       childOf: parentSpan!,
     });
 
     try {
-      const toPublish = JSON.stringify(evt);
-
-      messagingSpan.addTags({
-        "messaging.operation.type": "publish",
-        "messaging.system": "sns",
-        "messaging.batch.message_count": 1,
-        "messaging.destination.name": process.env.PRICE_CALCULATED_TOPIC_ARN,
-        "messaging.message.body.size":
-          this.textEncoder.encode(toPublish).length,
-        "messaging.operation.name": "send",
+      const cloudEventWrapper = new CloudEvent({
+        source: process.env.DOMAIN,
+        type: "products.priceCalculated.v1",
+        datacontenttype: "application/json",
+        data: evt,
+        traceparent: parentSpan?.context().toTraceparent(),
       });
+
+      addMessagingTags(
+        cloudEventWrapper,
+        "sns",
+        process.env.PRICE_CALCULATED_TOPIC_ARN ?? "",
+        messagingSpan!,
+        evt.productId,
+        "private"
+      );
 
       await this.client.send(
         new PublishCommand({
           TopicArn: process.env.PRICE_CALCULATED_TOPIC_ARN,
-          Message: toPublish,
+          Message: JSON.stringify(cloudEventWrapper),
         })
       );
     } catch (error: unknown) {
       if (error instanceof Error) {
         const e = error as Error;
         const stack = e.stack!.split("\n").slice(1, 4).join("\n");
-        messagingSpan.addTags({
+        messagingSpan?.addTags({
           "error.stack": stack,
           "error.message": error.message,
           "error.type": "Error",
         });
       } else {
-        messagingSpan.addTags({
+        messagingSpan?.addTags({
           "error.type": "Error",
         });
       }
       return false;
     } finally {
-      messagingSpan.finish();
+      messagingSpan?.finish();
     }
 
     return true;

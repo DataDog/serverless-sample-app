@@ -39,6 +39,7 @@ module "create_product_lambda" {
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.node_product_api.name
     "PRODUCT_CREATED_TOPIC_ARN" : aws_sns_topic.product_created.arn
+    "DOMAIN": "products"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
@@ -76,6 +77,7 @@ module "list_products_lambda" {
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.node_product_api.name
+    "DOMAIN": "products"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
@@ -109,6 +111,7 @@ module "get_product_lambda" {
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.node_product_api.name
+    "DOMAIN": "products"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
@@ -147,6 +150,7 @@ module "update_product_lambda" {
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.node_product_api.name
     "PRODUCT_UPDATED_TOPIC_ARN" : aws_sns_topic.product_updated.arn
+    "DOMAIN": "products"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
@@ -194,6 +198,7 @@ module "delete_product_lambda" {
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.node_product_api.name
     "PRODUCT_DELETED_TOPIC_ARN" : aws_sns_topic.product_deleted.arn
+    "DOMAIN": "products"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site

@@ -43,6 +43,7 @@ export class ProductPricingService extends Construct {
         environment: {
           PRICE_CALCULATED_TOPIC_ARN: this.priceCalculatedTopic.topicArn,
           DD_SERVICE_MAPPING: `lambda_sns:${this.priceCalculatedTopic.topicName}`,
+          DOMAIN: "products"
         },
         buildDef:
           "./src/product-pricing-service/adapters/buildProductCreatedPricingHandler.js",
@@ -75,6 +76,7 @@ export class ProductPricingService extends Construct {
         environment: {
           PRICE_CALCULATED_TOPIC_ARN: this.priceCalculatedTopic.topicArn,
           DD_SERVICE_MAPPING: `lambda_sns:${this.priceCalculatedTopic.topicName}`,
+          DOMAIN: "products"
         },
         buildDef:
           "./src/product-pricing-service/adapters/buildProductUpdatedPricingHandler.js",
