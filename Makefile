@@ -77,7 +77,7 @@ package-node:
 	cd src/nodejs;./package.sh
 
 sam-nodejs:
-	cd src/nodejs; npm i; sam build --use-container;sam deploy --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} --no-confirm-changeset --no-fail-on-empty-changeset --stack-name node-sam --capabilities CAPABILITY_IAM --resolve-s3
+	cd src/nodejs; npm i; sam build --use-container;sam deploy --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} --no-confirm-changeset --no-fail-on-empty-changeset --stack-name node-sam --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3
 
 sam-nodejs-destroy:
 	cd src/nodejs; npm i; sam destroy --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE}
