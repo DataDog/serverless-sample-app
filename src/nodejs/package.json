@@ -51,6 +51,7 @@
   },
   "dependencies": {
     "@aws-lambda-powertools/logger": "^2.8.0",
+    "cloudevents": "^8.0.2",
     "zod": "^3.23.8"
   }
 }
