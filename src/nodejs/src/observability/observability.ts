@@ -1,24 +1,39 @@
 import { Logger } from "@aws-lambda-powertools/logger";
 import { CloudEvent } from "cloudevents";
 import { Span, tracer } from "dd-trace";
+import * as os from "os";
 
 const textEncoder = new TextEncoder();
 const logger = new Logger({});
+const cpuCount = os.cpus().length;
 
-export function generateProcessingSpanFor(
+export enum MessagingType {
+  PUBLIC,
+  PRIVATE,
+}
+
+export interface SemanticConventions {
+  publicOrPrivate: MessagingType;
+  messagingSystem: string;
+  destinationName: string;
+  parentSpan: Span | undefined | null;
+  conversationId?: string | undefined;
+}
+
+export function startProcessSpanWithSemanticConventions(
   evt: CloudEvent<any>,
-  messagingSystem: String,
-  parentSpan: Span | undefined,
-  conversationId: String | undefined
+  conventions: SemanticConventions
 ): Span {
-  const messageProcessingSpan = tracer.startSpan("process", {
-    childOf: parentSpan,
+  const messageProcessingSpan = tracer.startSpan(`process ${evt.type}`, {
+    childOf: conventions.parentSpan ?? undefined,
   });
 
   try {
     messageProcessingSpan.addTags({
       domain: process.env.DOMAIN,
-      "messaging.system": messagingSystem,
+      "messaging.message.eventType":
+        MessagingType[conventions.publicOrPrivate].toLowerCase(),
+      "messaging.system": conventions.messagingSystem,
       "messaging.operation.name": "process",
       "messaging.operation.type": "process",
       "messaging.message.type": evt.type,
@@ -27,7 +42,12 @@ export function generateProcessingSpanFor(
       "messaging.message.published_at": evt.time,
       "messaging.client.id": process.env.AWS_LAMBDA_FUNCTION_NAME ?? "",
       "messaging.consumer.group.name": process.env.DD_SERVICE,
-      "messaging.message.conversation_id": conversationId ?? "",
+      "messaging.message.conversation_id": conventions.conversationId ?? "",
+      "messaging.message.envelope.size": textEncoder.encode(JSON.stringify(evt))
+        .length,
+      "messaging.message.body.size": textEncoder.encode(
+        JSON.stringify(evt.data)
+      ).length,
     });
 
     if (evt.time != undefined && Date.parse(evt.time) > 0) {
@@ -42,25 +62,26 @@ export function generateProcessingSpanFor(
   return messageProcessingSpan;
 }
 
-export function addMessagingTags(
+export function startPublishSpanWithSemanticConventions(
   evt: CloudEvent<any>,
-  messagingSystem: String,
-  destinationName: String,
-  messagingSpan: Span,
-  conversationId: String | undefined,
-  eventType: String
-) {
+  conventions: SemanticConventions
+): Span {
+  const messagingSpan = tracer.startSpan(`publish ${evt.type}`, {
+    childOf: conventions.parentSpan ?? undefined,
+  });
+
   try {
     messagingSpan.addTags({
       domain: process.env.DOMAIN,
-      "messaging.message.eventType": eventType,
+      "messaging.message.eventType":
+        MessagingType[conventions.publicOrPrivate].toLowerCase(),
       "messaging.message.type": evt.type,
       "messaging.message.domain": process.env.DOMAIN,
       "messaging.message.id": evt.id,
       "messaging.operation.type": "publish",
-      "messaging.system": messagingSystem,
+      "messaging.system": conventions.messagingSystem,
       "messaging.batch.message_count": 1,
-      "messaging.destination.name": destinationName,
+      "messaging.destination.name": conventions.destinationName,
       "messaging.client.id": process.env.AWS_LAMBDA_FUNCTION_NAME ?? "",
       "messaging.message.envelope.size": textEncoder.encode(JSON.stringify(evt))
         .length,
@@ -68,9 +89,22 @@ export function addMessagingTags(
         JSON.stringify(evt.data)
       ).length,
       "messaging.operation.name": "send",
-      "messaging.message.conversation_id": conversationId ?? "",
+      "messaging.message.conversation_id": conventions.conversationId ?? "",
     });
   } catch (e) {
     logger.error(JSON.stringify(e));
   }
+
+  return messagingSpan;
+}
+
+export function addDefaultServiceTagsTo(span: Span | undefined | null) {
+  if (span === undefined || span === null) {
+    return;
+  }
+  span.addTags({
+    "service.team": process.env.TEAM ?? "",
+    "build.id": process.env.BUILD_ID,
+    "build.deployed_at": process.env.DEPLOYED_AT,
+  });
 }

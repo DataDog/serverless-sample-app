@@ -5,6 +5,7 @@
 // Copyright 2024 Datadog, Inc.
 //
 
+import { Logger } from "@aws-lambda-powertools/logger";
 import { setTimeout } from "timers/promises";
 
 export interface PricingResult {
@@ -13,15 +14,14 @@ export interface PricingResult {
 }
 
 export class PricingService {
-  public async calculate(price: number): Promise<PricingResult[]> {
-    // This is functionality to force errors and demonstrate capabilities
-    if (price > 50 && price < 60) {
-      await setTimeout(40000);
-    }
+  private logger: Logger;
 
-    if (price > 90 && price < 95){
-      throw Error('Failure generating prices')
-    }
+  constructor() {
+    this.logger = new Logger({});
+  }
+
+  public async calculate(price: number): Promise<PricingResult[]> {
+    await this.issueSimulator(price);
 
     const pricingResults: PricingResult[] = [
       {
@@ -47,6 +47,27 @@ export class PricingService {
     ];
 
     return pricingResults;
+  }
+
+  // This is functionality to force errors and demonstrate capabilities
+  public async issueSimulator(price: number) {
+    if (price >= 95 && price < 100) {
+      this.logger.warn(
+        "This product is between 95 & 100, the pricing calculator needs extra time to perform it's work"
+      );
+
+      await setTimeout(8000);
+    }
+
+    if (price >= 50 && price < 60) {
+      await setTimeout(40000);
+    }
+
+    if (price >= 90 && price < 95) {
+      throw Error(
+        "Failure generating prices, pricing cannot be calculated for products between 90 & 95"
+      );
+    }
   }
 }
 

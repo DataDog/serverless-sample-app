@@ -13,7 +13,10 @@ import { EventAntiCorruptionLayer } from "../core/eventAntiCorruptionLayer";
 import { SnsPrivateEventPublisher } from "./snsEventPublisher";
 import { SNSClient } from "@aws-sdk/client-sns";
 import { CloudEvent } from "cloudevents";
-import { generateProcessingSpanFor } from "../../observability/observability";
+import {
+  MessagingType,
+  startProcessSpanWithSemanticConventions,
+} from "../../observability/observability";
 
 const logger = new Logger({});
 const inventoryAcl = new EventAntiCorruptionLayer(
@@ -34,11 +37,24 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
       const evtWrapper: EventBridgeMessageWrapper<CloudEvent<string>> =
         JSON.parse(message.body);
 
-      const productAddedEvent: OrderCreatedEventV1 = JSON.parse(evtWrapper.detail.data!);
+      const productAddedEvent: OrderCreatedEventV1 = JSON.parse(
+        evtWrapper.detail.data!
+      );
 
-      processingSpan = generateProcessingSpanFor(evtWrapper.detail, "sqs", mainSpan, productAddedEvent.productId);
+      processingSpan = startProcessSpanWithSemanticConventions(
+        evtWrapper.detail,
+        {
+          publicOrPrivate: MessagingType.PUBLIC,
+          messagingSystem: "sqs",
+          destinationName: message.eventSource,
+          parentSpan: mainSpan,
+          conversationId: productAddedEvent.productId,
+        }
+      );
 
-      const result = await inventoryAcl.processOrderCreatedEvent(productAddedEvent);
+      const result = await inventoryAcl.processOrderCreatedEvent(
+        productAddedEvent
+      );
 
       if (!result) {
         batchItemFailures.push({

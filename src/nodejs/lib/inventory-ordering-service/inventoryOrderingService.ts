@@ -11,9 +11,7 @@ import { SharedProps } from "../constructs/sharedFunctionProps";
 import { InstrumentedLambdaFunction } from "../constructs/lambdaFunction";
 import { IFunction } from "aws-cdk-lib/aws-lambda";
 import { IEventBus } from "aws-cdk-lib/aws-events";
-import {
-  SnsEventSource,
-} from "aws-cdk-lib/aws-lambda-event-sources";
+import { SnsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { Topic } from "aws-cdk-lib/aws-sns";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { LogGroup } from "aws-cdk-lib/aws-logs";
@@ -23,6 +21,8 @@ import {
   StateMachine,
   LogLevel,
 } from "aws-cdk-lib/aws-stepfunctions";
+import { Queue } from "aws-cdk-lib/aws-sqs";
+import { Effect, PolicyStatement, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 
 export interface InventoryOrderingServiceProps {
   sharedProps: SharedProps;
@@ -85,16 +85,40 @@ export class InventoryOrderingService extends Construct {
         environment: {
           DD_SERVICE_MAPPING: `lambda_sns:${topic.topicName}`,
           ORDERING_SERVICE_WORKFLOW_ARN: workflow.stateMachineArn,
-          DOMAIN: "inventory"
         },
         buildDef:
           "./src/inventory-ordering-service/adapters/buildInventoryOrderingWorkflowTrigger.js",
         outDir: "./out/inventoryOrderingWorkflowTrigger",
       }
     ).function;
-    this.inventoryOrderingWorkflowTrigger.addEventSource(
-      new SnsEventSource(topic)
+
+    const inventoryWorkflowDLQ = new Queue(
+      this,
+      "NodeInventoryOrderingTriggerDLQ",
+      {
+        queueName: `NodeInventoryOrderingTriggerDLQ-${props.sharedProps.environment}`,
+      }
     );
+
+    this.inventoryOrderingWorkflowTrigger.addEventSource(
+      new SnsEventSource(topic, {
+        deadLetterQueue: inventoryWorkflowDLQ,
+      })
+    );
+
+    // inventoryWorkflowDLQ.addToResourcePolicy(
+    //   new PolicyStatement({
+    //     effect: Effect.ALLOW,
+    //     principals: [new ServicePrincipal("sns.amazonaws.com")],
+    //     actions: ["sqs:SendMessage"],
+    //     resources: [inventoryWorkflowDLQ.queueArn],
+    //     conditions: {
+    //       ArnEquals: {
+    //         "aws:SourceArn": topic,
+    //       },
+    //     },
+    //   })
+    // );
     workflow.grantStartExecution(this.inventoryOrderingWorkflowTrigger);
 
     const inventoryStateMachineArnParam = new StringParameter(
@@ -105,6 +129,5 @@ export class InventoryOrderingService extends Construct {
         stringValue: workflow.stateMachineArn,
       }
     );
-
   }
 }

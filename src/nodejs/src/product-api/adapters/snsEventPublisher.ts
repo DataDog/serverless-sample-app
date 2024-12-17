@@ -12,24 +12,25 @@ import { ProductDeletedEvent } from "../private-events/productDeletedEvent";
 import { ProductUpdatedEvent } from "../private-events/productUpdatedEvent";
 import { Span, tracer } from "dd-trace";
 import { CloudEvent } from "cloudevents";
-import { addMessagingTags } from "../../observability/observability";
 import { randomUUID } from "crypto";
+import { Logger } from "@aws-lambda-powertools/logger";
+import { MessagingType, startPublishSpanWithSemanticConventions } from "../../observability/observability";
 
 export class SnsEventPublisher implements EventPublisher {
   client: SNSClient;
   textEncoder: TextEncoder;
+  logger: Logger;
 
   constructor(client: SNSClient) {
     this.client = client;
     this.textEncoder = new TextEncoder();
+    this.logger = new Logger({});
   }
 
   async publishProductCreatedEvent(evt: ProductCreatedEvent): Promise<boolean> {
     const parentSpan = tracer.scope().active();
 
-    const messagingSpan = tracer.startSpan("publish", {
-      childOf: parentSpan!,
-    });
+    let messagingSpan: Span | undefined = undefined;
 
     try {
       const cloudEventWrapper = new CloudEvent({
@@ -40,13 +41,15 @@ export class SnsEventPublisher implements EventPublisher {
         traceparent: parentSpan?.context().toTraceparent(),
       });
 
-      addMessagingTags(
+      messagingSpan = startPublishSpanWithSemanticConventions(
         cloudEventWrapper,
-        "sns",
-        process.env.PRODUCT_CREATED_TOPIC_ARN ?? "",
-        messagingSpan!,
-        evt.productId,
-        "private"
+        {
+          publicOrPrivate: MessagingType.PRIVATE,
+          messagingSystem: "sns",
+          destinationName: process.env.PRODUCT_CREATED_TOPIC_ARN ?? "",
+          parentSpan: parentSpan,
+          conversationId: evt.productId
+        }
       );
 
       await this.client.send(
@@ -56,6 +59,7 @@ export class SnsEventPublisher implements EventPublisher {
         })
       );
     } catch (error: unknown) {
+      this.logger.error(JSON.stringify(error));
       if (error instanceof Error) {
         const e = error as Error;
         const stack = e.stack!.split("\n").slice(1, 4).join("\n");
@@ -80,9 +84,7 @@ export class SnsEventPublisher implements EventPublisher {
   async publishProductUpdatedEvent(evt: ProductUpdatedEvent): Promise<boolean> {
     const parentSpan = tracer.scope().active();
 
-    const messagingSpan = tracer.startSpan("publish", {
-      childOf: parentSpan!,
-    });
+    let messagingSpan: Span | undefined = undefined;
 
     try {
       const cloudEventWrapper = new CloudEvent({
@@ -93,13 +95,15 @@ export class SnsEventPublisher implements EventPublisher {
         traceparent: parentSpan?.context().toTraceparent(),
       });
 
-      addMessagingTags(
+      messagingSpan = startPublishSpanWithSemanticConventions(
         cloudEventWrapper,
-        "sns",
-        process.env.PRODUCT_UPDATED_TOPIC_ARN ?? "",
-        messagingSpan!,
-        evt.productId,
-        "private"
+        {
+          publicOrPrivate: MessagingType.PRIVATE,
+          messagingSystem: "sns",
+          destinationName: process.env.PRODUCT_UPDATED_TOPIC_ARN ?? "",
+          parentSpan: parentSpan,
+          conversationId: evt.productId
+        }
       );
 
       await this.client.send(
@@ -110,6 +114,7 @@ export class SnsEventPublisher implements EventPublisher {
       );
     } catch (error: unknown) {
       if (error instanceof Error) {
+        this.logger.error(JSON.stringify(error));
         const e = error as Error;
         const stack = e.stack!.split("\n").slice(1, 4).join("\n");
         messagingSpan?.addTags({
@@ -132,9 +137,7 @@ export class SnsEventPublisher implements EventPublisher {
   async publishProductDeletedEvent(evt: ProductDeletedEvent): Promise<boolean> {
     const parentSpan = tracer.scope().active();
 
-    const messagingSpan = tracer.startSpan("publish", {
-      childOf: parentSpan ?? undefined,
-    });
+    let messagingSpan: Span | undefined = undefined;
 
     try {
       const cloudEventWrapper = new CloudEvent({
@@ -145,13 +148,15 @@ export class SnsEventPublisher implements EventPublisher {
         traceparent: parentSpan?.context().toTraceparent(),
       });
 
-      addMessagingTags(
+      messagingSpan = startPublishSpanWithSemanticConventions(
         cloudEventWrapper,
-        "sns",
-        process.env.PRODUCT_DELETED_TOPIC_ARN ?? "",
-        messagingSpan,
-        evt.productId,
-        "private"
+        {
+          publicOrPrivate: MessagingType.PRIVATE,
+          messagingSystem: "sns",
+          destinationName: process.env.PRODUCT_DELETED_TOPIC_ARN ?? "",
+          parentSpan: parentSpan,
+          conversationId: evt.productId
+        }
       );
 
       await this.client.send(
@@ -162,6 +167,7 @@ export class SnsEventPublisher implements EventPublisher {
       );
     } catch (error: unknown) {
       if (error instanceof Error) {
+        this.logger.error(JSON.stringify(error));
         const e = error as Error;
         const stack = e.stack!.split("\n").slice(1, 4).join("\n");
         messagingSpan?.addTags({

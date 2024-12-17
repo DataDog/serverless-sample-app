@@ -11,6 +11,7 @@ const esbuild = require('esbuild')
 esbuild.build({
   entryPoints: ['./src/product-api/adapters/listProductsFunction.ts'],
   bundle: true,
+  minify: true,
   outfile: 'out/listProductsFunction/index.js',
   plugins: [ddPlugin],
   platform: 'node', // allows built-in modules to be required

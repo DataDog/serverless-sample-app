@@ -7,11 +7,12 @@
 
 import { tracer } from "dd-trace";
 import { PriceCalculatedEvent } from "../../private-events/priceCalculatedEvent";
-import { EventPublisher } from "../eventPublisher";
 import { HandlerResponse } from "../handlerResponse";
 import { ProductDTO } from "../productDto";
 import { ProductRepository } from "../productRepository";
-import { z, ZodError } from "zod";
+import { Logger } from "@aws-lambda-powertools/logger";
+
+const logger = new Logger({});
 
 export class PricingChangedHandler {
   private repository: ProductRepository;
@@ -24,17 +25,22 @@ export class PricingChangedHandler {
     command: PriceCalculatedEvent
   ): Promise<HandlerResponse<ProductDTO>> {
     const span = tracer.scope().active()!;
+    logger.info(`Handling price calculated event for product`, {
+      'product.id': command.productId,
+    });
+    span.addTags({'product.id': command.productId});
+    span.addTags({'product.pricingCount': command.priceBrackers.length});
+
     const existingProduct = await this.repository.getProduct(command.productId);
 
     if (existingProduct === undefined) {
+      span.addTags({'product.notFound': true});
       return {
         data: undefined,
         success: false,
         message: ["Not found"],
       };
     }
-
-    span.addTags({ "product.id": existingProduct.productId });
 
     existingProduct.clearPricing();
 

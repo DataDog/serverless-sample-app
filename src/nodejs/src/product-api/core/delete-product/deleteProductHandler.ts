@@ -10,10 +10,13 @@ import { EventPublisher } from "../eventPublisher";
 import { HandlerResponse } from "../handlerResponse";
 import { ProductRepository } from "../productRepository";
 import { ZodError } from "zod";
+import { Logger } from "@aws-lambda-powertools/logger";
 
 export class DeleteProductCommand {
   productId: string;
 }
+
+const logger = new Logger({});
 
 export class DeleteProductHandler {
   private repository: ProductRepository;
@@ -29,20 +32,24 @@ export class DeleteProductHandler {
   ): Promise<HandlerResponse<string>> {
     try {
       const span = tracer.scope().active()!;
+      logger.info(`Handling request for product`, {
+        'product.id': command.productId,
+      });
+      span.addTags({'product.id': command.productId});
       
       const existingProduct = await this.repository.getProduct(
         command.productId
       );
 
       if (existingProduct === undefined) {
+        span.addTags({'product.notFound': true});
+
         return {
           data: undefined,
           success: false,
           message: ["Not found"],
         };
       }
-
-      span.addTags({ "product.id": existingProduct.productId });
 
       await this.repository.deleteProduct(existingProduct.productId);
       await this.eventPublisher.publishProductDeletedEvent({

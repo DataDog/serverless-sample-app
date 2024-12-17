@@ -43,6 +43,8 @@ export class ProductApiWorkerStack extends cdk.Stack {
     });
 
     const sharedProps: SharedProps = {
+      team: "products",
+      domain: "products",
       environment: env,
       serviceName: service,
       version,

@@ -46,7 +46,6 @@ export class AnalyticsService extends Construct {
         handler: "index.handler",
         environment: {
           DD_TRACE_PROPAGATION_STYLE: "none",
-          DOMAIN: "analytics"
         },
         buildDef:
           "./src/analytics-backend/adapters/buildAnalyticsEventHandler.js",

@@ -16,7 +16,7 @@ import {
 } from "../core/productUpdatedEventHandler";
 import { Logger } from "@aws-lambda-powertools/logger";
 import { CloudEvent } from "cloudevents";
-import { generateProcessingSpanFor } from "../../observability/observability";
+import { MessagingType, startProcessSpanWithSemanticConventions } from "../../observability/observability";
 const logger = new Logger({ serviceName: process.env.DD_SERVICE });
 const snsClient = new SNSClient();
 
@@ -40,7 +40,16 @@ export const handler = async (event: SNSEvent): Promise<string> => {
         message.Sns.Message
       );
 
-      messageProcessingSpan = generateProcessingSpanFor(evtWrapper, "sns", mainSpan, evtWrapper.data?.productId);
+      messageProcessingSpan = startProcessSpanWithSemanticConventions(
+        evtWrapper,
+        {
+          publicOrPrivate: MessagingType.PRIVATE,
+          messagingSystem: "sns",
+          destinationName: message.EventSource,
+          parentSpan: mainSpan,
+          conversationId: evtWrapper.data?.productId,
+        }
+      );
       
       await updateProductHandler.handle(evtWrapper.data!);
 
@@ -59,6 +68,10 @@ export const handler = async (event: SNSEvent): Promise<string> => {
           "error.type": "Error",
         });
       }
+
+      // Rethrow error to pass back to Lambda runtime
+      messageProcessingSpan?.finish();
+      throw error;
     } finally {
       messageProcessingSpan?.finish();
     }

@@ -13,6 +13,7 @@ import { DynamoDbProductRepository } from "./dynamoDbProductRepository";
 import { SnsEventPublisher } from "./snsEventPublisher";
 import { DeleteProductHandler } from "../core/delete-product/deleteProductHandler";
 import { Logger } from "@aws-lambda-powertools/logger";
+import { addDefaultServiceTagsTo } from "../../observability/observability";
 
 const logger = new Logger({ serviceName: process.env.DD_SERVICE });
 
@@ -27,6 +28,8 @@ const deleteProductHandler = new DeleteProductHandler(
 export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
+  const span = tracer.scope().active();
+  addDefaultServiceTagsTo(span);
   logger.info("Handling delete request");
 
   const productId = event.pathParameters!["productId"];

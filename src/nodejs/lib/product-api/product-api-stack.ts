@@ -41,7 +41,11 @@ export class ProductApiStack extends cdk.Stack {
       captureLambdaPayload: true,
     });
 
+    datadogConfiguration.addLambdaFunctions([])
+
     const sharedProps: SharedProps = {
+      team: "products",
+      domain: "products",
       environment: env,
       serviceName: service,
       version,

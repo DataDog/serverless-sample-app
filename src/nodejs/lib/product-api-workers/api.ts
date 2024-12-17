@@ -5,10 +5,7 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-import {
-  ITable,
-  Table,
-} from "aws-cdk-lib/aws-dynamodb";
+import { ITable, Table } from "aws-cdk-lib/aws-dynamodb";
 import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
 import { ITopic } from "aws-cdk-lib/aws-sns";
 import { Construct } from "constructs";
@@ -17,6 +14,7 @@ import { InstrumentedLambdaFunction } from "../constructs/lambdaFunction";
 import { IFunction } from "aws-cdk-lib/aws-lambda";
 import { SnsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { Queue } from "aws-cdk-lib/aws-sqs";
+import { Effect, PolicyStatement, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 
 export interface ApiProps {
   sharedProps: SharedProps;
@@ -49,14 +47,6 @@ export class ApiWorker extends Construct {
       return undefined;
     }
 
-    const productPricingDeadLetterQueue = new Queue(
-      this,
-      "NodeProductApiPricingChangedDLQ",
-      {
-        queueName: `NodeProductApiPricingChangedDLQ-${props.environment}`,
-      }
-    );
-
     const priceCalculatedHandlerFunction = new InstrumentedLambdaFunction(
       this,
       "NodePriceCalculatedHandlerFunction",
@@ -67,11 +57,18 @@ export class ApiWorker extends Construct {
         environment: {
           TABLE_NAME: this.table.tableName,
           DD_SERVICE_MAPPING: `lambda_sns:${priceCalculatedTopic.topicName}`,
-          DOMAIN: "products"
         },
         buildDef:
           "./src/product-api/adapters/buildHandlePricingChangedFunction.js",
         outDir: "./out/handlePricingChangedFunction",
+      }
+    );
+
+    const productPricingDeadLetterQueue = new Queue(
+      this,
+      "NodeProductApiPricingChangedDLQ",
+      {
+        queueName: `NodeProductApiPricingChangedDLQ-${props.environment}`,
       }
     );
 
@@ -80,6 +77,20 @@ export class ApiWorker extends Construct {
         deadLetterQueue: productPricingDeadLetterQueue,
       })
     );
+
+    // productPricingDeadLetterQueue.addToResourcePolicy(
+    //   new PolicyStatement({
+    //     effect: Effect.ALLOW,
+    //     principals: [new ServicePrincipal("sns.amazonaws.com")],
+    //     actions: ["sqs:SendMessage"],
+    //     resources: [productPricingDeadLetterQueue.queueArn],
+    //     conditions: {
+    //       ArnEquals: {
+    //         "aws:SourceArn": priceCalculatedTopic,
+    //       },
+    //     },
+    //   })
+    // );
 
     this.table.grantReadWriteData(priceCalculatedHandlerFunction.function);
 

@@ -44,6 +44,8 @@ export class InventoryAclStack extends cdk.Stack {
     const sharedEventBus = EventBus.fromEventBusName(this, "SharedEventBus", "NodeTracingEventBus");
 
     const sharedProps: SharedProps = {
+      team: "inventory",
+      domain: "inventory",
       environment: env,
       serviceName: service,
       version,

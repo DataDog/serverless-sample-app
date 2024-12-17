@@ -46,6 +46,8 @@ export class ProductPublicEventPublisherStack extends cdk.Stack {
     const sharedEventBus = EventBus.fromEventBusName(this, "SharedEventBus", "NodeTracingEventBus");
 
     const sharedProps: SharedProps = {
+      team: "products",
+      domain: "products",
       environment: env,
       serviceName: service,
       version,

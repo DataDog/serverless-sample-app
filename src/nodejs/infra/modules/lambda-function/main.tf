@@ -82,26 +82,24 @@ module "aws_lambda_function" {
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = var.lambda_handler
   runtime                  = "nodejs22.x"
-  memory_size              = 512
+  memory_size              = var.memory_size
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
-  source_code_hash = "${filebase64sha256(var.zip_file)}"
-  timeout = 29
+  source_code_hash         = filebase64sha256(var.zip_file)
+  timeout                  = var.function_timeout
 
   environment_variables = merge(tomap({
     "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
-    "DD_EXTENSION_VERSION": "next"
-    "DD_CAPTURE_LAMBDA_PAYLOAD": "true",
+    "DD_EXTENSION_VERSION" : "next"
+    "DD_CAPTURE_LAMBDA_PAYLOAD" : "true",
     "DD_ENV" : var.env
     "DD_SERVICE" : var.service_name
     "DD_SITE" : var.dd_site
     "DD_VERSION" : var.app_version
-    // Disable temporarily to enable 'next' extension
-    # "DD_SERVERLESS_APPSEC_ENABLED": "true"
-    # "DD_IAST_ENABLED": "true"
-    # "DD_PROFILING_ENABLED": "true"
-    "ENV": var.env
-    "POWERTOOLS_SERVICE_NAME": var.service_name
-    "POWERTOOLS_LOG_LEVEL": "INFO" }),
+    "BUILD_ID" : var.app_version
+    "DEPLOYED_AT" : timestamp()
+    "ENV" : var.env
+    "POWERTOOLS_SERVICE_NAME" : var.service_name
+    "POWERTOOLS_LOG_LEVEL" : "INFO" }),
     var.environment_variables
   )
 

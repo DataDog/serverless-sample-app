@@ -10,8 +10,7 @@ import { EventPublisher } from "../core/eventPublisher";
 import { Span, tracer } from "dd-trace";
 import { PriceCalculatedEvent } from "../core/priceCalculatedEvent";
 import { CloudEvent } from "cloudevents";
-import { randomUUID } from "crypto";
-import { addMessagingTags } from "../../observability/observability";
+import { MessagingType, startPublishSpanWithSemanticConventions } from "../../observability/observability";
 
 export class SnsEventPublisher implements EventPublisher {
   client: SNSClient;
@@ -26,9 +25,7 @@ export class SnsEventPublisher implements EventPublisher {
   ): Promise<boolean> {
     const parentSpan = tracer.scope().active();
 
-    const messagingSpan = tracer.startSpan("publish", {
-      childOf: parentSpan!,
-    });
+    let messagingSpan: Span | undefined = undefined;
 
     try {
       const cloudEventWrapper = new CloudEvent({
@@ -39,13 +36,15 @@ export class SnsEventPublisher implements EventPublisher {
         traceparent: parentSpan?.context().toTraceparent(),
       });
 
-      addMessagingTags(
+      messagingSpan = startPublishSpanWithSemanticConventions(
         cloudEventWrapper,
-        "sns",
-        process.env.PRICE_CALCULATED_TOPIC_ARN ?? "",
-        messagingSpan!,
-        evt.productId,
-        "private"
+        {
+          publicOrPrivate: MessagingType.PRIVATE,
+          messagingSystem: "sns",
+          destinationName: process.env.PRICE_CALCULATED_TOPIC_ARN ?? "",
+          parentSpan: parentSpan,
+          conversationId: evt.productId
+        }
       );
 
       await this.client.send(

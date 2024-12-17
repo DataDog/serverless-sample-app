@@ -7,18 +7,18 @@
 
 variable "service_name" {
   description = "The name of the service"
-  type = string
+  type        = string
 }
 
 variable "env" {
   description = "The deployment environment"
-  type = string
+  type        = string
 }
 
 variable "app_version" {
-  default = "latest"
+  default     = "latest"
   description = "The version of the deployment"
-  type = string
+  type        = string
 }
 
 variable "zip_file" {
@@ -38,7 +38,7 @@ variable "lambda_handler" {
 
 variable "environment_variables" {
   description = "Environment variables to pass to the Lambda function"
-  type = map(string)
+  type        = map(string)
 }
 
 variable "dd_api_key_secret_arn" {
@@ -47,5 +47,15 @@ variable "dd_api_key_secret_arn" {
 
 variable "dd_site" {
   default = "The Datadog site to use"
-  type = string
+  type    = string
+}
+
+variable "function_timeout" {
+  type    = number
+  default = 29
+}
+
+variable "memory_size" {
+  type    = number
+  default = 512
 }

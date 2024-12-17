@@ -9,6 +9,8 @@ import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDbProductRepository } from "./dynamoDbProductRepository";
 import { ListProductsHandler } from "../core/list-products/listProductsHandler";
+import { tracer } from "dd-trace";
+import { addDefaultServiceTagsTo } from "../../observability/observability";
 
 const dynamoDbClient = new DynamoDBClient();
 const queryHandler = new ListProductsHandler(
@@ -18,6 +20,9 @@ const queryHandler = new ListProductsHandler(
 export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
+  const span = tracer.scope().active();
+  addDefaultServiceTagsTo(span);
+  
   const result = await queryHandler.handle({});
 
   return {
@@ -27,7 +32,7 @@ export const handler = async (
       "Content-Type": "application-json",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Headers": "*",
-      "Access-Control-Allow-Methods": "*"
+      "Access-Control-Allow-Methods": "*",
     },
   };
 };

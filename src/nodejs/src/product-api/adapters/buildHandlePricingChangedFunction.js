@@ -11,6 +11,7 @@ const esbuild = require('esbuild')
 esbuild.build({
   entryPoints: ['./src/product-api/adapters/handlePricingChangedFunction.ts'],
   bundle: true,
+  minify: true,
   outfile: 'out/handlePricingChangedFunction/index.js',
   plugins: [ddPlugin],
   platform: 'node', // allows built-in modules to be required

@@ -8,7 +8,7 @@
 import { Construct } from "constructs";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Code, Runtime } from "aws-cdk-lib/aws-lambda";
-import { Tags } from "aws-cdk-lib";
+import { Duration, Tags } from "aws-cdk-lib";
 import { Alias } from "aws-cdk-lib/aws-kms";
 import { SharedProps } from "./sharedFunctionProps";
 import path = require("path");
@@ -20,6 +20,9 @@ export class InstrumentedLambdaFunctionProps {
   outDir: string;
   functionName: string;
   environment: { [key: string]: string };
+  timeout?: Duration;
+  memorySize?: number;
+  logLevel?: string;
 }
 
 export class InstrumentedLambdaFunction extends Construct {
@@ -45,11 +48,19 @@ export class InstrumentedLambdaFunction extends Construct {
       functionName: `${id}-${props.sharedProps.environment}`,
       code: code,
       handler: props.handler,
-      memorySize: 512,
+      memorySize: props.memorySize ?? 512,
+      timeout: props.timeout ?? Duration.seconds(29),
       environment: {
         POWERTOOLS_SERVICE_NAME: props.sharedProps.serviceName,
-        POWERTOOLS_LOG_LEVEL: "INFO",
+        POWERTOOLS_LOG_LEVEL:
+          props.logLevel ?? props.sharedProps.environment === "prod"
+            ? "WARN"
+            : "INFO",
         ENV: props.sharedProps.environment,
+        DEPLOYED_AT: new Date().toISOString(),
+        BUILD_ID: props.sharedProps.version,
+        TEAM: props.sharedProps.team,
+        DOMAIN: props.sharedProps.domain,
         ...props.environment,
       },
       bundling: {

@@ -5,8 +5,8 @@
 // Copyright 2024 Datadog, Inc.
 //
 
+import { randomUUID } from "crypto";
 import { z } from "zod";
-import { v4 as uuidv4 } from "uuid";
 
 export class Product {
   private productSchema = z
@@ -32,7 +32,7 @@ export class Product {
     });
     this.name = name;
     this.price = price;
-    this.productId = uuidv4().toString();
+    this.productId = randomUUID().toString();
   }
 
   update(name: string, price: number) {

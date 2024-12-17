@@ -12,10 +12,12 @@ import {
 } from "@aws-sdk/client-eventbridge";
 import { IntegrationEventPublisher } from "../core/integrationEventPublisher";
 import { IntegrationEvent } from "../core/integrationEvent";
-import { tracer } from "dd-trace";
+import { Span, tracer } from "dd-trace";
 import { CloudEvent } from "cloudevents";
-import { addMessagingTags } from "../../observability/observability";
-import { randomUUID } from "crypto";
+import {
+  MessagingType,
+  startPublishSpanWithSemanticConventions,
+} from "../../observability/observability";
 
 export class EventBridgeEventPublisher implements IntegrationEventPublisher {
   private client: EventBridgeClient;
@@ -38,18 +40,18 @@ export class EventBridgeEventPublisher implements IntegrationEventPublisher {
           traceparent: parentSpan?.context().toTraceparent(),
         });
 
-        const messagingSpan = tracer.startSpan("publish", {
-          childOf: parentSpan!,
-        });
+        let messagingSpan: Span | undefined = undefined;
 
-        addMessagingTags(
+        messagingSpan = startPublishSpanWithSemanticConventions(
           cloudEventWrapper,
-          "eventbridge",
-          process.env.EVENT_BUS_NAME ?? "",
-          messagingSpan,
-          undefined,
-          "public"
+          {
+            publicOrPrivate: MessagingType.PUBLIC,
+            messagingSystem: "eventbridge",
+            destinationName: process.env.EVENT_BUS_NAME ?? "",
+            parentSpan: parentSpan,
+          }
         );
+
         messagingSpan.finish();
 
         return {

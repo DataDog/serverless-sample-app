@@ -28,7 +28,6 @@
     "@types/aws-lambda": "8.10.146",
     "@types/jest": "^29.5.14",
     "@types/node": "22.10.1",
-    "@types/uuid": "^10.0.0",
     "aws-cdk": "2.172.0",
     "aws-cdk-lib": "^2.172.0",
     "axios": "^1.7.9",
@@ -46,8 +45,7 @@
     "sst": "^2.44.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
-    "typescript": "~5.7.2",
-    "uuid": "^11.0.3"
+    "typescript": "~5.7.2"
   },
   "dependencies": {
     "@aws-lambda-powertools/logger": "^2.8.0",

@@ -11,7 +11,7 @@ import { Logger } from "@aws-lambda-powertools/logger";
 import { SFNClient, StartExecutionCommand } from "@aws-sdk/client-sfn";
 import { CloudEvent } from "cloudevents";
 import { ProductAddedEvent } from "./productAddedEvent";
-import { generateProcessingSpanFor } from "../../observability/observability";
+import { MessagingType, startProcessSpanWithSemanticConventions } from "../../observability/observability";
 
 const logger = new Logger({});
 const sfnClient = new SFNClient();
@@ -32,11 +32,15 @@ export const handler = async (event: SNSEvent): Promise<void> => {
         message.Sns.Message
       );
 
-      messageProcessingSpan = generateProcessingSpanFor(
+      messageProcessingSpan = startProcessSpanWithSemanticConventions(
         evtWrapper,
-        "sns",
-        mainSpan,
-        evtWrapper.data?.productId
+        {
+          publicOrPrivate: MessagingType.PRIVATE,
+          messagingSystem: "sns",
+          destinationName: message.EventSource,
+          parentSpan: mainSpan,
+          conversationId: evtWrapper.data?.productId,
+        }
       );
 
       await sfnClient.send(
@@ -61,6 +65,10 @@ export const handler = async (event: SNSEvent): Promise<void> => {
           "error.type": "Error",
         });
       }
+
+      // Rethrow error to pass back to Lambda runtime
+      messageProcessingSpan?.finish();
+      throw error;
     } finally {
       messageProcessingSpan?.finish();
     }

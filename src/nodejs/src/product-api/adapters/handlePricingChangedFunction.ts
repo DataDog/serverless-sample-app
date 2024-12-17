@@ -12,8 +12,8 @@ import { DynamoDbProductRepository } from "./dynamoDbProductRepository";
 import { PricingChangedHandler } from "../core/pricing-changed/pricingChangedHandler";
 import { PriceCalculatedEvent } from "../private-events/priceCalculatedEvent";
 import { CloudEvent } from "cloudevents";
-import { generateProcessingSpanFor } from "../../observability/observability";
 import { Logger } from "@aws-lambda-powertools/logger";
+import { MessagingType, startProcessSpanWithSemanticConventions } from "../../observability/observability";
 
 const dynamoDbClient = new DynamoDBClient();
 const pricingChangedHandler = new PricingChangedHandler(
@@ -35,12 +35,25 @@ export const handler = async (event: SNSEvent): Promise<string> => {
     );
 
     try {
-      messageProcessingSpan = generateProcessingSpanFor(evtWrapper, "sns", mainSpan, evtWrapper.data?.productId);
+      messageProcessingSpan = startProcessSpanWithSemanticConventions(
+        evtWrapper,
+        {
+          publicOrPrivate: MessagingType.PRIVATE,
+          messagingSystem: "sns",
+          destinationName: message.EventSource,
+          parentSpan: mainSpan,
+          conversationId: evtWrapper.data?.productId,
+        }
+      );
 
       await pricingChangedHandler.handle(evtWrapper.data!);
     } catch (error) {
       logger.error(JSON.stringify(error));
       messageProcessingSpan?.logEvent("error", error);
+
+      // Rethrow error to pass back to Lambda runtime
+      messageProcessingSpan?.finish();
+      throw error;
     } finally {
       messageProcessingSpan?.finish();
     }

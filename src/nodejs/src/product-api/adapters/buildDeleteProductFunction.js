@@ -12,6 +12,7 @@ esbuild
   .build({
     entryPoints: ["./src/product-api/adapters/deleteProductFunction.ts"],
     bundle: true,
+    minify: true,
     outfile: "out/deleteProductFunction/index.js",
     plugins: [ddPlugin],
     platform: "node", // allows built-in modules to be required

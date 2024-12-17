@@ -9,10 +9,13 @@ import { tracer } from "dd-trace";
 import { HandlerResponse } from "../handlerResponse";
 import { ProductDTO } from "../productDto";
 import { ProductRepository } from "../productRepository";
+import { Logger } from "@aws-lambda-powertools/logger";
 
 export class GetProductQuery {
   productId: string;
 }
+
+const logger = new Logger({});
 
 export class GetProductHandler {
   private repository: ProductRepository;
@@ -26,9 +29,15 @@ export class GetProductHandler {
   ): Promise<HandlerResponse<ProductDTO>> {
     try {
       const span = tracer.scope().active()!;
+      logger.info(`Handling request for product`, {
+        'product.id': query.productId,
+      });
+      span.addTags({'product.id': query.productId});
+
       const existingProduct = await this.repository.getProduct(query.productId);
 
       if (existingProduct === undefined) {
+        span.addTags({'product.notFound': true});
         return {
           data: undefined,
           success: false,

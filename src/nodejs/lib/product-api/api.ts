@@ -64,7 +64,6 @@ export class Api extends Construct {
       props.sharedProps
     );
 
-
     this.api = new RestApi(this, "ProductRestNodeApi", {
       defaultCorsPreflightOptions: {
         allowOrigins: ["http://localhost:8080"],
@@ -93,7 +92,6 @@ export class Api extends Construct {
         handler: "index.handler",
         environment: {
           TABLE_NAME: this.table.tableName,
-          DOMAIN: "products"
         },
         buildDef: "./src/product-api/adapters/buildListProductsFunction.js",
         outDir: "./out/listProductsFunction",
@@ -117,7 +115,6 @@ export class Api extends Construct {
         handler: "index.handler",
         environment: {
           TABLE_NAME: this.table.tableName,
-          DOMAIN: "products"
           
         },
         buildDef: "./src/product-api/adapters/buildGetProductFunction.js",
@@ -143,7 +140,6 @@ export class Api extends Construct {
         environment: {
           TABLE_NAME: this.table.tableName,
           PRODUCT_CREATED_TOPIC_ARN: this.productCreatedTopic.topicArn,
-          DOMAIN: "products"
         },
         buildDef: "./src/product-api/adapters/buildCreateProductFunction.js",
         outDir: "./out/createProductFunction",
@@ -169,7 +165,6 @@ export class Api extends Construct {
         environment: {
           TABLE_NAME: this.table.tableName,
           PRODUCT_UPDATED_TOPIC_ARN: this.productUpdatedTopic.topicArn,
-          DOMAIN: "products"
         },
         buildDef: "./src/product-api/adapters/buildUpdateProductFunction.js",
         outDir: "./out/updateProductFunction",
@@ -195,7 +190,6 @@ export class Api extends Construct {
         environment: {
           TABLE_NAME: this.table.tableName,
           PRODUCT_DELETED_TOPIC_ARN: this.productDeletedTopic.topicArn,
-          DOMAIN: "products"
         },
         buildDef: "./src/product-api/adapters/buildDeleteProductFunction.js",
         outDir: "./out/deleteProductFunction",

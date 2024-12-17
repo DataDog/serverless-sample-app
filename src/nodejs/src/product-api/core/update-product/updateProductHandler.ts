@@ -35,17 +35,30 @@ export class UpdateProductHandler {
   ): Promise<HandlerResponse<ProductDTO>> {
     try {
       const span = tracer.scope().active()!;
+      logger.info(`Handling UpdateProductCommand for product`, {
+        'product.id': command.id,
+        'product.name': command.name,
+        'product.price': command.price
+      });
+      span.addTags({'product.id': command.id});
+      span.addTags({'product.name': command.name});
+      span.addTags({'product.price': command.price});
+
       const existingProduct = await this.repository.getProduct(
         command.id
       );
 
       if (existingProduct === undefined) {
+        span.addTags({'product.notFound': true});
         return {
           data: undefined,
           success: false,
           message: ["Not found"],
         };
       }
+
+      span.addTags({'product.previous.name': existingProduct.name});
+      span.addTags({'product.previous.price': existingProduct.price});
 
       existingProduct.update(command.name, command.price);
 
@@ -61,8 +74,6 @@ export class UpdateProductHandler {
           message: ["No changes"],
         };
       }
-
-      span.addTags({ "product.id": existingProduct.productId });
 
       await this.repository.updateProduct(existingProduct);
       await this.eventPublisher.publishProductUpdatedEvent({

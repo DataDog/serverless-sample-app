@@ -23,7 +23,7 @@ import {
   ProductDeletedEventHandler,
 } from "../core/productDeletedEvent";
 import { CloudEvent } from "cloudevents";
-import { generateProcessingSpanFor } from "../../observability/observability";
+import { MessagingType, startProcessSpanWithSemanticConventions } from "../../observability/observability";
 
 const integrationEventPublisher = new EventBridgeEventPublisher(
   new EventBridgeClient()
@@ -63,11 +63,16 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
           const createdEvt: CloudEvent<ProductCreatedEvent> = JSON.parse(
             snsMessageWrapper.Message
           );
-          processingSpan = generateProcessingSpanFor(
+
+          processingSpan = startProcessSpanWithSemanticConventions(
             createdEvt,
-            "sqs",
-            mainSpan!,
-            createdEvt.data?.productId
+            {
+              publicOrPrivate: MessagingType.PRIVATE,
+              messagingSystem: "sqs",
+              destinationName: message.eventSource,
+              parentSpan: mainSpan,
+              conversationId: createdEvt.data?.productId,
+            }
           );
 
           await productCreatedEventHandler.handle(createdEvt.data!);
@@ -76,11 +81,15 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
           const updatedEvt: CloudEvent<ProductUpdatedEvent> = JSON.parse(
             snsMessageWrapper.Message
           );
-          processingSpan = generateProcessingSpanFor(
+          processingSpan = startProcessSpanWithSemanticConventions(
             updatedEvt,
-            "sqs",
-            mainSpan!,
-            updatedEvt.data?.productId
+            {
+              publicOrPrivate: MessagingType.PRIVATE,
+              messagingSystem: "sqs",
+              destinationName: message.eventSource,
+              parentSpan: mainSpan,
+              conversationId: updatedEvt.data?.productId,
+            }
           );
 
           await productUpdatedEventHandler.handle(updatedEvt.data!);
@@ -89,11 +98,15 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
           const deletedEvt: CloudEvent<ProductDeletedEvent> = JSON.parse(
             snsMessageWrapper.Message
           );
-          processingSpan = generateProcessingSpanFor(
+          processingSpan = startProcessSpanWithSemanticConventions(
             deletedEvt,
-            "sqs",
-            mainSpan!,
-            deletedEvt.data?.productId
+            {
+              publicOrPrivate: MessagingType.PRIVATE,
+              messagingSystem: "sqs",
+              destinationName: message.eventSource,
+              parentSpan: mainSpan,
+              conversationId: deletedEvt.data?.productId,
+            }
           );
 
           await productDeletedEventHandler.handle(deletedEvt.data!);

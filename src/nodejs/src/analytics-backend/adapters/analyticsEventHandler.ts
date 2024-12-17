@@ -15,7 +15,10 @@ import {
 import { Span, SpanContext, tracer } from "dd-trace";
 import { Logger } from "@aws-lambda-powertools/logger";
 import { CloudEvent } from "cloudevents";
-import { generateProcessingSpanFor } from "../../observability/observability";
+import {
+  MessagingType,
+  startProcessSpanWithSemanticConventions,
+} from "../../observability/observability";
 
 const logger = new Logger({});
 
@@ -38,11 +41,14 @@ export const handler = async (
       );
       const evtWrapper = parsedBody["detail"] as CloudEvent<any>;
 
-      messageProcessingSpan = generateProcessingSpanFor(
+      messageProcessingSpan = startProcessSpanWithSemanticConventions(
         evtWrapper,
-        "sqs",
-        mainSpan,
-        undefined
+        {
+          publicOrPrivate: MessagingType.PUBLIC,
+          messagingSystem: "sqs",
+          destinationName: message.eventSource,
+          parentSpan: mainSpan,
+        }
       );
 
       messageProcessingSpan.addLink(manualContext);

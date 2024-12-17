@@ -12,8 +12,8 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
-      nodeLayerVersion: "117"
-      extensionLayerVersion: "67"
+      nodeLayerVersion: 117
+      extensionLayerVersion: 67
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -53,6 +53,8 @@ Globals:
         DOMAIN: "products"
     Architectures:
       - x86_64
+    Layers:
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Node22-x:117
 
 Resources:
   ProductApiPricingWorker:

@@ -15,7 +15,7 @@ import {
 import { PricingService } from "../core/pricingService";
 import { SnsEventPublisher } from "./snsEventPublisher";
 import { CloudEvent } from "cloudevents";
-import { generateProcessingSpanFor } from "../../observability/observability";
+import { MessagingType, startProcessSpanWithSemanticConventions } from "../../observability/observability";
 
 const snsClient = new SNSClient();
 
@@ -35,8 +35,17 @@ export const handler = async (event: SNSEvent): Promise<string> => {
       const evtWrapper: CloudEvent<ProductCreatedEvent> = JSON.parse(
         message.Sns.Message
       );
-
-      messageProcessingSpan = generateProcessingSpanFor(evtWrapper, "sns", mainSpan, evtWrapper.data?.productId);
+      
+      messageProcessingSpan = startProcessSpanWithSemanticConventions(
+        evtWrapper,
+        {
+          publicOrPrivate: MessagingType.PRIVATE,
+          messagingSystem: "sns",
+          destinationName: message.EventSource,
+          parentSpan: mainSpan,
+          conversationId: evtWrapper.data?.productId,
+        }
+      );
 
       await createProductHandler.handle(evtWrapper.data!);
 
@@ -55,12 +64,15 @@ export const handler = async (event: SNSEvent): Promise<string> => {
           "error.type": "Error",
         });
       }
+
+      messageProcessingSpan?.finish();
+
+      throw error;
+
     } finally {
       messageProcessingSpan?.finish();
     }
   }
-
-  mainSpan.finish();
 
   return "OK";
 };

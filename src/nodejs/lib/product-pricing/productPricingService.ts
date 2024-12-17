@@ -9,11 +9,10 @@ import { Construct } from "constructs";
 import { SharedProps } from "../constructs/sharedFunctionProps";
 import { InstrumentedLambdaFunction } from "../constructs/lambdaFunction";
 import { IFunction } from "aws-cdk-lib/aws-lambda";
-import {
-  SnsEventSource,
-} from "aws-cdk-lib/aws-lambda-event-sources";
+import { SnsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { ITopic, Topic } from "aws-cdk-lib/aws-sns";
 import { Queue } from "aws-cdk-lib/aws-sqs";
+import { Effect, PolicyStatement, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 
 export interface ProductPricingServiceProps {
   sharedProps: SharedProps;
@@ -43,7 +42,6 @@ export class ProductPricingService extends Construct {
         environment: {
           PRICE_CALCULATED_TOPIC_ARN: this.priceCalculatedTopic.topicArn,
           DD_SERVICE_MAPPING: `lambda_sns:${this.priceCalculatedTopic.topicName}`,
-          DOMAIN: "products"
         },
         buildDef:
           "./src/product-pricing-service/adapters/buildProductCreatedPricingHandler.js",
@@ -59,6 +57,20 @@ export class ProductPricingService extends Construct {
         queueName: `NodeProductPricingDLQ-${props.sharedProps.environment}`,
       }
     );
+
+    // productPricingDeadLetterQueue.addToResourcePolicy(
+    //   new PolicyStatement({
+    //     effect: Effect.ALLOW,
+    //     principals: [new ServicePrincipal("sns.amazonaws.com")],
+    //     actions: ["sqs:SendMessage"],
+    //     resources: [productPricingDeadLetterQueue.queueArn],
+    //     conditions: {
+    //       ArnEquals: {
+    //         "aws:SourceArn": props.productCreatedTopic.topicArn,
+    //       },
+    //     },
+    //   })
+    // );
 
     this.productCreatedPricingFunction.addEventSource(
       new SnsEventSource(props.productCreatedTopic, {
@@ -76,7 +88,6 @@ export class ProductPricingService extends Construct {
         environment: {
           PRICE_CALCULATED_TOPIC_ARN: this.priceCalculatedTopic.topicArn,
           DD_SERVICE_MAPPING: `lambda_sns:${this.priceCalculatedTopic.topicName}`,
-          DOMAIN: "products"
         },
         buildDef:
           "./src/product-pricing-service/adapters/buildProductUpdatedPricingHandler.js",
@@ -92,6 +103,20 @@ export class ProductPricingService extends Construct {
         queueName: `NodeProductUpdatedPricingDLQ-${props.sharedProps.environment}`,
       }
     );
+
+    // productUpdatedPricingDLQ.addToResourcePolicy(
+    //   new PolicyStatement({
+    //     effect: Effect.ALLOW,
+    //     principals: [new ServicePrincipal("sns.amazonaws.com")],
+    //     actions: ["sqs:SendMessage"],
+    //     resources: [productUpdatedPricingDLQ.queueArn],
+    //     conditions: {
+    //       ArnEquals: {
+    //         "aws:SourceArn": props.productUpdatedTopic.topicArn,
+    //       },
+    //     },
+    //   })
+    // );
 
     this.productUpdatedPricingFunction.addEventSource(
       new SnsEventSource(props.productUpdatedTopic, {

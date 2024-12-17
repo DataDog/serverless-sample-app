@@ -34,16 +34,22 @@ export class CreateProductHandler {
     command: CreateProductCommand
   ): Promise<HandlerResponse<ProductDTO>> {
     try {
-      logger.info(`Handling request for product`);
-
       const span = tracer.scope().active()!;
+      span.addTags({'product.name': command.name, 'product.price': command.price});
+
+      logger.info(`Handling request for product`, {
+        'product.name': command.name,
+        'product.price': command.price
+      });
 
       const product = new Product(command.name, command.price);
 
       await this.repository.createProduct(product);
 
       logger.info(
-        `Product created with id '${product.productId}'. Publishing event`
+        `Product created.`, {
+          'product.id': product.productId
+        }
       );
 
       await this.eventPublisher.publishProductCreatedEvent({

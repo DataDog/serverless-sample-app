@@ -15,6 +15,7 @@ import {
   UpdateProductHandler,
   UpdateProductCommand,
 } from "../core/update-product/updateProductHandler";
+import { addDefaultServiceTagsTo } from "../../observability/observability";
 
 const dynamoDbClient = new DynamoDBClient();
 const snsClient = new SNSClient();
@@ -27,7 +28,8 @@ const updateProductHandler = new UpdateProductHandler(
 export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
-  const mainSpan = tracer.scope().active();
+  const span = tracer.scope().active();
+  addDefaultServiceTagsTo(span);
 
   if (event.body === undefined) {
     return {

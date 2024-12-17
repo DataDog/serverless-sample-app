@@ -59,7 +59,6 @@ export class ProductPublicEventPublisher extends Construct {
           PRODUCT_UPDATED_TOPIC_ARN: props.productUpdatedTopic.topicArn,
           PRODUCT_DELETED_TOPIC_ARN: props.productDeletedTopic.topicArn,
           EVENT_BUS_NAME: props.sharedEventBus.eventBusName,
-          DOMAIN: "products"
         },
         buildDef:
           "./src/product-public-event-publisher/adapters/buildPublicEventPublisherFunction.js",

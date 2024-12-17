@@ -8,6 +8,8 @@
 import { Datadog } from "datadog-cdk-constructs-v2";
 
 export interface SharedProps {
+  team: string;
+  domain: string;
   serviceName: string;
   environment: string;
   version: string;

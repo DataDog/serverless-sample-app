@@ -48,6 +48,8 @@ export class AnalyticsBackendStack extends cdk.Stack {
     );
 
     const sharedProps: SharedProps = {
+      team: "analytics",
+      domain: "analytics",
       environment: env,
       serviceName: service,
       version,

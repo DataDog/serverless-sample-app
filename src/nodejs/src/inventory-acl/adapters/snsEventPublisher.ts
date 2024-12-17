@@ -10,8 +10,8 @@ import { PrivateEventPublisher } from "../core/eventPublisher";
 import { ProductAddedEvent } from "../private-events/productAddedEvent";
 import { Span, tracer } from "dd-trace";
 import { CloudEvent } from "cloudevents";
-import { addMessagingTags } from "../../observability/observability";
 import { randomUUID } from "crypto";
+import { MessagingType, startPublishSpanWithSemanticConventions } from "../../observability/observability";
 
 export class SnsPrivateEventPublisher implements PrivateEventPublisher {
   client: SNSClient;
@@ -25,12 +25,9 @@ export class SnsPrivateEventPublisher implements PrivateEventPublisher {
   async publish(evt: ProductAddedEvent): Promise<boolean> {
     const parentSpan = tracer.scope().active();
 
-    const messagingSpan = tracer.startSpan("publish", {
-      childOf: parentSpan!,
-    });
+    let messagingSpan: Span | undefined = undefined;
 
     try {
-      const toPublish = JSON.stringify(evt);
       const cloudEventWrapper = new CloudEvent({
         source: process.env.DOMAIN,
         type: "inventory.productAdded.v1",
@@ -39,13 +36,15 @@ export class SnsPrivateEventPublisher implements PrivateEventPublisher {
         traceparent: parentSpan?.context().toTraceparent(),
       });
 
-      addMessagingTags(
+      messagingSpan = startPublishSpanWithSemanticConventions(
         cloudEventWrapper,
-        "sns",
-        process.env.PRODUCT_ADDED_TOPIC_ARN ?? "",
-        messagingSpan!,
-        evt.productId,
-        "private"
+        {
+          publicOrPrivate: MessagingType.PRIVATE,
+          messagingSystem: "sns",
+          destinationName: process.env.PRODUCT_ADDED_TOPIC_ARN ?? "",
+          parentSpan: parentSpan,
+          conversationId: evt.productId
+        }
       );
 
       await this.client.send(

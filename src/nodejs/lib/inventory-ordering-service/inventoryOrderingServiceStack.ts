@@ -41,9 +41,15 @@ export class InventoryOrderServiceStack extends cdk.Stack {
       captureLambdaPayload: true,
     });
 
-    const sharedEventBus = EventBus.fromEventBusName(this, "SharedEventBus", "NodeTracingEventBus");
+    const sharedEventBus = EventBus.fromEventBusName(
+      this,
+      "SharedEventBus",
+      "NodeTracingEventBus"
+    );
 
     const sharedProps: SharedProps = {
+      team: "inventory",
+      domain: "inventory",
       environment: env,
       serviceName: service,
       version,
@@ -59,5 +65,9 @@ export class InventoryOrderServiceStack extends cdk.Stack {
         sharedEventBus,
       }
     );
+
+    cdk.Tags.of(this).add("DD_SERVICE", sharedProps.serviceName);
+    cdk.Tags.of(this).add("DD_ENV", sharedProps.environment);
+    cdk.Tags.of(this).add("TEAM", sharedProps.team);
   }
 }

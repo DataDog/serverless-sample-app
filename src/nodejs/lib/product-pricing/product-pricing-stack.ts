@@ -43,6 +43,8 @@ export class ProductPricingStack extends cdk.Stack {
     });
 
     const sharedProps: SharedProps = {
+      team: "products",
+      domain: "products",
       environment: env,
       serviceName: service,
       version,
@@ -98,5 +100,9 @@ export class ProductPricingStack extends cdk.Stack {
         stringValue: productPricingService.priceCalculatedTopic.topicArn,
       }
     );
+
+    cdk.Tags.of(this).add("DD_SERVICE", sharedProps.serviceName);
+    cdk.Tags.of(this).add("DD_ENV", sharedProps.environment);
+    cdk.Tags.of(this).add("TEAM", sharedProps.team);
   }
 }

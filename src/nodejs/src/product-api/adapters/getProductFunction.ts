@@ -10,6 +10,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { tracer } from "dd-trace";
 import { GetProductHandler } from "../core/get-product/getProductHandler";
 import { DynamoDbProductRepository } from "./dynamoDbProductRepository";
+import { addDefaultServiceTagsTo } from "../../observability/observability";
 
 const dynamoDbClient = new DynamoDBClient();
 const queryHandler = new GetProductHandler(
@@ -19,7 +20,8 @@ const queryHandler = new GetProductHandler(
 export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
-  const mainSpan = tracer.scope().active();
+  const span = tracer.scope().active();
+  addDefaultServiceTagsTo(span);
 
   const productId = event.pathParameters!["productId"];
 
