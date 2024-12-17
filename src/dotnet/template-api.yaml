@@ -258,7 +258,7 @@ Resources:
   ApiEndpoint:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /dotnet/product/api-endpoint
+      Name: !Sub /dotnet/${Env}/product/api-endpoint
       Type: String
       Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
 

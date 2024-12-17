@@ -256,7 +256,7 @@ Resources:
   ApiEndpoint:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /rust/product/api-endpoint
+      Name: !Sub /rust/${Env}/product/api-endpoint
       Type: String
       Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
 
