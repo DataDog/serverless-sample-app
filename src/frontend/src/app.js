@@ -9,7 +9,7 @@ window.DD_RUM &&
     // `site` refers to the Datadog site parameter of your organization
     // see https://docs.datadoghq.com/getting_started/site/
     site: config.DD_SITE,
-    service: "frontend",
+    service: "product-management-frontend",
     env: "dev",
     // Specify a version number to identify the deployed version of your application in Datadog
     // version: '1.0.0',
@@ -59,6 +59,10 @@ export function createProduct() {
   xhr.onload = () => {
     if (xhr.readyState == 4 && (xhr.status == 201 || xhr.status == 200)) {
       refreshData();
+      document.getElementById("productName").value = "";
+      document.getElementById("productPrice").value = "";
+      document.getElementById("productName").focus();
+      document.getElementById("productName").select();
     } else {
       console.log(`Error: ${xhr.status}`);
     }
