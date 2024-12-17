@@ -12,7 +12,7 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
-      nodeLayerVersion: 117 # Temporarily commenting out as layer isn't automatically added when runtime is node22
+      nodeLayerVersion: 117
       extensionLayerVersion: 67
       service: !Ref ServiceName
       env: !Ref Env
