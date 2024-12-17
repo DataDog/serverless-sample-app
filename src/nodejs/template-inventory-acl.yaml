@@ -50,8 +50,6 @@ Globals:
         DOMAIN: "inventory"
     Architectures:
       - x86_64
-    Layers:
-      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Node22-x:117
 
 Resources:
   InventoryProductCreatedPublicEventHandler:

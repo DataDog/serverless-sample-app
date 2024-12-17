@@ -44,6 +44,10 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: "us-east-1"
+      - name: Install deps
+        shell: bash
+        run: |
+          npm install -g esbuild
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
