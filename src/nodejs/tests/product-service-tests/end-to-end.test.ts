@@ -5,8 +5,6 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-import { v4 as uuidv4 } from "uuid";
-
 import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 import {
   SFNClient,
@@ -14,6 +12,7 @@ import {
   ListExecutionsCommand,
 } from "@aws-sdk/client-sfn";
 import { ApiDriver } from "./apiDriver";
+import { randomUUID } from "crypto";
 
 let apiDriver: ApiDriver;
 let stepFunctionsClient: SFNClient;
@@ -63,7 +62,7 @@ describe("end-to-end-tests", () => {
     "should be able to run through entire product lifecycle, CRUD",
     async () => {
       const testStart = new Date();
-      const testProductName = uuidv4();
+      const testProductName = randomUUID().toString();
       const createProductResult = await apiDriver.createProduct(
         testProductName,
         12.99
