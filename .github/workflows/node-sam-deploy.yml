@@ -3,9 +3,8 @@ name: NodeJS SAM Deploy
 on:
     push:
       paths:
-        - src/nodejs/bin/**
-        - src/nodejs/lib/**
         - src/nodejs/src/**
+        - src/nodejs/template-*.yaml
       branches:
           - 'main'
     workflow_dispatch:
@@ -29,7 +28,7 @@ jobs:
     needs:
       - static-analysis
     concurrency:
-        group: nodejs-cdk
+        group: nodejs-sam
     steps:
       -
         name: Checkout
