@@ -22,7 +22,7 @@ sam-dotnet:
 	cd src/dotnet; npm i; sam build;sam deploy --stack-name DotnetTracing-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION}
 
 sam-dotnet-destroy:
-	cd src/dotnet; npm i; sam delete --stack-name DotnetTracing-${ENV} 
+	cd src/dotnet; npm i; sam delete --stack-name DotnetTracing-${ENV} --no-prompts
 
 cdk-dotnet:
 	cd src/dotnet/cdk; cdk deploy --require-approval never --all --concurrency 3
@@ -80,7 +80,7 @@ sam-nodejs:
 	cd src/nodejs; npm i; sam build;sam deploy --stack-name NodeTracing-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION}
 
 sam-nodejs-destroy:
-	cd src/nodejs; npm i; sam delete --stack-name NodeTracing-${ENV} 
+	cd src/nodejs; npm i; sam delete --stack-name NodeTracing-${ENV} --no-prompts
 
 cdk-nodejs:
 	cd src/nodejs; npm i; cdk deploy --require-approval never --all --concurrency 3
@@ -138,5 +138,5 @@ sam-go:
 	cd src/go; npm i; sam build;sam deploy --stack-name GoTracing-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION}
 
 sam-go-destroy:
-	cd src/go; npm i; sam delete --stack-name GoTracing-${ENV} 
+	cd src/go; npm i; sam delete --stack-name GoTracing-${ENV} --no-prompts
 
