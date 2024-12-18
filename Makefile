@@ -80,7 +80,7 @@ sam-nodejs:
 	cd src/nodejs; npm i; sam build;sam deploy --stack-name NodeTracing-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --stack-name node-sam --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION}
 
 sam-nodejs-destroy:
-	cd src/nodejs; npm i; sam delete
+	cd src/nodejs; npm i; sam delete --stack-name NodeTracing-${ENV} 
 
 cdk-nodejs:
 	cd src/nodejs; npm i; cdk deploy --require-approval never --all --concurrency 3

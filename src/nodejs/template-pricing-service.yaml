@@ -97,6 +97,51 @@ Resources:
           - 'graphql/language/printer'
           - 'graphql/utilities'
           - '@aws-sdk/client-sns'
+  
+  ProductUpdatedPricingServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: productUpdatedPricingHandler.handler
+      FunctionName: !Sub ProductUpdatedPricingServiceFunction-${Env}
+      Environment:
+        Variables:
+          PRICE_CALCULATED_TOPIC_ARN: !Ref ProductPricingCalculatedTopic
+          DD_SERVICE_MAPPING: !Sub "lambda_sns:${ProductPricingCalculatedTopic.TopicName}"
+      Events:
+        ProductCreated:
+          Type: SNS
+          Properties: 
+            Topic: '{{resolve:ssm:/node/product/product-updated-topic:1}}' 
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ProductPricingCalculatedTopic.TopicName
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "node22"
+        Sourcemap: true
+        EntryPoints:
+         - ./src/product-pricing-service/adapters/productUpdatedPricingHandler.ts 
+        External:
+          - "opentracing"
+          - "dd-trace"
+          - "@datadog/native-metrics"
+          - "@datadog/pprof"
+          - '@datadog/native-appsec'
+          - '@datadog/native-iast-taint-tracking'
+          - '@datadog/native-iast-rewriter'
+          - 'graphql/language/visitor' 
+          - 'graphql/language/printer'
+          - 'graphql/utilities'
+          - '@aws-sdk/client-sns'
 
   ProductPricingCalculatedTopic:
     Type: AWS::SNS::Topic
