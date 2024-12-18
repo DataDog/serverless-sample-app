@@ -53,7 +53,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub ProductCreatedPricingServiceFunction-${Env}
+      FunctionName: !Sub GoProductCreatedPricingServiceFunction-${Env}
       Environment:
         Variables:
           PRICE_CALCULATED_TOPIC_ARN: !Ref ProductPricingCalculatedTopic
@@ -81,7 +81,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub ProductUpdatedPricingServiceFunction-${Env}
+      FunctionName: !Sub GoProductUpdatedPricingServiceFunction-${Env}
       Environment:
         Variables:
           PRICE_CALCULATED_TOPIC_ARN: !Ref ProductPricingCalculatedTopic

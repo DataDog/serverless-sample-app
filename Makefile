@@ -134,3 +134,9 @@ cdk-go:
 cdk-go-destroy:
 	cd src/go/cdk; cdk destroy --all --force
 
+sam-go:
+	cd src/go; npm i; sam build;sam deploy --stack-name GoTracing-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION}
+
+sam-go-destroy:
+	cd src/go; npm i; sam delete --stack-name GoTracing-${ENV} 
+

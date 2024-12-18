@@ -59,7 +59,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub GetProductFunction-${Env}
+      FunctionName: !Sub GoGetProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -85,7 +85,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub ListProductFunction-${Env}
+      FunctionName: !Sub GoListProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -111,7 +111,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub CreateProductFunction-${Env}
+      FunctionName: !Sub GoCreateProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -146,7 +146,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub UpdateProductFunction-${Env}
+      FunctionName: !Sub GoUpdateProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -180,7 +180,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub DeleteProductFunction-${Env}
+      FunctionName: !Sub GoDeleteProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -265,11 +265,11 @@ Resources:
     Properties:
       Name: !Sub /go/${Env}/product/api-endpoint
       Type: String
-      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
 
 Outputs:
   GoProductEndpoint:
     Description: Product API Endpoint
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
     Export:
       Name: GoProductEndpoint

@@ -52,7 +52,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub ProductPublicEventPublisherFunction-${Env}
+      FunctionName: !Sub GoProductPublicEventPublisherFunction-${Env}
       Environment:
         Variables:
           EVENT_BUS_NAME: "{{resolve:ssm:/go/shared/event-bus-name:1}}"

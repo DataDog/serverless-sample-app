@@ -118,4 +118,4 @@ Resources:
     Properties:
       Name: !Sub /go/${Env}/inventory-ordering/state-machine-arn
       Type: String
-      Value: !Ref NodeInventoryOrderingService
+      Value: !Ref GoInventoryOrderingService

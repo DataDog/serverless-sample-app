@@ -57,7 +57,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub ProductApiPricingWorker-${Env}
+      FunctionName: !Sub GoProductApiPricingWorker-${Env}
       Environment:
         Variables:
           DD_SERVICE_MAPPING: !Sub "lambda_sns:${TopicArn}"

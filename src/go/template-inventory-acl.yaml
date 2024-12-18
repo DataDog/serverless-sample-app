@@ -52,7 +52,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub InventoryProductCreatedHandler-${Env}
+      FunctionName: !Sub GoInventoryProductCreatedHandler-${Env}
       Environment:
         Variables:
           PRODUCT_ADDED_TOPIC_ARN: !Ref NewProductAddedTopic
