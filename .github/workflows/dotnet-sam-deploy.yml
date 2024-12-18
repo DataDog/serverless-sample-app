@@ -1,10 +1,10 @@
-name: NodeJS SAM Deploy
+name: .NET SAM Deploy
 
 on:
     push:
       paths:
-        - src/nodejs/src/**
-        - src/nodejs/template-*.yaml
+        - src/dotnet/src/**
+        - src/dotnet/template-*.yaml
       branches:
           - 'main'
     workflow_dispatch:
@@ -17,7 +17,7 @@ jobs:
   static-analysis:
     uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
     with:
-      service-name: serverless-sample-nodejs-cdk
+      service-name: serverless-sample-dotnet-sam
       directory: src/nodejs
     secrets:
       dd_api_key: ${{secrets.DD_API_KEY}}
@@ -28,7 +28,7 @@ jobs:
     needs:
       - static-analysis
     concurrency:
-        group: nodejs-sam
+        group: dotnet-sam
     steps:
       -
         name: Checkout
@@ -37,6 +37,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "22"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
       - uses: aws-actions/setup-sam@v1
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@master
@@ -44,10 +47,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: "us-east-1"
-      - name: Install deps
-        shell: bash
-        run: |
-          npm install -g esbuild
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -61,12 +60,12 @@ jobs:
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "us-east-1"
         run: |
-          make sam-nodejs
+          make sam-dotnet
       - name: Configure Datadog Test Visibility
         uses: datadog/test-visibility-github-action@v2
         with:
           languages: js
-          service: serverless-sample-node-cdk
+          service: serverless-sample-dotnet-cdk
           api_key: ${{ secrets.DD_API_KEY }}
           site: datadoghq.eu
       - name: Run end to end test
@@ -76,7 +75,7 @@ jobs:
           ENV: "test"
           DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
-          RUNTIME: "Node"
+          RUNTIME: "Dotnet"
           NODE_OPTIONS: -r ${{ env.DD_TRACE_PACKAGE }}
         run: |
           make end-to-end-test
@@ -89,5 +88,5 @@ jobs:
           DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
         run: |
-          make sam-nodejs-destroy
+          make sam-dotnet-destroy
           

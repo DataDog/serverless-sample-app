@@ -18,6 +18,12 @@ package-dotnet:
 	dotnet lambda package -pl src/dotnet/src/Product.EventPublisher/ProductEventPublisher.Adapters/
 	dotnet lambda package -pl src/dotnet/src/Product.Pricing/ProductPricingService.Lambda/
 
+sam-dotnet:
+	cd src/dotnet; npm i; sam build;sam deploy --stack-name DotnetTracing-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION}
+
+sam-dotnet-destroy:
+	cd src/dotnet; npm i; sam delete --stack-name DotnetTracing-${ENV} 
+
 cdk-dotnet:
 	cd src/dotnet/cdk; cdk deploy --require-approval never --all --concurrency 3
 
@@ -77,7 +83,7 @@ package-node:
 	cd src/nodejs;./package.sh
 
 sam-nodejs:
-	cd src/nodejs; npm i; sam build;sam deploy --stack-name NodeTracing-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --stack-name node-sam --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION}
+	cd src/nodejs; npm i; sam build;sam deploy --stack-name NodeTracing-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION}
 
 sam-nodejs-destroy:
 	cd src/nodejs; npm i; sam delete --stack-name NodeTracing-${ENV} 
