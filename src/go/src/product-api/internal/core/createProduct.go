@@ -7,7 +7,11 @@
 
 package core
 
-import "context"
+import (
+	"context"
+
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+)
 
 type CreateProductCommand struct {
 	Name  string  `json:"name"`
@@ -27,6 +31,10 @@ func NewCreateProductCommandHandler(productRepository ProductRepository, eventPu
 }
 
 func (handler *CreateProductCommandHandler) Handle(ctx context.Context, command CreateProductCommand) (*ProductDTO, error) {
+	span, _ := tracer.SpanFromContext(ctx)
+	span.SetTag("product.name", command.Name)
+	span.SetTag("product.price", command.Name)
+
 	product, err := NewProduct(command.Name, command.Price)
 
 	if err != nil {
@@ -40,6 +48,8 @@ func (handler *CreateProductCommandHandler) Handle(ctx context.Context, command 
 	}
 
 	handler.eventPublisher.PublishProductCreated(ctx, ProductCreatedEvent{ProductId: product.Id, Name: product.Name, Price: product.Price})
+
+	span.SetTag("product.id", product.Id)
 
 	return product.AsDto(), nil
 }

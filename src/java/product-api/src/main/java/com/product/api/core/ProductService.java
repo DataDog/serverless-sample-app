@@ -80,6 +80,8 @@ public class ProductService {
     public HandlerResponse<ProductDTO> createProduct(CreateProductRequest request) {
         final Span span = GlobalTracer.get().activeSpan();
         try {
+            span.setTag("product.name", request.getName());
+            span.setTag("product.price", request.getPrice());
             var validationResponse = request.validate();
 
             if (!validationResponse.isEmpty()) {

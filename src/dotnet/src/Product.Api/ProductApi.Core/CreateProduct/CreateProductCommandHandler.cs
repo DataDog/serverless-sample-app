@@ -15,9 +15,14 @@ public class CreateProductCommandHandler(IProducts products, IEventPublisher eve
         
         try
         {
+            activeSpan?.SetTag("product.name", command.Name);
+            activeSpan?.SetTag("product.price", command.Price.ToString("n2"));
+
             var product = new Product(new ProductName(command.Name), new ProductPrice(command.Price));
 
             await products.AddNew(product);
+
+            activeSpan?.SetTag("product.id", product.ProductId);
 
             await eventPublisher.Publish(new ProductCreatedEvent(product));
 

@@ -25,12 +25,18 @@ pub async fn handle_create_product<TRepo: Repository, TEventPublisher: EventPubl
     event_publisher: &TEventPublisher,
     create_product_command: CreateProductCommand,
 ) -> Result<ProductDTO, ApplicationError> {
+    let current_span = tracing::Span::current();
+    current_span.record("product.name", &create_product_command.name);
+    current_span.record("product.price", &create_product_command.price);
+
     let product = Product::new(
         create_product_command.name,
         create_product_command.price,
     );
 
     let _res = repository.store_product(&product).await;
+
+    current_span.record("product.id", &product.product_id);
 
     event_publisher
         .publish_product_created_event(product.clone().into())
