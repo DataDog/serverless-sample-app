@@ -56,7 +56,7 @@ Resources:
     Properties:
       CodeUri: ./src/product-api/lambdas/handle_pricing_updated/
       Handler: bootstrap
-      FunctionName: !Sub ProductApiPricingWorker-${Env}
+      FunctionName: !Sub RustProductApiPricingWorker-${Env}
       Environment:
         Variables:
           DD_SERVICE_MAPPING: !Sub "lambda_sns:${TopicArn}"

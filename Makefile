@@ -105,6 +105,12 @@ tf-node-local-destroy:
 package-rust:
 	cd src/rust;./package.sh
 
+sam-rust:
+	cd src/rust; npm i; sam build;sam deploy --stack-name RustTracing-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION}
+
+sam-rust-destroy:
+	cd src/rust; npm i; sam delete --stack-name RustTracing-${ENV} --no-prompts
+
 cdk-rust-dev:
 	cd src/rust; npm i; cdk deploy --require-approval never --all --hotswap-fallback --concurrency 3
 

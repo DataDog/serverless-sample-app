@@ -53,7 +53,7 @@ Resources:
     Properties:
       CodeUri: ./src/product-event-publisher/lambdas/product_public_event_publisher/
       Handler: bootstrap
-      FunctionName: !Sub ProductPublicEventPublisherFunction-${Env}
+      FunctionName: !Sub RustProductPublicEventPublisherFunction-${Env}
       Environment:
         Variables:
           EVENT_BUS_NAME: "{{resolve:ssm:/rust/shared/event-bus-name:1}}"

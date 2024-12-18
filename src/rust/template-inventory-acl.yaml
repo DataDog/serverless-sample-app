@@ -53,7 +53,7 @@ Resources:
     Properties:
       CodeUri: ./src/inventory-acl/lambdas/product_created_handler/
       Handler: bootstrap
-      FunctionName: !Sub InventoryProductCreatedPublicEventHandler-${Env}
+      FunctionName: !Sub RustInventoryProductCreatedPublicEventHandler-${Env}
       Environment:
         Variables:
           PRODUCT_ADDED_TOPIC_ARN: !Ref NewProductAddedTopic

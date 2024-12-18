@@ -53,7 +53,7 @@ Resources:
     Properties:
       CodeUri: ./src/product-pricing/lambdas/product_created_pricing_handler/
       Handler: bootstrap
-      FunctionName: !Sub ProductPricingServiceFunction-${Env}
+      FunctionName: !Sub RustProductPricingServiceFunction-${Env}
       Environment:
         Variables:
           PRICE_CALCULATED_TOPIC_ARN: !Ref ProductPricingCalculatedTopic
@@ -81,7 +81,7 @@ Resources:
     Properties:
       CodeUri: ./src/product-pricing/lambdas/product_updated_pricing_handler/
       Handler: bootstrap
-      FunctionName: !Sub ProductUpdatedPricingFunction-${Env}
+      FunctionName: !Sub RustProductUpdatedPricingFunction-${Env}
       Environment:
         Variables:
           PRICE_CALCULATED_TOPIC_ARN: !Ref ProductPricingCalculatedTopic

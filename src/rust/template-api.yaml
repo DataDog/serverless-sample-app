@@ -60,7 +60,7 @@ Resources:
     Properties:
       CodeUri: ./src/product-api/lambdas/list_products/
       Handler: bootstrap
-      FunctionName: !Sub ListProductsFunction-${Env}
+      FunctionName: !Sub RustListProductsFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -84,7 +84,7 @@ Resources:
     Properties:
       CodeUri: ./src/product-api/lambdas/get_product/
       Handler: bootstrap
-      FunctionName: !Sub GetProductFunction-${Env}
+      FunctionName: !Sub RustGetProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -108,7 +108,7 @@ Resources:
     Properties:
       CodeUri: ./src/product-api/lambdas/create_product/
       Handler: bootstrap
-      FunctionName: !Sub CreateProductFunction-${Env}
+      FunctionName: !Sub RustCreateProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -141,7 +141,7 @@ Resources:
     Properties:
       CodeUri: ./src/product-api/lambdas/update_product/
       Handler: bootstrap
-      FunctionName: !Sub UpdateProductFunction-${Env}
+      FunctionName: !Sub RustUpdateProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -174,7 +174,7 @@ Resources:
     Properties:
       CodeUri: ./src/product-api/lambdas/delete_product/
       Handler: bootstrap
-      FunctionName: !Sub DeleteProductFunction-${Env}
+      FunctionName: !Sub RustDeleteProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -258,11 +258,11 @@ Resources:
     Properties:
       Name: !Sub /rust/${Env}/product/api-endpoint
       Type: String
-      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
 
 Outputs:
   RustProductApiEndpoint:
     Description: Product API Endpoint
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
     Export:
       Name: RustProductApiEndpoint

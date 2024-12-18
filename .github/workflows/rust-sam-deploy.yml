@@ -1,0 +1,94 @@
+name: Rust SAM Deploy
+
+on:
+    push:
+      paths:
+        - src/rust/src/**
+        - src/rust/template-*.yaml
+      branches:
+          - 'main'
+    workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  static-analysis:
+    uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
+    with:
+      service-name: serverless-sample-rust-sam
+      directory: src/gorust
+    secrets:
+      dd_api_key: ${{secrets.DD_API_KEY}}
+      dd_app_key: ${{secrets.DD_APP_KEY}}
+
+  package-and-test:
+    runs-on: ubuntu-latest
+    needs:
+      - static-analysis
+    concurrency:
+        group: rust-sam
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: mlugg/setup-zig@v1
+      - name: Install Cargo Lambda
+        run: |
+          cargo install cargo-lambda
+      - uses: aws-actions/setup-sam@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: "us-east-1"
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Deploy to AWS
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "test"
+          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "us-east-1"
+        run: |
+          make sam-rust
+      - name: Configure Datadog Test Visibility
+        uses: datadog/test-visibility-github-action@v2
+        with:
+          languages: js
+          service: serverless-sample-rust-cdk
+          api_key: ${{ secrets.DD_API_KEY }}
+          site: datadoghq.eu
+      - name: Run end to end test
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "test"
+          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+          RUNTIME: "Rust"
+          NODE_OPTIONS: -r ${{ env.DD_TRACE_PACKAGE }}
+        run: |
+          make end-to-end-test
+      - name: Teardown
+        if: always()
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "test"
+          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          make sam-rust-destroy
+          
