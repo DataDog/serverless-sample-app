@@ -113,3 +113,10 @@ Resources:
       Tags:
         DD_ENHANCED_METRICS: "true"
         DD_TRACE_ENABLED: "true"
+
+  InventoryOrderingWorkflowArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /rust/${Env}/inventory-ordering/state-machine-arn
+      Type: String
+      Value: !Ref NodeInventoryOrderingService
