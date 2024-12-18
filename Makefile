@@ -45,12 +45,6 @@ tf-dotnet-destroy:
 tf-dotnet-local-destroy:
 	cd src/dotnet/infra;terraform init -backend-config="key=dotnet/${ENV}/terraform.tfstate" -backend-config "bucket=${TF_STATE_BUCKET_NAME}" -backend-config "region=${AWS_REGION}";terraform destroy --var-file dev.tfvars
 
-sam-dotnet:
-	cd src/dotnet; sam build;sam deploy --stack-name DotnetTracing --parameter-overrides "ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN}" "ParameterKey=DDSite,ParameterValue=${DD_SITE}" --resolve-s3 --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region ${AWS_REGION}
-
-sam-dotnet-destroy:
-	cd src/dotnet; sam delete --stack-name DotnetTracing --region ${AWS_REGION} --no-prompts
-
 # Java
 
 package-java:
