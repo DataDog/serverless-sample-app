@@ -64,7 +64,7 @@ Resources:
     Properties:
       CodeUri: ./src/Product.Api/ProductApi.Adapters/
       Handler: ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_ListProducts_Generated::ListProducts
-      FunctionName: !Sub ListProductFunctions-${Env}
+      FunctionName: !Sub DotnetListProductFunctions-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -88,7 +88,7 @@ Resources:
     Properties:
       CodeUri: ./src/Product.Api/ProductApi.Adapters/
       Handler: ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_GetProduct_Generated::GetProduct
-      FunctionName: !Sub GetProductFunction-${Env}
+      FunctionName: !Sub DotnetGetProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -112,7 +112,7 @@ Resources:
     Properties:
       CodeUri: ./src/Product.Api/ProductApi.Adapters/
       Handler: ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_CreateProduct_Generated::CreateProduct
-      FunctionName: !Sub CreateProductFunction-${Env}
+      FunctionName: !Sub DotnetCreateProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -145,7 +145,7 @@ Resources:
     Properties:
       CodeUri: ./src/Product.Api/ProductApi.Adapters/
       Handler: ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_UpdateProduct_Generated::UpdateProduct
-      FunctionName: !Sub UpdateProductFunction-${Env}
+      FunctionName: !Sub DotnetUpdateProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -177,7 +177,7 @@ Resources:
     Properties:
       CodeUri: ./src/Product.Api/ProductApi.Adapters/
       Handler: ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_DeleteProduct_Generated::DeleteProduct
-      FunctionName: !Sub DeleteProductFunction-${Env}
+      FunctionName: !Sub DotnetDeleteProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -260,11 +260,11 @@ Resources:
     Properties:
       Name: !Sub /dotnet/${Env}/product/api-endpoint
       Type: String
-      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
 
 Outputs:
   DotnetProductApiEndpoint:
     Description: Product API Endpoint
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
     Export:
       Name: DotnetProductApiEndpoint

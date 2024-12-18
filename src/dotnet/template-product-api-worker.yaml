@@ -62,7 +62,7 @@ Resources:
     Properties:
       CodeUri: ./src/Product.Api/ProductApi.Adapters/
       Handler: ProductApi.Adapters::ProductApi.Adapters.HandlerFunctions_HandlePricingUpdated_Generated::HandlePricingUpdated
-      FunctionName: !Sub ProductApiPricingWorker-${Env}
+      FunctionName: !Sub DotnetProductApiPricingWorker-${Env}
       Environment:
         Variables:
           DD_SERVICE_MAPPING: !Sub "lambda_sns:${TopicArn}"

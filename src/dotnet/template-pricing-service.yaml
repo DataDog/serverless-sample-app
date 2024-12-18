@@ -58,7 +58,7 @@ Resources:
     Properties:
       CodeUri: ./src/Product.Pricing/ProductPricingService.Lambda/
       Handler: ProductPricingService.Lambda::ProductPricingService.Lambda.Functions_HandleProductCreated_Generated::HandleProductCreated
-      FunctionName: !Sub ProductCreatedPricingServiceFunction-${Env}
+      FunctionName: !Sub DotnetProductCreatedPricingServiceFunction-${Env}
       Environment:
         Variables:
           PRICE_CALCULATED_TOPIC_ARN: !Ref ProductPricingCalculatedTopic
@@ -84,7 +84,7 @@ Resources:
     Properties:
       CodeUri: ./src/Product.Pricing/ProductPricingService.Lambda/
       Handler: ProductPricingService.Lambda::ProductPricingService.Lambda.Functions_HandleProductUpdated_Generated::HandleProductUpdated
-      FunctionName: !Sub ProductUpdatedPricingServiceFunction-${Env}
+      FunctionName: !Sub DotnetProductUpdatedPricingServiceFunction-${Env}
       Environment:
         Variables:
           PRICE_CALCULATED_TOPIC_ARN: !Ref ProductPricingCalculatedTopic

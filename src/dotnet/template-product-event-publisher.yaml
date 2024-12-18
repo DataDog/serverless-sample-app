@@ -58,7 +58,7 @@ Resources:
     Properties:
       CodeUri: ./src/Product.EventPublisher/ProductEventPublisher.Adapters/
       Handler: ProductEventPublisher.Adapters::ProductEventPublisher.Adapters.HandlerFunctions_HandleCreated_Generated::HandleCreated
-      FunctionName: !Sub ProductCreatedPublicEventPublisherFunction-${Env}
+      FunctionName: !Sub DotnetProductCreatedPublicEventPublisherFunction-${Env}
       Environment:
         Variables:
           EVENT_BUS_NAME: "{{resolve:ssm:/dotnet/shared/event-bus-name:1}}"
@@ -81,7 +81,7 @@ Resources:
     Properties:
       CodeUri: ./src/Product.EventPublisher/ProductEventPublisher.Adapters/
       Handler: ProductEventPublisher.Adapters::ProductEventPublisher.Adapters.HandlerFunctions_HandleUpdated_Generated::HandleUpdated
-      FunctionName: !Sub ProductUpdatedPublicEventPublisherFunction-${Env}
+      FunctionName: !Sub DotnetProductUpdatedPublicEventPublisherFunction-${Env}
       Environment:
         Variables:
           EVENT_BUS_NAME: "{{resolve:ssm:/dotnet/shared/event-bus-name:1}}"
@@ -104,7 +104,7 @@ Resources:
     Properties:
       CodeUri: ./src/Product.EventPublisher/ProductEventPublisher.Adapters/
       Handler: ProductEventPublisher.Adapters::ProductEventPublisher.Adapters.HandlerFunctions_HandleDeleted_Generated::HandleDeleted
-      FunctionName: !Sub ProductDeletedPublicEventPublisherFunction-${Env}
+      FunctionName: !Sub DotnetProductDeletedPublicEventPublisherFunction-${Env}
       Environment:
         Variables:
           EVENT_BUS_NAME: "{{resolve:ssm:/dotnet/shared/event-bus-name:1}}"

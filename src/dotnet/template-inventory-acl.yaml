@@ -58,7 +58,7 @@ Resources:
     Properties:
       CodeUri: ./src/Inventory.Acl/Inventory.Acl.Adapters/
       Handler: Inventory.Acl.Adapters::Inventory.Acl.Adapters.HandlerFunctions_HandleCreated_Generated::HandleCreated
-      FunctionName: !Sub InventoryProductCreatedPublicEventHandler-${Env}
+      FunctionName: !Sub DotnetInventoryProductCreatedPublicEventHandler-${Env}
       Environment:
         Variables:
           PRODUCT_ADDED_TOPIC_ARN: !Ref NewProductAddedTopic
