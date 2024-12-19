@@ -20,7 +20,7 @@ Resources:
   RustSharedEventBus: 
     Type: AWS::Events::EventBus
     Properties: 
-        Name: "RustCentralEventBus"
+        Name: !Sub "RustTracingEventBus-${Env}"
 
   SharedEventBusNameParameter:
     Type: AWS::SSM::Parameter

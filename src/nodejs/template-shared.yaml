@@ -20,11 +20,11 @@ Resources:
   NodeSharedEventBus: 
     Type: AWS::Events::EventBus
     Properties: 
-        Name: "NodeTracingEventBus"
+        Name: !Sub "NodeTracingEventBus-${Env}"
 
   SharedEventBusNameParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /node/shared/event-bus-name
+      Name: !Sub /node/shared/event-bus-name
       Type: String
       Value: !Ref NodeSharedEventBus

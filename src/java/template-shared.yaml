@@ -20,7 +20,7 @@ Resources:
   JavaSharedEventBus: 
     Type: AWS::Events::EventBus
     Properties: 
-        Name: "JavaTracingEventBus"
+        Name: !Sub "JavaTracingEventBus-${Env}"
 
   SharedEventBusNameParameter:
     Type: AWS::SSM::Parameter

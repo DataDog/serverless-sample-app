@@ -112,7 +112,7 @@ Resources:
   AnalyticsCatchAllRule:
     Type: AWS::Events::Rule
     Properties:
-      EventBusName: "NodeTracingEventBus" #"{{resolve:ssm:/node/shared/event-bus-name:1}}"
+      EventBusName: "{{resolve:ssm:/node/shared/event-bus-name:1}}"
       Name: analytics-catch-all
       State: ENABLED
       EventPattern:

@@ -20,7 +20,7 @@ Resources:
   GoSharedEventBus: 
     Type: AWS::Events::EventBus
     Properties: 
-        Name: "GoTracingEventBus"
+        Name: !Sub "GoTracingEventBus-${Env}"
 
   SharedEventBusNameParameter:
     Type: AWS::SSM::Parameter

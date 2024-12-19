@@ -86,7 +86,7 @@ Resources:
   GoInventoryOrderingService:
     Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionUri: lib/inventory-ordering-service/workflows/ordering-workflow.asl.json
+      DefinitionUri: cdk/inventory-ordering-service/workflows/ordering-workflow.asl.json
       Policies:
         - Version: "2012-10-17"
           Statement:

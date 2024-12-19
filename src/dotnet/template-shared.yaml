@@ -20,7 +20,7 @@ Resources:
   DotnetSharedEventBus: 
     Type: AWS::Events::EventBus
     Properties: 
-        Name: "DotnetTracingEventBus"
+        Name: !Sub "DotnetTracingEventBus-${Env}"
 
   SharedEventBusNameParameter:
     Type: AWS::SSM::Parameter
