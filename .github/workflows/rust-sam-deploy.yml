@@ -18,7 +18,7 @@ jobs:
     uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
     with:
       service-name: serverless-sample-rust-sam
-      directory: src/gorust
+      directory: src/rust
     secrets:
       dd_api_key: ${{secrets.DD_API_KEY}}
       dd_app_key: ${{secrets.DD_APP_KEY}}
