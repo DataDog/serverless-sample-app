@@ -71,7 +71,7 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - dynamodb:GetItem
+                - dynamodb:Scan
               Resource: !GetAtt ProductApiTable.Arn
         - Version: "2012-10-17"
           Statement:
