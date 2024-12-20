@@ -54,6 +54,16 @@ jobs:
         shell: bash
         run: |
           echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Compile JAR files
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "test"
+          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "us-east-1"
+        run: |
+          make package-java
       - name: Deploy to AWS
         shell: bash
         env:
