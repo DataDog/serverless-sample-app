@@ -25,6 +25,9 @@ Resources:
       Type: AWS::Serverless::Application
       Properties:
         Location: template-shared.yaml
+        Parameters:
+          Env: !Ref Env
+          CommitHash: !Ref CommitHash
 
     ProductApi:
       Type: AWS::Serverless::Application
