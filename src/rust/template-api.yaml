@@ -54,33 +54,33 @@ Globals:
       AllowOrigin: "'http://localhost:8080'"
 
 Resources:
-  # ListProductsFunction:
-  #   Type: AWS::Serverless::Function
-  #   Properties:
-  #     CodeUri: ./src/product-api/lambdas/list_products/
-  #     Handler: list-products
-  #     FunctionName: !Sub RustListProductsFunction-${Env}
-  #     Events:
-  #       ListProducts:
-  #         Type: Api
-  #         Properties: 
-  #           Path: /product
-  #           Method: get
-  #     Policies:
-  #       - Version: "2012-10-17"
-  #         Statement:
-  #           - Effect: Allow
-  #             Action:
-  #               - dynamodb:GetItem
-  #             Resource: !GetAtt ProductApiTable.Arn
-  #       - Version: "2012-10-17"
-  #         Statement:
-  #           - Effect: Allow
-  #             Action:
-  #               - secretsmanager:GetSecretValue
-  #             Resource: !Ref DDApiKeySecretArn
-  #   Metadata:
-  #     BuildMethod: rust-cargolambda
+  ListProductsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/product-api/lambdas/list_products/
+      Handler: list-products
+      FunctionName: !Sub RustListProductsFunction-${Env}
+      Events:
+        ListProducts:
+          Type: Api
+          Properties: 
+            Path: /product
+            Method: get
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt ProductApiTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      BuildMethod: rust-cargolambda
 
   GetProductFunction:
     Type: AWS::Serverless::Function
