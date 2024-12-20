@@ -14,6 +14,6 @@ resources:
     SharedEventBusNameParameter:
       Type: AWS::SSM::Parameter
       Properties:
-        Name: /rust/shared/event-bus-name
+        Name: !Sub /rust/${Env}/shared/event-bus-name
         Type: String
         Value: !Ref RustSharedEventBus

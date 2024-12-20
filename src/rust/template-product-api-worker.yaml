@@ -22,9 +22,6 @@ Parameters:
     Default: latest
   DDApiKeySecretArn:
     Type: String
-  TopicArn:
-    Type: String
-    Default: "{{resolve:ssm:/rust/product/pricing-calculated-topic:1}}"
   DDSite:
     Type: String
 
@@ -59,16 +56,15 @@ Resources:
       FunctionName: !Sub RustProductApiPricingWorker-${Env}
       Environment:
         Variables:
-          DD_SERVICE_MAPPING: !Sub "lambda_sns:${TopicArn}"
-          TABLE_NAME: "{{resolve:ssm:/rust/product/product-table-name:1}}"
+          TABLE_NAME: !Sub "{{resolve:ssm:/rust/${Env}/product/product-table-name:1}}"
       Events:
         PricingChangedTopic:
           Type: SNS
           Properties:
-            Topic: !Ref TopicArn
+            Topic: !Sub "{{resolve:ssm:/rust/${Env}/product/pricing-calculated-topic:1}}"
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: "{{resolve:ssm:/rust/product/product-table-name:1}}"
+            TableName: !Sub "{{resolve:ssm:/rust/${Env}/product/product-table-name:1}}"
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow

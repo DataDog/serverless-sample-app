@@ -84,7 +84,7 @@ Resources:
   NewProductAddedTopicArn:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /rust/inventory/new-product-added-topic
+      Name: !Sub /rust/${Env}/inventory/new-product-added-topic
       Type: String
       Value: !Ref NewProductAddedTopic
 
@@ -107,7 +107,7 @@ Resources:
   ProductCreatedEventRule:
     Type: AWS::Events::Rule
     Properties:
-      EventBusName: "{{resolve:ssm:/rust/shared/event-bus-name:1}}"
+      EventBusName: !Sub "{{resolve:ssm:/rust/${Env}/shared/event-bus-name:1}}"
       Name: inventory-product-created
       State: ENABLED
       EventPattern:

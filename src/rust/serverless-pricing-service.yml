@@ -75,13 +75,13 @@ resources:
     ProductPricingCalculatedTopicArn:
       Type: AWS::SSM::Parameter
       Properties:
-        Name: /rust/product/pricing-calculated-topic
+        Name: !Sub /rust/${Env}/product/pricing-calculated-topic
         Type: String
         Value: !Ref ProductPricingCalculatedTopic
     
     ProductPricingCalculatedTopicName:
       Type: AWS::SSM::Parameter
       Properties:
-        Name: /rust/product/pricing-calculated-topic-name
+        Name: !Sub /rust/${Env}/product/pricing-calculated-topic-name
         Type: String
         Value: !GetAtt ProductPricingCalculatedTopic.TopicName

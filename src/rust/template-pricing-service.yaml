@@ -62,7 +62,7 @@ Resources:
         ProductCreated:
           Type: SNS
           Properties: 
-            Topic: '{{resolve:ssm:/rust/product/product-created-topic:1}}' 
+            Topic: !Sub '{{resolve:ssm:/rust/${Env}/product/product-created-topic:1}}' 
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductPricingCalculatedTopic.TopicName
@@ -90,7 +90,7 @@ Resources:
         ProductCreated:
           Type: SNS
           Properties: 
-            Topic: '{{resolve:ssm:/rust/product/product-updated-topic:1}}' 
+            Topic: !Sub '{{resolve:ssm:/rust/${Env}/product/product-updated-topic:1}}' 
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductPricingCalculatedTopic.TopicName
@@ -113,6 +113,6 @@ Resources:
   ProductPricingCalculatedTopicArn:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /rust/product/pricing-calculated-topic
+      Name: !Sub /rust/${Env}/product/pricing-calculated-topic
       Type: String
       Value: !Ref ProductPricingCalculatedTopic
