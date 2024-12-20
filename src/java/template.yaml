@@ -13,9 +13,9 @@ Parameters:
     Type: String
   DDSite:
     Type: String
-  DDApiKeySecretArn:
+  Env:
     Type: String
-  DDSite:
+  CommitHash:
     Type: String
 
 Resources:
