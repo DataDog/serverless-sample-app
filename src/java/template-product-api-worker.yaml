@@ -63,7 +63,7 @@ Resources:
       FunctionName: !Sub JavaProductApiPricingWorker-${Env}
       Environment:
         Variables:
-          TABLE_NAME: "{{resolve:ssm:/java/product/product-table-name:1}}"
+          TABLE_NAME: "{{resolve:ssm:/java/${Env}/product/product-table-name:1}}"
           spring_cloud_function_definition: handlePricingChanged
       Events:
         PricingChangedTopic:

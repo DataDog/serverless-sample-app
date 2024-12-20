@@ -122,4 +122,4 @@ Resources:
     Properties:
       Name: !Sub /java/${Env}/inventory-ordering/state-machine-arn
       Type: String
-      Value: !Ref NodeInventoryOrderingService
+      Value: !Ref JavaInventoryOrderingService
