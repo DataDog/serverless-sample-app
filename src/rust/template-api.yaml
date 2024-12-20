@@ -206,15 +206,15 @@ Resources:
   ProductCreatedTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub "ProductCreatedTopic-${Env}"
+      TopicName: !Sub "RustProductCreatedTopic-${Env}"
   ProductUpdatedTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub "ProductUpdatedTopic-${Env}"
+      TopicName: !Sub "RustProductUpdatedTopic-${Env}"
   ProductDeletedTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub "ProductDeletedTopic-${Env}"
+      TopicName: !Sub "RustProductDeletedTopic-${Env}"
   
   ProductCreatedTopicArn:
     Type: AWS::SSM::Parameter

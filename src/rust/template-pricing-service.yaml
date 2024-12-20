@@ -106,7 +106,7 @@ Resources:
   ProductPricingCalculatedTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub "ProductPricingCalculated-${Env}"
+      TopicName: !Sub "RustProductPricingCalculated-${Env}"
   
   ProductPricingCalculatedTopicArn:
     Type: AWS::SSM::Parameter

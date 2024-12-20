@@ -227,15 +227,15 @@ Resources:
   ProductCreatedTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub "ProductCreatedTopic-${Env}"
+      TopicName: !Sub "JavaProductCreatedTopic-${Env}"
   ProductUpdatedTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub "ProductUpdatedTopic-${Env}"
+      TopicName: !Sub "JavaProductUpdatedTopic-${Env}"
   ProductDeletedTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub "ProductDeletedTopic-${Env}"
+      TopicName: !Sub "JavaProductDeletedTopic-${Env}"
   
   ProductCreatedTopicArn:
     Type: AWS::SSM::Parameter
