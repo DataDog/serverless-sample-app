@@ -59,7 +59,7 @@ Resources:
     Properties:
       CodeUri: ./product-event-publisher/target/com.product.publisher-0.0.1-SNAPSHOT-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
-      FunctionName: !Sub ProductPublicEventPublisherFunction-${Env}
+      FunctionName: !Sub JavaProductPublicEventPublisherFunction-${Env}
       Environment:
         Variables:
           EVENT_BUS_NAME: !Sub "{{resolve:ssm:/java/${Env}/shared/event-bus-name:1}}"
@@ -88,12 +88,12 @@ Resources:
   ProductPublicEventPublisherDLQ:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "ProductPublicEventPublisherDLQ-${Env}"
+      QueueName: !Sub "JavaProductPublicEventPublisherDLQ-${Env}"
 
   ProductPublicEventPublisherQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "ProductPublicEventPublisherQueue-${Env}"
+      QueueName: !Sub "JavaProductPublicEventPublisherQueue-${Env}"
       RedrivePolicy:
         deadLetterTargetArn:
           Fn::GetAtt:

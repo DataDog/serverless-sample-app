@@ -59,7 +59,7 @@ Resources:
     Properties:
       CodeUri: ./product-pricing/target/com.product.pricing-0.0.1-SNAPSHOT-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
-      FunctionName: !Sub ProductCreatedPricingServiceFunction-${Env}
+      FunctionName: !Sub JavaProductCreatedPricingServiceFunction-${Env}
       Environment:
         Variables:
           PRICE_CALCULATED_TOPIC_ARN: !Ref ProductPricingCalculatedTopic
@@ -88,7 +88,7 @@ Resources:
     Properties:
       CodeUri: ./product-pricing/target/com.product.pricing-0.0.1-SNAPSHOT-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
-      FunctionName: !Sub ProductUpdatedPricingServiceFunction-${Env}
+      FunctionName: !Sub JavaProductUpdatedPricingServiceFunction-${Env}
       Environment:
         Variables:
           PRICE_CALCULATED_TOPIC_ARN: !Ref ProductPricingCalculatedTopic

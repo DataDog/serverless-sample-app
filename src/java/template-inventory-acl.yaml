@@ -59,7 +59,7 @@ Resources:
     Properties:
       CodeUri: ./inventory-acl/target/com.inventory.acl-0.0.1-SNAPSHOT-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
-      FunctionName: !Sub InventoryProductCreatedPublicEventHandler-${Env}
+      FunctionName: !Sub JavaInventoryProductCreatedPublicEventHandler-${Env}
       Environment:
         Variables:
           PRODUCT_ADDED_TOPIC_ARN: !Ref NewProductAddedTopic

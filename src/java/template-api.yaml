@@ -65,7 +65,7 @@ Resources:
     Properties:
       CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
-      FunctionName: !Sub ListProductsFunction-${Env}
+      FunctionName: !Sub JavaListProductsFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -93,7 +93,7 @@ Resources:
     Properties:
       CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
-      FunctionName: !Sub GetProductFunction-${Env}
+      FunctionName: !Sub JavaGetProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -122,7 +122,7 @@ Resources:
     Properties:
       CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
-      FunctionName: !Sub CreateProductFunction-${Env}
+      FunctionName: !Sub JavaCreateProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -158,7 +158,7 @@ Resources:
     Properties:
       CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
-      FunctionName: !Sub UpdateProductFunction-${Env}
+      FunctionName: !Sub JavaUpdateProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -193,7 +193,7 @@ Resources:
     Properties:
       CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
-      FunctionName: !Sub DeleteProductFunction-${Env}
+      FunctionName: !Sub JavaDeleteProductFunction-${Env}
       Events:
         GetProduct:
           Type: Api

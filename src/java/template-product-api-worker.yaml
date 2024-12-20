@@ -60,7 +60,7 @@ Resources:
     Properties:
       CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
-      FunctionName: !Sub ProductApiPricingWorker-${Env}
+      FunctionName: !Sub JavaProductApiPricingWorker-${Env}
       Environment:
         Variables:
           TABLE_NAME: "{{resolve:ssm:/java/product/product-table-name:1}}"
