@@ -13,6 +13,10 @@ Parameters:
     Type: String
   DDSite:
     Type: String
+  DDApiKeySecretArn:
+    Type: String
+  DDSite:
+    Type: String
 
 Resources:
     Shared:
