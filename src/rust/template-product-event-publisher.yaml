@@ -56,7 +56,7 @@ Resources:
       FunctionName: !Sub RustProductPublicEventPublisherFunction-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: !Sub !Sub "{{resolve:ssm:/rust/${Env}/${Env}/shared/event-bus-name:1}}"
+          EVENT_BUS_NAME: !Sub "{{resolve:ssm:/rust/${Env}/shared/event-bus-name:1}}"
           PRODUCT_CREATED_TOPIC_ARN: !Sub "{{resolve:ssm:/rust/${Env}/product/product-created-topic:1}}"
           PRODUCT_UPDATED_TOPIC_ARN: !Sub "{{resolve:ssm:/rust/${Env}/product/product-updated-topic:1}}"
           PRODUCT_DELETED_TOPIC_ARN: !Sub "{{resolve:ssm:/rust/${Env}/product/product-deleted-topic:1}}"
