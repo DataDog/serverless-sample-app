@@ -52,7 +52,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/product-pricing/lambdas/product_created_pricing_handler/
-      Handler: bootstrap
+      Handler: product-created-pricing-handler
       FunctionName: !Sub RustProductPricingServiceFunction-${Env}
       Environment:
         Variables:
@@ -75,12 +75,13 @@ Resources:
               Resource: !Ref DDApiKeySecretArn
     Metadata:
       BuildMethod: rust-cargolambda
+      Binary: product-created-pricing-handler
 
   ProductUpdatedPricingServiceFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/product-pricing/lambdas/product_updated_pricing_handler/
-      Handler: bootstrap
+      Handler: product-updated-pricing-handler
       FunctionName: !Sub RustProductUpdatedPricingFunction-${Env}
       Environment:
         Variables:
@@ -102,6 +103,7 @@ Resources:
               Resource: !Ref DDApiKeySecretArn
     Metadata:
       BuildMethod: rust-cargolambda
+      Binary: product-updated-pricing-handler
 
   ProductPricingCalculatedTopic:
     Type: AWS::SNS::Topic

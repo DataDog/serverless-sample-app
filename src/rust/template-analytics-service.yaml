@@ -55,7 +55,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/analytics/lambdas/analytics/
-      Handler: bootstrap
+      Handler: analytics_handler
       FunctionName: !Sub RustAnalyticsBackendFunction-${Env}
       Environment:
         Variables:
@@ -75,6 +75,7 @@ Resources:
               Resource: !Ref DDApiKeySecretArn
     Metadata:
       BuildMethod: rust-cargolambda
+      Binary: analytics_handler
 
   RustAnalyticsEventDLQ:
     Type: AWS::SQS::Queue

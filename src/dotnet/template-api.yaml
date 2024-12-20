@@ -221,25 +221,25 @@ Resources:
   ProductCreatedTopicArn:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /dotnet/product/product-created-topic
+      Name: !Sub /dotnet/${Env}/product/product-created-topic
       Type: String
       Value: !Ref ProductCreatedTopic
   ProductUpdatedTopicArn:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /dotnet/product/product-updated-topic
+      Name: !Sub /dotnet/${Env}/product/product-updated-topic
       Type: String
       Value: !Ref ProductUpdatedTopic
   ProductDeletedTopicArn:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /dotnet/product/product-deleted-topic
+      Name: !Sub /dotnet/${Env}/product/product-deleted-topic
       Type: String
       Value: !Ref ProductDeletedTopic
   ProductApiTableName:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /dotnet/product/product-table-name
+      Name: !Sub /dotnet/${Env}/product/product-table-name
       Type: String
       Value: !Ref ProductApiTable
 

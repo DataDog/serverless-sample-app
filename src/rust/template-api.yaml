@@ -32,7 +32,7 @@ Globals:
     Timeout: 29
     MemorySize: 512
     Layers:
-      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:66
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:67
     Environment:
       Variables:
         ENV: !Ref Env
@@ -40,7 +40,6 @@ Globals:
         DD_API_KEY_SECRET_ARN: !Ref DDApiKeySecretArn
         DD_SITE: !Ref DDSite
         DD_VERSION: !Ref CommitHash
-        DD_EXTENSION_VERSION: "next"
         DD_SERVICE: !Ref ServiceName
         TABLE_NAME: !Ref ProductApiTable
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
@@ -55,35 +54,39 @@ Globals:
       AllowOrigin: "'http://localhost:8080'"
 
 Resources:
-  ListProductsFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/product-api/lambdas/list_products/
-      Handler: bootstrap
-      FunctionName: !Sub RustListProductsFunction-${Env}
-      Events:
-        GetProduct:
-          Type: Api
-          Properties: 
-            Path: /product
-            Method: get
-      Policies:
-        - DynamoDBReadPolicy:
-            TableName:
-              !Ref ProductApiTable
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecretArn
-    Metadata:
-      BuildMethod: rust-cargolambda
+  # ListProductsFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: ./src/product-api/lambdas/list_products/
+  #     Handler: list-products
+  #     FunctionName: !Sub RustListProductsFunction-${Env}
+  #     Events:
+  #       ListProducts:
+  #         Type: Api
+  #         Properties: 
+  #           Path: /product
+  #           Method: get
+  #     Policies:
+  #       - Version: "2012-10-17"
+  #         Statement:
+  #           - Effect: Allow
+  #             Action:
+  #               - dynamodb:GetItem
+  #             Resource: !GetAtt ProductApiTable.Arn
+  #       - Version: "2012-10-17"
+  #         Statement:
+  #           - Effect: Allow
+  #             Action:
+  #               - secretsmanager:GetSecretValue
+  #             Resource: !Ref DDApiKeySecretArn
+  #   Metadata:
+  #     BuildMethod: rust-cargolambda
+
   GetProductFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/product-api/lambdas/get_product/
-      Handler: bootstrap
+      Handler: get-product
       FunctionName: !Sub RustGetProductFunction-${Env}
       Events:
         GetProduct:
@@ -92,9 +95,12 @@ Resources:
             Path: /product/{productId}
             Method: get
       Policies:
-        - DynamoDBReadPolicy:
-            TableName:
-              !Ref ProductApiTable
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt ProductApiTable.Arn
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -103,11 +109,12 @@ Resources:
               Resource: !Ref DDApiKeySecretArn
     Metadata:
       BuildMethod: rust-cargolambda
+
   CreateProductFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/product-api/lambdas/create_product/
-      Handler: bootstrap
+      Handler: create-product
       FunctionName: !Sub RustCreateProductFunction-${Env}
       Events:
         GetProduct:
@@ -136,11 +143,12 @@ Resources:
             TopicName: !GetAtt ProductCreatedTopic.TopicName
     Metadata:
       BuildMethod: rust-cargolambda
+
   UpdateProductFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/product-api/lambdas/update_product/
-      Handler: bootstrap
+      Handler: update-product
       FunctionName: !Sub RustUpdateProductFunction-${Env}
       Events:
         GetProduct:
@@ -169,11 +177,12 @@ Resources:
             TopicName: !GetAtt ProductUpdatedTopic.TopicName
     Metadata:
       BuildMethod: rust-cargolambda
+
   DeleteProductFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/product-api/lambdas/delete_product/
-      Handler: bootstrap
+      Handler: delete-product
       FunctionName: !Sub RustDeleteProductFunction-${Env}
       Events:
         GetProduct:

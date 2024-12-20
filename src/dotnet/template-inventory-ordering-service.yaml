@@ -33,9 +33,6 @@ Parameters:
     Default: latest
   DDApiKeySecretArn:
     Type: String
-  TopicArn:
-    Type: String
-    Default: '{{resolve:ssm:/dotnet/inventory/new-product-added-topic:1}}' 
   DDSite:
     Type: String
 
@@ -64,13 +61,12 @@ Resources:
       FunctionName: !Sub DotnetInventoryOrderingWorkflow-${Env}
       Environment:
         Variables:
-          DD_SERVICE_MAPPING: !Sub "lambda_sns:${TopicArn}"
           ORDERING_SERVICE_WORKFLOW_ARN: !Ref DotnetInventoryOrderingService
       Events:
         NewProductAddedTopic:
           Type: SNS
           Properties:
-            Topic: !Ref TopicArn
+            Topic: !Sub '{{resolve:ssm:/dotnet/${Env}/inventory/new-product-added-topic:1}}' 
       Policies:
         - Version: "2012-10-17"
           Statement:

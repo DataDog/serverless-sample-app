@@ -52,7 +52,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/inventory-acl/lambdas/product_created_handler/
-      Handler: bootstrap
+      Handler: handle_product_created_event
       FunctionName: !Sub RustInventoryProductCreatedPublicEventHandler-${Env}
       Environment:
         Variables:
@@ -74,6 +74,7 @@ Resources:
             TopicName: !GetAtt NewProductAddedTopic.TopicName
     Metadata:
       BuildMethod: rust-cargolambda
+      Binary: handle_product_created_event
  
   NewProductAddedTopic:
     Type: AWS::SNS::Topic

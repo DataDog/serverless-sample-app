@@ -61,15 +61,15 @@ Resources:
       FunctionName: !Sub DotnetProductCreatedPublicEventPublisherFunction-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: "{{resolve:ssm:/dotnet/shared/event-bus-name:1}}"
+          EVENT_BUS_NAME: !Sub "{{resolve:ssm:/dotnet/${Env}/shared/event-bus-name:1}}"
       Events:
         IntegrationQueue:
           Type: SNS
           Properties:
-            Topic: "{{resolve:ssm:/dotnet/product/product-created-topic:1}}"
+            Topic: !Sub "{{resolve:ssm:/dotnet/${Env}/product/product-created-topic:1}}"
       Policies:
         - EventBridgePutEventsPolicy:
-            EventBusName: "{{resolve:ssm:/dotnet/shared/event-bus-name:1}}"
+            EventBusName: !Sub "{{resolve:ssm:/dotnet/${Env}/shared/event-bus-name:1}}"
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -84,15 +84,15 @@ Resources:
       FunctionName: !Sub DotnetProductUpdatedPublicEventPublisherFunction-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: "{{resolve:ssm:/dotnet/shared/event-bus-name:1}}"
+          EVENT_BUS_NAME: !Sub "{{resolve:ssm:/dotnet/${Env}/shared/event-bus-name:1}}"
       Events:
         IntegrationQueue:
           Type: SNS
           Properties:
-            Topic: "{{resolve:ssm:/dotnet/product/product-updated-topic:1}}"
+            Topic: !Sub "{{resolve:ssm:/dotnet/${Env}/product/product-updated-topic:1}}"
       Policies:
         - EventBridgePutEventsPolicy:
-            EventBusName: "{{resolve:ssm:/dotnet/shared/event-bus-name:1}}"
+            EventBusName: !Sub "{{resolve:ssm:/dotnet/${Env}/shared/event-bus-name:1}}"
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -107,15 +107,15 @@ Resources:
       FunctionName: !Sub DotnetProductDeletedPublicEventPublisherFunction-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: "{{resolve:ssm:/dotnet/shared/event-bus-name:1}}"
+          EVENT_BUS_NAME: !Sub "{{resolve:ssm:/dotnet/${Env}/shared/event-bus-name:1}}"
       Events:
         Integration:
           Type: SNS
           Properties:
-            Topic: "{{resolve:ssm:/dotnet/product/product-deleted-topic:1}}"
+            Topic: !Sub "{{resolve:ssm:/dotnet/${Env}/product/product-deleted-topic:1}}"
       Policies:
         - EventBridgePutEventsPolicy:
-            EventBusName: "{{resolve:ssm:/dotnet/shared/event-bus-name:1}}"
+            EventBusName: !Sub "{{resolve:ssm:/dotnet/${Env}/shared/event-bus-name:1}}"
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow

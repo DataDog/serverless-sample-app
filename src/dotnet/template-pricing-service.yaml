@@ -67,7 +67,7 @@ Resources:
         ProductCreated:
           Type: SNS
           Properties: 
-            Topic: '{{resolve:ssm:/dotnet/product/product-created-topic:1}}' 
+            Topic: !Sub '{{resolve:ssm:/dotnet/${Env}/product/product-created-topic:1}}' 
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductPricingCalculatedTopic.TopicName
@@ -93,7 +93,7 @@ Resources:
         ProductCreated:
           Type: SNS
           Properties: 
-            Topic: '{{resolve:ssm:/dotnet/product/product-updated-topic:1}}' 
+            Topic: !Sub '{{resolve:ssm:/dotnet/${Env}/product/product-updated-topic:1}}' 
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductPricingCalculatedTopic.TopicName
@@ -113,6 +113,6 @@ Resources:
   ProductPricingCalculatedTopicArn:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /dotnet/product/pricing-calculated-topic
+      Name: !Sub /dotnet/${Env}/product/pricing-calculated-topic
       Type: String
       Value: !Ref ProductPricingCalculatedTopic

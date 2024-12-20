@@ -52,7 +52,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/product-event-publisher/lambdas/product_public_event_publisher/
-      Handler: bootstrap
+      Handler: product-public-event-publisher
       FunctionName: !Sub RustProductPublicEventPublisherFunction-${Env}
       Environment:
         Variables:
@@ -77,6 +77,7 @@ Resources:
               Resource: !Ref DDApiKeySecretArn
     Metadata:
       BuildMethod: rust-cargolambda
+      Binary: product-public-event-publisher
 
   ProductPublicEventPublisherDLQ:
     Type: AWS::SQS::Queue

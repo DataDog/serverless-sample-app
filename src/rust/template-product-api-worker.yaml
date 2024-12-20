@@ -55,7 +55,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/product-api/lambdas/handle_pricing_updated/
-      Handler: bootstrap
+      Handler: handle-pricing-updated
       FunctionName: !Sub RustProductApiPricingWorker-${Env}
       Environment:
         Variables:
@@ -77,3 +77,4 @@ Resources:
               Resource: !Ref DDApiKeySecretArn
     Metadata:
       BuildMethod: rust-cargolambda
+      Binary: handle-pricing-updated
