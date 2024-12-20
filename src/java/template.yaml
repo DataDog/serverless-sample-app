@@ -19,6 +19,9 @@ Resources:
       Type: AWS::Serverless::Application
       Properties:
         Location: template-shared.yaml
+        Parameters:
+          Env: !Ref Env
+          CommitHash: !Ref CommitHash
 
     ProductApi:
       Type: AWS::Serverless::Application
@@ -27,6 +30,8 @@ Resources:
         Parameters:
           DDApiKeySecretArn: !Ref DDApiKeySecretArn
           DDSite: !Ref DDSite
+          Env: !Ref Env
+          CommitHash: !Ref CommitHash
       DependsOn: Shared
 
     ProductPricingService:
@@ -36,6 +41,8 @@ Resources:
         Parameters:
           DDApiKeySecretArn: !Ref DDApiKeySecretArn
           DDSite: !Ref DDSite
+          Env: !Ref Env
+          CommitHash: !Ref CommitHash
       DependsOn:
         - Shared
         - ProductApi
@@ -47,6 +54,8 @@ Resources:
         Parameters:
           DDApiKeySecretArn: !Ref DDApiKeySecretArn
           DDSite: !Ref DDSite
+          Env: !Ref Env
+          CommitHash: !Ref CommitHash
       DependsOn:
         - ProductPricingService
     
@@ -57,6 +66,8 @@ Resources:
         Parameters:
           DDApiKeySecretArn: !Ref DDApiKeySecretArn
           DDSite: !Ref DDSite
+          Env: !Ref Env
+          CommitHash: !Ref CommitHash
       DependsOn:
         - ProductApi
     
@@ -67,6 +78,8 @@ Resources:
         Parameters:
           DDApiKeySecretArn: !Ref DDApiKeySecretArn
           DDSite: !Ref DDSite
+          Env: !Ref Env
+          CommitHash: !Ref CommitHash
       DependsOn:
         - Shared
     
@@ -77,6 +90,8 @@ Resources:
         Parameters:
           DDApiKeySecretArn: !Ref DDApiKeySecretArn
           DDSite: !Ref DDSite
+          Env: !Ref Env
+          CommitHash: !Ref CommitHash
       DependsOn:
         - InventoryAcl
     
@@ -87,5 +102,7 @@ Resources:
         Parameters:
           DDApiKeySecretArn: !Ref DDApiKeySecretArn
           DDSite: !Ref DDSite
+          Env: !Ref Env
+          CommitHash: !Ref CommitHash
       DependsOn:
         - Shared

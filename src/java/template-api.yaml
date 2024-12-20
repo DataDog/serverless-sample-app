@@ -240,25 +240,25 @@ Resources:
   ProductCreatedTopicArn:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /java/product/product-created-topic
+      Name: !Sub /java/${Env}/product/product-created-topic
       Type: String
       Value: !Ref ProductCreatedTopic
   ProductUpdatedTopicArn:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /java/product/product-updated-topic
+      Name: !Sub /java/${Env}/product/product-updated-topic
       Type: String
       Value: !Ref ProductUpdatedTopic
   ProductDeletedTopicArn:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /java/product/product-deleted-topic
+      Name: !Sub /java/${Env}/product/product-deleted-topic
       Type: String
       Value: !Ref ProductDeletedTopic
   ProductApiTableName:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /java/product/product-table-name
+      Name: !Sub /java/${Env}/product/product-table-name
       Type: String
       Value: !Ref ProductApiTable
 

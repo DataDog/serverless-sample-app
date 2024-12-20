@@ -62,10 +62,10 @@ Resources:
       FunctionName: !Sub ProductPublicEventPublisherFunction-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: "{{resolve:ssm:/java/shared/event-bus-name:1}}"
-          PRODUCT_CREATED_TOPIC_ARN: "{{resolve:ssm:/java/product/product-created-topic:1}}"
-          PRODUCT_UPDATED_TOPIC_ARN: "{{resolve:ssm:/java/product/product-updated-topic:1}}"
-          PRODUCT_DELETED_TOPIC_ARN: "{{resolve:ssm:/java/product/product-deleted-topic:1}}"
+          EVENT_BUS_NAME: !Sub "{{resolve:ssm:/java/${Env}/shared/event-bus-name:1}}"
+          PRODUCT_CREATED_TOPIC_ARN: !Sub "{{resolve:ssm:/java/${Env}/product/product-created-topic:1}}"
+          PRODUCT_UPDATED_TOPIC_ARN: !Sub "{{resolve:ssm:/java/${Env}/product/product-updated-topic:1}}"
+          PRODUCT_DELETED_TOPIC_ARN: !Sub "{{resolve:ssm:/java/${Env}/product/product-deleted-topic:1}}"
           DD_SERVICE_MAPPING: !Sub "lambda_sqs:${ProductPublicEventPublisherQueue.QueueName}"
           spring_cloud_function_definition: handleInternalEvents
       Events:
@@ -75,7 +75,7 @@ Resources:
             Queue: !GetAtt ProductPublicEventPublisherQueue.Arn
       Policies:
         - EventBridgePutEventsPolicy:
-            EventBusName: "{{resolve:ssm:/java/shared/event-bus-name:1}}"
+            EventBusName: !Sub "{{resolve:ssm:/java/${Env}/shared/event-bus-name:1}}"
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -116,7 +116,7 @@ Resources:
             Action: SQS:SendMessage
             Condition: 
               ArnEquals:
-                aws:SourceArn: "{{resolve:ssm:/java/product/product-created-topic:1}}"
+                aws:SourceArn: !Sub "{{resolve:ssm:/java/${Env}/product/product-created-topic:1}}"
           - Sid: allow-updated-messages
             Effect: Allow
             Principal: '*'
@@ -124,7 +124,7 @@ Resources:
             Action: SQS:SendMessage
             Condition: 
               ArnEquals:
-                aws:SourceArn: "{{resolve:ssm:/java/product/product-updated-topic:1}}"
+                aws:SourceArn: !Sub "{{resolve:ssm:/java/${Env}/product/product-updated-topic:1}}"
           - Sid: allow-deleted-messages
             Effect: Allow
             Principal: '*'
@@ -132,13 +132,13 @@ Resources:
             Action: SQS:SendMessage
             Condition: 
               ArnEquals:
-                aws:SourceArn: "{{resolve:ssm:/java/product/product-deleted-topic:1}}"
+                aws:SourceArn: !Sub "{{resolve:ssm:/java/${Env}/product/product-deleted-topic:1}}"
 
   
   ProductCreatedTopicSubscription:
     Type: 'AWS::SNS::Subscription'
     Properties:
-      TopicArn: "{{resolve:ssm:/java/product/product-created-topic:1}}"
+      TopicArn: !Sub "{{resolve:ssm:/java/${Env}/product/product-created-topic:1}}"
       Endpoint: !GetAtt 
         - ProductPublicEventPublisherQueue
         - Arn
@@ -147,7 +147,7 @@ Resources:
   ProductUpdatedTopicSubscription:
     Type: 'AWS::SNS::Subscription'
     Properties:
-      TopicArn: "{{resolve:ssm:/java/product/product-updated-topic:1}}"
+      TopicArn: !Sub "{{resolve:ssm:/java/${Env}/product/product-updated-topic:1}}"
       Endpoint: !GetAtt 
         - ProductPublicEventPublisherQueue
         - Arn
@@ -156,7 +156,7 @@ Resources:
   ProductDeletedTopicSubscription:
     Type: 'AWS::SNS::Subscription'
     Properties:
-      TopicArn: "{{resolve:ssm:/java/product/product-deleted-topic:1}}"
+      TopicArn: !Sub "{{resolve:ssm:/java/${Env}/product/product-deleted-topic:1}}"
       Endpoint: !GetAtt 
         - ProductPublicEventPublisherQueue
         - Arn

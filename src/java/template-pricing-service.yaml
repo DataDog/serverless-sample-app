@@ -69,7 +69,7 @@ Resources:
         ProductCreated:
           Type: SNS
           Properties: 
-            Topic: '{{resolve:ssm:/java/product/product-created-topic:1}}' 
+            Topic: !Sub "{{resolve:ssm:/java/${Env}/product/product-created-topic:1}}"
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductPricingCalculatedTopic.TopicName
@@ -98,7 +98,7 @@ Resources:
         ProductCreated:
           Type: SNS
           Properties: 
-            Topic: '{{resolve:ssm:/java/product/product-updated-topic:1}}' 
+            Topic: !Sub '{{resolve:ssm:/java/${Env}/product/product-updated-topic:1}}' 
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductPricingCalculatedTopic.TopicName
@@ -120,6 +120,6 @@ Resources:
   ProductPricingCalculatedTopicArn:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /java/product/pricing-calculated-topic
+      Name: !Sub /java/${Env}/product/pricing-calculated-topic
       Type: String
       Value: !Ref ProductPricingCalculatedTopic

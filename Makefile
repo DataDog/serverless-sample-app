@@ -50,6 +50,12 @@ tf-dotnet-local-destroy:
 package-java:
 	cd src/java;mvn clean package
 
+sam-java:
+	cd src/java; sam build;sam deploy --stack-name JavaTracing-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION}
+
+sam-java-destroy:
+	cd src/java; sam delete --stack-name JavaTracing-${ENV} --no-prompts
+
 cdk-java:
 	cd src/java;mvn clean package;cd cdk;cdk deploy --all --require-approval never --concurrency 3
 

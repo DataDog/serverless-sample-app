@@ -25,6 +25,6 @@ Resources:
   SharedEventBusNameParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /java/shared/event-bus-name
+      Name: !Sub /java/${Env}/shared/event-bus-name
       Type: String
       Value: !Ref JavaSharedEventBus

@@ -33,9 +33,6 @@ Parameters:
     Default: latest
   DDApiKeySecretArn:
     Type: String
-  TopicArn:
-    Type: String
-    Default: "{{resolve:ssm:/java/product/pricing-calculated-topic:1}}"
   DDSite:
     Type: String
 
@@ -66,17 +63,16 @@ Resources:
       FunctionName: !Sub ProductApiPricingWorker-${Env}
       Environment:
         Variables:
-          DD_SERVICE_MAPPING: !Sub "lambda_sns:${TopicArn}"
           TABLE_NAME: "{{resolve:ssm:/java/product/product-table-name:1}}"
           spring_cloud_function_definition: handlePricingChanged
       Events:
         PricingChangedTopic:
           Type: SNS
           Properties:
-            Topic: !Ref TopicArn
+            Topic: !Sub "{{resolve:ssm:/java/${Env}/product/pricing-calculated-topic:1}}"
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: "{{resolve:ssm:/java/product/product-table-name:1}}"
+            TableName: !Sub "{{resolve:ssm:/java/${Env}/product/product-table-name:1}}"
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
