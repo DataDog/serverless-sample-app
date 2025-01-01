@@ -42,7 +42,7 @@
     "serverless-plugin-datadog": "^5.75.0",
     "serverless-step-functions": "^3.21.1",
     "source-map-support": "^0.5.21",
-    "sst": "^2.44.0",
+    "sst": "^2.45.1",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "~5.7.2"
