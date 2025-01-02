@@ -21,7 +21,7 @@
         <PackageReference Include="AWS.Lambda.Powertools.Parameters" Version="1.3.0" />
         <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.404.11" />
         <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.400.57" />
-        <PackageReference Include="Datadog.Trace" Version="3.6.1" />
+        <PackageReference Include="Datadog.Trace" Version="3.7.0" />
         <PackageReference Include="DogStatsD-CSharp-Client" Version="8.0.0" />
         <PackageReference Include="NJsonSchema" Version="11.1.0" />
     </ItemGroup>
