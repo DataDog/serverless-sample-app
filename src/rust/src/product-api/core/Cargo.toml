@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 observability = {path = "../../observability"}
-lambda_http = "0.13"
+lambda_http = "0.14"
 aws-sdk-dynamodb = "1.49"
 aws-sdk-sns = "1.46"
 uuid = {version = "1.10.0", features = ["v4"]}
