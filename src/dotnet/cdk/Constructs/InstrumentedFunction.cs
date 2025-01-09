@@ -59,7 +59,7 @@ public class InstrumentedFunction : Construct
                 LogRetention = RetentionDays.ONE_DAY,
                 Layers =
                 [
-                    LayerVersion.FromLayerVersionArn(this, "DDExtension", $"arn:aws:lambda:{Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1"}:464622532012:layer:Datadog-Extension-ARM:66"),
+                    LayerVersion.FromLayerVersionArn(this, "DDExtension", $"arn:aws:lambda:{Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1"}:464622532012:layer:Datadog-Extension-ARM:68"),
                     LayerVersion.FromLayerVersionArn(this, "DDTrace", $"arn:aws:lambda:{Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1"}:464622532012:layer:dd-trace-dotnet-ARM:16"),
                 ],
             });
