@@ -15,6 +15,7 @@ import { IFunction } from "aws-cdk-lib/aws-lambda";
 import { SnsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { Queue } from "aws-cdk-lib/aws-sqs";
 import { Effect, PolicyStatement, ServicePrincipal } from "aws-cdk-lib/aws-iam";
+import { SqsDestination } from "aws-cdk-lib/aws-lambda-destinations";
 
 export interface ApiProps {
   sharedProps: SharedProps;
@@ -47,6 +48,14 @@ export class ApiWorker extends Construct {
       return undefined;
     }
 
+    const productPricingDeadLetterQueue = new Queue(
+      this,
+      "NodeProductApiPricingChangedDLQ",
+      {
+        queueName: `NodeProductApiPricingChangedDLQ-${props.environment}`,
+      }
+    );
+
     const priceCalculatedHandlerFunction = new InstrumentedLambdaFunction(
       this,
       "NodePriceCalculatedHandlerFunction",
@@ -61,14 +70,7 @@ export class ApiWorker extends Construct {
         buildDef:
           "./src/product-api/adapters/buildHandlePricingChangedFunction.js",
         outDir: "./out/handlePricingChangedFunction",
-      }
-    );
-
-    const productPricingDeadLetterQueue = new Queue(
-      this,
-      "NodeProductApiPricingChangedDLQ",
-      {
-        queueName: `NodeProductApiPricingChangedDLQ-${props.environment}`,
+        onFailure: new SqsDestination(productPricingDeadLetterQueue),
       }
     );
 

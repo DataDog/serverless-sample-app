@@ -50,6 +50,7 @@ export class AnalyticsService extends Construct {
         buildDef:
           "./src/analytics-backend/adapters/buildAnalyticsEventHandler.js",
         outDir: "./out/analyticsEventHandler",
+        onFailure: undefined
       }
     ).function;
 

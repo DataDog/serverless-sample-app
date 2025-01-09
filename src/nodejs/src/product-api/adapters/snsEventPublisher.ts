@@ -10,7 +10,7 @@ import { EventPublisher } from "../core/eventPublisher";
 import { ProductCreatedEvent } from "../private-events/productCreatedEvent";
 import { ProductDeletedEvent } from "../private-events/productDeletedEvent";
 import { ProductUpdatedEvent } from "../private-events/productUpdatedEvent";
-import { Span, tracer } from "dd-trace";
+import { Span, tracer, TracerProvider } from "dd-trace";
 import { CloudEvent } from "cloudevents";
 import { randomUUID } from "crypto";
 import { Logger } from "@aws-lambda-powertools/logger";

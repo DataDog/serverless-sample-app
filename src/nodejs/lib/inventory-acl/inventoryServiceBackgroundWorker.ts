@@ -59,6 +59,7 @@ export class InventoryServiceACL extends Construct {
         buildDef:
           "./src/inventory-acl/adapters/buildProductCreatedPublicEventHandler.js",
         outDir: "./out/productCreatedPublicEventHandler",
+        onFailure: undefined
       }
     ).function;
     newProductAdded.grantPublish(this.inventoryServiceACLFunction);

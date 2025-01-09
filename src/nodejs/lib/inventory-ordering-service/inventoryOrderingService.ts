@@ -89,6 +89,7 @@ export class InventoryOrderingService extends Construct {
         buildDef:
           "./src/inventory-ordering-service/adapters/buildInventoryOrderingWorkflowTrigger.js",
         outDir: "./out/inventoryOrderingWorkflowTrigger",
+        onFailure: undefined
       }
     ).function;
 

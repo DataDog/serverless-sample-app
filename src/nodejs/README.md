@@ -22,8 +22,8 @@ Once installed, you can use the Construct to configure all of your Datadog setti
 
 ```typescript
 const datadogConfiguration = new Datadog(this, "Datadog", {
-  nodeLayerVersion: 117,
-  extensionLayerVersion: 67,
+  nodeLayerVersion: 118,
+  extensionLayerVersion: 68,
   site: process.env.DD_SITE,
   apiKeySecret: ddApiKey,
   service,

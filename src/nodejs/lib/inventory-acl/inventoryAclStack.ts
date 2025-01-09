@@ -29,8 +29,8 @@ export class InventoryAclStack extends cdk.Stack {
     const version = process.env["COMMIT_HASH"] ?? "latest";
 
     const datadogConfiguration = new Datadog(this, "Datadog", {
-      nodeLayerVersion: 117,
-      extensionLayerVersion: 67,
+      nodeLayerVersion: 118,
+      extensionLayerVersion: 68,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
       service,

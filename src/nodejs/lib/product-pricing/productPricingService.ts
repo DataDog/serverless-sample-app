@@ -46,6 +46,7 @@ export class ProductPricingService extends Construct {
         buildDef:
           "./src/product-pricing-service/adapters/buildProductCreatedPricingHandler.js",
         outDir: "./out/productCreatedPricingHandler",
+        onFailure: undefined
       }
     ).function;
     this.priceCalculatedTopic.grantPublish(this.productCreatedPricingFunction);
@@ -92,6 +93,7 @@ export class ProductPricingService extends Construct {
         buildDef:
           "./src/product-pricing-service/adapters/buildProductUpdatedPricingHandler.js",
         outDir: "./out/productUpdatedPricingHandler",
+        onFailure: undefined
       }
     ).function;
     this.priceCalculatedTopic.grantPublish(this.productUpdatedPricingFunction);

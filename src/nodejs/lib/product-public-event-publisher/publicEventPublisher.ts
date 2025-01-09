@@ -63,6 +63,7 @@ export class ProductPublicEventPublisher extends Construct {
         buildDef:
           "./src/product-public-event-publisher/adapters/buildPublicEventPublisherFunction.js",
         outDir: "./out/publicEventPublisherFunction",
+        onFailure: undefined
       }
     ).function;
 

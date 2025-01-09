@@ -95,6 +95,7 @@ export class Api extends Construct {
         },
         buildDef: "./src/product-api/adapters/buildListProductsFunction.js",
         outDir: "./out/listProductsFunction",
+        onFailure: undefined
       }
     );
     const listProductsIntegration = new LambdaIntegration(
@@ -119,6 +120,7 @@ export class Api extends Construct {
         },
         buildDef: "./src/product-api/adapters/buildGetProductFunction.js",
         outDir: "./out/getProductFunction",
+        onFailure: undefined
       }
     );
     const getProductIntegration = new LambdaIntegration(
@@ -143,6 +145,7 @@ export class Api extends Construct {
         },
         buildDef: "./src/product-api/adapters/buildCreateProductFunction.js",
         outDir: "./out/createProductFunction",
+        onFailure: undefined
       }
     );
     const createProductIntegration = new LambdaIntegration(
@@ -168,6 +171,7 @@ export class Api extends Construct {
         },
         buildDef: "./src/product-api/adapters/buildUpdateProductFunction.js",
         outDir: "./out/updateProductFunction",
+        onFailure: undefined
       }
     );
     const updateProductIntegration = new LambdaIntegration(
@@ -193,6 +197,7 @@ export class Api extends Construct {
         },
         buildDef: "./src/product-api/adapters/buildDeleteProductFunction.js",
         outDir: "./out/deleteProductFunction",
+        onFailure: undefined
       }
     );
     const deleteProductIntegration = new LambdaIntegration(
