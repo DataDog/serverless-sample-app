@@ -11,28 +11,45 @@ import { SharedProps } from "./sharedFunctionProps";
 import { Queue } from "aws-cdk-lib/aws-sqs";
 
 export interface QueueProps {
-  sharedProps: SharedProps
-  queueName: string
+  sharedProps: SharedProps;
+  queueName: string;
 }
 
 export class ResiliantQueue extends Construct {
   queue: Queue;
-  deadLetterQueue: Queue
+  deadLetterQueue: Queue;
+  holdingDlq: Queue;
 
   constructor(scope: Construct, id: string, props: QueueProps) {
     super(scope, id);
 
-    this.deadLetterQueue = new Queue(this, `${props.queueName}DLQ-${props.sharedProps.environment}`, {
-        queueName: `${props.queueName}DLQ-${props.sharedProps.environment}`
-    });
+    this.deadLetterQueue = new Queue(
+      this,
+      `${props.queueName}DLQ-${props.sharedProps.environment}`,
+      {
+        queueName: `${props.queueName}DLQ-${props.sharedProps.environment}`,
+      }
+    );
 
-    this.queue = new Queue(this, `${props.queueName}-${props.sharedProps.environment}`, {
+    this.holdingDlq = new Queue(
+      this,
+      `${props.queueName}TempDLQ-${props.sharedProps.environment}`,
+      {
+        queueName: `${props.queueName}TempDLQ-${props.sharedProps.environment}`,
+      }
+    );
+
+    this.queue = new Queue(
+      this,
+      `${props.queueName}-${props.sharedProps.environment}`,
+      {
         queueName: `${props.queueName}-${props.sharedProps.environment}`,
         deadLetterQueue: {
-            maxReceiveCount: 3,
-            queue: this.deadLetterQueue
-        }
-    });
+          maxReceiveCount: 3,
+          queue: this.holdingDlq,
+        },
+      }
+    );
 
     Tags.of(this.deadLetterQueue).add("service", props.sharedProps.serviceName);
     Tags.of(this.deadLetterQueue).add("env", props.sharedProps.environment);

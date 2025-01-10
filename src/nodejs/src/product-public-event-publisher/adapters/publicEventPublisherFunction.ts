@@ -128,6 +128,8 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
     }
   }
 
+  logger.info(`Batch has ${sqsFailures.length} failures`);
+
   return {
     batchItemFailures: sqsFailures,
   };

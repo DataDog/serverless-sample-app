@@ -85,6 +85,8 @@ export class EventBridgeEventPublisher implements IntegrationEventPublisher {
           "error.type": "Error",
         });
       }
+
+      throw error;
     }
 
     return;

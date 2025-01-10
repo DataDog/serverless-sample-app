@@ -37,14 +37,38 @@ export class ProductPublicEventPublisher extends Construct {
   ) {
     super(scope, id);
 
-    this.integrationEventPublisherQueue = new ResiliantQueue(
+    const eventPublisherQueue = new ResiliantQueue(
       this,
       "NodeProductPublicEventPublisherQueue",
       {
         sharedProps: props.sharedProps,
         queueName: "NodeProductPublicEventPublisherQueue",
       }
-    ).queue;
+    );
+    this.integrationEventPublisherQueue = eventPublisherQueue.queue;
+
+    const dlqProcessor = new InstrumentedLambdaFunction(
+      this,
+      "NodeProductPublicEventPublisherDLQProcessor",
+      {
+        sharedProps: props.sharedProps,
+        functionName: "NodeProductPublicEventPublisherDLQProcessor",
+        handler: "index.handler",
+        environment: {
+          DLQ_URL: eventPublisherQueue.deadLetterQueue.queueUrl,
+        },
+        buildDef:
+          "./src/product-public-event-publisher/adapters/buildDlqHandlerFunction.js",
+        outDir: "./out/dlqHandlerFunction",
+        onFailure: undefined,
+      }
+    ).function;
+    dlqProcessor.addEventSource(
+      new SqsEventSource(eventPublisherQueue.holdingDlq, {
+        batchSize: 1,
+      })
+    );
+    eventPublisherQueue.deadLetterQueue.grantSendMessages(dlqProcessor);
 
     this.integrationEventPublisherFunction = new InstrumentedLambdaFunction(
       this,
@@ -63,7 +87,7 @@ export class ProductPublicEventPublisher extends Construct {
         buildDef:
           "./src/product-public-event-publisher/adapters/buildPublicEventPublisherFunction.js",
         outDir: "./out/publicEventPublisherFunction",
-        onFailure: undefined
+        onFailure: undefined,
       }
     ).function;
 
@@ -72,7 +96,9 @@ export class ProductPublicEventPublisher extends Construct {
     );
 
     this.integrationEventPublisherFunction.addEventSource(
-      new SqsEventSource(this.integrationEventPublisherQueue)
+      new SqsEventSource(this.integrationEventPublisherQueue, {
+        reportBatchItemFailures: true,
+      })
     );
 
     props.productCreatedTopic.addSubscription(
