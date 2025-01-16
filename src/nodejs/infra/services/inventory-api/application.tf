@@ -189,7 +189,7 @@ resource "aws_ecs_service" "main" {
   launch_type     = "FARGATE"
   network_configuration {
     subnets         = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
-    security_groups = [aws_security_group.ecs.id]
+    security_groups = [aws_security_group.ecs_sg.id]
   }
   load_balancer {
     target_group_arn = aws_lb_target_group.target_group.arn
