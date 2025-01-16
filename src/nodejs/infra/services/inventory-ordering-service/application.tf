@@ -59,7 +59,7 @@ resource "aws_sfn_state_machine" "inventory_ordering_state_machine" {
     level                  = "ALL"
   }
   definition = templatefile("${path.module}/../../../lib/inventory-ordering-service/workflows/workflow.setStock.asl.json", {
-    TABLE_NAME = data.aws_ssm_parameter.inventory_table_name.value
+    TableName = data.aws_ssm_parameter.inventory_table_name.value
   })
   tags = {
     DD_ENHANCED_METRICS : "true"
