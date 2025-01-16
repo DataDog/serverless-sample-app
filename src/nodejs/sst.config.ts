@@ -7,6 +7,8 @@ import { ProductApiWorkerStack } from "./lib/product-api-workers/product-api-wor
 import { InventoryAclStack } from "./lib/inventory-acl/inventoryAclStack";
 import { InventoryOrderServiceStack } from "./lib/inventory-ordering-service/inventoryOrderingServiceStack";
 import { AnalyticsBackendStack } from "./lib/analytics-backend/analyticsBackendStack";
+import { InventoryApiStack } from "./lib/inventory-api/inventoryApiStack";
+import { ProductAclStack } from "./lib/product-acl/productAclStack";
 
 export default {
   config() {
@@ -18,25 +20,61 @@ export default {
   stacks(app: App) {
     // Set ENV to the current stage so that we send traces with this env to Datadog, e.g. "personal" or "dev"
     process.env.ENV = app.stage;
-    const shared = new SharedResourcesStack(app, `SharedResources-${app.stage}`);
+    const shared = new SharedResourcesStack(
+      app,
+      `SharedResources-${app.stage}`
+    );
     const productApi = new ProductApiStack(app, `ProductApiStack-${app.stage}`);
-    const eventPublisher = new ProductPublicEventPublisherStack(app, `ProductPublicEventPublisherStack-${app.stage}`);
+    const eventPublisher = new ProductPublicEventPublisherStack(
+      app,
+      `ProductPublicEventPublisherStack-${app.stage}`
+    );
     eventPublisher.addDependency(productApi);
     eventPublisher.addDependency(shared);
 
-    const pricing = new ProductPricingStack(app, `ProductPricingStack-${app.stage}`);
+    const pricing = new ProductPricingStack(
+      app,
+      `ProductPricingStack-${app.stage}`
+    );
     pricing.addDependency(productApi);
 
-    const apiWorker = new ProductApiWorkerStack(app, `ProductApiWorkerStack-${app.stage}`);
-    apiWorker.addDependency(pricing);
+    const productAclService = new ProductAclStack(
+      app,
+      "NodeProductAclService",
+      {}
+    );
+    productAclService.addDependency(shared);
 
-    const inventoryAcl = new InventoryAclStack(app, `InventoryAclStack-${app.stage}`);
+    const apiWorker = new ProductApiWorkerStack(
+      app,
+      `ProductApiWorkerStack-${app.stage}`
+    );
+    apiWorker.addDependency(pricing);
+    apiWorker.addDependency(productAclService);
+
+    const inventoryApiStack = new InventoryApiStack(
+      app,
+      "NodeInventoryApiStack",
+      {}
+    );
+
+    const inventoryAcl = new InventoryAclStack(
+      app,
+      `InventoryAclStack-${app.stage}`
+    );
     inventoryAcl.addDependency(shared);
 
-    const inventoryOrdering = new InventoryOrderServiceStack(app, `InventoryOrderServiceStack-${app.stage}`);
+    const inventoryOrdering = new InventoryOrderServiceStack(
+      app,
+      `InventoryOrderServiceStack-${app.stage}`
+    );
     inventoryOrdering.addDependency(inventoryAcl);
+    inventoryOrdering.addDependency(inventoryApiStack);
 
-    const analyticsBackend = new AnalyticsBackendStack(app, `AnalyticsBackendStack-${app.stage}`);
+    const analyticsBackend = new AnalyticsBackendStack(
+      app,
+      `AnalyticsBackendStack-${app.stage}`
+    );
     analyticsBackend.addDependency(shared);
   },
 };
