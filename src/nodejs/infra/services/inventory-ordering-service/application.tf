@@ -14,12 +14,12 @@ module "inventory_ordering_service" {
   environment_variables = {
     ORDERING_SERVICE_WORKFLOW_ARN : aws_sfn_state_machine.inventory_ordering_state_machine.arn
     DD_SERVICE_MAPPING : "lambda_sns:${data.aws_ssm_parameter.product_added_topic.value}"
-    DOMAIN: "inventory"
+    DOMAIN : "inventory"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
-  dd_site = var.dd_site
-  app_version = var.app_version
-  env = var.env
+  dd_site               = var.dd_site
+  app_version           = var.app_version
+  env                   = var.env
 }
 
 resource "aws_iam_role_policy_attachment" "product_created_handler_sqs_receive_permission" {
@@ -58,8 +58,9 @@ resource "aws_sfn_state_machine" "inventory_ordering_state_machine" {
     include_execution_data = true
     level                  = "ALL"
   }
-
-  definition = file("${path.module}/../../../lib/inventory-ordering-service/workflows/workflow.sample.asl.json")
+  definition = templatefile("${path.module}/../../../lib/inventory-ordering-service/workflows/workflow.setStock.asl.json", {
+    TABLE_NAME = data.aws_ssm_parameter.inventory_table_name.value
+  })
   tags = {
     DD_ENHANCED_METRICS : "true"
     DD_TRACE_ENABLED : "true"

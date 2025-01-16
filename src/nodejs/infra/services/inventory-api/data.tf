@@ -11,7 +11,7 @@ data "aws_region" "current" {}
 data "aws_iam_policy_document" "dynamo_db_read" {
   statement {
     actions   = ["dynamodb:GetItem", "dynamodb:Scan", "dynamodb:Query", "dynamodb:BatchGetItem", "dynamodb:DescribeTable"]
-    resources = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.node_product_api.name}", "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.node_product_api.name}/*"]
+    resources = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.node_inventory_api.name}", "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.node_inventory_api.name}/*"]
   }
 }
 
@@ -21,7 +21,7 @@ data "aws_iam_policy_document" "dynamo_db_write" {
               "dynamodb:UpdateItem",
               "dynamodb:BatchWriteItem",
               "dynamodb:DeleteItem"]
-    resources = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.node_product_api.name}", "arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.node_product_api.name}/*"]
+    resources = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.node_inventory_api.name}", "arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.node_inventory_api.name}/*"]
   }
 }
 

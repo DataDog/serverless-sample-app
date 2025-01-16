@@ -12,6 +12,10 @@ data "aws_ssm_parameter" "product_added_topic" {
   name = "/node/inventory/${var.env}/product-added-topic"
 }
 
+data "aws_ssm_parameter" "inventory_table_name" {
+  name = "/node/inventory/${var.env}/table-name"
+}
+
 data "aws_iam_policy_document" "stepfunctions_start_execution" {
   statement {
     actions   = ["states:StartExecution"]

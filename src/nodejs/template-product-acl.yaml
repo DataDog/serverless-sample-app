@@ -60,7 +60,7 @@ Resources:
       FunctionName: !Sub ProductAclStockUpdatedEventHandler-${Env}
       Environment:
         Variables:
-          PRODUCT_ADDED_TOPIC_ARN: !Ref InventoryStockUpdatedTopic
+          STOCK_LEVEL_UPDATED_TOPIC_ARN: !Ref InventoryStockUpdatedTopic
           DD_SERVICE_MAPPING: !Sub "lambda_sqs:${NodeProductStockUpdatedEventQueue.QueueName}"
       Events:
         IntegrationQueue:

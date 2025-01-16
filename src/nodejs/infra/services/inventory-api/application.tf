@@ -280,7 +280,7 @@ resource "aws_ecs_service" "main" {
 }
 
 resource "aws_ssm_parameter" "table_name_param" {
-  name  = "/node/product/${var.env}/table-name"
+  name  = "/node/inventory/${var.env}/table-name"
   type  = "String"
   value = aws_dynamodb_table.node_inventory_api.name
 }
