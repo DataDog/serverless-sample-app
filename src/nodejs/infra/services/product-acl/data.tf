@@ -23,7 +23,7 @@ data "aws_iam_policy_document" "product_acl_queue_policy" {
     }
 
     actions   = ["sqs:SendMessage"]
-    resources = [aws_sqs_queue.public_event_acl_queue.arn]
+    resources = [aws_sqs_queue.product_event_acl_queue.arn]
   }
 }
 
@@ -32,7 +32,7 @@ data "aws_iam_policy_document" "sqs_receive" {
     actions = ["sqs:ReceiveMessage",
       "sqs:DeleteMessage",
     "sqs:GetQueueAttributes"]
-    resources = ["arn:aws:sqs:*:${data.aws_caller_identity.current.account_id}:${aws_sqs_queue.public_event_acl_queue.name}"]
+    resources = ["arn:aws:sqs:*:${data.aws_caller_identity.current.account_id}:${aws_sqs_queue.product_event_acl_queue.name}"]
   }
 }
 

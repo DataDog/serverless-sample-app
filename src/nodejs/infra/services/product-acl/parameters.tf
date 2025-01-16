@@ -10,3 +10,9 @@ resource "aws_ssm_parameter" "product_stock_updated_topic" {
   type  = "String"
   value = aws_sns_topic.node_product_stock_updated.arn
 }
+
+resource "aws_ssm_parameter" "product_stock_updated_topic_name" {
+  name  = "/node/product/${var.env}/stock-updated-topic-name"
+  type  = "String"
+  value = aws_sns_topic.node_product_stock_updated.name
+}

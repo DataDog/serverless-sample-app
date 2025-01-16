@@ -12,8 +12,16 @@ data "aws_ssm_parameter" "product_pricing_changed_topic" {
   name = "/node/product/${var.env}/pricing-calculated-topic"
 }
 
+data "aws_ssm_parameter" "product_stock_updated_topic" {
+  name = "/node/product/${var.env}/stock-updated-topic"
+}
+
 data "aws_ssm_parameter" "product_pricing_changed_topic_name" {
   name = "/node/product/${var.env}/pricing-calculated-topic-name"
+}
+
+data "aws_ssm_parameter" "product_stock_updated_topic_name" {
+  name = "/node/product/${var.env}/stock-updated-topic-name"
 }
 
 data "aws_ssm_parameter" "product_api_table_name" {
