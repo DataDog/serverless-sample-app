@@ -26,11 +26,18 @@ import {
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { Topic } from "aws-cdk-lib/aws-sns";
 import { EventBus } from "aws-cdk-lib/aws-events";
+import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 
 // no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class InventoryApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    const ddApiKey = Secret.fromSecretCompleteArn(
+      this,
+      "DDApiKeySecret",
+      process.env.DD_API_KEY_SECRET_ARN!
+    );
 
     const service = "NodeInventoryApi";
     const env = process.env.ENV ?? "dev";
@@ -102,7 +109,7 @@ export class InventoryApiStack extends cdk.Stack {
               dd_source: "expressjs",
               dd_message_key: "log",
               provider: "ecs",
-              apikey: process.env.DD_API_KEY!,
+              apikey: ddApiKey.secretValue.toString(),
             },
           }),
         },
@@ -125,6 +132,8 @@ export class InventoryApiStack extends cdk.Stack {
 
     table.grantReadWriteData(application.taskDefinition.taskRole);
     sharedEventBus.grantPutEventsTo(application.taskDefinition.taskRole);
+    ddApiKey.grantRead(application.taskDefinition.taskRole);
+    ddApiKey.grantRead(application.taskDefinition.executionRole!);
 
     application.targetGroup.healthCheck = {
       port: "3000",
@@ -157,6 +166,9 @@ export class InventoryApiStack extends cdk.Stack {
         DD_VERSION: version,
         DD_API_KEY: process.env.DD_API_KEY!,
         DD_APM_IGNORE_RESOURCES: "GET /health",
+      },
+      secrets: {
+        DD_API_KEY: cdk.aws_ecs.Secret.fromSecretsManager(ddApiKey),
       },
     });
   }
