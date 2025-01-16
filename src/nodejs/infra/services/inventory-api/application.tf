@@ -66,13 +66,14 @@ resource "aws_lb_target_group" "main" {
   name     = "main-tg"
   port     = 3000
   protocol = "HTTP"
+  target_type = "ip"
   vpc_id   = aws_vpc.main.id
   health_check {
     path                = "/health"
-    interval            = 30
-    timeout             = 5
+    interval            = 60
+    timeout             = 30
     healthy_threshold   = 2
-    unhealthy_threshold = 2
+    unhealthy_threshold = 5
   }
 }
 
