@@ -27,6 +27,7 @@ import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { Topic } from "aws-cdk-lib/aws-sns";
 import { EventBus } from "aws-cdk-lib/aws-events";
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
+import { ManagedPolicy, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 
 // no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class InventoryApiStack extends cdk.Stack {
@@ -77,6 +78,11 @@ export class InventoryApiStack extends cdk.Stack {
       }
     );
 
+    const executionRole = new Role(this, "NodeInventoryApiExecutionRole", {
+      assumedBy: new ServicePrincipal("ecs-tasks.amazonaws.com"),
+    });
+    executionRole.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName("service-role/AmazonECSTaskExecutionRolePolicy"));
+
     const application = new ApplicationLoadBalancedFargateService(
       this,
       "NodeInventoryApiService",
@@ -91,6 +97,7 @@ export class InventoryApiStack extends cdk.Stack {
           image: ContainerImage.fromRegistry(
             "public.ecr.aws/k4y9x2e7/dd-serverless-sample-app:latest"
           ),
+          executionRole: executionRole,
           environment: {
             TABLE_NAME: table.tableName,
             EVENT_BUS_NAME: sharedEventBus.eventBusName,
@@ -133,7 +140,7 @@ export class InventoryApiStack extends cdk.Stack {
     table.grantReadWriteData(application.taskDefinition.taskRole);
     sharedEventBus.grantPutEventsTo(application.taskDefinition.taskRole);
     ddApiKey.grantRead(application.taskDefinition.taskRole);
-    ddApiKey.grantRead(application.taskDefinition.executionRole!);
+    ddApiKey.grantRead(executionRole);
 
     application.targetGroup.healthCheck = {
       port: "3000",
