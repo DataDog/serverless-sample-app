@@ -65,11 +65,11 @@ module "product_api_stock_updated_worker" {
 }
 
 
-resource "aws_iam_role_policy_attachment" "allow_dynamo_read_permission" {
+resource "aws_iam_role_policy_attachment" "stock_updated_allow_dynamo_read_permission" {
   role       = module.product_api_stock_updated_worker.function_role_name
   policy_arn = aws_iam_policy.dynamo_db_read.arn
 }
-resource "aws_iam_role_policy_attachment" "allow_dynamo_write_permission" {
+resource "aws_iam_role_policy_attachment" "stock_updated_allow_dynamo_write_permission" {
   role       = module.product_api_stock_updated_worker.function_role_name
   policy_arn = aws_iam_policy.dynamo_db_write.arn
 }
