@@ -23,6 +23,7 @@ import {
 } from "aws-cdk-lib/aws-stepfunctions";
 import { Queue } from "aws-cdk-lib/aws-sqs";
 import { Effect, PolicyStatement, ServicePrincipal } from "aws-cdk-lib/aws-iam";
+import { Table } from "aws-cdk-lib/aws-dynamodb";
 
 export interface InventoryOrderingServiceProps {
   sharedProps: SharedProps;
@@ -52,6 +53,17 @@ export class InventoryOrderingService extends Construct {
       newProductAddedTopicParam.stringValue
     );
 
+    const tableName = StringParameter.fromStringParameterName(
+      this,
+      "NodeInventoryApiTableName",
+      `/node/${props.sharedProps.environment}/inventory-api/table-name`
+    );
+    const inventoryTable = Table.fromTableName(
+      this,
+      "InventoryTable",
+      tableName.stringValue
+    );
+
     const workflowLogGroup = new LogGroup(
       this,
       "NodeInventoryOrderingServiceLogGroup",
@@ -64,8 +76,11 @@ export class InventoryOrderingService extends Construct {
     const workflow = new StateMachine(this, "NodeInventoryOrderingService", {
       stateMachineName: `NodeInventoryOrderingService-${props.sharedProps.environment}`,
       definitionBody: DefinitionBody.fromFile(
-        "./lib/inventory-ordering-service/workflows/workflow.sample.asl.json"
+        "./lib/inventory-ordering-service/workflows/workflow.setStock.asl.json"
       ),
+      definitionSubstitutions: {
+        TableName: inventoryTable.tableName,
+      },
       logs: {
         destination: workflowLogGroup,
         includeExecutionData: true,
@@ -74,6 +89,8 @@ export class InventoryOrderingService extends Construct {
     });
     Tags.of(workflow).add("DD_ENHANCED_METRICS", "true");
     Tags.of(workflow).add("DD_TRACE_ENABLED", "true");
+
+    inventoryTable.grantReadWriteData(workflow.role);
 
     this.inventoryOrderingWorkflowTrigger = new InstrumentedLambdaFunction(
       this,
@@ -89,7 +106,7 @@ export class InventoryOrderingService extends Construct {
         buildDef:
           "./src/inventory-ordering-service/adapters/buildInventoryOrderingWorkflowTrigger.js",
         outDir: "./out/inventoryOrderingWorkflowTrigger",
-        onFailure: undefined
+        onFailure: undefined,
       }
     ).function;
 
@@ -107,19 +124,6 @@ export class InventoryOrderingService extends Construct {
       })
     );
 
-    // inventoryWorkflowDLQ.addToResourcePolicy(
-    //   new PolicyStatement({
-    //     effect: Effect.ALLOW,
-    //     principals: [new ServicePrincipal("sns.amazonaws.com")],
-    //     actions: ["sqs:SendMessage"],
-    //     resources: [inventoryWorkflowDLQ.queueArn],
-    //     conditions: {
-    //       ArnEquals: {
-    //         "aws:SourceArn": topic,
-    //       },
-    //     },
-    //   })
-    // );
     workflow.grantStartExecution(this.inventoryOrderingWorkflowTrigger);
 
     const inventoryStateMachineArnParam = new StringParameter(

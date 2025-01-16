@@ -23,6 +23,7 @@ export class Product {
   price: number;
   previousPrice: number;
   updated: boolean = false;
+  currentStockLevel: number;
   priceBrackets: ProductPriceBracket[] = [];
 
   constructor(name: string, price: number) {
@@ -33,6 +34,7 @@ export class Product {
     this.name = name;
     this.price = price;
     this.productId = randomUUID().toString();
+    this.currentStockLevel = 0;
   }
 
   update(name: string, price: number) {
@@ -60,6 +62,10 @@ export class Product {
 
   addPrice(bracket: ProductPriceBracket) {
     this.priceBrackets.push(bracket);
+  }
+
+  setStockLevel(stockLevel: number) {
+    this.currentStockLevel = stockLevel;
   }
 }
 

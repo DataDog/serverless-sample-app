@@ -21,6 +21,7 @@ export interface ApiProps {
   sharedProps: SharedProps;
   ddApiKeySecret: ISecret;
   priceCalculatedTopic: ITopic | undefined;
+  stockLevelUpdatedTopic: ITopic | undefined;
 }
 
 export class ApiWorker extends Construct {
@@ -38,6 +39,12 @@ export class ApiWorker extends Construct {
       props.sharedProps,
       props.priceCalculatedTopic
     );
+
+    const stockLevelUpdatedFunction =
+      this.buildStockLevelUpdatedHandlerFunction(
+        props.sharedProps,
+        props.stockLevelUpdatedTopic
+      );
   }
 
   buildPriceCalculatedHandlerFunction(
@@ -97,5 +104,50 @@ export class ApiWorker extends Construct {
     this.table.grantReadWriteData(priceCalculatedHandlerFunction.function);
 
     return priceCalculatedHandlerFunction.function;
+  }
+
+  buildStockLevelUpdatedHandlerFunction(
+    props: SharedProps,
+    stockLevelUpdatedTopic: ITopic | undefined
+  ): IFunction | undefined {
+    if (stockLevelUpdatedTopic === undefined) {
+      return undefined;
+    }
+
+    const productStockLevelUpdatedDLQ = new Queue(
+      this,
+      "NodeProductApiStockLevelUpdatedDLQ",
+      {
+        queueName: `NodeProductApiStockLevelUpdatedDLQ-${props.environment}`,
+      }
+    );
+
+    const stockLevelUpdatedHandlerFunction = new InstrumentedLambdaFunction(
+      this,
+      "NodeProductApiStockLevelUpdatedFunction",
+      {
+        sharedProps: props,
+        functionName: "NodeProductApiStockLevelUpdatedFunction",
+        handler: "index.handler",
+        environment: {
+          TABLE_NAME: this.table.tableName,
+          DD_SERVICE_MAPPING: `lambda_sns:${stockLevelUpdatedTopic.topicName}`,
+        },
+        buildDef:
+          "./src/product-api/adapters/buildHandleStockLevelUpdatedFunction.js",
+        outDir: "./out/handleStockLevelUpdatedFunction",
+        onFailure: new SqsDestination(productStockLevelUpdatedDLQ),
+      }
+    );
+
+    stockLevelUpdatedHandlerFunction.function.addEventSource(
+      new SnsEventSource(stockLevelUpdatedTopic, {
+        deadLetterQueue: productStockLevelUpdatedDLQ,
+      })
+    );
+
+    this.table.grantReadWriteData(stockLevelUpdatedHandlerFunction.function);
+
+    return stockLevelUpdatedHandlerFunction.function;
   }
 }

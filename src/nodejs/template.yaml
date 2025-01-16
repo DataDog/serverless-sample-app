@@ -5,15 +5,15 @@
 # Copyright 2024 Datadog, Inc.
 #
 
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 
-Parameters: 
+Parameters:
   DDApiKeySecretArn:
     Type: String
   DDSite:
     Type: String
-  Env: 
+  Env:
     Type: String
     Default: dev
   CommitHash:
@@ -21,91 +21,116 @@ Parameters:
     Default: latest
 
 Resources:
-    Shared:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-shared.yaml
+  Shared:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: template-shared.yaml
 
-    ProductApi:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-api.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn: Shared
+  ProductApi:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: template-api.yaml
+      Parameters:
+        DDApiKeySecretArn: !Ref DDApiKeySecretArn
+        DDSite: !Ref DDSite
+        Env: !Ref Env
+        CommitHash: !Ref CommitHash
+    DependsOn: Shared
 
-    ProductPricingService:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-pricing-service.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn:
-        - Shared
-        - ProductApi
+  InventoryApi:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: template-inventory-api.yaml
+      Parameters:
+        DDApiKeySecretArn: !Ref DDApiKeySecretArn
+        DDSite: !Ref DDSite
+        Env: !Ref Env
+        CommitHash: !Ref CommitHash
+    DependsOn: Shared
 
-    ProductApiWorker:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-product-api-worker.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn:
-        - ProductPricingService
-    
-    ProductPublicEventPublisher:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-product-event-publisher.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn:
-        - ProductApi
-    
-    InventoryAcl:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-inventory-acl.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn:
-        - Shared
-    
-    InventoryOrderingService:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-inventory-ordering-service.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn:
-        - InventoryAcl
-    
-    AnalyticsService:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-analytics-service.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn:
-        - Shared
+  ProductPricingService:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: template-pricing-service.yaml
+      Parameters:
+        DDApiKeySecretArn: !Ref DDApiKeySecretArn
+        DDSite: !Ref DDSite
+        Env: !Ref Env
+        CommitHash: !Ref CommitHash
+    DependsOn:
+      - Shared
+      - ProductApi
+
+  ProductApiWorker:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: template-product-api-worker.yaml
+      Parameters:
+        DDApiKeySecretArn: !Ref DDApiKeySecretArn
+        DDSite: !Ref DDSite
+        Env: !Ref Env
+        CommitHash: !Ref CommitHash
+    DependsOn:
+      - ProductPricingService
+      - ProductAcl
+
+  ProductPublicEventPublisher:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: template-product-event-publisher.yaml
+      Parameters:
+        DDApiKeySecretArn: !Ref DDApiKeySecretArn
+        DDSite: !Ref DDSite
+        Env: !Ref Env
+        CommitHash: !Ref CommitHash
+    DependsOn:
+      - ProductApi
+
+  InventoryAcl:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: template-inventory-acl.yaml
+      Parameters:
+        DDApiKeySecretArn: !Ref DDApiKeySecretArn
+        DDSite: !Ref DDSite
+        Env: !Ref Env
+        CommitHash: !Ref CommitHash
+    DependsOn:
+      - Shared
+
+  ProductAcl:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: template-product-acl.yaml
+      Parameters:
+        DDApiKeySecretArn: !Ref DDApiKeySecretArn
+        DDSite: !Ref DDSite
+        Env: !Ref Env
+        CommitHash: !Ref CommitHash
+    DependsOn:
+      - Shared
+
+  InventoryOrderingService:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: template-inventory-ordering-service.yaml
+      Parameters:
+        DDApiKeySecretArn: !Ref DDApiKeySecretArn
+        DDSite: !Ref DDSite
+        Env: !Ref Env
+        CommitHash: !Ref CommitHash
+    DependsOn:
+      - InventoryAcl
+      - InventoryApi
+
+  AnalyticsService:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: template-analytics-service.yaml
+      Parameters:
+        DDApiKeySecretArn: !Ref DDApiKeySecretArn
+        DDSite: !Ref DDSite
+        Env: !Ref Env
+        CommitHash: !Ref CommitHash
+    DependsOn:
+      - Shared

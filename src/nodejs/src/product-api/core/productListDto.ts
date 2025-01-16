@@ -9,4 +9,5 @@ export class ProductListDTO {
   productId: string;
   name: string;
   price: number;
+  currentStockLevel: number;
 }

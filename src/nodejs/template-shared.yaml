@@ -28,3 +28,10 @@ Resources:
       Name: !Sub /node/shared/event-bus-name
       Type: String
       Value: !Ref NodeSharedEventBus
+
+  SharedEventBusArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /node/shared/event-bus-arn
+      Type: String
+      Value: !GetAtt NodeSharedEventBus.Arn

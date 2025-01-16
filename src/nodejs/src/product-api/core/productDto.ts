@@ -9,6 +9,7 @@ export class ProductDTO {
   productId: string;
   name: string;
   price: number;
+  currentStockLevel: number;
   pricingBrackets: {
     quantity: number;
     price: number;

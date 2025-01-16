@@ -12,7 +12,7 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
-      nodeLayerVersion: 118
+      nodeLayerVersion: 117
       extensionLayerVersion: 68
       service: !Ref ServiceName
       env: !Ref Env
@@ -35,7 +35,7 @@ Parameters:
     Type: String
   TopicArn:
     Type: String
-    Default: '{{resolve:ssm:/node/inventory/new-product-added-topic:1}}' 
+    Default: "{{resolve:ssm:/node/inventory/new-product-added-topic:1}}"
   DDSite:
     Type: String
 
@@ -100,16 +100,18 @@ Resources:
           - "graphql/utilities"
           - "@aws-sdk/client-sfn"
 
-  InventoryOrderingServiceLogGroup: 
+  InventoryOrderingServiceLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       RetentionInDays: 1
       LogGroupName: !Sub "/aws/vendedlogs/states/NodeInventoryOrderingServiceLogGroup-${Env}"
 
   NodeInventoryOrderingService:
     Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionUri: lib/inventory-ordering-service/workflows/workflow.sample.asl.json
+      DefinitionUri: lib/inventory-ordering-service/workflows/workflow.setStock.asl.json
+      DefinitionSubstitutions:
+        TableName: "{{resolve:ssm:/node/inventory-api/table-name:1}}"
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -126,11 +128,13 @@ Resources:
                 - "logs:DescribeResourcePolicies"
                 - "logs:DescribeLogGroups"
               Resource: "*"
+        - DynamoDBWritePolicy:
+            TableName: "{{resolve:ssm:/node/inventory-api/table-name:1}}"
       Logging:
         IncludeExecutionData: true
         Level: ALL
         Destinations:
-           - CloudWatchLogsLogGroup: 
+          - CloudWatchLogsLogGroup:
               LogGroupArn: !GetAtt InventoryOrderingServiceLogGroup.Arn
       Tags:
         DD_ENHANCED_METRICS: "true"

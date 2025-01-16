@@ -59,20 +59,6 @@ export class ProductPricingService extends Construct {
       }
     );
 
-    // productPricingDeadLetterQueue.addToResourcePolicy(
-    //   new PolicyStatement({
-    //     effect: Effect.ALLOW,
-    //     principals: [new ServicePrincipal("sns.amazonaws.com")],
-    //     actions: ["sqs:SendMessage"],
-    //     resources: [productPricingDeadLetterQueue.queueArn],
-    //     conditions: {
-    //       ArnEquals: {
-    //         "aws:SourceArn": props.productCreatedTopic.topicArn,
-    //       },
-    //     },
-    //   })
-    // );
-
     this.productCreatedPricingFunction.addEventSource(
       new SnsEventSource(props.productCreatedTopic, {
         deadLetterQueue: productPricingDeadLetterQueue,

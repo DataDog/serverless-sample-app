@@ -75,3 +75,12 @@ module "analytics-service" {
   env                   = var.env
   app_version           = var.app_version
 }
+
+module "inventory-api" {
+  source                = "./services/inventory-api"
+  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site               = var.dd_site
+  depends_on            = [module.shared]
+  env                   = var.env
+  app_version           = var.app_version
+}

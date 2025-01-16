@@ -34,6 +34,7 @@ export class ListProductsHandler {
             name: existingProduct.name,
             price: existingProduct.price,
             productId: existingProduct.productId,
+            currentStockLevel: existingProduct.currentStockLevel,
           }
         }),
         success: true,

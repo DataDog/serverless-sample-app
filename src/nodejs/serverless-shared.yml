@@ -8,8 +8,8 @@ resources:
   Resources:
     NodeSharedEventBus:
       Type: AWS::Events::EventBus
-      Properties: 
-          Name: "NodeTracingEventBus"
+      Properties:
+        Name: "NodeTracingEventBus"
 
     SharedEventBusNameParameter:
       Type: AWS::SSM::Parameter
@@ -17,3 +17,10 @@ resources:
         Name: /node/shared/event-bus-name
         Type: String
         Value: !Ref NodeSharedEventBus
+
+    SharedEventBusArnParameter:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /node/shared/event-bus-arn
+        Type: String
+        Value: !GetAtt NodeSharedEventBus.Arn

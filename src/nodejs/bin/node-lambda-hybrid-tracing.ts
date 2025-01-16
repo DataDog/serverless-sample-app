@@ -9,11 +9,13 @@ import { ProductApiWorkerStack } from "../lib/product-api-workers/product-api-wo
 import { InventoryAclStack } from "../lib/inventory-acl/inventoryAclStack";
 import { InventoryOrderServiceStack } from "../lib/inventory-ordering-service/inventoryOrderingServiceStack";
 import { AnalyticsBackendStack } from "../lib/analytics-backend/analyticsBackendStack";
+import { InventoryApiStack } from "../lib/inventory-api/inventoryApiStack";
+import { ProductAclStack } from "../lib/product-acl/productAclStack";
 
 const app = new cdk.App();
 
 const sharedStack = new SharedResourcesStack(app, "NodeSharedStack", {});
- 
+
 const apiStack = new ProductApiStack(app, "NodeProductApiStack", {});
 apiStack.addDependency(sharedStack);
 
@@ -32,13 +34,11 @@ const productPricingStack = new ProductPricingStack(
 );
 productPricingStack.addDependency(apiStack);
 
-const productApiWorkerStack = new ProductApiWorkerStack(
+const inventoryApiStack = new InventoryApiStack(
   app,
-  "NodeProductApiWorkerStack",
+  "NodeInventoryApiStack",
   {}
 );
-productApiWorkerStack.addDependency(apiStack);
-productApiWorkerStack.addDependency(productPricingStack);
 
 const inventoryAcl = new InventoryAclStack(app, "NodeInventoryAcl", {});
 inventoryAcl.addDependency(sharedStack);
@@ -49,6 +49,23 @@ const inventoryOrderingService = new InventoryOrderServiceStack(
   {}
 );
 inventoryOrderingService.addDependency(inventoryAcl);
+inventoryOrderingService.addDependency(inventoryApiStack);
 
-const analyticsService = new AnalyticsBackendStack(app, "NodeAnalyticsStack", {});
+const analyticsService = new AnalyticsBackendStack(
+  app,
+  "NodeAnalyticsStack",
+  {}
+);
 analyticsService.addDependency(sharedStack);
+
+const productAclService = new ProductAclStack(app, "NodeProductAclService", {});
+productAclService.addDependency(sharedStack);
+
+const productApiWorkerStack = new ProductApiWorkerStack(
+  app,
+  "NodeProductApiWorkerStack",
+  {}
+);
+productApiWorkerStack.addDependency(apiStack);
+productApiWorkerStack.addDependency(productPricingStack);
+productApiWorkerStack.addDependency(productAclService);

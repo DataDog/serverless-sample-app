@@ -58,6 +58,7 @@ export class GetProductHandler {
               price: item.price,
             };
           }),
+          currentStockLevel: existingProduct.currentStockLevel,
         },
         success: true,
         message: [],

@@ -12,7 +12,7 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
-      nodeLayerVersion: 118
+      nodeLayerVersion: 117
       extensionLayerVersion: 68
       service: !Ref ServiceName
       env: !Ref Env
@@ -87,6 +87,51 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - ./src/product-api/adapters/handlePricingChangedFunction.ts
+        External:
+          - "opentracing"
+          - "dd-trace"
+          - "@datadog/native-metrics"
+          - "@datadog/pprof"
+          - "@datadog/native-appsec"
+          - "@datadog/native-iast-taint-tracking"
+          - "@datadog/native-iast-rewriter"
+          - "graphql/language/visitor"
+          - "graphql/language/printer"
+          - "graphql/utilities"
+          - "@aws-sdk/client-dynamodb"
+
+  ProductStockUpdatedWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: handleStockLevelUpdatedFunction.handler
+      FunctionName: !Sub ProductStockUpdatedWorker-${Env}
+      Environment:
+        Variables:
+          DD_SERVICE_MAPPING: !Sub "lambda_sns:${TopicArn}"
+          TABLE_NAME: "{{resolve:ssm:/node/product/product-table-name:1}}"
+      Events:
+        PricingChangedTopic:
+          Type: SNS
+          Properties:
+            Topic: "{{resolve:ssm:/node/inventory/stock-updated-topic:1}}"
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "{{resolve:ssm:/node/product/product-table-name:1}}"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "node22"
+        Sourcemap: true
+        EntryPoints:
+          - ./src/product-api/adapters/handleStockLevelUpdatedFunction.ts
         External:
           - "opentracing"
           - "dd-trace"

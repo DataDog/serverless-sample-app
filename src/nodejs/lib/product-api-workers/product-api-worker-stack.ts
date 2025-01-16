@@ -52,23 +52,37 @@ export class ProductApiWorkerStack extends cdk.Stack {
     };
 
     let priceCalculatedTopic: ITopic | undefined = undefined;
+    let stockLevelUpdatedTopic: ITopic | undefined = undefined;
 
     const priceCalculatedTopicArn = StringParameter.fromStringParameterName(
       this,
       "PriceCalculatedTopicArn",
       "/node/product/pricing-calculated-topic"
     );
-    
+
+    const stockLevelUpdatedTopicParam = StringParameter.fromStringParameterName(
+      this,
+      "StockLevelUpdatedTopicArn",
+      `/node/inventory/${sharedProps.environment}/stock-updated-topic`
+    );
+
     priceCalculatedTopic = Topic.fromTopicArn(
       this,
       "PriceCalculatedTopic",
       priceCalculatedTopicArn.stringValue
     );
 
+    stockLevelUpdatedTopic = Topic.fromTopicArn(
+      this,
+      "StockLevelUpdatedTopic",
+      stockLevelUpdatedTopicParam.stringValue
+    );
+
     const api = new ApiWorker(this, "ProductApiWorker", {
       sharedProps,
       ddApiKeySecret: ddApiKey,
       priceCalculatedTopic,
+      stockLevelUpdatedTopic,
     });
   }
 }

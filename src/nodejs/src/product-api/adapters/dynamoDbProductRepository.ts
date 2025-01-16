@@ -28,18 +28,23 @@ export class DynamoDbProductRepository implements ProductRepository {
       })
     );
 
-    const products = scanResponse.Items?.map(item => {
-      let product = new Product(
-        item["Name"].S!,
-        parseFloat(item["Price"].N!)
-      );
-      product.productId = item["ProductId"].S!;
-      product.priceBrackets = JSON.parse(
-        item["PriceBrackets"].S!
-      );
+    const products =
+      scanResponse.Items?.map((item) => {
+        let product = new Product(
+          item["Name"].S!,
+          parseFloat(item["Price"].N!)
+        );
+        product.productId = item["ProductId"].S!;
+        product.priceBrackets = JSON.parse(item["PriceBrackets"].S!);
 
-      return product;
-    }) ?? [];
+        const stockLevelAttribute = item["StockLevel"];
+        product.currentStockLevel =
+          stockLevelAttribute === undefined
+            ? 0
+            : parseFloat(stockLevelAttribute.N ?? "0.00");
+
+        return product;
+      }) ?? [];
 
     return products;
   }
@@ -68,6 +73,12 @@ export class DynamoDbProductRepository implements ProductRepository {
     product.priceBrackets = JSON.parse(
       getItemResponse.Item["PriceBrackets"].S!
     );
+    const stockLevelAttribute = getItemResponse.Item["StockLevel"];
+
+    product.currentStockLevel =
+      stockLevelAttribute === undefined
+        ? 0
+        : parseFloat(stockLevelAttribute.N ?? "0.00");
 
     return product;
   }
@@ -94,6 +105,9 @@ export class DynamoDbProductRepository implements ProductRepository {
           },
           PriceBrackets: {
             S: JSON.stringify(product.priceBrackets),
+          },
+          StockLevel: {
+            N: product.currentStockLevel.toFixed(2),
           },
         },
       })
@@ -123,6 +137,9 @@ export class DynamoDbProductRepository implements ProductRepository {
           },
           PriceBrackets: {
             S: JSON.stringify(product.priceBrackets),
+          },
+          StockLevel: {
+            N: product.currentStockLevel.toFixed(2),
           },
         },
       })
