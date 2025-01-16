@@ -13,7 +13,7 @@ resource "aws_sqs_queue" "product_event_acl_queue" {
   name                      = "tf-node-product-acl-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.public_event_acl_dlq.arn
+    deadLetterTargetArn = aws_sqs_queue.product_event_acl_dlq.arn
     maxReceiveCount     = 3
   })
 }
@@ -35,7 +35,7 @@ module "product_acl_function" {
   lambda_handler = "index.handler"
   environment_variables = {
     STOCK_LEVEL_UPDATED_TOPIC_ARN : aws_sns_topic.node_product_stock_updated.arn
-    DD_SERVICE_MAPPING : "lambda_sqs:${aws_sqs_queue.public_event_acl_queue.name}"
+    DD_SERVICE_MAPPING : "lambda_sqs:${aws_sqs_queue.product_event_acl_queue.name}"
     DOMAIN: "product"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn

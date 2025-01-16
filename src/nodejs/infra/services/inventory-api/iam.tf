@@ -23,10 +23,3 @@ resource "aws_iam_policy" "eb_publish" {
   path   = "/"
   policy = data.aws_iam_policy_document.eb_publish.json
 }
-
-resource "aws_iam_policy" "sqs_receive_policy" {
-  name   = "tf-node-inventory-api-sqs-policy-${var.env}"
-  path   = "/"
-  policy = data.aws_iam_policy_document.sqs_receive.json
-}
-
