@@ -116,7 +116,7 @@ export class InventoryApiStack extends cdk.Stack {
               dd_source: "expressjs",
               dd_message_key: "log",
               provider: "ecs",
-              apikey: ddApiKey.secretValue.toString(),
+              apikey: ddApiKey.secretValue.unsafeUnwrap(),
             },
           }),
         },
