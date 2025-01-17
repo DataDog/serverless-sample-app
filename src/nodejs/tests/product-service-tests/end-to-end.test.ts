@@ -19,8 +19,8 @@ let stepFunctionsClient: SFNClient;
 let stepFunctionArn = "";
 const runtimeUnderTest = process.env.RUNTIME ?? "Node";
 const environmentUnderTest = process.env.ENV ?? "test";
-const testTimeout = runtimeUnderTest === "Java" ? 300000 : 60000;
-const testDelay = runtimeUnderTest === "Java" ? 120000 : 15000;
+const testTimeout = runtimeUnderTest === "Java" ? 300000 : 90000;
+const testDelay = runtimeUnderTest === "Java" ? 120000 : 30000;
 
 // Running tests that span the full end to end, across multiple backend services is not a best practice, this test is to make sure the example app works when updated.
 describe("end-to-end-tests", () => {

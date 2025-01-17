@@ -23,3 +23,9 @@ resource "aws_iam_policy" "eb_publish" {
   path   = "/"
   policy = data.aws_iam_policy_document.eb_publish.json
 }
+
+resource "aws_iam_policy" "get_api_key_secret" {
+  name   = "tf-node-inventory-api-get-secret-${var.env}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.retrieve_api_key_secret.json
+}

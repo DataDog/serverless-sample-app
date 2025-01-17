@@ -48,6 +48,11 @@ resource "aws_iam_role" "ecs_task_role" {
   })
 }
 
+resource "aws_iam_role_policy_attachment" "inventory_api_get_secret" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = aws_iam_policy.get_api_key_secret.arn
+}
+
 resource "aws_iam_role_policy_attachment" "inventory_api_db_read_access" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.dynamo_db_read.arn
@@ -69,6 +74,11 @@ resource "aws_ecs_task_definition" "main" {
   memory                   = "512"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_task_role.arn
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
+
   container_definitions = jsonencode([
     {
       name  = "NodeInventoryApi"

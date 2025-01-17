@@ -20,11 +20,18 @@ data "aws_iam_policy_document" "dynamo_db_read" {
 
 data "aws_iam_policy_document" "dynamo_db_write" {
   statement {
-    actions   = ["dynamodb:PutItem",
-              "dynamodb:UpdateItem",
-              "dynamodb:BatchWriteItem",
-              "dynamodb:DeleteItem"]
+    actions = ["dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:BatchWriteItem",
+    "dynamodb:DeleteItem"]
     resources = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.node_inventory_api.name}", "arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.node_inventory_api.name}/*"]
+  }
+}
+
+data "aws_iam_policy_document" "retrieve_api_key_secret" {
+  statement {
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [var.dd_api_key_secret_arn]
   }
 }
 

@@ -24,7 +24,6 @@ import {
   TableClass,
 } from "aws-cdk-lib/aws-dynamodb";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
-import { Topic } from "aws-cdk-lib/aws-sns";
 import { EventBus } from "aws-cdk-lib/aws-events";
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 import { ManagedPolicy, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
