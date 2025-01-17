@@ -61,7 +61,7 @@ resource "aws_iam_role_policy_attachment" "product_created_handler_sns_publish" 
 }
 
 resource "aws_cloudwatch_event_rule" "event_rule" {
-  name           = "InventoryAclRule"
+  name           = "ProductStockUpdatedAclRule"
   event_bus_name = data.aws_ssm_parameter.eb_name.value
   event_pattern  = <<EOF
 {
