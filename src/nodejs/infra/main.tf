@@ -55,6 +55,7 @@ module "inventory-api" {
   depends_on            = [module.shared]
   env                   = var.env
   app_version           = var.app_version
+  region                = var.region
 }
 
 

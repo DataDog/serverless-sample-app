@@ -21,26 +21,26 @@ resource "aws_eip" "nateip" {
 resource "aws_subnet" "private_subnet_1" {
     vpc_id                  = aws_vpc.vpc.id
     cidr_block              = "10.0.80.0/20"
-    availability_zone       = "eu-west-1a"
+    availability_zone       = "${var.region}a"
 }
 
 resource "aws_subnet" "private_subnet_2" {
     vpc_id                  = aws_vpc.vpc.id
     cidr_block              = "10.0.112.0/20"
-    availability_zone       = "eu-west-1b"
+    availability_zone       = "${var.region}b"
 }
 
 resource "aws_subnet" "public_subnet_1" {
     vpc_id                  = aws_vpc.vpc.id
     cidr_block              = "10.0.16.0/20"
-    availability_zone       = "eu-west-1a"
+    availability_zone       = "${var.region}a"
     map_public_ip_on_launch = true
 }
 
 resource "aws_subnet" "public_subnet_2" {
     vpc_id                  = aws_vpc.vpc.id
     cidr_block              = "10.0.32.0/20"
-    availability_zone       = "eu-west-1b"
+    availability_zone       = "${var.region}b"
     map_public_ip_on_launch = true
 }
 

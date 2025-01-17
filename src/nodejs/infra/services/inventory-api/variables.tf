@@ -11,17 +11,21 @@ variable "dd_api_key_secret_arn" {
 }
 
 variable "dd_site" {
-  type    = string
+  type        = string
   description = "The Datadog site"
 }
 
 variable "env" {
-  type = string
+  type        = string
   description = "The environment deploying to"
 }
 
 variable "app_version" {
-  type = string
+  type        = string
   description = "The deployed version of the application"
-  default = "latest"
+  default     = "latest"
+}
+
+variable "region" {
+  type = string
 }
