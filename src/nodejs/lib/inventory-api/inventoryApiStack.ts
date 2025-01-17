@@ -171,7 +171,6 @@ export class InventoryApiStack extends cdk.Stack {
         DD_ENV: env,
         DD_SERVICE: service,
         DD_VERSION: version,
-        DD_API_KEY: process.env.DD_API_KEY!,
         DD_APM_IGNORE_RESOURCES: "GET /health",
       },
       secrets: {
