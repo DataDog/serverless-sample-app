@@ -29,18 +29,18 @@ custom:
     target: "node22"
     bundle: true
     minify: true
-    exclude: 
+    exclude:
       - "opentracing"
       - "dd-trace"
       - "@datadog/native-metrics"
       - "@datadog/pprof"
-      - '@datadog/native-appsec'
-      - '@datadog/native-iast-taint-tracking'
-      - '@datadog/native-iast-rewriter'
-      - 'graphql/language/visitor' 
-      - 'graphql/language/printer'
-      - 'graphql/utilities'
-      - '@aws-sdk/*'
+      - "@datadog/native-appsec"
+      - "@datadog/native-iast-taint-tracking"
+      - "@datadog/native-iast-rewriter"
+      - "graphql/language/visitor"
+      - "graphql/language/printer"
+      - "graphql/utilities"
+      - "@aws-sdk/*"
 
 provider:
   name: aws
@@ -49,7 +49,7 @@ provider:
     DD_EXTENSION_VERSION: "next"
     ENV: ${sls:stage}
     POWERTOOLS_SERVICE_NAME: ${self:custom.serviceName}
-    POWERTOOLS_LOG_LEVEL: 'INFO'
+    POWERTOOLS_LOG_LEVEL: "INFO"
     DOMAIN: "inventory"
   iam:
     role:
@@ -77,20 +77,22 @@ stepFunctions:
   stateMachines:
     inventoryOrderingWorkflow:
       name: inventoryOrderingWorkflow${sls:stage}
-      definition: ${file(lib/inventory-ordering-service/workflows/workflow.sample.asl.json)}
+      definition: ${file(lib/inventory-ordering-service/workflows/workflow.setStock.asl.json)}
+      definitionSubstitutions:
+        TableName: ${ssm:/node/inventory-api/table-name}
       loggingConfig:
         level: ALL
         includeExecutionData: true
         destinations:
           - Fn::GetAtt: [InventoryOrderingServiceLogGroup, Arn]
       tags:
-          DD_ENHANCED_METRICS: "true"
-          DD_TRACE_ENABLED: "true"
+        DD_ENHANCED_METRICS: "true"
+        DD_TRACE_ENABLED: "true"
 
 resources:
   Resources:
-    InventoryOrderingServiceLogGroup: 
+    InventoryOrderingServiceLogGroup:
       Type: AWS::Logs::LogGroup
-      Properties: 
+      Properties:
         RetentionInDays: 1
         LogGroupName: !Sub "/aws/vendedlogs/states/NodeInventoryOrderingServiceLogGroup-${sls:stage}"

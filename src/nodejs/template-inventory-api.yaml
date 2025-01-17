@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
-Description: This template deploys ALB with ECS Fargate cluster to deploy a containerised Spring Boot Application
+Description: This template deploys ALB with ECS Fargate cluster
 
 Parameters: 
   ServiceName: 
@@ -305,8 +305,7 @@ Resources:
               Value: !Ref InventoryApiTable
             -
               Name: EVENT_BUS_NAME
-              #Value: "{{resolve:ssm:/node/shared/event-bus-name:1}}"
-              Value: ""
+              Value: "{{resolve:ssm:/node/shared/event-bus-name:1}}"
             - 
               Name: TEAM
               Value: "inventory"

@@ -1,0 +1,142 @@
+#
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2024 Datadog, Inc.
+#
+
+service: serverless-product-acl
+frameworkVersion: "3"
+
+plugins:
+  - serverless-plugin-datadog
+  - serverless-esbuild
+
+custom:
+  serviceName: NodeProductAcl
+  datadog:
+    apiKeySecretArn: ${param:DD_API_KEY_SECRET_ARN}
+    site: ${param:DD_SITE}
+    env: ${sls:stage}
+    service: ${self:custom.serviceName}
+    version: latest
+    # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
+    captureLambdaPayload: true
+    propagateUpstreamTrace: true
+  esbuild:
+    platform: "node"
+    target: "node22"
+    bundle: true
+    minify: true
+    exclude: 
+      - "opentracing"
+      - "dd-trace"
+      - "@datadog/native-metrics"
+      - "@datadog/pprof"
+      - '@datadog/native-appsec'
+      - '@datadog/native-iast-taint-tracking'
+      - '@datadog/native-iast-rewriter'
+      - 'graphql/language/visitor' 
+      - 'graphql/language/printer'
+      - 'graphql/utilities'
+      - '@aws-sdk/*'
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  environment:
+    DD_EXTENSION_VERSION: "next"
+    ENV: ${sls:stage}
+    POWERTOOLS_SERVICE_NAME: ${self:custom.serviceName}
+    POWERTOOLS_LOG_LEVEL: 'INFO'
+    DOMAIN: "product"
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource: ${param:DD_API_KEY_SECRET_ARN}
+        - Effect: Allow
+          Action:
+            - sns:Publish
+          Resource:
+            - !Ref StockLevelUpdatedTopic
+
+functions:
+  handleStockLevelUpdatedEvent:
+    handler: src/inventory-acl/adapters/productCreatedPublicEventHandler.handler
+    environment:
+      STOCK_LEVEL_UPDATED_TOPIC_ARN: !Ref StockLevelUpdatedTopic
+      DD_SERVICE_MAPPING: !Sub "lambda_sqs:${NodeProductStockLevelUpdatedQueue.QueueName}"
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [NodeProductStockLevelUpdatedQueue, Arn]
+
+resources:
+  Resources:
+    StockLevelUpdatedTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: !Sub "NodeProductStockLevelUpdatedTopic-${sls:stage}"
+    
+    NewProductAddedTopicArn:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /node/product/stock-level-updated-topic
+        Type: String
+        Value: !Ref StockLevelUpdatedTopic
+    
+    NewProductAddedTopicName:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /node/product/stock-level-updated-topic-name
+        Type: String
+        Value: !GetAtt StockLevelUpdatedTopic.TopicName
+
+    NodeProductStockLevelUpdatedDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: !Sub "NodeProductStockLevelUpdatedDLQ-${sls:stage}"
+
+    NodeProductStockLevelUpdatedQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: !Sub "NodeProductStockLevelUpdatedQueue-${sls:stage}"
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - "NodeProductStockLevelUpdatedDLQ"
+              - "Arn"
+          maxReceiveCount: 3
+
+    StockLevelUpdatedEventRule:
+      Type: AWS::Events::Rule
+      Properties:
+        EventBusName: "${ssm:/node/shared/event-bus-name}"
+        Name: product-stock-level-updated
+        State: ENABLED
+        EventPattern:
+          source:
+            - !Sub "${sls:stage}.inventory"
+          detail-type:
+            - "inventory.stockUpdated.v1"
+        Targets:
+          - Id: StockLevelUpdatedQueue
+            Arn: !GetAtt NodeProductStockLevelUpdatedQueue.Arn
+
+    SnsToQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties: 
+        Queues:
+          - !Ref NodeProductStockLevelUpdatedQueue
+        PolicyDocument: 
+          Version: '2012-10-17'
+          Statement:
+            - Sid: allow-eb-send-message-messages
+              Effect: Allow
+              Principal:
+                Service: "events.amazonaws.com"
+              Resource: !GetAtt NodeProductStockLevelUpdatedQueue.Arn
+              Action: SQS:SendMessage

@@ -75,3 +75,9 @@ functions:
       DD_SERVICE_MAPPING: !Sub "lambda_sns:${ssm:/node/product/pricing-calculated-topic-name}"
     events:
       - sns: ${ssm:/node/product/pricing-calculated-topic}
+  handleStockLevelUpdated:
+    handler: src/product-api/adapters/handleStockLevelUpdatedFunction.handler
+    environment:
+      DD_SERVICE_MAPPING: !Sub "lambda_sns:${ssm:/node/product/stock-level-updated-topic-name}"
+    events:
+      - sns: ${ssm:/node/product/stock-level-updated-topic}
