@@ -5,7 +5,6 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-
 resource "aws_ecs_cluster" "main" {
   name = "main-cluster"
 }
@@ -25,10 +24,6 @@ resource "aws_iam_role" "ecs_task_execution_role" {
       }
     ]
   })
-
-  managed_policy_arns = [
-    "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-  ]
 }
 
 resource "aws_iam_role" "ecs_task_role" {
@@ -46,6 +41,11 @@ resource "aws_iam_role" "ecs_task_role" {
       }
     ]
   })
+}
+
+resource "aws_iam_role_policy_attachment" "inventory_api_get_secret" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
 resource "aws_iam_role_policy_attachment" "inventory_api_get_secret" {
@@ -87,6 +87,9 @@ resource "aws_ecs_task_definition" "main" {
         {
           containerPort = 3000
           hostPort      = 3000
+          protocol      = "tcp"
+          appProtocol   = "http"
+          name          = "ivnetory-api"
         }
       ]
       environment = [
@@ -117,6 +120,19 @@ resource "aws_ecs_task_definition" "main" {
           valueFrom = var.dd_api_key_secret_arn
         }
       ]
+      logConfiguration = {
+        logDriver = "awsfirelens"
+        options = {
+          Name           = "datadog"
+          Host           = "http-intake.logs.datadoghq.eu"
+          TLS            = "on"
+          dd_service     = "NodeInventoryApi",
+          dd_source      = "expressjs",
+          dd_message_key = "log",
+          provider       = "ecs",
+          apikey         = data.aws_secretsmanager_secret_version.current_api_key_secret.secret_string
+        }
+      }
     },
     {
       name  = "DatadogAgent"
@@ -187,6 +203,17 @@ resource "aws_ecs_task_definition" "main" {
           valueFrom = var.dd_api_key_secret_arn
         }
       ]
+    },
+    {
+      name      = "log_router"
+      image     = "amazon/aws-for-fluent-bit:latest"
+      essential = true
+      firelensConfiguration = {
+        type = "fluentbit"
+        options = {
+          enable-ecs-log-metadata = "true"
+        }
+      }
     }
   ])
 }

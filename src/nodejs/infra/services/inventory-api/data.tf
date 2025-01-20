@@ -45,3 +45,11 @@ data "aws_iam_policy_document" "eb_publish" {
     resources = ["arn:aws:events:*:${data.aws_caller_identity.current.account_id}:event-bus/${data.aws_ssm_parameter.eb_name.value}"]
   }
 }
+
+data "aws_secretsmanager_secret" "api_key_secret" {
+  arn = var.dd_api_key_secret_arn
+}
+
+data "aws_secretsmanager_secret_version" "current_api_key_secret" {
+  secret_id = data.aws_secretsmanager_secret.api_key_secret.id
+}

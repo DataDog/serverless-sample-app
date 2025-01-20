@@ -323,12 +323,16 @@ Resources:
               Name: inventory-api
           Essential: true
           LogConfiguration:
-            LogDriver: awslogs
+            LogDriver: awsfirelens
             Options:
-              awslogs-create-group: true
-              awslogs-group: "/ecs/inventory-api-task-definition"
-              awslogs-region: !Ref AWS::Region
-              awslogs-stream-prefix: ecs
+              Name: "datadog"
+              Host: "http-intake.logs.datadoghq.eu"
+              TLS: "on"
+              dd_service: "NodeInventoryApi"
+              dd_source: "expressjs"
+              dd_message_key: "log"
+              provider: "ecs"
+              apikey: !Sub "{{resolve:secretsmanager:${DDApiKeySecretArn}}}"
         - Name: DatadogAgent
           Image: public.ecr.aws/datadog/agent:latest
           Environment:
@@ -377,13 +381,13 @@ Resources:
             - ContainerPort: 8126
               HostPort: 8126
           Essential: true
-          LogConfiguration:
-            LogDriver: awslogs
+        - Name: LogRouter
+          Image: amazon/aws-for-fluent-bit:latest
+          Essential: true
+          FirelensConfiguration:
+            Type: fluentbit
             Options:
-              awslogs-create-group: true
-              awslogs-group: "/ecs/inventory-api-task-definition"
-              awslogs-region: !Ref AWS::Region
-              awslogs-stream-prefix: ecs
+              enable-ecs-log-metadata: "true"
 
   InventoryApiTableName:
     Type: AWS::SSM::Parameter
