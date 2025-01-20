@@ -49,7 +49,6 @@ resource "aws_cloudwatch_log_group" "sfn_log_group" {
   }
 }
 
-
 resource "aws_sfn_state_machine" "inventory_ordering_state_machine" {
   name     = "tf-node-inventory-ordering-service-${var.env}"
   role_arn = aws_iam_role.invetory_ordering_sfn_role.arn

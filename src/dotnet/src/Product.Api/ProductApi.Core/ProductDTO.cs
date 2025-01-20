@@ -8,15 +8,15 @@ namespace ProductApi.Core;
 
 public class ProductDto(Product product)
 {
-    [JsonPropertyName("productId")]
-    public string ProductId { get; set; } = product.ProductId;
+    [JsonPropertyName("productId")] public string ProductId { get; set; } = product.ProductId;
 
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = product.Details.Name;
+    [JsonPropertyName("name")] public string Name { get; set; } = product.Details.Name;
 
-    [JsonPropertyName("price")]
-    public decimal Price { get; set; } = product.Details.Price;
+    [JsonPropertyName("price")] public decimal Price { get; set; } = product.Details.Price;
 
     [JsonPropertyName("pricingBrackets")]
     public List<ProductPriceBracket> PriceBrackets { get; set; } = product.PriceBrackets;
+
+    [JsonPropertyName("currentStockLevel")]
+    public int CurrentStockLevel { get; set; } = product.CurrentStockLevel;
 }

@@ -1,0 +1,28 @@
+version: "3"
+
+services:
+  datadog-agent:
+    image: "gcr.io/datadoghq/agent:latest"
+    ports:
+      - "8126"
+    environment:
+      DD_API_KEY: "${DD_API_KEY:?Set DD_API_KEY in your shell to send traces to Datadog}"
+      DD_SITE: "datadoghq.eu"
+      DD_APM_ENABLED: "true"
+      DD_APM_NON_LOCAL_TRAFFIC: "true"
+      DD_ENV: "${DD_ENV}"
+
+  inventory-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8080"
+    depends_on:
+      - datadog-agent
+    environment:
+      DD_AGENT_HOST: "datadog-agent"
+      DD_TRACE_AGENT_PORT: "8126"
+      DD_LOGS_INJECTION: "true"
+      AWS_REGION: "${AWS_REGION}"
+      

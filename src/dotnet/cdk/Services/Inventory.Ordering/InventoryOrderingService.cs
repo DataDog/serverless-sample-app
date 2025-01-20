@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using Amazon.CDK;
+using Amazon.CDK.AWS.DynamoDB;
 using Amazon.CDK.AWS.Lambda.EventSources;
 using Amazon.CDK.AWS.Logs;
 using Amazon.CDK.AWS.SecretsManager;
@@ -27,10 +28,20 @@ public class InventoryOrderingService : Construct
             LogGroupName = $"/aws/vendedlogs/states/DotnetInventoryOrderingWorkflowLogGroup-{props.Shared.Env}",
             RemovalPolicy = RemovalPolicy.DESTROY
         });
+
+        var inventoryApiTableParam = StringParameter.FromStringParameterName(this, "DotnetInventoryApiTableParam",
+            $"/dotnet/{props.Shared.Env}/inventory-api/table-name");
+
+        var table = Table.FromTableName(this, "DotnetInventoryApiTable", inventoryApiTableParam.StringValue);
+        
         var workflow = new StateMachine(this, "DotnetInventoryOrderingWorkflow", new StateMachineProps()
         {
             StateMachineName = $"DotnetInventoryOrderingWorkflow-{props.Shared.Env}",
-            DefinitionBody = DefinitionBody.FromFile("../cdk/Services/Inventory.Ordering/workflow/workflow.asl.json"),
+            DefinitionBody = DefinitionBody.FromFile("../cdk/Services/Inventory.Ordering/workflow/workflow.setStock.asl.json"),
+            DefinitionSubstitutions = new Dictionary<string, string>(1)
+            {
+                {"TableName", table.TableName}
+            },
             Logs = new LogOptions()
             {
                 Destination = workflowLogGroup,
@@ -38,6 +49,7 @@ public class InventoryOrderingService : Construct
                 Level = LogLevel.ALL
             }
         });
+        table.GrantReadWriteData(workflow.Role);
         Tags.Of(workflow).Add("DD_ENHANCED_METRICS", "true");
         Tags.Of(workflow).Add("DD_TRACE_ENABLED", "true");
 

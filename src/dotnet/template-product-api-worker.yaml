@@ -77,3 +77,27 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
+
+  StockUpdatedWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/Product.Api/ProductApi.Adapters/
+      Handler: ProductApi.Adapters::ProductApi.Adapters.HandlerFunctions_HandleStockUpdated_Generated::HandleStockUpdated
+      FunctionName: !Sub DotnetProductApiStockUpdatedWorker-${Env}
+      Environment:
+        Variables:
+          TABLE_NAME: !Sub "{{resolve:ssm:/dotnet/${Env}/product/product-table-name:1}}"
+      Events:
+        StockUpdatedTopic:
+          Type: SNS
+          Properties:
+            Topic: !Sub "{{resolve:ssm:/dotnet/${Env}/inventory/stock-updated-topic:1}}"
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Sub "{{resolve:ssm:/dotnet/${Env}/product/product-table-name:1}}"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn

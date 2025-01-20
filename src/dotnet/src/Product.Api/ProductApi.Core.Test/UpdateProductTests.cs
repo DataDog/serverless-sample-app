@@ -14,7 +14,7 @@ public class UpdateProductTests
 
     public UpdateProductTests()
     {
-        var testProduct = Product.From(new ProductId("12345"), new ProductName("test"), new ProductPrice(12), new List<ProductPriceBracket>(1)
+        var testProduct = Product.From(new ProductId("12345"), new ProductName("test"), new ProductPrice(12), 10, new List<ProductPriceBracket>(1)
         {
             new(5, 10.99M)
         });

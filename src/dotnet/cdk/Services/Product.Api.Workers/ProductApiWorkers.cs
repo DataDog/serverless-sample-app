@@ -12,7 +12,7 @@ using ServerlessGettingStarted.CDK.Constructs;
 
 namespace ServerlessGettingStarted.CDK.Services.Product.Api.Workers;
 
-public record ProductApiWorkersProps(SharedProps Shared, ISecret DdApiKeySecret, ITable ProductTable, ITopic PricingUpdatedTopic);
+public record ProductApiWorkersProps(SharedProps Shared, ISecret DdApiKeySecret, ITable ProductTable, ITopic PricingUpdatedTopic, ITopic ProductStockUpdatedTopic);
 
 public class ProductApiWorkers : Construct
 {
@@ -30,5 +30,13 @@ public class ProductApiWorkers : Construct
 
         props.ProductTable.GrantReadData(handlePricingUpdated.Function);
         props.ProductTable.GrantWriteData(handlePricingUpdated.Function);
+        
+        var handleStockUpdated = new InstrumentedFunction(this, "HandleProductStockUpdatedFunction",
+            new FunctionProps(props.Shared,"HandleProductStockUpdatedFunction", "../src/Product.Api/ProductApi.Adapters/",
+                "ProductApi.Adapters::ProductApi.Adapters.HandlerFunctions_HandleStockUpdated_Generated::HandleStockUpdated", apiEnvironmentVariables, props.DdApiKeySecret));
+        handleStockUpdated.Function.AddEventSource(new SnsEventSource(props.ProductStockUpdatedTopic));
+
+        props.ProductTable.GrantReadData(handleStockUpdated.Function);
+        props.ProductTable.GrantWriteData(handleStockUpdated.Function);
     }
 }

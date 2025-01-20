@@ -19,19 +19,28 @@ public class DynamoDbProducts(
     private const string NameItemKey = "Name";
     private const string PriceItemKey = "Price";
     private const string PriceBracketsItemKey = "PriceBrackets";
+    private const string CurrentStockLevelItemKey = "CurrentStockLevel";
+
     public async Task<List<Product>> All()
     {
         var productScanResult = await dynamoDbClient.ScanAsync(new ScanRequest(configuration["TABLE_NAME"]));
-        
+
         var products = new List<Product>();
 
         foreach (var productItem in productScanResult.Items)
         {
             var priceBracketProperty = productItem[PriceBracketsItemKey]?.S ?? "[]";
-            
-            products.Add(Product.From(new ProductId(productItem[PartitionKeyItemKey].S), new ProductName(productItem[NameItemKey].S), new ProductPrice(decimal.Parse(productItem[PriceItemKey].N)), JsonSerializer.Deserialize<List<ProductPriceBracket>>(priceBracketProperty)!));
+            var currentStockLevelAttribute = productItem[CurrentStockLevelItemKey].N;
+            var currentStockLevel = 0;
+
+            if (currentStockLevelAttribute != null) currentStockLevel = int.Parse(currentStockLevelAttribute);
+
+            products.Add(Product.From(new ProductId(productItem[PartitionKeyItemKey].S),
+                new ProductName(productItem[NameItemKey].S),
+                new ProductPrice(decimal.Parse(productItem[PriceItemKey].N)), currentStockLevel,
+                JsonSerializer.Deserialize<List<ProductPriceBracket>>(priceBracketProperty)!));
         }
-        
+
         return products;
     }
 
@@ -43,14 +52,18 @@ public class DynamoDbProducts(
                 { "PK", new AttributeValue(productId) }
             });
 
-        if (!product.IsItemSet)
-        {
-            return null;
-        }
+        if (!product.IsItemSet) return null;
 
         var priceBracketProperty = product.Item[PriceBracketsItemKey]?.S ?? "[]";
 
-        return Product.From(new ProductId(product.Item[PartitionKeyItemKey].S), new ProductName(product.Item[NameItemKey].S), new ProductPrice(decimal.Parse(product.Item[PriceItemKey].N)), JsonSerializer.Deserialize<List<ProductPriceBracket>>(priceBracketProperty)!);
+        var currentStockLevelAttribute = product.Item[CurrentStockLevelItemKey].N;
+        var currentStockLevel = 0;
+
+        if (currentStockLevelAttribute != null) currentStockLevel = int.Parse(currentStockLevelAttribute);
+
+        return Product.From(new ProductId(product.Item[PartitionKeyItemKey].S),
+            new ProductName(product.Item[NameItemKey].S), new ProductPrice(decimal.Parse(product.Item[PriceItemKey].N)),
+            currentStockLevel, JsonSerializer.Deserialize<List<ProductPriceBracket>>(priceBracketProperty)!);
     }
 
     public async Task RemoveWithId(string productId)
@@ -67,8 +80,14 @@ public class DynamoDbProducts(
         {
             { PartitionKeyItemKey, new AttributeValue(product.ProductId) },
             { NameItemKey, new AttributeValue(product.Details.Name) },
-            { PriceItemKey, new AttributeValue(){N = product.Details.Price.ToString("n2")} },
-            { PriceBracketsItemKey, new AttributeValue(JsonSerializer.Serialize(product.PriceBrackets))}
+            { PriceItemKey, new AttributeValue() { N = product.Details.Price.ToString("n2") } },
+            { PriceBracketsItemKey, new AttributeValue(JsonSerializer.Serialize(product.PriceBrackets)) },
+            {
+                CurrentStockLevelItemKey, new AttributeValue()
+                {
+                    N = product.CurrentStockLevel.ToString("n0")
+                }
+            }
         });
     }
 
@@ -78,8 +97,14 @@ public class DynamoDbProducts(
         {
             { PartitionKeyItemKey, new AttributeValue(product.ProductId) },
             { NameItemKey, new AttributeValue(product.Details.Name) },
-            { PriceItemKey, new AttributeValue(){N = product.Details.Price.ToString("n2")} },
-            { PriceBracketsItemKey, new AttributeValue(JsonSerializer.Serialize(product.PriceBrackets))}
+            { PriceItemKey, new AttributeValue() { N = product.Details.Price.ToString("n2") } },
+            { PriceBracketsItemKey, new AttributeValue(JsonSerializer.Serialize(product.PriceBrackets)) },
+            {
+                CurrentStockLevelItemKey, new AttributeValue()
+                {
+                    N = product.CurrentStockLevel.ToString("n0")
+                }
+            }
         });
     }
 }

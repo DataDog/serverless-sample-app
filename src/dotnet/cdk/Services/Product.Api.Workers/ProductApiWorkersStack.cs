@@ -27,11 +27,15 @@ public class ProductApiWorkersStack : Stack {
         var pricingUpdatedTopicParameter = StringParameter.FromStringParameterName(this, "PricingUpdatedTopicArn",
             "/dotnet/product-pricing/pricing-updated-topic");
         var pricingUpdatedTopic = Topic.FromTopicArn(this, "PricingUpdatedTopic", pricingUpdatedTopicParameter.StringValue);
+        
+        var productStockUpdatedTopicParameter = StringParameter.FromStringParameterName(this, "ProductStockUpdatedTopicParameter",
+            "/dotnet/product-acl/stock-updated-topic");
+        var productStockUpdatedTopic = Topic.FromTopicArn(this, "ProductStockUpdatedTopic", productStockUpdatedTopicParameter.StringValue);
 
         var productsTableParameter =
             StringParameter.FromStringParameterName(this, "ProductsTableArnParam", "/dotnet/product-api/table-arn");
         var productTable = Table.FromTableArn(this, "ProductTable", productsTableParameter.StringValue);
 
-        var productApiWorkers = new ProductApiWorkers(this, "DotnetProductApiWorkers", new ProductApiWorkersProps(sharedProps, secret, productTable, pricingUpdatedTopic));
+        var productApiWorkers = new ProductApiWorkers(this, "DotnetProductApiWorkers", new ProductApiWorkersProps(sharedProps, secret, productTable, pricingUpdatedTopic, productStockUpdatedTopic));
     }
 }

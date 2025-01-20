@@ -86,7 +86,9 @@ Resources:
   DotnetInventoryOrderingService:
     Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionUri: cdk/Services/Inventory.Ordering/workflow/workflow.asl.json
+      DefinitionUri: cdk/Services/Inventory.Ordering/workflow/workflow.setStock.asl.json
+      DefinitionSubstitutions:
+        TableName: "{{resolve:ssm:/dotnet/inventory-api/table-name:1}}"
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -103,6 +105,8 @@ Resources:
                 - "logs:DescribeResourcePolicies"
                 - "logs:DescribeLogGroups"
               Resource: "*"
+        - DynamoDBWritePolicy:
+            TableName: "{{resolve:ssm:/node/inventory-api/table-name:1}}"
       Logging:
         IncludeExecutionData: true
         Level: ALL
