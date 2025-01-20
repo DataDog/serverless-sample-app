@@ -1,9 +1,9 @@
 resource "aws_ecs_task_definition" "main" {
-  family                   = "main-task"
+  family                   = var.service_name
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "256"
-  memory                   = "512"
+  cpu                      = var.cpu
+  memory                   = var.memory_size
   execution_role_arn       = var.execution_role_arn
   task_role_arn            = var.task_role_arn
   runtime_platform {
@@ -127,7 +127,7 @@ resource "aws_ecs_task_definition" "main" {
 }
 
 resource "aws_ecs_service" "main" {
-  name            = "main-service"
+  name            = var.service_name
   cluster         = var.ecs_cluster_id
   task_definition = aws_ecs_task_definition.main.arn
   desired_count   = 1

@@ -7,5 +7,5 @@
 
 import tracer from "dd-trace";
 const logger = require("./adapters/logger");
-tracer.init({ logger }); // initialized in a different file to avoid hoisting.
+tracer.init({ logger, logInjection: true }); // initialized in a different file to avoid hoisting.
 export default tracer;

@@ -26,14 +26,12 @@ variable "app_version" {
   type        = string
 }
 
-variable "service_name" {
-  description = "The name of the Lambda function"
-  type        = string
-}
-
 variable "environment_variables" {
   description = "Environment variables to pass to the Lambda function"
-  type        = map(string)
+  type = list(object({
+    value = string
+    name  = string
+  }))
 }
 
 variable "dd_api_key_secret_arn" {
@@ -45,31 +43,36 @@ variable "dd_site" {
   type    = string
 }
 
+variable "cpu" {
+  type    = string
+  default = "256"
+}
+
 variable "memory_size" {
-  type    = number
-  default = 512
+  type    = string
+  default = "512"
 }
 
 variable "execution_role_arn" {
-  type    = string
+  type = string
 }
 
 variable "task_role_arn" {
-  type    = string
+  type = string
 }
 
 variable "ecs_cluster_id" {
-    type = string
+  type = string
 }
 
 variable "subnet_ids" {
-    type = set(string)
+  type = set(string)
 }
 
 variable "security_group_ids" {
-    type = set(string)
+  type = set(string)
 }
 
 variable "target_group_arn" {
-    type = string
+  type = string
 }
