@@ -107,7 +107,7 @@ Resources:
   StockUpdatedEventRule:
     Type: AWS::Events::Rule
     Properties:
-      EventBusName: "{{resolve:ssm:/dotnet/shared/event-bus-name:1}}"
+      EventBusName: !Sub "{{resolve:ssm:/dotnet/${Env}/shared/event-bus-name:1}}"
       Name: product-stock-updated
       State: ENABLED
       EventPattern:
