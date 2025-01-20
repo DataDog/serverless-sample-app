@@ -17,6 +17,7 @@ package-dotnet:
 	dotnet lambda package -pl src/dotnet/src/Inventory.Ordering/Inventory.Ordering.Adapters/
 	dotnet lambda package -pl src/dotnet/src/Product.EventPublisher/ProductEventPublisher.Adapters/
 	dotnet lambda package -pl src/dotnet/src/Product.Pricing/ProductPricingService.Lambda/
+	dotnet lambda package -pl src/dotnet/src/Product.Acl/Product.Acl.Adapters/
 
 sam-dotnet:
 	cd src/dotnet; npm i; sam build;sam deploy --stack-name DotnetTracing-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION}
@@ -86,7 +87,7 @@ sam-nodejs:
 	cd src/nodejs; npm i; sam build;sam deploy --stack-name NodeTracing-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION}
 
 sam-nodejs-destroy:
-	cd src/nodejs; npm i; sam delete --stack-name NodeTracing-${ENV} --no-prompts
+	cd src/nodejs; npm i; sam delete --stack-name NodeTracing-${ENV} --no-prompts --region ${AWS_REGION}
 
 cdk-nodejs:
 	cd src/nodejs; npm i; cdk deploy --require-approval never --all --concurrency 3
