@@ -82,12 +82,11 @@ public class ProductApi : Construct
         var updateProductFunction = new InstrumentedFunction(this, "UpdateProductFunction",
             new FunctionProps(props.Shared,"UpdateProduct", "../src/Product.Api/ProductApi.Adapters/",
                 "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_UpdateProduct_Generated::UpdateProduct", apiEnvironmentVariables, props.DdApiKeySecret));
-
-        Table.GrantWriteData(updateProductFunction.Function);
-        Table.GrantWriteData(updateProductFunction.Function);
         
-        Table.GrantWriteData(createProductFunction.Function);
-        Table.GrantWriteData(deleteProductFunction.Function);
+        Table.GrantReadWriteData(updateProductFunction.Function);
+        
+        Table.GrantReadWriteData(createProductFunction.Function);
+        Table.GrantReadWriteData(deleteProductFunction.Function);
         ProductCreatedTopic.GrantPublish(createProductFunction.Function);
         ProductUpdatedTopic.GrantPublish(updateProductFunction.Function);
         ProductDeletedTopic.GrantPublish(deleteProductFunction.Function);
