@@ -1,6 +1,7 @@
 using Amazon;
 using Amazon.DynamoDBv2;
 using Amazon.EventBridge;
+using Amazon.EventBridge.Model;
 using Inventory.Api.Adapters;
 using Inventory.Api.Core;
 using Inventory.Api.GetProductStock;
@@ -30,8 +31,18 @@ try
 
     var regionEndpoint = RegionEndpoint.GetBySystemName(Environment.GetEnvironmentVariable("AWS_REGION"));
 
-    builder.Services.AddSingleton(new AmazonDynamoDBClient(regionEndpoint));
-    builder.Services.AddSingleton(new AmazonEventBridgeClient(regionEndpoint));
+    // Prime AWS SDK's.
+    var dynamoDbClient = new AmazonDynamoDBClient(regionEndpoint);
+    dynamoDbClient.DescribeTableAsync(Environment.GetEnvironmentVariable("TABLE_NAME")).GetAwaiter().GetResult();
+    builder.Services.AddSingleton(dynamoDbClient);
+
+    var eventBridgeClient = new AmazonEventBridgeClient(regionEndpoint);
+    eventBridgeClient.DescribeEventBusAsync(new DescribeEventBusRequest()
+    {
+        Name = Environment.GetEnvironmentVariable("EVENT_BUS_NAME")
+    }).GetAwaiter().GetResult();
+    builder.Services.AddSingleton(eventBridgeClient);
+    
     builder.Services.AddSingleton<InventoryItems, DynamoDbInventoryItems>();
     builder.Services.AddSingleton<EventPublisher, EventBridgeEventPublisher>();
 

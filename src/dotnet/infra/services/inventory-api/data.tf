@@ -23,7 +23,8 @@ data "aws_iam_policy_document" "dynamo_db_write" {
     actions = ["dynamodb:PutItem",
       "dynamodb:UpdateItem",
       "dynamodb:BatchWriteItem",
-    "dynamodb:DeleteItem"]
+    "dynamodb:DeleteItem",
+    "dynamodb:DescribeTable"]
     resources = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.dotnet_inventory_api.name}", "arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.dotnet_inventory_api.name}/*"]
   }
 }

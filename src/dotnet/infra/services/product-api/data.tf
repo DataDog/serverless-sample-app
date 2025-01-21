@@ -17,10 +17,11 @@ data "aws_iam_policy_document" "dynamo_db_read" {
 
 data "aws_iam_policy_document" "dynamo_db_write" {
   statement {
-    actions   = ["dynamodb:PutItem",
-              "dynamodb:UpdateItem",
-              "dynamodb:BatchWriteItem",
-              "dynamodb:DeleteItem"]
+    actions = ["dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:BatchWriteItem",
+      "dynamodb:DeleteItem",
+    "dynamodb:DescribeTable"]
     resources = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.dotnet_product_api.name}", "arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.dotnet_product_api.name}/*"]
   }
 }

@@ -23,7 +23,7 @@ public class ProductApi : Construct
     public ITopic ProductCreatedTopic { get; private set; }
     public ITopic ProductUpdatedTopic { get; private set; }
     public ITopic ProductDeletedTopic { get; private set; }
-    public ITable Table { get; private set; }
+    public Table Table { get; private set; }
     
     public ProductApi(Construct scope, string id, ProductApiProps props) : base(scope, id)
     {
@@ -83,7 +83,7 @@ public class ProductApi : Construct
             new FunctionProps(props.Shared,"UpdateProduct", "../src/Product.Api/ProductApi.Adapters/",
                 "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_UpdateProduct_Generated::UpdateProduct", apiEnvironmentVariables, props.DdApiKeySecret));
 
-        Table.GrantReadData(updateProductFunction.Function);
+        Table.GrantWriteData(updateProductFunction.Function);
         Table.GrantWriteData(updateProductFunction.Function);
         
         Table.GrantWriteData(createProductFunction.Function);

@@ -21,11 +21,11 @@ public class Startup
         var dogstatsdConfig = new StatsdConfig
         {
             StatsdServerName = "127.0.0.1",
-            StatsdPort = 8125,
+            StatsdPort = 8125
         };
 
         DogStatsd.Configure(dogstatsdConfig);
-        
+
         var configuration = new ConfigurationBuilder()
             .AddEnvironmentVariables()
             .Build();
@@ -34,8 +34,11 @@ public class Startup
         services.AddCore();
         services.AddLogging();
 
+        var dynamoDbClient = new AmazonDynamoDBClient();
+        dynamoDbClient.DescribeTableAsync(Environment.GetEnvironmentVariable("TABLE_NAME")).GetAwaiter().GetResult();
+
         services.AddSingleton(new AmazonSimpleNotificationServiceClient());
-        services.AddSingleton(new AmazonDynamoDBClient());
+        services.AddSingleton(dynamoDbClient);
 
         services.AddSingleton<IEventPublisher, SnsEventPublisher>();
         services.AddSingleton<IProducts, DynamoDbProducts>();

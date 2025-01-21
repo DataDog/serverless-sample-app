@@ -106,7 +106,7 @@ Resources:
                 - "logs:DescribeLogGroups"
               Resource: "*"
         - DynamoDBWritePolicy:
-            TableName: "{{resolve:ssm:/node/inventory-api/table-name:1}}"
+            TableName: "{{resolve:ssm:/dotnet/inventory-api/table-name:1}}"
       Logging:
         IncludeExecutionData: true
         Level: ALL

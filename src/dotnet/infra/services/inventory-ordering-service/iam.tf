@@ -53,7 +53,7 @@ resource "aws_iam_policy" "function_logging_policy" {
 }
 
 resource "aws_iam_policy" "ddb_write_policy" {
-  name = "tf-node-inventory-ordering-service-db-write-${var.env}"
+  name = "tf-dotnet-inventory-ordering-service-db-write-${var.env}"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
