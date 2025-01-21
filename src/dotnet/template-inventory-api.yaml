@@ -272,6 +272,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - "events:PutEvents"
+                  - "events:DescribeEventBus"
                 Resource: "*"
         - PolicyName: allow-secrets-retrieve
           PolicyDocument:

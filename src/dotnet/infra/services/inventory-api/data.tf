@@ -42,7 +42,7 @@ data "aws_ssm_parameter" "eb_name" {
 
 data "aws_iam_policy_document" "eb_publish" {
   statement {
-    actions   = ["events:PutEvents"]
+    actions   = ["events:PutEvents", "events:DescribeEventBus"]
     resources = ["arn:aws:events:*:${data.aws_caller_identity.current.account_id}:event-bus/${data.aws_ssm_parameter.eb_name.value}"]
   }
 }

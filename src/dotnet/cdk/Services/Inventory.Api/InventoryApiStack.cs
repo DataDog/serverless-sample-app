@@ -67,6 +67,13 @@ public class InventoryApiStack : Stack
         executionRole.AddManagedPolicy(
             ManagedPolicy.FromAwsManagedPolicyName("service-role/AmazonECSTaskExecutionRolePolicy"));
 
+        var taskRole = new Role(this, "DotnetInventoryApiTask", new RoleProps()
+        {
+            AssumedBy = new ServicePrincipal("ecs-tasks.amazonaws.com")
+        });
+        taskRole.AddManagedPolicy(
+            ManagedPolicy.FromAwsManagedPolicyName("service-role/AmazonECSTaskExecutionRolePolicy"));
+
         var application = new ApplicationLoadBalancedFargateService(this, "DotnetInventoryApiService",
             new ApplicationLoadBalancedFargateServiceProps
             {
@@ -79,8 +86,10 @@ public class InventoryApiStack : Stack
                 },
                 TaskImageOptions = new ApplicationLoadBalancedTaskImageOptions
                 {
-                    Image = ContainerImage.FromRegistry("public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-dotnet:latest"),
+                    Image = ContainerImage.FromRegistry(
+                        "public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-dotnet:latest"),
                     ExecutionRole = executionRole,
+                    TaskRole = taskRole,
                     Environment = new Dictionary<string, string>
                     {
                         { "TABLE_NAME", table.TableName },
@@ -109,7 +118,7 @@ public class InventoryApiStack : Stack
                 MemoryLimitMiB = 512,
                 PublicLoadBalancer = true
             });
-        
+
         application.TaskDefinition.AddFirelensLogRouter("firelens", new FirelensLogRouterDefinitionOptions()
         {
             Essential = true,
@@ -124,12 +133,18 @@ public class InventoryApiStack : Stack
                 }
             }
         });
-        
-        table.GrantReadWriteData(application.TaskDefinition.TaskRole);
-        eventBus.GrantPutEventsTo(application.TaskDefinition.TaskRole);
-        secret.GrantRead(application.TaskDefinition.TaskRole);
+
+        table.GrantReadWriteData(taskRole);
+        eventBus.GrantPutEventsTo(taskRole);
+        taskRole.AddToPolicy(new PolicyStatement(new PolicyStatementProps()
+        {
+            Effect = Effect.ALLOW,
+            Resources = new[] { eventBus.EventBusArn },
+            Actions = new[] { "events:DescribeEventBus" }
+        }));
+        secret.GrantRead(taskRole);
         secret.GrantRead(executionRole);
-        
+
         application.TargetGroup.ConfigureHealthCheck(new HealthCheck()
         {
             Port = "8080",
@@ -140,7 +155,7 @@ public class InventoryApiStack : Stack
             UnhealthyThresholdCount = 5,
             HealthyThresholdCount = 2
         });
-        
+
         application.TaskDefinition.AddContainer("Datadog", new ContainerDefinitionOptions
         {
             Image = ContainerImage.FromRegistry("public.ecr.aws/datadog/agent:latest"),
