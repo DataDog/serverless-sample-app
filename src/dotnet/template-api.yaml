@@ -80,7 +80,6 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-                - dynamodb:GetItem
               Resource: !Ref DDApiKeySecretArn
 
   GetProductFunction:
@@ -104,7 +103,6 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-                - dynamodb:GetItem
               Resource: !Ref DDApiKeySecretArn
               
   CreateProductFunction:
@@ -129,6 +127,7 @@ Resources:
               Action:
                 - dynamodb:PutItem
                 - dynamodb:GetItem
+                - dynamodb:DescribeTable
               Resource: !GetAtt ProductApiTable.Arn
         - Version: "2012-10-17"
           Statement:
@@ -162,6 +161,7 @@ Resources:
               Action:
                 - dynamodb:PutItem
                 - dynamodb:GetItem
+                - dynamodb:DescribeTable
               Resource: !GetAtt ProductApiTable.Arn
         - Version: "2012-10-17"
           Statement:
@@ -194,6 +194,7 @@ Resources:
               Action:
                 - dynamodb:DeleteItem
                 - dynamodb:GetItem
+                - dynamodb:DescribeTable
               Resource: !GetAtt ProductApiTable.Arn
         - Version: "2012-10-17"
           Statement:

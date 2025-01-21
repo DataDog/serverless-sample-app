@@ -65,6 +65,21 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Product.Acl.Core", "src\Pro
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Product.Acl.Adapters", "src\Product.Acl\Product.Acl.Adapters\Product.Acl.Adapters.csproj", "{4510EECD-A0BC-4645-8838-4D0702663032}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sam", "sam", "{71014E70-6721-4B8D-8A6B-2736BE9BA3E1}"
+	ProjectSection(SolutionItems) = preProject
+		template-product-acl.yaml = template-product-acl.yaml
+		template-analytics-service.yaml = template-analytics-service.yaml
+		template.yaml = template.yaml
+		template-shared.yaml = template-shared.yaml
+		template-api.yaml = template-api.yaml
+		template-inventory-acl.yaml = template-inventory-acl.yaml
+		template-inventory-ordering-service.yaml = template-inventory-ordering-service.yaml
+		template-pricing-service.yaml = template-pricing-service.yaml
+		template-product-api-worker.yaml = template-product-api-worker.yaml
+		template-product-event-publisher.yaml = template-product-event-publisher.yaml
+		template-inventory-api.yaml = template-inventory-api.yaml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
