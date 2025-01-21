@@ -31,14 +31,14 @@ resource "aws_ecs_task_definition" "main" {
       logConfiguration = {
         logDriver = "awsfirelens"
         options = {
-          Name = "datadog"
-          Host = "http-intake.logs.datadoghq.eu"
-          TLS = "on"
-          dd_service = var.service_name
-          dd_source = "expressjs",
+          Name           = "datadog"
+          Host           = "http-intake.logs.datadoghq.eu"
+          TLS            = "on"
+          dd_service     = var.service_name
+          dd_source      = "expressjs",
           dd_message_key = "log",
-          provider = "ecs",
-          apikey = data.aws_secretsmanager_secret_version.current_api_key_secret.secret_string
+          provider       = "ecs",
+          apikey         = data.aws_secretsmanager_secret_version.current_api_key_secret.secret_string
         }
       }
     },
@@ -127,11 +127,12 @@ resource "aws_ecs_task_definition" "main" {
 }
 
 resource "aws_ecs_service" "main" {
-  name            = var.service_name
-  cluster         = var.ecs_cluster_id
-  task_definition = aws_ecs_task_definition.main.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
+  name                  = var.service_name
+  cluster               = var.ecs_cluster_id
+  task_definition       = aws_ecs_task_definition.main.arn
+  desired_count         = 1
+  launch_type           = "FARGATE"
+  wait_for_steady_state = true
   network_configuration {
     subnets         = var.subnet_ids
     security_groups = var.security_group_ids
