@@ -4,10 +4,10 @@
  * Copyright 2024 Datadog, Inc.
  */
 
-package com.cdk.product.api;
+package com.cdk.product.api.container;
 
 import com.cdk.constructs.SharedProps;
 import software.amazon.awscdk.StackProps;
 
-public record ProductApiProps(SharedProps sharedProps) implements StackProps {
+public record ProductApiContainerProps(SharedProps sharedProps) implements StackProps {
 }

@@ -9,5 +9,10 @@ package com.cdk.constructs;
 import java.util.HashMap;
 
 public record InstrumentedFunctionProps(SharedProps sharedProps, String packageName, String jarFile,
-                                        String routingExpression, HashMap<String, String> environmentVariables) {
+                                        String routingExpression, HashMap<String, String> environmentVariables, boolean useQuarkus) {
+
+    public InstrumentedFunctionProps(SharedProps sharedProps, String packageName, String jarFile,
+                                     String routingExpression, HashMap<String, String> environmentVariables) {
+        this(sharedProps, packageName, jarFile, routingExpression, environmentVariables, false); // Default value for useQuarkus
+    }
 }

@@ -10,6 +10,8 @@ import com.cdk.analytics.AnalyticsBackendStack;
 import com.cdk.inventory.acl.InventoryAclStack;
 import com.cdk.inventory.ordering.InventoryOrderingServiceStack;
 import com.cdk.product.api.ProductApiStack;
+import com.cdk.product.api.container.ProductApiContainerStack;
+import com.cdk.product.api.quarkus.ProductApiQuarkusStack;
 import com.cdk.product.apiworker.ProductApiWorkerStack;
 import com.cdk.product.pricing.PricingServiceStack;
 import com.cdk.product.publisher.ProductEventPublisherStack;
@@ -20,29 +22,49 @@ import software.amazon.awscdk.StackProps;
 public class JavaTraceSampleApp {
     public static void main(final String[] args) {
         App app = new App();
-        
-        var sharedStack = new SharedStack(app, "JavaSharedStack", StackProps.builder().build());
 
-        var productApiStack = new ProductApiStack(app, "JavaProductApiStack", StackProps.builder()
+        String env = System.getenv("ENV") == null ? "dev" : System.getenv("ENV");
+        var sharedStack = new SharedStack(app, "JavaSharedStack", StackProps.builder()
+                .stackName(String.format("JavaSharedStack-%s", env))
+                .build());
+
+        var productApiContainerStack = new ProductApiContainerStack(app, "JavaProductApiContainerStack", StackProps.builder()
+                .stackName(String.format("JavaProductApiContainerStack-%s", env))
                 .build());
         
-        var pricingService = new PricingServiceStack(app, "JavaProductPricingService", StackProps.builder().build());
-        pricingService.addDependency(productApiStack);
+//        var productApiStack = new ProductApiStack(app, "JavaProductApiStack-%s", StackProps.builder()
+//                .stackName(String.format("JavaProductApiStack-%s", env))
+//                .build());
         
-        var productApiWorkerService = new ProductApiWorkerStack(app, "JavaProductApiWorkerService", StackProps.builder().build());
+        var pricingService = new PricingServiceStack(app, "JavaProductPricingService", StackProps.builder()
+                .stackName(String.format("JavaProductPricingService-%s", env))
+                .build());
+        pricingService.addDependency(productApiContainerStack);
+        
+        var productApiWorkerService = new ProductApiWorkerStack(app, "JavaProductApiWorkerService", StackProps.builder()
+                .stackName(String.format("JavaProductApiWorkerService-%s", env))
+                .build());
         productApiWorkerService.addDependency(pricingService);
         
-        var eventPublisherService = new ProductEventPublisherStack(app, "JavaEventPublisherStack", StackProps.builder().build());
+        var eventPublisherService = new ProductEventPublisherStack(app, "JavaEventPublisherStack", StackProps.builder()
+                .stackName(String.format("JavaEventPublisherStack-%s", env))
+                .build());
         eventPublisherService.addDependency(sharedStack);
-        eventPublisherService.addDependency(productApiStack);
+        eventPublisherService.addDependency(productApiContainerStack);
         
-        var inventoryAclService = new InventoryAclStack(app, "JavaInventoryAcl", StackProps.builder().build());
+        var inventoryAclService = new InventoryAclStack(app, "JavaInventoryAcl", StackProps.builder()
+                .stackName(String.format("JavaInventoryAcl-%s", env))
+                .build());
         inventoryAclService.addDependency(sharedStack);
         
-        var inventoryOrderingService = new InventoryOrderingServiceStack(app, "JavaInventoryOrdering", StackProps.builder().build());
+        var inventoryOrderingService = new InventoryOrderingServiceStack(app, "JavaInventoryOrdering", StackProps.builder()
+                .stackName(String.format("JavaInventoryOrdering-%s", env))
+                .build());
         inventoryOrderingService.addDependency(inventoryAclService);
         
-        var analyticsBackend = new AnalyticsBackendStack(app, "JavaAnalyticsBackend", StackProps.builder().build());
+        var analyticsBackend = new AnalyticsBackendStack(app, "JavaAnalyticsBackend", StackProps.builder()
+                .stackName(String.format("JavaAnalyticsBackend-%s", env))
+                .build());
         analyticsBackend.addDependency(sharedStack);
         
         app.synth();

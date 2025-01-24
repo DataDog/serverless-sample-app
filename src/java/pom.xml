@@ -4,7 +4,6 @@
   ~ This product includes software developed at Datadog (https://www.datadoghq.com/).
   ~ Copyright 2024 Datadog, Inc.
   -->
-
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -14,6 +13,8 @@
     <packaging>pom</packaging>
     <modules>
         <module>product-api</module>
+        <module>product-api-quarkus</module>
+        <module>product-api-container</module>
         <module>product-pricing</module>
         <module>product-event-publisher</module>
         <module>inventory-acl</module>

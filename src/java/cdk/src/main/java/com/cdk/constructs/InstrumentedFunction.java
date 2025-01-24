@@ -28,9 +28,6 @@ public class InstrumentedFunction extends Construct {
     public InstrumentedFunction(@NotNull Construct scope, @NotNull String id, @NotNull InstrumentedFunctionProps props) {
         super(scope, id);
 
-        Asset fileAsset = Asset.Builder.create(this, String.format("%sS3Asset", props.routingExpression()))
-                .path(props.jarFile()).build();
-
         Map<String, String> lambdaEnvironment = new HashMap<>();
         lambdaEnvironment.put("MAIN_CLASS", String.format("%s.FunctionConfiguration", props.packageName()));
         lambdaEnvironment.put("AWS_LAMBDA_EXEC_WRAPPER", "/opt/datadog_wrapper");
@@ -39,32 +36,39 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.put("DD_ENV", props.sharedProps().env());
         lambdaEnvironment.put("ENV", props.sharedProps().env());
         lambdaEnvironment.put("DD_VERSION", props.sharedProps().version());
-        lambdaEnvironment.put("DD_API_KEY_SECRET_ARN", props.sharedProps().ddApiKeySecret().getSecretArn());
+        lambdaEnvironment.put("DD_API_KEY", props.sharedProps().ddApiKeySecret().getSecretValue().unsafeUnwrap());
         lambdaEnvironment.put("DD_CAPTURE_LAMBDA_PAYLOAD", "true");
-        lambdaEnvironment.put("DD_SERVERLESS_APPSEC_ENABLED", "true");
-        lambdaEnvironment.put("DD_IAST_ENABLED", "true");
         lambdaEnvironment.put("DD_LOGS_INJECTION", "true");
         lambdaEnvironment.put("spring_cloud_function_definition", props.routingExpression());
+        lambdaEnvironment.put("QUARKUS_LAMBDA_HANDLER", props.routingExpression());
+        lambdaEnvironment.put("JAVA_TOOL_OPTIONS", " -XX:+TieredCompilation -XX:TieredStopAtLevel=1");
 
         // Add custom environment variables to the default set.
         lambdaEnvironment.putAll(props.environmentVariables());
 
         List<ILayerVersion> layers = new ArrayList<>(2);
         layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:15",System.getenv("AWS_REGION"))));
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:66", System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:68", System.getenv("AWS_REGION"))));
 
+
+        Asset fileAsset = Asset.Builder.create(this, String.format("%sS3Asset", props.routingExpression()))
+                .path(props.jarFile()).build();
         IBucket bucket = Bucket.fromBucketName(this, "CDKBucket", fileAsset.getS3BucketName());
-
-        // Create our basic function
+        
         var builder = Function.Builder.create(this, props.routingExpression())
                 .functionName(String.format("%s-%s-%s", props.packageName().replace(".", ""), props.routingExpression(), props.sharedProps().env()))
                 .runtime(Runtime.JAVA_21)
                 .memorySize(2048)
-                .handler("org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest")
                 .environment(lambdaEnvironment)
                 .timeout(Duration.seconds(30))
                 .code(Code.fromBucket(bucket, fileAsset.getS3ObjectKey()))
                 .layers(layers);
+
+        if (props.useQuarkus()) {
+            builder.handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest");
+        } else {
+            builder.handler("org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest");
+        }
         
         if (props.sharedProps().env().equals("prod") || props.sharedProps().env().equals("test")) {
             builder.snapStart(SnapStartConf.ON_PUBLISHED_VERSIONS);
