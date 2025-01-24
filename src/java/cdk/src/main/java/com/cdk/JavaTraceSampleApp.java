@@ -11,7 +11,6 @@ import com.cdk.inventory.acl.InventoryAclStack;
 import com.cdk.inventory.ordering.InventoryOrderingServiceStack;
 import com.cdk.product.api.ProductApiStack;
 import com.cdk.product.api.container.ProductApiContainerStack;
-import com.cdk.product.api.quarkus.ProductApiQuarkusStack;
 import com.cdk.product.apiworker.ProductApiWorkerStack;
 import com.cdk.product.pricing.PricingServiceStack;
 import com.cdk.product.publisher.ProductEventPublisherStack;
