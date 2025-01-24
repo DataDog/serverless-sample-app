@@ -13,7 +13,6 @@
     <packaging>pom</packaging>
     <modules>
         <module>product-api</module>
-        <module>product-api-quarkus</module>
         <module>product-api-container</module>
         <module>product-pricing</module>
         <module>product-event-publisher</module>
