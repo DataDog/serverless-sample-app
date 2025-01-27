@@ -4,11 +4,11 @@
  * Copyright 2024 Datadog, Inc.
  */
 
-package com.cdk.inventory.ordering;
+package com.cdk.inventory.api;
 
 import com.cdk.constructs.SharedProps;
-import software.amazon.awscdk.services.dynamodb.ITable;
-import software.amazon.awscdk.services.sns.ITopic;
+import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.services.events.IEventBus;
 
-public record InventoryOrderingServiceProps(SharedProps sharedProps, ITable table, ITopic newProductAddedTopic) {
+public record InventoryApiContainerProps(SharedProps sharedProps, IEventBus sharedEventBus) implements StackProps {
 }

@@ -16,6 +16,7 @@
         <module>product-api-container</module>
         <module>product-pricing</module>
         <module>product-event-publisher</module>
+        <module>inventory-api-container</module>
         <module>inventory-acl</module>
         <module>inventory-ordering-service</module>
         <module>analytics-backend</module>

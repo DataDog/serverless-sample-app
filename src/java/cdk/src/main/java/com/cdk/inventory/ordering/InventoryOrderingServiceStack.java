@@ -9,6 +9,8 @@ package com.cdk.inventory.ordering;
 import com.cdk.constructs.SharedProps;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.services.dynamodb.ITable;
+import software.amazon.awscdk.services.dynamodb.Table;
 import software.amazon.awscdk.services.secretsmanager.ISecret;
 import software.amazon.awscdk.services.secretsmanager.Secret;
 import software.amazon.awscdk.services.sns.ITopic;
@@ -31,7 +33,10 @@ public class InventoryOrderingServiceStack extends Stack {
 
         String productAddedTopicArn = StringParameter.valueForStringParameter(this, "/java/inventory/product-added-topic");
         ITopic productAddedTopic = Topic.fromTopicArn(this, "ProductAddedTopic", productAddedTopicArn);
+
+        String tableName = StringParameter.valueForStringParameter(this, "/java/inventory-api/table-name");
+        ITable table = Table.fromTableName(this, "InventoryApiTable", tableName);
         
-        new InventoryOrderingService(this, "JavaInventoryOrderingService", new InventoryOrderingServiceProps(sharedProps, productAddedTopic));
+        new InventoryOrderingService(this, "JavaInventoryOrderingService", new InventoryOrderingServiceProps(sharedProps, table, productAddedTopic));
     }
 }

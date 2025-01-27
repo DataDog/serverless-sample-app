@@ -38,17 +38,22 @@ public class InventoryOrderingService extends Construct {
                 .removalPolicy(RemovalPolicy.DESTROY)
                 .build());
 
-        String workflowFilePath = "../cdk/src/main/java/com/cdk/inventory/ordering/workflows/workflow.sample.asl.json";
+        String workflowFilePath = "../cdk/src/main/java/com/cdk/inventory/ordering/workflows/workflow.setStock.asl.json";
 
         StateMachine workflow = new StateMachine(this, "JavaInventoryOrderingWorkflow", StateMachineProps.builder()
                 .stateMachineName(String.format("JavaInventoryOrderingService-%s", props.sharedProps().env()))
                 .definitionBody(DefinitionBody.fromFile(workflowFilePath))
+                .definitionSubstitutions(new HashMap<>() {{
+                    put("TableName", props.table().getTableName());
+                }})
                 .logs(LogOptions.builder()
                         .destination(workflowLogGroup)
                         .includeExecutionData(true)
                         .level(LogLevel.ALL)
                         .build())
                 .build());
+
+        props.table().grantReadWriteData(workflow.getRole());
 
         Tags.of(workflow).add("DD_ENHANCED_METRICS", "true");
         Tags.of(workflow).add("DD_TRACE_ENABLED", "true");

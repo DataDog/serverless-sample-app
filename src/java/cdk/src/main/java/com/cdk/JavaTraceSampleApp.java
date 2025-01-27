@@ -8,6 +8,8 @@ package com.cdk;
 
 import com.cdk.analytics.AnalyticsBackendStack;
 import com.cdk.inventory.acl.InventoryAclStack;
+import com.cdk.inventory.api.InventoryApiContainer;
+import com.cdk.inventory.api.InventoryApiContainerStack;
 import com.cdk.inventory.ordering.InventoryOrderingServiceStack;
 import com.cdk.product.api.ProductApiStack;
 import com.cdk.product.api.container.ProductApiContainerStack;
@@ -31,10 +33,6 @@ public class JavaTraceSampleApp {
                 .stackName(String.format("JavaProductApiContainerStack-%s", env))
                 .build());
         
-//        var productApiStack = new ProductApiStack(app, "JavaProductApiStack-%s", StackProps.builder()
-//                .stackName(String.format("JavaProductApiStack-%s", env))
-//                .build());
-        
         var pricingService = new PricingServiceStack(app, "JavaProductPricingService", StackProps.builder()
                 .stackName(String.format("JavaProductPricingService-%s", env))
                 .build());
@@ -50,6 +48,11 @@ public class JavaTraceSampleApp {
                 .build());
         eventPublisherService.addDependency(sharedStack);
         eventPublisherService.addDependency(productApiContainerStack);
+
+        var inventoryApiService = new InventoryApiContainerStack(app, "JavaInventoryApi", StackProps.builder()
+                .stackName(String.format("JavaInventoryApi-%s", env))
+                .build());
+        inventoryApiService.addDependency(sharedStack);
         
         var inventoryAclService = new InventoryAclStack(app, "JavaInventoryAcl", StackProps.builder()
                 .stackName(String.format("JavaInventoryAcl-%s", env))
@@ -60,6 +63,7 @@ public class JavaTraceSampleApp {
                 .stackName(String.format("JavaInventoryOrdering-%s", env))
                 .build());
         inventoryOrderingService.addDependency(inventoryAclService);
+        inventoryOrderingService.addDependency(inventoryApiService);
         
         var analyticsBackend = new AnalyticsBackendStack(app, "JavaAnalyticsBackend", StackProps.builder()
                 .stackName(String.format("JavaAnalyticsBackend-%s", env))
