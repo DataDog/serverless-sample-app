@@ -91,8 +91,6 @@ module "aws_lambda_function" {
     "DD_SERVICE" : var.service_name
     "DD_ENV" : var.env
     "DD_VERSION" : var.app_version
-    "DD_EXTENSION_VERSION" : "next"
-    "ENV" : var.env
     "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
     "DD_CAPTURE_LAMBDA_PAYLOAD": "true"
     "AWS_LAMBDA_EXEC_WRAPPER": "/opt/datadog_wrapper"

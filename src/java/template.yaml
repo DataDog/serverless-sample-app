@@ -74,6 +74,17 @@ Resources:
           CommitHash: !Ref CommitHash
       DependsOn:
         - ProductApi
+
+    InventoryApi:
+      Type: AWS::Serverless::Application
+      Properties:
+        Location: template-inventory-api.yaml
+        Parameters:
+          DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
+          Env: !Ref Env
+          CommitHash: !Ref CommitHash
+      DependsOn: Shared
     
     InventoryAcl:
       Type: AWS::Serverless::Application
@@ -98,6 +109,7 @@ Resources:
           CommitHash: !Ref CommitHash
       DependsOn:
         - InventoryAcl
+        - InventoryApi
     
     AnalyticsService:
       Type: AWS::Serverless::Application
