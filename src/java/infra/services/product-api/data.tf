@@ -45,3 +45,18 @@ data "aws_iam_policy_document" "sns_publish_deleted" {
     resources = ["arn:aws:sns:*:${data.aws_caller_identity.current.account_id}:${aws_sns_topic.product_deleted.name}"]
   }
 }
+
+data "aws_iam_policy_document" "retrieve_api_key_secret" {
+  statement {
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [var.dd_api_key_secret_arn]
+  }
+}
+
+data "aws_secretsmanager_secret" "api_key_secret" {
+  arn = var.dd_api_key_secret_arn
+}
+
+data "aws_secretsmanager_secret_version" "current_api_key_secret" {
+  secret_id = data.aws_secretsmanager_secret.api_key_secret.id
+}

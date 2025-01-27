@@ -25,3 +25,7 @@ variable "app_version" {
   description = "The version of the application being deployed"
   default = "latest"
 }
+
+variable "region" {
+  type = string
+}

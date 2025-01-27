@@ -35,3 +35,10 @@ resource "aws_iam_policy" "sns_publish_delete" {
   path   = "/"
   policy = data.aws_iam_policy_document.sns_publish_deleted.json
 }
+
+resource "aws_iam_policy" "get_api_key_secret" {
+  name   = "tf-java-inventory-api-get-secret-${var.env}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.retrieve_api_key_secret.json
+}
+

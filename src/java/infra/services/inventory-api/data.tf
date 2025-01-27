@@ -29,13 +29,6 @@ data "aws_iam_policy_document" "dynamo_db_write" {
   }
 }
 
-data "aws_iam_policy_document" "retrieve_api_key_secret" {
-  statement {
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = [var.dd_api_key_secret_arn]
-  }
-}
-
 data "aws_ssm_parameter" "eb_name" {
   name = "/java/tf/${var.env}/shared/event-bus-name"
 }
@@ -44,6 +37,13 @@ data "aws_iam_policy_document" "eb_publish" {
   statement {
     actions   = ["events:PutEvents", "events:ListEventBuses"]
     resources = ["arn:aws:events:*:${data.aws_caller_identity.current.account_id}:event-bus/${data.aws_ssm_parameter.eb_name.value}"]
+  }
+}
+
+data "aws_iam_policy_document" "retrieve_api_key_secret" {
+  statement {
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [var.dd_api_key_secret_arn]
   }
 }
 
