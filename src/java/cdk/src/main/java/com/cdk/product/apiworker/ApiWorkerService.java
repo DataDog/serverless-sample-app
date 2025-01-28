@@ -27,6 +27,11 @@ public class ApiWorkerService extends Construct {
                 new InstrumentedFunctionProps(props.sharedProps(), "com.product.api", compiledJarFilePath, "handlePricingChanged", functionEnvVars)).getFunction();
         handlePriceCalculatedFunction.addEventSource(new SnsEventSource(props.priceCalculatedTopic()));
         props.productApiTable().grantReadWriteData(handlePriceCalculatedFunction);
+
+        IFunction handleStockUpdatedFunction = new InstrumentedFunction(this, "HandleProductStockUpdatedFunction",
+                new InstrumentedFunctionProps(props.sharedProps(), "com.product.api", compiledJarFilePath, "handleProductStockUpdated", functionEnvVars)).getFunction();
+        handlePriceCalculatedFunction.addEventSource(new SnsEventSource(props.stockUpdatedTopic()));
+        props.productApiTable().grantReadWriteData(handlePriceCalculatedFunction);
         
     }
 }

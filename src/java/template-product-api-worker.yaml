@@ -81,3 +81,30 @@ Resources:
               Resource: !Ref DDApiKeySecretArn
     Metadata:
       SkipBuild: True
+
+  ProductStockUpdatedWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      FunctionName: !Sub JavaProductApiPricingWorker-${Env}
+      Environment:
+        Variables:
+          TABLE_NAME: !Sub "{{resolve:ssm:/java/${Env}/product/product-table-name:1}}"
+          spring_cloud_function_definition: handlePricingChanged
+      Events:
+        PricingChangedTopic:
+          Type: SNS
+          Properties:
+            Topic: !Sub "{{resolve:ssm:/java/${Env}/product/pricing-calculated-topic:1}}"
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Sub "{{resolve:ssm:/java/${Env}/product/product-table-name:1}}"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      SkipBuild: True

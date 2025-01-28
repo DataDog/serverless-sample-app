@@ -110,9 +110,9 @@ resource "aws_iam_role_policy_attachment" "inventory_api_delete_topic" {
   policy_arn = aws_iam_policy.sns_publish_delete.arn
 }
 
-module "inventory_api_web_service" {
+module "product_api_web_service" {
   source       = "../../modules/web-service"
-  service_name = "JavaInventoryApi"
+  service_name = "JavaProductApi"
   image        = "public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-java:latest"
   env          = var.env
   app_version  = var.app_version

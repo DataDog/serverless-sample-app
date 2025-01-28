@@ -102,7 +102,7 @@ resource "aws_ecs_task_definition" "main" {
         },
         {
           name  = "DD_APM_IGNORE_RESOURCES"
-          value = "GET /health"
+          value = "GET /"
         }
       ]
       secrets = [

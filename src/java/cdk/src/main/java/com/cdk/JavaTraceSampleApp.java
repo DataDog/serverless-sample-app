@@ -11,6 +11,8 @@ import com.cdk.inventory.acl.InventoryAclStack;
 import com.cdk.inventory.api.InventoryApiContainer;
 import com.cdk.inventory.api.InventoryApiContainerStack;
 import com.cdk.inventory.ordering.InventoryOrderingServiceStack;
+import com.cdk.product.acl.ProductAclProps;
+import com.cdk.product.acl.ProductAclStack;
 import com.cdk.product.api.ProductApiStack;
 import com.cdk.product.api.container.ProductApiContainerStack;
 import com.cdk.product.apiworker.ProductApiWorkerStack;
@@ -29,6 +31,11 @@ public class JavaTraceSampleApp {
                 .stackName(String.format("JavaSharedStack-%s", env))
                 .build());
 
+        var productAclStack = new ProductAclStack(app, "JavaProductAclStack", StackProps.builder()
+                .stackName(String.format("JavaProductAclStack-%s", env))
+                .build());
+        productAclStack.addDependency(sharedStack);
+
         var productApiContainerStack = new ProductApiContainerStack(app, "JavaProductApiContainerStack", StackProps.builder()
                 .stackName(String.format("JavaProductApiContainerStack-%s", env))
                 .build());
@@ -42,6 +49,7 @@ public class JavaTraceSampleApp {
                 .stackName(String.format("JavaProductApiWorkerService-%s", env))
                 .build());
         productApiWorkerService.addDependency(pricingService);
+        productApiWorkerService.addDependency(productAclStack);
         
         var eventPublisherService = new ProductEventPublisherStack(app, "JavaEventPublisherStack", StackProps.builder()
                 .stackName(String.format("JavaEventPublisherStack-%s", env))

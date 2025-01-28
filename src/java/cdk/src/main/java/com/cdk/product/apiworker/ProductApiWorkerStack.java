@@ -36,10 +36,12 @@ public class ProductApiWorkerStack extends Stack {
 
         String priceCalculatedTopicArn = StringParameter.valueForStringParameter(this, "/java/product-pricing/product-calculated-topic");
         ITopic priceCalculatedTopic = Topic.fromTopicArn(this, "PriceCalculatedTopic", priceCalculatedTopicArn);
+        String stockUpdatedTopicArn = StringParameter.valueForStringParameter(this, "/java/product/product-stock-updated-topic");
+        ITopic stockUpdatedTopic = Topic.fromTopicArn(this, "StockUpdatedTopic", stockUpdatedTopicArn);
         
         String tableName = StringParameter.valueForStringParameter(this, "/java/product-api/table-name");
         ITable table = Table.fromTableName(this, "ProductApiTable", tableName);
         
-        var pricingService = new ApiWorkerService(this, "JavaProductApiWorker", new ApiWorkerServiceProps(sharedProps, priceCalculatedTopic, table));
+        var pricingService = new ApiWorkerService(this, "JavaProductApiWorker", new ApiWorkerServiceProps(sharedProps, stockUpdatedTopic, priceCalculatedTopic, table));
     }
 }

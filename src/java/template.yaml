@@ -27,6 +27,17 @@ Resources:
           Env: !Ref Env
           CommitHash: !Ref CommitHash
 
+    ProductAcl:
+      Type: AWS::Serverless::Application
+      Properties:
+        Location: template-product-acl.yaml
+        Parameters:
+          DDApiKeySecretArn: !Ref DDApiKeySecretArn
+          DDSite: !Ref DDSite
+          Env: !Ref Env
+          CommitHash: !Ref CommitHash
+      DependsOn: Shared
+
     ProductApi:
       Type: AWS::Serverless::Application
       Properties:

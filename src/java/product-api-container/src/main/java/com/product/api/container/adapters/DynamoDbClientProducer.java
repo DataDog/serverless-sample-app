@@ -58,6 +58,8 @@ public class DynamoDbClientProducer {
                         .build());
             }
             catch (Exception e){
+                LOGGER.info("Table already exists");
+                LOGGER.error(e);
             }
         } else {
             // Prime SDK client

@@ -16,6 +16,14 @@ data "aws_ssm_parameter" "product_pricing_changed_topic_name" {
   name = "/java/tf/${var.env}/product/pricing-calculated-topic-name"
 }
 
+data "aws_ssm_parameter" "stock_updated_topic" {
+  name = "/java/tf/${var.env}/product/product-stock-updated-topic"
+}
+
+data "aws_ssm_parameter" "stock_updated_topic_name" {
+  name = "/java/tf/${var.env}/product/product-stock-updated-topic-name"
+}
+
 data "aws_ssm_parameter" "product_api_table_name" {
   name = "/java/tf/${var.env}/product/table-name"
 }

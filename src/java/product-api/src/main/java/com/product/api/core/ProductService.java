@@ -195,4 +195,32 @@ public class ProductService {
             return new HandlerResponse<>(null, List.of("Unknown error"), false);
         }
     }
+
+    public HandlerResponse<Boolean> handleStockUpdatedEvent(ProductStockUpdatedEvent evt) {
+        final Span span = GlobalTracer.get().activeSpan();
+        try {
+            span.setTag("product.id", evt.getProductId());
+            Product existingProduct = this.repository.getProduct(evt.getProductId());
+
+            if (existingProduct == null) {
+                span.setTag("product.notFound", "true");
+                span.setTag(Tags.ERROR, true);
+                return new HandlerResponse<>(false, List.of("Product not found"), false);
+            }
+
+            span.setTag("product.newStockLevel", evt.getNewStockLevel());
+
+            existingProduct.updateCurrentStockLevel(evt.getNewStockLevel());
+
+            this.repository.updateProduct(existingProduct);
+
+            return new HandlerResponse<>(true, new ArrayList<>(), true);
+        } catch (JsonProcessingException | Error error) {
+            logger.error("An exception occurred!", error);
+            span.setTag(Tags.ERROR, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, error));
+
+            return new HandlerResponse<>(null, List.of("Unknown error"), false);
+        }
+    }
 }

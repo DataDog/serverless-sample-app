@@ -14,6 +14,7 @@ public class Product {
     private String productId;
     private String name;
     private Double price;
+    private Double currentStockLevel;
     private String previousName;
     private Double previousPrice;
     private List<ProductPriceBracket> priceBrackets;
@@ -23,14 +24,16 @@ public class Product {
         this.productId = "";
         this.name = "";
         this.price = -1.0;
+        this.currentStockLevel = -1.0;
         this.priceBrackets = new ArrayList<>(0);
     }
 
-    public Product(String productId, String name, Double price, List<ProductPriceBracket> priceBrackets) {
+    public Product(String productId, String name, Double price, Double currentStockLevel, List<ProductPriceBracket> priceBrackets) {
         this.productId = productId;
         this.name = name;
         this.price = price;
         this.priceBrackets = priceBrackets;
+        this.currentStockLevel = currentStockLevel;
     }
 
     static Product Create(String name, Double price) {
@@ -79,6 +82,15 @@ public class Product {
         this.priceBrackets.add(bracket);
     }
 
+    public void updateCurrentStockLevel(Double newStockLevel) {
+        if (newStockLevel < 0) {
+            currentStockLevel = 0.0;
+            return;
+        }
+
+        currentStockLevel = newStockLevel;
+    }
+
     public boolean isUpdated() {
         return updated;
     }
@@ -89,5 +101,9 @@ public class Product {
 
     public Double getPreviousPrice() {
         return this.previousPrice;
+    }
+
+    public Double getCurrentStockLevel() {
+        return currentStockLevel;
     }
 }

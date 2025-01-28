@@ -41,7 +41,6 @@ public class ProductResource {
     }
 
     @PUT
-    @Path("/{productId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     public HandlerResponse<ProductDTO> updateProduct(@PathParam("productId")String productId, UpdateProductRequest request) {

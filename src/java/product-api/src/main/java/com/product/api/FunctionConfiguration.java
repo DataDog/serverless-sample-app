@@ -216,4 +216,29 @@ public class FunctionConfiguration {
             return "OK";
         };
     }
+
+    @Bean
+    public Function<SNSEvent, String> handleProductStockUpdated() {
+        return value -> {
+            final Span span = GlobalTracer.get().activeSpan();
+
+            try {
+                for (SNSEvent.SNSRecord record : value.getRecords()) {
+                    logger.info("Handling stock updated event");
+                    ProductStockUpdatedEvent evt = this.objectMapper.readValue(record.getSNS().getMessage(), ProductStockUpdatedEvent.class);
+
+                    logger.info(String.format("Handling product stock updated event for product %s", evt.getProductId()));
+                    span.setTag("product.id", evt.getProductId());
+
+                    this.service.handleStockUpdatedEvent(evt);
+                }
+            } catch (JsonProcessingException | Error exception) {
+                logger.error("An exception occurred!", exception);
+                span.setTag(Tags.ERROR, true);
+                span.log(Collections.singletonMap(Fields.ERROR_OBJECT, exception));
+            }
+
+            return "OK";
+        };
+    }
 }

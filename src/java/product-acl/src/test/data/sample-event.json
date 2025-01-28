@@ -1,0 +1,15 @@
+{
+  "version": "0",
+  "id": "7c796078-d790-8e0d-02e0-6f8cc61e3f7c",
+  "detail-type": "product.productCreated",
+  "source": "java-trace-test.orders",
+  "account": "214365161190",
+  "time": "2024-07-25T16:00:42Z",
+  "region": "eu-west-1",
+  "resources": [],
+  "detail": {
+    "productId": "1235",
+    "previousStockLevel": 99,
+    "newStockLevel": 12
+  }
+}
