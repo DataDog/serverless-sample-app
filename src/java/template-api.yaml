@@ -328,7 +328,7 @@ Resources:
                   - "dynamodb:Query"
                   - "dynamodb:Scan"
                   - "dynamodb:UpdateItem"
-                Resource: !GetAtt InventoryApiTable.Arn
+                Resource: !GetAtt ProductApiTable.Arn
         - PolicyName: allow-sns-publish
           PolicyDocument:
             Version: 2012-10-17
