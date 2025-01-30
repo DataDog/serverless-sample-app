@@ -87,16 +87,16 @@ Resources:
     Properties:
       CodeUri: ./product-api/target/com.product.api-0.0.1-SNAPSHOT-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
-      FunctionName: !Sub JavaProductApiPricingWorker-${Env}
+      FunctionName: !Sub JavaProductStockUpdatedWorker-${Env}
       Environment:
         Variables:
           TABLE_NAME: !Sub "{{resolve:ssm:/java/${Env}/product/product-table-name:1}}"
-          spring_cloud_function_definition: handlePricingChanged
+          spring_cloud_function_definition: handleProductStockUpdated
       Events:
         PricingChangedTopic:
           Type: SNS
           Properties:
-            Topic: !Sub "{{resolve:ssm:/java/${Env}/product/pricing-calculated-topic:1}}"
+            Topic: !Sub "{{resolve:ssm:/java/${Env}/product/product-stock-updated-topic:1}}"
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Sub "{{resolve:ssm:/java/${Env}/product/product-table-name:1}}"

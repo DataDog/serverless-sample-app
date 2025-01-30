@@ -31,6 +31,7 @@ public class ProductRepositoryImpl implements ProductRepository {
     private static final String PARTITION_KEY = "PK";
     private static final String PRODUCT_ID_KEY = "ProductId";
     private static final String NAME_KEY = "Name";
+    private static final String CURRENT_STOCK_LEVEL_KEY = "CurrentStockLevel";
     private static final String PRICE_KEY = "Price";
     private static final String TYPE_KEY = "Type";
     private static final String PRICE_BRACKET_KEY = "PriceBrackets";
@@ -45,9 +46,9 @@ public class ProductRepositoryImpl implements ProductRepository {
         ScanRequest request = ScanRequest.builder()
                 .tableName(System.getenv("TABLE_NAME"))
                 .build();
-        
+
         var scanResult = dynamoDB.scan(request);
-        
+
         ArrayList<Product> products = new ArrayList<>();
 
         for (Map<String, AttributeValue> item : scanResult.items()) {
@@ -62,14 +63,14 @@ public class ProductRepositoryImpl implements ProductRepository {
 
                 List<ProductPriceBracket> brackets = this.mapper.readValue(priceBracketString, new TypeReference<>() {});
 
-                products.add(new Product(item.get(PARTITION_KEY).s(), item.get(NAME_KEY).s(), Double.parseDouble(item.get(PRICE_KEY).n()), brackets));
+                products.add(new Product(item.get(PARTITION_KEY).s(), item.get(NAME_KEY).s(), Double.parseDouble(item.get(PRICE_KEY).n()), Double.parseDouble(item.get(CURRENT_STOCK_LEVEL_KEY).n()), brackets));
             }
             catch (JsonProcessingException error){
                 logger.error("An exception occurred!", error);
-                products.add(new Product(item.get(PARTITION_KEY).s(), item.get(NAME_KEY).s(), Double.parseDouble(item.get(PRICE_KEY).n()), List.of()));
+                products.add(new Product(item.get(PARTITION_KEY).s(), item.get(NAME_KEY).s(), Double.parseDouble(item.get(PRICE_KEY).n()), Double.parseDouble(item.get(CURRENT_STOCK_LEVEL_KEY).n()), List.of()));
             }
         }
-        
+
         return products;
     }
 
@@ -77,7 +78,7 @@ public class ProductRepositoryImpl implements ProductRepository {
     public Product getProduct(String productId) {
         HashMap<String, AttributeValue> key = new HashMap<>();
         key.put(PARTITION_KEY, AttributeValue.fromS(productId));
-        
+
         GetItemRequest request = GetItemRequest.builder()
                 .tableName(System.getenv("TABLE_NAME"))
                 .key(key)
@@ -86,23 +87,23 @@ public class ProductRepositoryImpl implements ProductRepository {
         var result = dynamoDB.getItem(request);
 
         Map<String, AttributeValue> item = result.item();
-        
+
         if (item.isEmpty() || !item.containsKey(NAME_KEY)) {
             return null;
         }
 
         try {
             String priceBracketString = item.get(PRICE_BRACKET_KEY).s();
-            
+
             logger.info(priceBracketString);
-            
+
             List<ProductPriceBracket> brackets = this.mapper.readValue(priceBracketString, new TypeReference<>() {});
 
-            return new Product(item.get(PARTITION_KEY).s(), item.get(NAME_KEY).s(), Double.parseDouble(item.get(PRICE_KEY).n()), brackets);
+            return new Product(item.get(PARTITION_KEY).s(), item.get(NAME_KEY).s(), Double.parseDouble(item.get(PRICE_KEY).n()), Double.parseDouble(item.get(CURRENT_STOCK_LEVEL_KEY).n()), brackets);
         }
         catch (JsonProcessingException error){
             logger.error("An exception occurred!", error);
-            return new Product(item.get(PARTITION_KEY).s(), item.get(NAME_KEY).s(), Double.parseDouble(item.get(PRICE_KEY).n()), List.of());
+            return new Product(item.get(PARTITION_KEY).s(), item.get(NAME_KEY).s(), Double.parseDouble(item.get(PRICE_KEY).n()), Double.parseDouble(item.get(CURRENT_STOCK_LEVEL_KEY).n()), List.of());
         }
     }
 
@@ -115,6 +116,7 @@ public class ProductRepositoryImpl implements ProductRepository {
         item.put(PRODUCT_ID_KEY, AttributeValue.fromS(product.getProductId()));
         item.put(NAME_KEY, AttributeValue.fromS(product.getName()));
         item.put(PRICE_KEY, AttributeValue.fromN(product.getPrice().toString()));
+        item.put(CURRENT_STOCK_LEVEL_KEY, AttributeValue.fromN(product.getCurrentStockLevel().toString()));
         item.put(PRICE_BRACKET_KEY, AttributeValue.fromS(this.mapper.writeValueAsString(product.getPriceBrackets())));
 
         PutItemRequest putItemRequest = PutItemRequest.builder()
@@ -123,7 +125,7 @@ public class ProductRepositoryImpl implements ProductRepository {
                 .build();
 
         this.dynamoDB.putItem(putItemRequest);
-        
+
         return product;
     }
 
@@ -136,6 +138,7 @@ public class ProductRepositoryImpl implements ProductRepository {
         item.put(PRODUCT_ID_KEY, AttributeValue.fromS(product.getProductId()));
         item.put(NAME_KEY, AttributeValue.fromS(product.getName()));
         item.put(PRICE_KEY, AttributeValue.fromN(product.getPrice().toString()));
+        item.put(CURRENT_STOCK_LEVEL_KEY, AttributeValue.fromN(product.getCurrentStockLevel().toString()));
         item.put(PRICE_BRACKET_KEY, AttributeValue.fromS(this.mapper.writeValueAsString(product.getPriceBrackets())));
 
         PutItemRequest putItemRequest = PutItemRequest.builder()
@@ -153,7 +156,7 @@ public class ProductRepositoryImpl implements ProductRepository {
         try{
             HashMap<String, AttributeValue> key = new HashMap<>();
             key.put(PARTITION_KEY, AttributeValue.fromS(productId));
-            
+
             DeleteItemRequest deleteItemRequest = DeleteItemRequest.builder()
                     .tableName(System.getenv("TABLE_NAME"))
                     .conditionExpression("attribute_exists(ProductId)")
@@ -161,12 +164,12 @@ public class ProductRepositoryImpl implements ProductRepository {
                     .build();
 
             this.dynamoDB.deleteItem(deleteItemRequest);
-            
+
             return true;
         }
         catch (ConditionalCheckFailedException error) {
             this.logger.warn("Attempted to delete a product that does not exist");
-            
+
             return false;
         }
     }

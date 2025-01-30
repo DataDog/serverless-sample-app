@@ -36,6 +36,12 @@ resource "aws_iam_policy" "sns_publish_delete" {
   policy = data.aws_iam_policy_document.sns_publish_deleted.json
 }
 
+resource "aws_iam_policy" "sns_list_topics" {
+  name   = "java-tf-product-api-sns_list_topics-${var.env}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.sns_list_topics.json
+}
+
 resource "aws_iam_policy" "get_api_key_secret" {
   name   = "tf-java-product-api-get-secret-${var.env}"
   path   = "/"

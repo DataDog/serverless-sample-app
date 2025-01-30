@@ -176,7 +176,7 @@ Resources:
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: inventory-service-cluster
+      ClusterName: product-api-cluster
 
   ECSService:
     Type: AWS::ECS::Service
@@ -185,10 +185,10 @@ Resources:
       DesiredCount: 2
       TaskDefinition: !Ref ECSTaskDef
       LaunchType: FARGATE
-      ServiceName: inventory-api
+      ServiceName: product-api
       SchedulingStrategy: REPLICA
       LoadBalancers:
-        - ContainerName: JavaInventoryApi
+        - ContainerName: JavaProductApi
           ContainerPort: 8080
           TargetGroupArn: !Ref ECSALBTargetGroup
       HealthCheckGracePeriodSeconds: 29
@@ -220,7 +220,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       HealthCheckPath: /health
-      Name: inventory-api-alb-tg
+      Name: product-api-alb-tg
       Port: 8080
       Protocol: HTTP
       TargetType: ip
@@ -234,7 +234,7 @@ Resources:
   ECSALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: java-inventory-api-alb
+      Name: java-product-api-alb
       Type: application
       Scheme: internet-facing
       Subnets:

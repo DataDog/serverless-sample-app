@@ -46,6 +46,13 @@ data "aws_iam_policy_document" "sns_publish_deleted" {
   }
 }
 
+data "aws_iam_policy_document" "sns_list_topics" {
+  statement {
+    actions   = ["sns:ListTopics"]
+    resources = ["*"]
+  }
+}
+
 data "aws_iam_policy_document" "retrieve_api_key_secret" {
   statement {
     actions   = ["secretsmanager:GetSecretValue"]

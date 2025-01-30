@@ -109,6 +109,10 @@ resource "aws_iam_role_policy_attachment" "inventory_api_delete_topic" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.sns_publish_delete.arn
 }
+resource "aws_iam_role_policy_attachment" "inventory_api_list_topics" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.sns_list_topics.arn
+}
 
 module "product_api_web_service" {
   source       = "../../modules/web-service"
