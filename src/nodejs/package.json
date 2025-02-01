@@ -20,7 +20,7 @@
   "devDependencies": {
     "@aws-sdk/client-cloudformation": "^3.716.0",
     "@aws-sdk/client-dynamodb": "^3.716.0",
-    "@aws-sdk/client-eventbridge": "^3.716.0",
+    "@aws-sdk/client-eventbridge": "^3.740.0",
     "@aws-sdk/client-sfn": "^3.716.0",
     "@aws-sdk/client-sns": "^3.716.0",
     "@aws-sdk/client-sqs": "^3.716.0",
