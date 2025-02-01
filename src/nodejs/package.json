@@ -18,7 +18,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@aws-sdk/client-cloudformation": "^3.716.0",
+    "@aws-sdk/client-cloudformation": "^3.738.0",
     "@aws-sdk/client-dynamodb": "^3.716.0",
     "@aws-sdk/client-eventbridge": "^3.716.0",
     "@aws-sdk/client-sfn": "^3.716.0",
