@@ -22,7 +22,7 @@
     "@aws-sdk/client-dynamodb": "^3.716.0",
     "@aws-sdk/client-eventbridge": "^3.716.0",
     "@aws-sdk/client-sfn": "^3.716.0",
-    "@aws-sdk/client-sns": "^3.716.0",
+    "@aws-sdk/client-sns": "^3.738.0",
     "@aws-sdk/client-sqs": "^3.716.0",
     "@aws-sdk/client-ssm": "^3.716.0",
     "@types/aws-lambda": "8.10.146",
