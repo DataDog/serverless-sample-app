@@ -18,7 +18,7 @@
         <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
         <PackageReference Include="Amazon.Lambda.Annotations" Version="1.6.2" />
         <PackageReference Include="AWS.Lambda.Powertools.Logging" Version="1.6.3" />
-        <PackageReference Include="AWSSDK.EventBridge" Version="3.7.402.1" />
+        <PackageReference Include="AWSSDK.EventBridge" Version="3.7.402.28" />
         <PackageReference Include="Datadog.Trace" Version="3.7.0" />
         <PackageReference Include="DogStatsD-CSharp-Client" Version="8.0.0" />
         <PackageReference Include="NJsonSchema" Version="11.1.0" />
