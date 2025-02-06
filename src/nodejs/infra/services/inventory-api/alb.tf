@@ -1,5 +1,5 @@
 resource "aws_alb" "application_load_balancer" {
-  name               = "node-inventory-api"
+  name               = "node-inventory-api-${var.env}"
   internal           = false
   load_balancer_type = "application"
   subnets            = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
@@ -8,7 +8,7 @@ resource "aws_alb" "application_load_balancer" {
 
 #Defining the target group and a health check on the application
 resource "aws_lb_target_group" "target_group" {
-  name        = "application-tg"
+  name        = "node-application-tg-${var.env}"
   port        = "3000"
   protocol    = "HTTP"
   target_type = "ip"
@@ -42,7 +42,7 @@ resource "aws_lb_listener" "listener" {
 # ------------------------------------------------------------------------------
 resource "aws_security_group" "ecs_sg" {
     vpc_id                      = aws_vpc.vpc.id
-    name                        = "inventory-api-sg-ecs"
+    name                        = "inventory-api-sg-ecs-${var.env}"
     description                 = "Security group for ecs app"
     revoke_rules_on_delete      = true
 }
@@ -76,7 +76,7 @@ resource "aws_security_group_rule" "ecs_all_egress" {
 # ------------------------------------------------------------------------------
 resource "aws_security_group" "alb_sg" {
     vpc_id                      = aws_vpc.vpc.id
-    name                        = "inventory-api-sg-alb"
+    name                        = "inventory-api-sg-alb-${var.env}"
     description                 = "Security group for alb"
     revoke_rules_on_delete      = true
 }
