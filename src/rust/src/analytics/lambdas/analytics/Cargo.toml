@@ -6,9 +6,9 @@ edition = "2021"
 [dependencies]
 observability = {path = "../../../observability"}
 lambda_runtime = "0.13.0"
-aws_lambda_events = "0.15.1"
+aws_lambda_events = "0.16.0"
 dogstatsd = "0.12.1"
-serde = { version = "1.0.215", features = ["derive"] }
+serde = { version = "1.0.217", features = ["derive"] }
 
 serde_json = {workspace = true}
 tokio = {workspace = true}
