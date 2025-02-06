@@ -87,6 +87,7 @@ module "aws_lambda_function" {
   timeout                  = var.timeout
 
   environment_variables = merge(tomap({
+    "ENV": var.env,
     "DD_SITE" : var.dd_site
     "DD_SERVICE" : var.service_name
     "DD_ENV" : var.env
@@ -100,6 +101,6 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 68
+  datadog_extension_layer_version = 69
   datadog_dotnet_layer_version      = 16
 }
