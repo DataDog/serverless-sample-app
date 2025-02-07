@@ -33,8 +33,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@master
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: "eu-west-1"
       - name: Set Commit Hash Environment Variables
         shell: bash
@@ -45,7 +45,7 @@ jobs:
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "test"
-          DD_API_KEY_SECRET_ARN: ${{secrets.DD_API_KEY_SECRET_ARN}}
+          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
         run: |
           make cdk-go
@@ -61,7 +61,7 @@ jobs:
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "test"
-          DD_API_KEY_SECRET_ARN: ${{secrets.DD_API_KEY_SECRET_ARN}}
+          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
           RUNTIME: "Go"
           NODE_OPTIONS: -r ${{ env.DD_TRACE_PACKAGE }}
@@ -73,7 +73,7 @@ jobs:
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "test"
-          DD_API_KEY_SECRET_ARN: ${{secrets.DD_API_KEY_SECRET_ARN}}
+          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
         run: |
           make cdk-go-destroy
