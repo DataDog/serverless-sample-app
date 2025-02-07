@@ -1,0 +1,55 @@
+name: Static Analysis
+
+on:
+    schedule:
+      - cron: "0 0 * * *"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  dotnet-static-analysis:
+    uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
+    with:
+      service-name: serverless-sample-dotnet
+      directory: src/dotnet
+    secrets:
+      dd_api_key: ${{secrets.DD_API_KEY}}
+      dd_app_key: ${{secrets.DD_APP_KEY}}
+
+  java-static-analysis:
+    uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
+    with:
+      service-name: serverless-sample-java
+      directory: src/java
+    secrets:
+      dd_api_key: ${{secrets.DD_API_KEY}}
+      dd_app_key: ${{secrets.DD_APP_KEY}}
+
+  rust-static-analysis:
+    uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
+    with:
+      service-name: serverless-sample-rust
+      directory: src/rust
+    secrets:
+      dd_api_key: ${{secrets.DD_API_KEY}}
+      dd_app_key: ${{secrets.DD_APP_KEY}}
+
+  go-static-analysis:
+    uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
+    with:
+      service-name: serverless-sample-go
+      directory: src/java
+    secrets:
+      dd_api_key: ${{secrets.DD_API_KEY}}
+      dd_app_key: ${{secrets.DD_APP_KEY}}
+
+  nodejs-static-analysis:
+    uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
+    with:
+      service-name: serverless-sample-nodejs
+      directory: src/nodejs
+    secrets:
+      dd_api_key: ${{secrets.DD_API_KEY}}
+      dd_app_key: ${{secrets.DD_APP_KEY}}
