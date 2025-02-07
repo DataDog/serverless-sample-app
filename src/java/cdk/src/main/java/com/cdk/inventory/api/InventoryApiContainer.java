@@ -165,7 +165,7 @@ public class InventoryApiContainer extends Construct {
                 .build());
 
         StringParameter tableNameParameter = new StringParameter(this, "TableNameParameter", StringParameterProps.builder()
-                .parameterName("/java/inventory-api/table-name")
+                .parameterName(String.format("/java/%s/inventory-api/table-name", props.sharedProps().env()))
                 .stringValue(this.table.getTableName())
                 .build());
         StringParameter apiEndpoint = new StringParameter(this, "ApiEndpoint", StringParameterProps.builder()

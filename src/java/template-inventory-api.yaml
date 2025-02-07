@@ -393,7 +393,7 @@ Resources:
   InventoryApiTableName:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /java/inventory-api/table-name
+      Name: !Sub /java/${Env}/inventory-api/table-name
       Type: String
       Value: !Ref InventoryApiTable
 

@@ -92,7 +92,7 @@ Resources:
     Properties:
       DefinitionUri: cdk/src/main/java/com/cdk/inventory/ordering/workflows/workflow.setStock.asl.json
       DefinitionSubstitutions:
-        TableName: "{{resolve:ssm:/java/inventory-api/table-name:1}}"
+        TableName: !Sub "{{resolve:ssm:/java/${Env}/inventory-api/table-name:1}}"
       Policies:
         - Version: "2012-10-17"
           Statement:

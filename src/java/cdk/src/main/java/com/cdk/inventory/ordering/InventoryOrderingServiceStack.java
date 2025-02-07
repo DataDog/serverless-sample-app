@@ -34,7 +34,7 @@ public class InventoryOrderingServiceStack extends Stack {
         String productAddedTopicArn = StringParameter.valueForStringParameter(this, "/java/inventory/product-added-topic");
         ITopic productAddedTopic = Topic.fromTopicArn(this, "ProductAddedTopic", productAddedTopicArn);
 
-        String tableName = StringParameter.valueForStringParameter(this, "/java/inventory-api/table-name");
+        String tableName = StringParameter.valueForStringParameter(this, String.format("/java/%s/inventory-api/table-name", env));
         ITable table = Table.fromTableName(this, "InventoryApiTable", tableName);
         
         new InventoryOrderingService(this, "JavaInventoryOrderingService", new InventoryOrderingServiceProps(sharedProps, table, productAddedTopic));
