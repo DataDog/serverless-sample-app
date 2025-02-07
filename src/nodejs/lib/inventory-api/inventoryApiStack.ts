@@ -170,7 +170,7 @@ export class InventoryApiStack extends cdk.Stack {
         DD_ENV: env,
         DD_SERVICE: service,
         DD_VERSION: version,
-        DD_APM_IGNORE_RESOURCES: "GET /health",
+        DD_APM_IGNORE_RESOURCES: "GET /health, GET /",
       },
       secrets: {
         DD_API_KEY: cdk.aws_ecs.Secret.fromSecretsManager(ddApiKey),

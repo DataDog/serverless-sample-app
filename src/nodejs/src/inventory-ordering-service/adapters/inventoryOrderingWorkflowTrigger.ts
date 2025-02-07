@@ -11,7 +11,7 @@ import { Logger } from "@aws-lambda-powertools/logger";
 import { SFNClient, StartExecutionCommand } from "@aws-sdk/client-sfn";
 import { CloudEvent } from "cloudevents";
 import { ProductAddedEvent } from "./productAddedEvent";
-import { MessagingType, startProcessSpanWithSemanticConventions } from "../../observability/observability";
+import { ManualContext, MessagingType, startProcessSpanWithSemanticConventions } from "../../observability/observability";
 
 const logger = new Logger({});
 const sfnClient = new SFNClient();
@@ -42,6 +42,7 @@ export const handler = async (event: SNSEvent): Promise<void> => {
           conversationId: evtWrapper.data?.productId,
         }
       );
+      messageProcessingSpan.addLink(ManualContext.extractFromSns(message)!);
 
       await sfnClient.send(
         new StartExecutionCommand({

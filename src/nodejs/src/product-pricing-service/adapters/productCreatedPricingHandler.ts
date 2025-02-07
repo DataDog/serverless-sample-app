@@ -7,7 +7,7 @@
 
 import { SNSClient } from "@aws-sdk/client-sns";
 import { SNSEvent, SQSEvent } from "aws-lambda";
-import { Span, tracer } from "dd-trace";
+import { Span, SpanContext, tracer } from "dd-trace";
 import {
   ProductCreatedEvent,
   ProductCreatedEventHandler,
@@ -15,7 +15,11 @@ import {
 import { PricingService } from "../core/pricingService";
 import { SnsEventPublisher } from "./snsEventPublisher";
 import { CloudEvent } from "cloudevents";
-import { MessagingType, startProcessSpanWithSemanticConventions } from "../../observability/observability";
+import {
+  ManualContext,
+  MessagingType,
+  startProcessSpanWithSemanticConventions,
+} from "../../observability/observability";
 
 const snsClient = new SNSClient();
 
@@ -32,10 +36,12 @@ export const handler = async (event: SNSEvent): Promise<string> => {
   for (const message of event.Records) {
     let messageProcessingSpan: Span | undefined = undefined;
     try {
+      const context = ManualContext.extractFromSns(message);
+
       const evtWrapper: CloudEvent<ProductCreatedEvent> = JSON.parse(
         message.Sns.Message
       );
-      
+
       messageProcessingSpan = startProcessSpanWithSemanticConventions(
         evtWrapper,
         {
@@ -46,6 +52,7 @@ export const handler = async (event: SNSEvent): Promise<string> => {
           conversationId: evtWrapper.data?.productId,
         }
       );
+      messageProcessingSpan.addLink(context);
 
       await createProductHandler.handle(evtWrapper.data!);
 
@@ -68,7 +75,6 @@ export const handler = async (event: SNSEvent): Promise<string> => {
       messageProcessingSpan?.finish();
 
       throw error;
-
     } finally {
       messageProcessingSpan?.finish();
     }

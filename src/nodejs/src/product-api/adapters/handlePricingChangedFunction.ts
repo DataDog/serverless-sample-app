@@ -13,7 +13,11 @@ import { PricingChangedHandler } from "../core/pricing-changed/pricingChangedHan
 import { PriceCalculatedEvent } from "../private-events/priceCalculatedEvent";
 import { CloudEvent } from "cloudevents";
 import { Logger } from "@aws-lambda-powertools/logger";
-import { MessagingType, startProcessSpanWithSemanticConventions } from "../../observability/observability";
+import {
+  ManualContext,
+  MessagingType,
+  startProcessSpanWithSemanticConventions,
+} from "../../observability/observability";
 
 const dynamoDbClient = new DynamoDBClient();
 const pricingChangedHandler = new PricingChangedHandler(
@@ -45,6 +49,8 @@ export const handler = async (event: SNSEvent): Promise<string> => {
           conversationId: evtWrapper.data?.productId,
         }
       );
+
+      messageProcessingSpan.addLink(ManualContext.extractFromSns(message));
 
       await pricingChangedHandler.handle(evtWrapper.data!);
     } catch (error) {

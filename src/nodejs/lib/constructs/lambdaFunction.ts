@@ -64,6 +64,8 @@ export class InstrumentedLambdaFunction extends Construct {
         TEAM: props.sharedProps.team,
         DOMAIN: props.sharedProps.domain,
         DD_DATA_STREAMS_ENABLED: "true",
+        DD_TRACE_PROPAGATION_STYLE_INJECT: "Datadog,tracecontext",
+        DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none",
         ...props.environment,
       },
       bundling: {

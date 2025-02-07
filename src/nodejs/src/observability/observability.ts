@@ -1,6 +1,13 @@
 import { Logger } from "@aws-lambda-powertools/logger";
+import {
+  EventBridgeEvent,
+  SNSEventRecord,
+  SNSMessage,
+  SQSEvent,
+  SQSRecord,
+} from "aws-lambda";
 import { CloudEvent } from "cloudevents";
-import { Span, tracer } from "dd-trace";
+import { Span, SpanContext, tracer } from "dd-trace";
 import * as os from "os";
 
 const textEncoder = new TextEncoder();
@@ -107,4 +114,76 @@ export function addDefaultServiceTagsTo(span: Span | undefined | null) {
     "build.id": process.env.BUILD_ID,
     "build.deployed_at": process.env.DEPLOYED_AT,
   });
+}
+
+export class ManualContext implements SpanContext {
+  private traceId: string;
+  private spanId: string;
+  private traceParent: string;
+
+  constructor(traceParent: string) {
+    this.traceParent = traceParent;
+    const splitParent = traceParent.split("-");
+    this.traceId = splitParent[1];
+    this.spanId = splitParent[2];
+  }
+
+  toTraceId(): string {
+    return this.traceId;
+  }
+  toSpanId(): string {
+    return this.spanId;
+  }
+  toTraceparent(): string {
+    return this.traceParent;
+  }
+
+  static extractFromSns(message: SNSEventRecord): ManualContext {
+    const messageAttribute = message.Sns?.MessageAttributes?._datadog;
+    let headers;
+    if (messageAttribute.Type === "String") {
+      headers = JSON.parse(messageAttribute.Value);
+    } else {
+      // Try decoding base64 values
+      const decodedValue = Buffer.from(
+        messageAttribute.Value,
+        "base64"
+      ).toString("ascii");
+      headers = JSON.parse(decodedValue);
+    }
+
+    return new ManualContext(headers.traceparent);
+  }
+
+  static extractFromSnsToSqsRecord(message: SQSRecord): ManualContext | undefined {
+    const parsedBody = JSON.parse(message.body) as SNSMessage;
+    const messageAttribute = parsedBody?.MessageAttributes?._datadog;
+    if (messageAttribute?.Value) {
+      let headers;
+      if (messageAttribute.Type === "String") {
+        headers = JSON.parse(messageAttribute.Value);
+      } else {
+        const decodedValue = Buffer.from(
+          messageAttribute.Value,
+          "base64"
+        ).toString("ascii");
+        headers = JSON.parse(decodedValue);
+      }
+
+      return new ManualContext(headers.traceparent);
+    }
+
+    return undefined;
+  }
+
+  static extractFromEBToSqs(message: SQSRecord): ManualContext | undefined {
+    const body = message?.body;
+    if (body === undefined) return undefined;
+
+    const parsedBody = JSON.parse(body) as EventBridgeEvent<any, any>;
+    const headers = parsedBody?.detail?._datadog;
+    if (headers === undefined) return undefined;
+
+    return new ManualContext(headers.traceparent);
+  }
 }

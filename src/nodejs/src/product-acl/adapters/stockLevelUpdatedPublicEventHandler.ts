@@ -13,6 +13,7 @@ import { SnsPrivateEventPublisher } from "./snsEventPublisher";
 import { SNSClient } from "@aws-sdk/client-sns";
 import { CloudEvent } from "cloudevents";
 import {
+  ManualContext,
   MessagingType,
   startProcessSpanWithSemanticConventions,
 } from "../../observability/observability";
@@ -47,6 +48,7 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
           conversationId: evtWrapper.detail.data!.productId,
         }
       );
+      processingSpan.addLink(ManualContext.extractFromSnsToSqsRecord(message)!);
 
       const result = await productAcl.processInventoryStockUpdatedEvent(
         evtWrapper.detail.data!

@@ -14,6 +14,7 @@ import { PriceCalculatedEvent } from "../private-events/priceCalculatedEvent";
 import { CloudEvent } from "cloudevents";
 import { Logger } from "@aws-lambda-powertools/logger";
 import {
+  ManualContext,
   MessagingType,
   startProcessSpanWithSemanticConventions,
 } from "../../observability/observability";
@@ -50,6 +51,7 @@ export const handler = async (event: SNSEvent): Promise<string> => {
           conversationId: evtWrapper.data?.productId,
         }
       );
+      messageProcessingSpan.addLink(ManualContext.extractFromSns(message));
 
       await stockLevelUpdatedHandler.handle(evtWrapper.data!);
     } catch (error) {

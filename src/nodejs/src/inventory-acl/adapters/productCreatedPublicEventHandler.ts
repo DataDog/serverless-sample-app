@@ -14,6 +14,7 @@ import { SnsPrivateEventPublisher } from "./snsEventPublisher";
 import { SNSClient } from "@aws-sdk/client-sns";
 import { CloudEvent } from "cloudevents";
 import {
+  ManualContext,
   MessagingType,
   startProcessSpanWithSemanticConventions,
 } from "../../observability/observability";
@@ -51,6 +52,7 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
           conversationId: productAddedEvent.productId,
         }
       );
+      processingSpan.addLink(ManualContext.extractFromEBToSqs(message)!);
 
       const result = await inventoryAcl.processOrderCreatedEvent(
         productAddedEvent
