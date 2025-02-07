@@ -93,7 +93,10 @@ public class ProductApiContainer extends Construct {
                                 "PRODUCT_DELETED_TOPIC_ARN", productDeletedTopic.getTopicArn(),
                                 "TEAM", "inventory",
                                 "DOMAIN", "inventory",
-                                "ENV", props.sharedProps().env()
+                                "ENV", props.sharedProps().env(),
+                                "DD_SERVICE", props.sharedProps().service(),
+                                "DD_ENV", props.sharedProps().env(),
+                                "DD_VERSION", props.sharedProps().version()
                         ))
                         .containerPort(8080)
                         .containerName("JavaInventoryApi")
