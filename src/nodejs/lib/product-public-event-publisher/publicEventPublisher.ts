@@ -78,7 +78,6 @@ export class ProductPublicEventPublisher extends Construct {
         functionName: "NodeProductPublicEventPublisher",
         handler: "index.handler",
         environment: {
-          DD_SERVICE_MAPPING: `lambda_sqs:${this.integrationEventPublisherQueue.queueName}`,
           PRODUCT_CREATED_TOPIC_ARN: props.productCreatedTopic.topicArn,
           PRODUCT_UPDATED_TOPIC_ARN: props.productUpdatedTopic.topicArn,
           PRODUCT_DELETED_TOPIC_ARN: props.productDeletedTopic.topicArn,

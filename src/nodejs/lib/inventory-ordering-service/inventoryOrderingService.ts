@@ -100,7 +100,6 @@ export class InventoryOrderingService extends Construct {
         functionName: "NodeInventoryOrderingWorkflow",
         handler: "index.handler",
         environment: {
-          DD_SERVICE_MAPPING: `lambda_sns:${topic.topicName}`,
           ORDERING_SERVICE_WORKFLOW_ARN: workflow.stateMachineArn,
         },
         buildDef:

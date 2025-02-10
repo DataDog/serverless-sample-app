@@ -54,7 +54,6 @@ export class InventoryServiceACL extends Construct {
         handler: "index.handler",
         environment: {
           PRODUCT_ADDED_TOPIC_ARN: newProductAdded.topicArn,
-          DD_SERVICE_MAPPING: `lambda_sns:${newProductAdded.topicName},lambda_sqs:${this.orderCreatedPublicEventQueue.queueName}`,
         },
         buildDef:
           "./src/inventory-acl/adapters/buildProductCreatedPublicEventHandler.js",

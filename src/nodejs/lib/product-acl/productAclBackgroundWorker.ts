@@ -54,7 +54,6 @@ export class ProductAclService extends Construct {
         handler: "index.handler",
         environment: {
           STOCK_LEVEL_UPDATED_TOPIC_ARN: inventoryStockUpdatedTopic.topicArn,
-          DD_SERVICE_MAPPING: `lambda_sns:${inventoryStockUpdatedTopic.topicName},lambda_sqs:${this.orderCreatedPublicEventQueue.queueName}`,
         },
         buildDef:
           "./src/product-acl/adapters/buildStockLevelUpdatedPublicEventHandler.js",

@@ -12,14 +12,31 @@ import { GetProductHandler } from "../core/get-product/getProductHandler";
 import { DynamoDbProductRepository } from "./dynamoDbProductRepository";
 import { addDefaultServiceTagsTo } from "../../observability/observability";
 
+let isInitialized = false;
 const dynamoDbClient = new DynamoDBClient();
 const queryHandler = new GetProductHandler(
   new DynamoDbProductRepository(dynamoDbClient)
 );
 
+async function simulateColdStart() {
+  if (!isInitialized) {
+    const span = tracer.scope().active();
+    const coldStartSpan = tracer.startSpan("A long cold start task", {
+      childOf: span!
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    isInitialized = true;
+
+    coldStartSpan.finish();
+  }
+}
+
 export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
+  await simulateColdStart();
+
   const span = tracer.scope().active();
   addDefaultServiceTagsTo(span);
 

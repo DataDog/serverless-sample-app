@@ -72,7 +72,6 @@ export class ApiWorker extends Construct {
         handler: "index.handler",
         environment: {
           TABLE_NAME: this.table.tableName,
-          DD_SERVICE_MAPPING: `lambda_sns:${priceCalculatedTopic.topicName}`,
         },
         buildDef:
           "./src/product-api/adapters/buildHandlePricingChangedFunction.js",
@@ -131,7 +130,6 @@ export class ApiWorker extends Construct {
         handler: "index.handler",
         environment: {
           TABLE_NAME: this.table.tableName,
-          DD_SERVICE_MAPPING: `lambda_sns:${stockLevelUpdatedTopic.topicName}`,
         },
         buildDef:
           "./src/product-api/adapters/buildHandleStockLevelUpdatedFunction.js",
