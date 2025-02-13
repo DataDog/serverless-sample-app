@@ -298,7 +298,7 @@ Resources:
         OperatingSystemFamily: LINUX
       ContainerDefinitions:
         - Name: GoInventoryApi
-          Image: public.ecr.aws/k4y9x2e7/dd-serverless-sample-app:latest
+          Image: public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-go:latest
           Environment:
             -
               Name: TABLE_NAME
