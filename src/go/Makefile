@@ -26,14 +26,18 @@ tf-pre-build:
 	mkdir out/GoProductCreatedPricingHandler
 	mkdir out/GoProductUpdatedPricingHandler
 	mkdir out/PriceCalculatedHandlerFunction
+	mkdir out/StockUpdatedHandlerFunction
 	mkdir out/GoProductPublicEventPublisher
 	mkdir out/GoInventoryAcl
+	mkdir out/GoProductAcl
 	mkdir out/GoInventoryOrderingService
 	mkdir out/GoAnalyticsBackend
-	
-tf-local-deploy: tf-pre-build package-api-functions package-pricing-functions package-api-worker-functions package-event-publisher-functions package-inventory-acl-functions package-inventory-ordering-functions package-event-analytics-functions tf-local-apply
 
-tf-deploy: tf-pre-build package-api-functions package-pricing-functions package-api-worker-functions package-event-publisher-functions package-inventory-acl-functions package-inventory-ordering-functions package-event-analytics-functions tf-apply
+build-all: package-api-functions package-product-acl package-pricing-functions package-api-worker-functions package-event-publisher-functions package-inventory-acl-functions package-inventory-ordering-functions package-event-analytics-functions
+
+tf-local-deploy: tf-pre-build package-api-functions package-product-acl package-pricing-functions package-api-worker-functions package-event-publisher-functions package-inventory-acl-functions package-inventory-ordering-functions package-event-analytics-functions tf-local-apply
+
+tf-deploy: tf-pre-build package-api-functions package-product-acl package-pricing-functions package-api-worker-functions package-event-publisher-functions package-inventory-acl-functions package-inventory-ordering-functions package-event-analytics-functions tf-apply
 
 tf-local-apply:
 	cd infra;terraform init -backend-config="key=go/${ENV}/terraform.tfstate" -backend-config "bucket=${TF_STATE_BUCKET_NAME}" -backend-config "region=${AWS_REGION}";terraform apply --var-file dev.tfvars
@@ -49,9 +53,11 @@ tf-destroy:
 
 package-api-functions: package-GetProductFunction package-CreateProductFunction package-DeleteProductFunction package-UpdateProductFunction package-ListProductsFunction
 
+package-product-acl: package-ProductAclFunction
+
 package-pricing-functions: package-ProductUpdatedPricingServiceFunction package-ProductCreatedPricingServiceFunction
 
-package-api-worker-functions: package-ProductApiPricingWorker
+package-api-worker-functions: package-ProductApiPricingWorker package-ProductApiStockUpdatedWorker
 
 package-event-publisher-functions: package-ProductPublicEventPublisher
 
@@ -93,6 +99,14 @@ package-ProductApiPricingWorker:
 	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-pricing-changed/main.go;cp bootstrap ../../out/PriceCalculatedHandlerFunction/bootstrap
 	zip -r -j out/PriceCalculatedHandlerFunction/PriceCalculatedHandlerFunction.zip out/PriceCalculatedHandlerFunction/bootstrap
 
+package-ProductApiStockUpdatedWorker:
+	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-stock-updated/main.go;cp bootstrap ../../out/StockUpdatedHandlerFunction/bootstrap
+	zip -r -j out/StockUpdatedHandlerFunction/StockUpdatedHandlerFunction.zip out/StockUpdatedHandlerFunction/bootstrap
+
+package-ProductAclFunction:
+	cd src/product-acl;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap inventory-stock-updated-event-handler/main.go;cp bootstrap ../../out/GoProductAcl/bootstrap
+	zip -r -j out/GoProductAcl/GoProductAcl.zip out/GoProductAcl/bootstrap
+
 package-ProductPublicEventPublisher:
 	cd src/product-event-publisher;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap public-event-publisher/main.go;cp bootstrap ../../out/GoProductPublicEventPublisher/bootstrap
 	zip -r -j out/GoProductPublicEventPublisher/GoProductPublicEventPublisher.zip out/GoProductPublicEventPublisher/bootstrap
@@ -108,7 +122,6 @@ package-InventoryOrderingWorkflow:
 package-GoAnalyticsBackend:
 	cd src/analytics-service;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-events/main.go;cp bootstrap ../../out/GoAnalyticsBackend/bootstrap
 	zip -r -j out/GoAnalyticsBackend/GoAnalyticsBackend.zip out/GoAnalyticsBackend/bootstrap
-
 
 build-GetProductFunction:
 	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap get-product/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap

@@ -41,6 +41,11 @@ type PriceCalculatedEvent struct {
 	PriceBrackets []ProductPriceBreakdown `json:"priceBrackets"`
 }
 
+type StockUpdatedEvent struct {
+	ProductId  string `json:"productId"`
+	StockLevel int    `json:"stockLevel"`
+}
+
 type ProductPriceBreakdown struct {
 	Quantity int     `json:"number"`
 	Price    float32 `json:"price"`

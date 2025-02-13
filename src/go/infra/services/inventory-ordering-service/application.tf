@@ -57,8 +57,10 @@ resource "aws_sfn_state_machine" "inventory_ordering_state_machine" {
     include_execution_data = true
     level                  = "ALL"
   }
-
-  definition = file("${path.module}/../../../cdk/inventory-ordering-service/workflows/ordering-workflow.asl.json")
+  
+  definition = templatefile("${path.module}/../../../lib/inventory-ordering-service/workflows/ordering-workflow-setStock.asl.json", {
+    TableName = data.aws_ssm_parameter.inventory_table_name.value
+  })
   tags = {
     DD_ENHANCED_METRICS : "true"
     DD_TRACE_ENABLED : "true"

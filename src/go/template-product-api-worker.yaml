@@ -34,7 +34,7 @@ Globals:
     Timeout: 29
     MemorySize: 512
     Layers:
-      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension-ARM:66
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension-ARM:68
     Environment:
       Variables:
         ENV: !Ref Env
@@ -67,6 +67,32 @@ Resources:
           Type: SNS
           Properties:
             Topic: !Ref TopicArn
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "{{resolve:ssm:/go/product/product-table-name:1}}"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      BuildMethod: makefile
+
+  ProductApiStockUpdatedWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: bootstrap
+      FunctionName: !Sub GoProductApiStockUpdatedWorker-${Env}
+      Environment:
+        Variables:
+          TABLE_NAME: "{{resolve:ssm:/go/product/product-table-name:1}}"
+      Events:
+        StockUpdatedTopic:
+          Type: SNS
+          Properties:
+            Topic: "{{resolve:ssm:/go/product/stock-updated-topic:1}}"
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "{{resolve:ssm:/go/product/product-table-name:1}}"

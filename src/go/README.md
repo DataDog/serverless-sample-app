@@ -90,7 +90,7 @@ The AWS SAM & Go Instrumentation works by manually adding the Datadog extension 
 Globals:
   Function:
     Layers:
-      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension-ARM:66
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension-ARM:68
     Environment:
       Variables:
         DD_ENV: !Ref Env

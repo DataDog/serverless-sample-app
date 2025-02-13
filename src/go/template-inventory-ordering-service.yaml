@@ -34,7 +34,7 @@ Globals:
     Timeout: 29
     MemorySize: 512
     Layers:
-      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension-ARM:66
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension-ARM:68
     Environment:
       Variables:
         ENV: !Ref Env
@@ -86,7 +86,9 @@ Resources:
   GoInventoryOrderingService:
     Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionUri: cdk/inventory-ordering-service/workflows/ordering-workflow.asl.json
+      DefinitionUri: lib/inventory-ordering-service/workflows/ordering-workflow-setStock.asl.json
+      DefinitionSubstitutions:
+        TableName: "{{resolve:ssm:/go/inventory-api/table-name:1}}"
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -103,6 +105,8 @@ Resources:
                 - "logs:DescribeResourcePolicies"
                 - "logs:DescribeLogGroups"
               Resource: "*"
+        - DynamoDBWritePolicy:
+            TableName: "{{resolve:ssm:/go/inventory-api/table-name:1}}"
       Logging:
         IncludeExecutionData: true
         Level: ALL

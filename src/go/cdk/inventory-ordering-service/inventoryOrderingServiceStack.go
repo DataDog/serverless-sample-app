@@ -9,6 +9,7 @@ package inventoryorderingservice
 
 import (
 	sharedprops "cdk/shared"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
 	"os"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
@@ -62,8 +63,10 @@ func NewInventoryOrderingServiceStack(scope constructs.Construct, id string, pro
 		})
 
 	inventoryProductAddedTopicParam := awsssm.StringParameter_FromStringParameterName(stack, jsii.String("ProductCreatedTopicParam"), jsii.String("/go/inventory/product-added-topic"))
-
 	inventoryProductAddedTopic := awssns.Topic_FromTopicArn(stack, jsii.String("InventoryProductAddedTopic"), inventoryProductAddedTopicParam.StringValue())
+
+	inventoryApiTableNameParam := awsssm.StringParameter_FromStringParameterName(stack, jsii.String("InventoryApiTableNameParam"), jsii.String("/go/"+env+"/inventory-api/table-name"))
+	inventoryApiTable := awsdynamodb.Table_FromTableName(stack, jsii.String("InventoryApiTable"), inventoryApiTableNameParam.StringValue())
 
 	NewInventoryOrderingService(stack, "InventoryOrderingService", &InventoryOrderingServiceProps{
 		SharedProps: sharedprops.SharedProps{
@@ -73,6 +76,7 @@ func NewInventoryOrderingServiceStack(scope constructs.Construct, id string, pro
 			Datadog:     datadog,
 		},
 		ProductAddedTopic: inventoryProductAddedTopic,
+		InventoryApiTable: inventoryApiTable,
 	})
 
 	return stack

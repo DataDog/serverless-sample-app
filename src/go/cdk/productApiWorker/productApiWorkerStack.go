@@ -65,6 +65,9 @@ func NewProductApiWorkerStack(scope constructs.Construct, id string, props *Prod
 	productPricingChangedTopicParam := awsssm.StringParameter_FromStringParameterName(stack, jsii.String("ProductPricingChangedTopicParam"), jsii.String("/go/product/pricing-calculated-topic"))
 	productPricingChangedTopic := awssns.Topic_FromTopicArn(stack, jsii.String("ProductPricingChangedTopic"), productPricingChangedTopicParam.StringValue())
 
+	stockUpdatedTopicParam := awsssm.StringParameter_FromStringParameterName(stack, jsii.String("ProductStockUpdatedTopicParam"), jsii.String("/go/product/inventory-stock-updated-topic"))
+	stockUpdatedTopic := awssns.Topic_FromTopicArn(stack, jsii.String("ProductStockUpdatedTopic"), stockUpdatedTopicParam.StringValue())
+
 	productTableParam := awsssm.StringParameter_FromStringParameterName(stack, jsii.String("ProductTableNameParam"), jsii.String("/go/product/table-name"))
 	productTable := awsdynamodb.Table_FromTableName(stack, jsii.String("ProductTable"), productTableParam.StringValue())
 
@@ -76,6 +79,7 @@ func NewProductApiWorkerStack(scope constructs.Construct, id string, props *Prod
 			Datadog:     datadog,
 		},
 		ProductPricingChangedTopic: productPricingChangedTopic,
+		ProductStockUpdatedTopic:   stockUpdatedTopic,
 		ProductTable:               productTable,
 	})
 

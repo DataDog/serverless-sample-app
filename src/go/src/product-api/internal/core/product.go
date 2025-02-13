@@ -27,6 +27,7 @@ type Product struct {
 	PreviousName   string
 	Price          float32
 	PreviousPrice  float32
+	StockLevel     int
 	Updated        bool
 	PriceBreakdown []ProductPrice
 }
@@ -44,7 +45,12 @@ func NewProduct(name string, price float32) (*Product, error) {
 		PreviousPrice:  -1,
 		Updated:        false,
 		PriceBreakdown: []ProductPrice{},
+		StockLevel:     0,
 	}, nil
+}
+
+func (p *Product) UpdateStockLevel(stockLevel int) {
+	p.StockLevel = stockLevel
 }
 
 func (p *Product) UpdateDetail(name string, price float32) error {
@@ -81,14 +87,16 @@ func (p *Product) AsDto() *ProductDTO {
 		Name:           p.Name,
 		Price:          p.Price,
 		PriceBreakdown: p.PriceBreakdown,
+		StockLevel:     p.StockLevel,
 	}
 }
 
 func (p *Product) AsListDto() *ProductListDTO {
 	return &ProductListDTO{
-		ProductId: p.Id,
-		Name:      p.Name,
-		Price:     p.Price,
+		ProductId:  p.Id,
+		Name:       p.Name,
+		Price:      p.Price,
+		StockLevel: p.StockLevel,
 	}
 }
 
@@ -102,10 +110,12 @@ type ProductDTO struct {
 	Name           string         `json:"name"`
 	Price          float32        `json:"price"`
 	PriceBreakdown []ProductPrice `json:"pricingBrackets"`
+	StockLevel     int            `json:"stockLevel"`
 }
 
 type ProductListDTO struct {
-	ProductId string  `json:"productId"`
-	Name      string  `json:"name"`
-	Price     float32 `json:"price"`
+	ProductId  string  `json:"productId"`
+	Name       string  `json:"name"`
+	Price      float32 `json:"price"`
+	StockLevel int     `json:stockLevel`
 }

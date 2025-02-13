@@ -4,6 +4,8 @@ import (
 	analyticsservice "cdk/analytics-service"
 	inventoryorderingservice "cdk/inventory-ordering-service"
 	inventoryacl "cdk/inventoryAcl"
+	inventoryapi "cdk/inventoryApi"
+	productacl "cdk/productAcl"
 	productapi "cdk/productApi"
 	productapiworker "cdk/productApiWorker"
 	productpricingservice "cdk/productPricingService"
@@ -20,6 +22,12 @@ func main() {
 	app := awscdk.NewApp(nil)
 
 	sharedResourcesStack := shared.NewSharedResourceStack(app, "GoSharedResourcesStack", &shared.SharedResourceStackProps{
+		StackProps: awscdk.StackProps{
+			Env: env(),
+		},
+	})
+
+	productAcl := productacl.NewProductAclStack(app, "GoProductAclStack", &productacl.ProductAclStackProps{
 		StackProps: awscdk.StackProps{
 			Env: env(),
 		},
@@ -44,6 +52,7 @@ func main() {
 		},
 	})
 	productApiWorkerStack.AddDependency(productPricingStack, jsii.String("Receives events published by the pricing service"))
+	productApiWorkerStack.AddDependency(productAcl, jsii.String("Receives events published by the anti corruption layer"))
 
 	productEventPublisherStack := producteventpublisher.NewProductPublicEventPublisherStack(app, "GoProductEventPublisher", &producteventpublisher.ProductPublicEventPublisherStackProps{
 		StackProps: awscdk.StackProps{
@@ -52,6 +61,13 @@ func main() {
 	})
 	productEventPublisherStack.AddDependency(sharedResourcesStack, jsii.String("Requires event bus"))
 	productEventPublisherStack.AddDependency(productApiStack, jsii.String("Requires SNS topics"))
+
+	inventoryApi := inventoryapi.NewInventoryApiStack(app, *jsii.String("GoInventoryApi"), &inventoryapi.InventoryApiStackProps{
+		StackProps: awscdk.StackProps{
+			Env: env(),
+		},
+	})
+	inventoryApi.AddDependency(sharedResourcesStack, jsii.String("Requires event bus"))
 
 	inventoryAcl := inventoryacl.NewInventoryAclStack(app, *jsii.String("GoInventoryAcl"), &inventoryacl.InventoryAclStackProps{
 		StackProps: awscdk.StackProps{
@@ -66,6 +82,7 @@ func main() {
 		},
 	})
 	inventoryOrderingService.AddDependency(inventoryAcl, jsii.String("Requires SNS topics"))
+	inventoryApi.AddDependency(inventoryApi, jsii.String("Requires DynamoDB table to exist"))
 
 	analyticsService := analyticsservice.NewAnalyticsServiceStack(app, *jsii.String("GoAnalyticsService"), &analyticsservice.AnalyticsServiceStackProps{
 		StackProps: awscdk.StackProps{

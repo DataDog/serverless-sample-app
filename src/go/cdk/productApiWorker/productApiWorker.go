@@ -23,6 +23,7 @@ import (
 type ProductApiWorkerServiceProps struct {
 	SharedProps                sharedprops.SharedProps
 	ProductPricingChangedTopic awssns.ITopic
+	ProductStockUpdatedTopic   awssns.ITopic
 	ProductTable               awsdynamodb.ITable
 }
 
@@ -44,5 +45,21 @@ func NewProductApiWorkerService(scope constructs.Construct, id string, props *Pr
 	})
 	handlePricingChangedFunction.Function.AddEventSource(awslambdaeventsources.NewSnsEventSource(props.ProductPricingChangedTopic, &awslambdaeventsources.SnsEventSourceProps{
 		DeadLetterQueue: handlePricingChangedDLQ,
+	}))
+
+	handleStockUpdatedFunction := sharedconstructs.NewInstrumentedFunction(scope, "ProductStockUpdatedHandler", &sharedconstructs.InstrumentedFunctionProps{
+		SharedProps:          props.SharedProps,
+		Entry:                "../src/product-api/handle-stock-updated/",
+		FunctionName:         fmt.Sprintf("GoProductApiHandleStockUpdated-%s", props.SharedProps.Env),
+		EnvironmentVariables: environmentVariables,
+	})
+
+	props.ProductTable.GrantReadWriteData(handleStockUpdatedFunction.Function)
+
+	handleStockUpdatedDLQ := awssqs.NewQueue(scope, jsii.String("GoHandleStockUpdatedDLQ"), &awssqs.QueueProps{
+		QueueName: jsii.Sprintf("GoHandleStockUpdatedDLQ-%s", props.SharedProps.Env),
+	})
+	handleStockUpdatedFunction.Function.AddEventSource(awslambdaeventsources.NewSnsEventSource(props.ProductStockUpdatedTopic, &awslambdaeventsources.SnsEventSourceProps{
+		DeadLetterQueue: handleStockUpdatedDLQ,
 	}))
 }

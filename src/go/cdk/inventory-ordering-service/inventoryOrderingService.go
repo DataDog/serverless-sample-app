@@ -11,6 +11,7 @@ import (
 	sharedprops "cdk/shared"
 	sharedconstructs "cdk/sharedConstructs"
 	"fmt"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambdaeventsources"
@@ -27,6 +28,7 @@ import (
 type InventoryOrderingServiceProps struct {
 	SharedProps       sharedprops.SharedProps
 	ProductAddedTopic awssns.ITopic
+	InventoryApiTable awsdynamodb.ITable
 }
 
 func NewInventoryOrderingService(scope constructs.Construct, id string, props *InventoryOrderingServiceProps) {
@@ -35,15 +37,22 @@ func NewInventoryOrderingService(scope constructs.Construct, id string, props *I
 		RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
 	})
 
+	definitionSubstitutions := make(map[string]*string)
+	definitionSubstitutions["TableName"] = props.InventoryApiTable.TableName()
+
 	workflow := awsstepfunctions.NewStateMachine(scope, jsii.Sprintf("GoInventoryOrderingWorkflow-%s", props.SharedProps.Env), &awsstepfunctions.StateMachineProps{
-		StateMachineName: jsii.Sprintf("GoInventoryOrderingWorkflow-%s", props.SharedProps.Env),
-		DefinitionBody:   awsstepfunctions.DefinitionBody_FromFile(jsii.String("./inventory-ordering-service/workflows/ordering-workflow.asl.json"), &awss3assets.AssetOptions{}),
+		StateMachineName:        jsii.Sprintf("GoInventoryOrderingWorkflow-%s", props.SharedProps.Env),
+		DefinitionBody:          awsstepfunctions.DefinitionBody_FromFile(jsii.String("./inventory-ordering-service/workflows/order-workflow-setStock.asl.json"), &awss3assets.AssetOptions{}),
+		DefinitionSubstitutions: &definitionSubstitutions,
 		Logs: &awsstepfunctions.LogOptions{
 			Destination:          workflowLogGroup,
 			IncludeExecutionData: jsii.Bool(true),
 			Level:                awsstepfunctions.LogLevel_ALL,
 		},
 	})
+
+	props.InventoryApiTable.GrantReadWriteData(workflow.Role())
+
 	awscdk.Tags_Of(workflow).Add(jsii.String("DD_ENHANCED_METRICS"), jsii.String("true"), &awscdk.TagProps{})
 	awscdk.Tags_Of(workflow).Add(jsii.String("DD_TRACE_ENABLED"), jsii.String("true"), &awscdk.TagProps{})
 
