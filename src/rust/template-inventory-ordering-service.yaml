@@ -84,7 +84,9 @@ Resources:
   RustInventoryOrderingService:
     Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionUri: lib/inventory-ordering-service/workflows/workflow.sample.asl.json
+      DefinitionUri: lib/inventory-ordering-service/workflows/workflow.setStock.asl.json
+      DefinitionSubstitutions:
+        TableName: "{{resolve:ssm:/rust/inventory-api/table-name:1}}"
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -101,6 +103,8 @@ Resources:
                 - "logs:DescribeResourcePolicies"
                 - "logs:DescribeLogGroups"
               Resource: "*"
+        - DynamoDBWritePolicy:
+            TableName: "{{resolve:ssm:/rust/inventory-api/table-name:1}}"
       Logging:
         IncludeExecutionData: true
         Level: ALL

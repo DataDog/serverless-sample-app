@@ -74,3 +74,30 @@ Resources:
     Metadata:
       BuildMethod: rust-cargolambda
       Binary: handle-pricing-updated
+
+  ProductApiStockUpdatedWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/product-api/lambdas/handle_stock_updated/
+      Handler: handle-stock-updated
+      FunctionName: !Sub RustProductApiStockUpdatedWorker-${Env}
+      Environment:
+        Variables:
+          TABLE_NAME: !Sub "{{resolve:ssm:/rust/${Env}/product/product-table-name:1}}"
+      Events:
+        StockUpdatedTopic:
+          Type: SNS
+          Properties:
+            Topic: !Sub "{{resolve:ssm:/rust/${Env}/product/stock-updated-topic:1}}"
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Sub "{{resolve:ssm:/rust/${Env}/product/product-table-name:1}}"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      BuildMethod: rust-cargolambda
+      Binary: handle-stock-updated

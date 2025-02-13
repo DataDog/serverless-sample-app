@@ -29,7 +29,7 @@ Globals:
   Function:
     Runtime: provided.al2023
     Timeout: 29
-    MemorySize: 512
+    MemorySize: 128
     Layers:
       - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:66
     Environment:

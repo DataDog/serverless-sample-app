@@ -14,6 +14,8 @@ function deploy {
   mkdir out/productCreatedPricingHandler
   mkdir out/productUpdatedPricingHandler
   mkdir out/analyticsEventHandler
+  mkdir out/stockLevelUpdatedPublicEventHandler
+  mkdir out/handleStockLevelUpdatedFunction
 
   cargo lambda build --release --manifest-path src/product-api/lambdas/create_product/Cargo.toml
   zip -r -j out/createProductFunction/createProductFunction.zip target/lambda/create-product/bootstrap
@@ -38,6 +40,9 @@ function deploy {
 
   cargo lambda build --release --manifest-path src/product-api/lambdas/handle_pricing_updated/Cargo.toml
   zip -r -j out/handlePricingChangedFunction/handlePricingChangedFunction.zip target/lambda/handle-pricing-updated/bootstrap
+  
+  cargo lambda build --release --manifest-path src/product-api/lambdas/handle_stock_updated/Cargo.toml
+  zip -r -j out/handleStockLevelUpdatedFunction/handleStockLevelUpdatedFunction.zip target/lambda/handle-stock-updated/bootstrap
 
   cargo lambda build --release --manifest-path src/product-event-publisher/lambdas/product_public_event_publisher/Cargo.toml
   zip -r -j out/publicEventPublisherFunction/publicEventPublisherFunction.zip target/lambda/product-public-event-publisher/bootstrap
@@ -50,6 +55,9 @@ function deploy {
 
   cargo lambda build --release --manifest-path src/analytics/lambdas/analytics/Cargo.toml
   zip -r -j out/analyticsEventHandler/analyticsEventHandler.zip target/lambda/analytics_handler/bootstrap
+
+  cargo lambda build --release --manifest-path src/product-acl/lambdas/inventory_stock_updated_handler/Cargo.toml
+  zip -r -j out/stockLevelUpdatedPublicEventHandler/stockLevelUpdatedPublicEventHandler.zip target/lambda/handle_inventory_stock_updated_event/bootstrap
 }
 
 deploy
