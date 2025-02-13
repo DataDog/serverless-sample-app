@@ -5,7 +5,7 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-resource "aws_dynamodb_table" "node_inventory_api" {
+resource "aws_dynamodb_table" "rust_inventory_api" {
   name           = "TfRustInventoryApi-${var.env}"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "PK"
