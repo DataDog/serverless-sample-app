@@ -23,6 +23,8 @@ import {
   StateMachine,
   LogLevel,
 } from "aws-cdk-lib/aws-stepfunctions";
+import { Table } from "aws-cdk-lib/aws-dynamodb";
+import { Queue } from "aws-cdk-lib/aws-sqs";
 
 export interface InventoryOrderingServiceProps {
   sharedProps: SharedProps;
@@ -51,6 +53,17 @@ export class InventoryOrderingService extends Construct {
       "RustNewProductAddedTopic",
       newProductAddedTopicParam.stringValue
     );
+    
+    const tableName = StringParameter.fromStringParameterName(
+      this,
+      "NodeInventoryApiTableName",
+      `/rust/${props.sharedProps.environment}/inventory-api/table-name`
+    );
+    const inventoryTable = Table.fromTableName(
+      this,
+      "InventoryTable",
+      tableName.stringValue
+    );
 
     const workflowLogGroup = new LogGroup(
       this,
@@ -64,8 +77,11 @@ export class InventoryOrderingService extends Construct {
     const workflow = new StateMachine(this, "RustInventoryOrderingService", {
       stateMachineName: `RustInventoryOrderingService-${props.sharedProps.environment}`,
       definitionBody: DefinitionBody.fromFile(
-        "./lib/inventory-ordering-service/workflows/workflow.sample.asl.json"
+        "./lib/inventory-ordering-service/workflows/workflow.setStock.asl.json"
       ),
+      definitionSubstitutions: {
+        TableName: inventoryTable.tableName,
+      },
       logs: {
         destination: workflowLogGroup,
         includeExecutionData: true,
@@ -74,6 +90,7 @@ export class InventoryOrderingService extends Construct {
     });
     Tags.of(workflow).add("DD_ENHANCED_METRICS", "true");
     Tags.of(workflow).add("DD_TRACE_ENABLED", "true");
+    inventoryTable.grantReadWriteData(workflow.role);
 
     this.inventoryOrderingWorkflowTrigger = new InstrumentedLambdaFunction(
       this,
@@ -88,9 +105,21 @@ export class InventoryOrderingService extends Construct {
         manifestPath: "./src/inventory-ordering/lambdas/product_added_handler/Cargo.toml"
       }
     ).function;
-    this.inventoryOrderingWorkflowTrigger.addEventSource(
-      new SnsEventSource(topic)
+
+    const inventoryWorkflowDLQ = new Queue(
+      this,
+      "NodeInventoryOrderingTriggerDLQ",
+      {
+        queueName: `NodeInventoryOrderingTriggerDLQ-${props.sharedProps.environment}`,
+      }
     );
+
+    this.inventoryOrderingWorkflowTrigger.addEventSource(
+      new SnsEventSource(topic, {
+        deadLetterQueue: inventoryWorkflowDLQ,
+      })
+    );
+    
     workflow.grantStartExecution(this.inventoryOrderingWorkflowTrigger);
 
     const inventoryStateMachineArnParam = new StringParameter(

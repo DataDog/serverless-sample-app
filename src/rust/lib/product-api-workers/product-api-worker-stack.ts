@@ -49,11 +49,18 @@ export class ProductApiWorkerStack extends cdk.Stack {
     };
 
     let priceCalculatedTopic: ITopic | undefined = undefined;
+    let stockLevelUpdatedTopic: ITopic | undefined = undefined;
 
     const priceCalculatedTopicArn = StringParameter.fromStringParameterName(
       this,
       "PriceCalculatedTopicArn",
       "/rust/product/pricing-calculated-topic"
+    );
+
+    const stockLevelUpdatedTopicParam = StringParameter.fromStringParameterName(
+      this,
+      "StockLevelUpdatedTopicArn",
+      `/rust/inventory/${sharedProps.environment}/stock-updated-topic`
     );
     
     priceCalculatedTopic = Topic.fromTopicArn(
@@ -62,10 +69,17 @@ export class ProductApiWorkerStack extends cdk.Stack {
       priceCalculatedTopicArn.stringValue
     );
 
+    stockLevelUpdatedTopic = Topic.fromTopicArn(
+      this,
+      "StockLevelUpdatedTopic",
+      stockLevelUpdatedTopicParam.stringValue
+    );
+
     const api = new ApiWorker(this, "ProductApiWorker", {
       sharedProps,
       ddApiKeySecret: ddApiKey,
       priceCalculatedTopic,
+      stockLevelUpdatedTopic,
     });
   }
 }

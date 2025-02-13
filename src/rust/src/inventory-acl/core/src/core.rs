@@ -18,9 +18,7 @@ pub struct ProductAddedEvent {
 
 impl ProductAddedEvent {
     pub(crate) fn new(product_id: String) -> Self {
-        Self {
-            product_id,
-        }
+        Self { product_id }
     }
 }
 

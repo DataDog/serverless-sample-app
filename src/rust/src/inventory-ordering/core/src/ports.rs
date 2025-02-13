@@ -9,7 +9,6 @@ pub enum ApplicationError {
     InternalError(String),
 }
 
-
 #[derive(Deserialize)]
 pub struct ProductAddedEvent {
     product_id: String,
@@ -21,7 +20,6 @@ pub async fn handle_product_added_event<TEventPublisher: OrderingWorkflow>(
 ) -> Result<(), ApplicationError> {
     workflow
         .start_workflow_for(evt.product_id)
-        .await.map_err(|_e| {
-            ApplicationError::InternalError("Failure starting workflow".to_string())
-        })
+        .await
+        .map_err(|_e| ApplicationError::InternalError("Failure starting workflow".to_string()))
 }

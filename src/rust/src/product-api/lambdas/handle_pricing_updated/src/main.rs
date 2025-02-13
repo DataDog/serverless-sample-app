@@ -17,11 +17,13 @@ async fn function_handler<TRepository: Repository>(
         let traced_message: TracedMessage = sns_record.into();
         let evt = serde_json::from_str(&traced_message.message).unwrap();
 
-        handle_pricing_updated_event(client, evt).await.map_err(|e|{
-            tracing::error!("{}", e);
+        handle_pricing_updated_event(client, evt)
+            .await
+            .map_err(|e| {
+                tracing::error!("{}", e);
 
-            e
-        })?;
+                e
+            })?;
     }
 
     Ok(())

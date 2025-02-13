@@ -8,7 +8,6 @@ pub enum ApplicationError {
     InternalError(String),
 }
 
-
 #[derive(Deserialize)]
 pub struct ProductCreatedEvent {
     product_id: String,
@@ -26,9 +25,8 @@ pub async fn handle_product_created_event<TEventPublisher: EventPublisher>(
             evt.product_id,
             price_breakdowns,
         ))
-        .await.map_err(|_e| {
-            ApplicationError::InternalError("Failure publishing event".to_string())
-        })
+        .await
+        .map_err(|_e| ApplicationError::InternalError("Failure publishing event".to_string()))
 }
 
 #[derive(Deserialize)]
@@ -53,7 +51,6 @@ pub async fn handle_product_updated_event<TEventPublisher: EventPublisher>(
             evt.product_id,
             price_breakdowns,
         ))
-        .await.map_err(|_e| {
-            ApplicationError::InternalError("Failure publishing event".to_string())
-        })
+        .await
+        .map_err(|_e| ApplicationError::InternalError("Failure publishing event".to_string()))
 }

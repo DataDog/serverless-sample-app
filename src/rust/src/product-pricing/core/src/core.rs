@@ -63,7 +63,7 @@ impl PricingService {
             PricingResult {
                 quantity_to_order: 100,
                 price: price * 0.7,
-            }
+            },
         ];
 
         results

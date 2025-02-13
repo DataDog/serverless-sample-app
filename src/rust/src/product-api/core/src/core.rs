@@ -48,6 +48,7 @@ pub struct ProductDTO {
     price: f32,
     #[serde(rename = "pricingBrackets")]
     price_brackets: Vec<ProductPriceBracket>,
+    stock_level: i32,
 }
 
 #[derive(Clone, Serialize)]
@@ -55,6 +56,7 @@ pub struct Product {
     pub(crate) product_id: String,
     pub(crate) previous_name: String,
     pub(crate) name: String,
+    pub(crate) stock_level: i32,
     pub(crate) price: f32,
     pub(crate) previous_price: f32,
     pub(crate) updated: bool,
@@ -66,6 +68,7 @@ impl Product {
         Self {
             name,
             price,
+            stock_level: 0,
             product_id: Uuid::new_v4().to_string(),
             previous_name: "".to_string(),
             previous_price: -1.0,
@@ -90,6 +93,10 @@ impl Product {
         self
     }
 
+    pub(crate) fn update_stock_level(&mut self, stock_level: i32) {
+        self.stock_level = stock_level;
+    }
+
     pub(crate) fn clear_pricing(mut self) -> Self {
         self.price_brackets = vec![];
 
@@ -108,6 +115,7 @@ impl Product {
             product_id: self.product_id.clone(),
             name: self.name.clone(),
             price_brackets: self.price_brackets.to_vec(),
+            stock_level: self.stock_level,
         }
     }
 }
@@ -150,12 +158,14 @@ impl From<Product> for ProductUpdatedEvent {
                 price: value.previous_price,
                 product_id: value.product_id.clone(),
                 price_brackets: vec![],
+                stock_level: value.stock_level,
             },
             new: ProductDTO {
                 name: value.name,
                 price: value.price,
                 product_id: value.product_id.clone(),
                 price_brackets: vec![],
+                stock_level: value.stock_level,
             },
         }
     }

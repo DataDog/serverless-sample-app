@@ -17,8 +17,7 @@ async fn function_handler<TRepository: Repository, TEventPublisher: EventPublish
     client: &TRepository,
     event_publisher: &TEventPublisher,
     event: Request,
-) -> Result<impl IntoResponse, Error>
-{
+) -> Result<impl IntoResponse, Error> {
     let _: Result<TracedMessage, &str> = event.headers().try_into();
     tracing::info!("Received event: {:?}", event);
 

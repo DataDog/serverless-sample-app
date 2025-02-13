@@ -3,9 +3,12 @@ use lambda_http::{Body, Error, Response};
 use serde::Serialize;
 
 #[derive(Serialize)]
-struct ResponseWrapper<T> where T : Serialize {
+struct ResponseWrapper<T>
+where
+    T: Serialize,
+{
     data: T,
-    message: String
+    message: String,
 }
 
 pub fn empty_response(status: &StatusCode) -> Result<Response<Body>, Error> {
@@ -21,9 +24,9 @@ pub fn empty_response(status: &StatusCode) -> Result<Response<Body>, Error> {
 }
 
 pub fn json_response(status: &StatusCode, body: &impl Serialize) -> Result<Response<Body>, Error> {
-    let wrapper = ResponseWrapper{
+    let wrapper = ResponseWrapper {
         data: body,
-        message: "".to_string()
+        message: "".to_string(),
     };
 
     let response = Response::builder()

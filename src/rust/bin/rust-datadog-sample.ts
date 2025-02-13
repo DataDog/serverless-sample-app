@@ -8,10 +8,15 @@ import { ProductApiWorkerStack } from "../lib/product-api-workers/product-api-wo
 import { InventoryAclStack } from "../lib/inventory-acl/inventoryAclStack";
 import { InventoryOrderServiceStack } from "../lib/inventory-ordering-service/inventoryOrderingServiceStack";
 import { AnalyticsBackendStack } from "../lib/analytics-backend/analyticsBackendStack";
+import { InventoryApiStack } from "../lib/inventory-api/inventoryApiStack";
+import { ProductAclStack } from "../lib/product-acl/productAclStack";
 
 const app = new App();
 
 const sharedStack = new SharedResourcesStack(app, "RustSharedStack", {});
+
+const productAclService = new ProductAclStack(app, "NodeProductAclService", {});
+productAclService.addDependency(sharedStack);
  
 const apiStack = new ProductApiStack(app, "RustProductApiStack", {});
 apiStack.addDependency(sharedStack);
@@ -38,9 +43,16 @@ const productApiWorkerStack = new ProductApiWorkerStack(
 );
 productApiWorkerStack.addDependency(apiStack);
 productApiWorkerStack.addDependency(productPricingStack);
+productApiWorkerStack.addDependency(productAclService);
 
 const inventoryAcl = new InventoryAclStack(app, "RustInventoryAcl", {});
 inventoryAcl.addDependency(sharedStack);
+
+const inventoryApiStack = new InventoryApiStack(
+  app,
+  "RustInventoryApiStack",
+  {}
+);
 
 const inventoryOrderingService = new InventoryOrderServiceStack(
   app,
@@ -48,6 +60,7 @@ const inventoryOrderingService = new InventoryOrderServiceStack(
   {}
 );
 inventoryOrderingService.addDependency(inventoryAcl);
+inventoryOrderingService.addDependency(inventoryApiStack);
 
 const analyticsService = new AnalyticsBackendStack(app, "RustAnalyticsStack", {});
 analyticsService.addDependency(sharedStack);

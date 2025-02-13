@@ -8,12 +8,15 @@ use crate::core::OrderingWorkflow;
 
 pub struct StepFunctionsWorkflow {
     client: aws_sdk_sfn::Client,
-    step_function_arn: String
+    step_function_arn: String,
 }
 
 impl StepFunctionsWorkflow {
     pub fn new(client: aws_sdk_sfn::Client, step_function_arn: String) -> StepFunctionsWorkflow {
-        StepFunctionsWorkflow { client, step_function_arn }
+        StepFunctionsWorkflow {
+            client,
+            step_function_arn,
+        }
     }
 }
 
@@ -24,24 +27,24 @@ impl OrderingWorkflow for StepFunctionsWorkflow {
         skip(self, product_id)
         fields(workflow_arn=self.step_function_arn)
     )]
-    async fn start_workflow_for(
-        &self,
-        product_id: String,
-    ) -> Result<(), ()>{
-
-        let span_context = tracing::Span::current().context().span().span_context().clone();
+    async fn start_workflow_for(&self, product_id: String) -> Result<(), ()> {
+        let span_context = tracing::Span::current()
+            .context()
+            .span()
+            .span_context()
+            .clone();
 
         let trace_id = span_context.trace_id().to_string().clone();
         let span_id = span_context.span_id().to_string().clone();
 
-        let workflow_input = WorkflowInput{
+        let workflow_input = WorkflowInput {
             product_id: product_id,
-            datadog: DatadogTracing{
+            datadog: DatadogTracing {
                 trace_id: trace_id,
                 span_id: span_id,
                 priority: 1,
-                tags: "".to_string()
-            }
+                tags: "".to_string(),
+            },
         };
 
         self.client
@@ -65,7 +68,7 @@ struct WorkflowInput {
     #[serde(rename(serialize = "productId"))]
     product_id: String,
     #[serde(rename(serialize = "_datadog"))]
-    datadog: DatadogTracing
+    datadog: DatadogTracing,
 }
 
 #[derive(Serialize)]
@@ -77,5 +80,5 @@ struct DatadogTracing {
     #[serde(rename(serialize = "x-datadog-sampling-priority"))]
     priority: i32,
     #[serde(rename(serialize = "x-datadog-tags"))]
-    tags: String
+    tags: String,
 }

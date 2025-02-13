@@ -34,6 +34,10 @@ impl DynamoDbRepository {
                 "Price",
                 AttributeValue::N(product.price.clone().to_string()),
             )
+            .item(
+                "StockLevel",
+                AttributeValue::N(product.stock_level.clone().to_string()),
+            )
             .item("ProductId", AttributeValue::S(product.product_id.clone()))
             .item(
                 "PriceBrackets",
@@ -65,7 +69,7 @@ impl Repository for DynamoDbRepository {
         self.put_to_dynamo(body).await
     }
 
-    #[instrument(name = "get-product", skip(self), fields(peer.aws.dynamodb.table_name = self.table_name, peer.db.name = self.table_name, tablename = self.table_name))]
+    #[instrument(name = "list-products", skip(self), fields(peer.aws.dynamodb.table_name = self.table_name, peer.db.name = self.table_name, tablename = self.table_name))]
     async fn list_products(&self) -> Result<Vec<crate::core::Product>, RepositoryError> {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
@@ -90,6 +94,14 @@ impl Repository for DynamoDbRepository {
                             .unwrap()
                             .clone()
                             .parse::<f32>()
+                            .unwrap(),
+                        stock_level: attributes
+                            .get("StockLevel")
+                            .unwrap()
+                            .as_n()
+                            .unwrap()
+                            .clone()
+                            .parse::<i32>()
                             .unwrap(),
                         previous_price: -1.0,
                         previous_name: "".to_string(),
@@ -149,6 +161,14 @@ impl Repository for DynamoDbRepository {
                         .unwrap()
                         .clone()
                         .parse::<f32>()
+                        .unwrap(),
+                    stock_level: attributes
+                        .get("StockLevel")
+                        .unwrap()
+                        .as_n()
+                        .unwrap()
+                        .clone()
+                        .parse::<i32>()
                         .unwrap(),
                     previous_price: -1.0,
                     previous_name: "".to_string(),

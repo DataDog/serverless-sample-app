@@ -1,5 +1,7 @@
 use aws_lambda_events::sqs::SqsEvent;
-use inventory_acl_core::{adapters::SnsEventPublisher, core::EventPublisher, ports::handle_product_created_event};
+use inventory_acl_core::{
+    adapters::SnsEventPublisher, core::EventPublisher, ports::handle_product_created_event,
+};
 use lambda_runtime::{run, service_fn, Error, LambdaEvent};
 use observability::{observability, TracedMessage};
 use tracing::instrument;

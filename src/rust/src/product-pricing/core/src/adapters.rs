@@ -1,7 +1,7 @@
 use crate::core::{EventPublisher, ProductPricingChangedEvent};
 use async_trait::async_trait;
-use tracing::instrument;
 use observability::{parse_name_from_arn, TracedMessage};
+use tracing::instrument;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 pub struct SnsEventPublisher {
@@ -24,8 +24,14 @@ impl EventPublisher for SnsEventPublisher {
         &self,
         pricing_changed_event: ProductPricingChangedEvent,
     ) -> Result<(), ()> {
-        tracing::Span::current().set_attribute("peer.service", parse_name_from_arn(&std::env::var("PRICE_CALCULATED_TOPIC_ARN").unwrap()));
-        tracing::Span::current().set_attribute("peer.messaging.destination", std::env::var("PRICE_CALCULATED_TOPIC_ARN").unwrap());
+        tracing::Span::current().set_attribute(
+            "peer.service",
+            parse_name_from_arn(&std::env::var("PRICE_CALCULATED_TOPIC_ARN").unwrap()),
+        );
+        tracing::Span::current().set_attribute(
+            "peer.messaging.destination",
+            std::env::var("PRICE_CALCULATED_TOPIC_ARN").unwrap(),
+        );
         let _publish_res = &self
             .client
             .publish()

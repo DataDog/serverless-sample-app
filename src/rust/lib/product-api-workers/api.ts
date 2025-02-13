@@ -17,11 +17,13 @@ import { InstrumentedLambdaFunction } from "../constructs/lambdaFunction";
 import { IFunction } from "aws-cdk-lib/aws-lambda";
 import { SnsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { Queue } from "aws-cdk-lib/aws-sqs";
+import { SqsDestination } from "aws-cdk-lib/aws-appconfig";
 
 export interface ApiProps {
   sharedProps: SharedProps;
   ddApiKeySecret: ISecret;
   priceCalculatedTopic: ITopic | undefined;
+  stockLevelUpdatedTopic: ITopic | undefined;
 }
 
 export class ApiWorker extends Construct {
@@ -39,6 +41,12 @@ export class ApiWorker extends Construct {
       props.sharedProps,
       props.priceCalculatedTopic
     );
+
+    const stockLevelUpdatedFunction =
+      this.buildStockLevelUpdatedHandlerFunction(
+        props.sharedProps,
+        props.stockLevelUpdatedTopic
+      );
   }
 
   buildPriceCalculatedHandlerFunction(
@@ -81,5 +89,46 @@ export class ApiWorker extends Construct {
     this.table.grantReadWriteData(priceCalculatedHandlerFunction.function);
 
     return priceCalculatedHandlerFunction.function;
+  }
+
+  buildStockLevelUpdatedHandlerFunction(
+    props: SharedProps,
+    stockLevelUpdatedTopic: ITopic | undefined
+  ): IFunction | undefined {
+    if (stockLevelUpdatedTopic === undefined) {
+      return undefined;
+    }
+
+    const productStockLevelUpdatedDLQ = new Queue(
+      this,
+      "RustProductApiStockLevelUpdatedDLQ",
+      {
+        queueName: `RustProductApiStockLevelUpdatedDLQ-${props.environment}`,
+      }
+    );
+
+    const stockLevelUpdatedHandlerFunction = new InstrumentedLambdaFunction(
+      this,
+      "RustProductApiStockLevelUpdatedFunction",
+      {
+        sharedProps: props,
+        functionName: "RustProductApiStockLevelUpdatedFunction",
+        handler: "index.handler",
+        environment: {
+          TABLE_NAME: this.table.tableName,
+        },
+        manifestPath: "./src/product-api/lambdas/handle_stock_updated/Cargo.toml"
+      }
+    );
+
+    stockLevelUpdatedHandlerFunction.function.addEventSource(
+      new SnsEventSource(stockLevelUpdatedTopic, {
+        deadLetterQueue: productStockLevelUpdatedDLQ,
+      })
+    );
+
+    this.table.grantReadWriteData(stockLevelUpdatedHandlerFunction.function);
+
+    return stockLevelUpdatedHandlerFunction.function;
   }
 }
