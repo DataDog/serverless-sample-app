@@ -53,7 +53,7 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	router.GET("/inventory", inventoryHttpHandler.Post)
+	router.POST("/inventory", inventoryHttpHandler.Post)
 	router.GET("/inventory/:id", inventoryHttpHandler.Get)
 	router.GET("/health", healthCheckHttpHandler.HealthCheck)
 

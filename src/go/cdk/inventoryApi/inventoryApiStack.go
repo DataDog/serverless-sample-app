@@ -31,7 +31,7 @@ func NewInventoryApiStack(scope constructs.Construct, id string, props *Inventor
 	}
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
-	serviceName := "GoProductApi"
+	serviceName := "GoInventoryApi"
 	env := os.Getenv("ENV")
 	if len(env) <= 0 {
 		env = "dev"
