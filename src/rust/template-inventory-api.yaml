@@ -305,7 +305,7 @@ Resources:
               Value: !Ref InventoryApiTable
             -
               Name: EVENT_BUS_NAME
-              Value: "{{resolve:ssm:/rust/shared/event-bus-name:1}}"
+              Value: !Sub "{{resolve:ssm:/rust/${Env}/shared/event-bus-name:1}}"
             - 
               Name: TEAM
               Value: "inventory"
