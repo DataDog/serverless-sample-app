@@ -1,0 +1,25 @@
+[package]
+name = "inventory_api_core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+observability = {path = "../../observability"}
+aws-sdk-eventbridge = "1.47"
+async-trait = "0.1"
+aws-sdk-dynamodb = "1.49"
+
+thiserror = {workspace = true}
+anyhow = {workspace = true}
+serde = {workspace = true}
+serde_json = {workspace = true}
+tokio = {workspace = true}
+tracing = {workspace = true}
+tracing-subscriber = {workspace = true}
+opentelemetry = {workspace = true}
+opentelemetry-datadog = {workspace = true}
+opentelemetry_sdk = {workspace = true}
+opentelemetry-http = {workspace = true}
+opentelemetry-stdout = {workspace = true}
+opentelemetry-semantic-conventions = {workspace = true}
+tracing-opentelemetry = {workspace = true}
