@@ -48,7 +48,7 @@ func NewInventoryAclStack(scope constructs.Construct, id string, props *Inventor
 		stack,
 		jsii.String("Datadog"),
 		&ddcdkconstruct.DatadogProps{
-			ExtensionLayerVersion:  jsii.Number(66),
+			ExtensionLayerVersion:  jsii.Number(68),
 			AddLayers:              jsii.Bool(true),
 			Site:                   jsii.String(os.Getenv("DD_SITE")),
 			ApiKeySecret:           ddApiKeySecret,

@@ -43,7 +43,6 @@ Globals:
         DD_SITE: !Ref DDSite
         DD_VERSION: !Ref CommitHash
         DD_SERVICE: !Ref ServiceName
-        DD_SERVERLESS_APPSEC_ENABLED: "true"
         DD_CAPTURE_LAMBDA_PAYLOAD: "true"
         TABLE_NAME: !Ref ProductApiTable
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
