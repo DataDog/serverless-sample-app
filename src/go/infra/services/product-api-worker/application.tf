@@ -50,7 +50,7 @@ module "product_api_stock_updated_worker" {
   service_name   = "GoProductApi"
   source         = "../../modules/lambda-function"
   entry_point    = "../src/product-api/handle-stock-updated"
-  function_name  = "ProductStockUpdatedHandlerFunction"
+  function_name  = "StockUpdatedHandlerFunction"
   lambda_handler = "index.handler"
   environment_variables = {
     TABLE_NAME : data.aws_ssm_parameter.product_api_table_name.value
