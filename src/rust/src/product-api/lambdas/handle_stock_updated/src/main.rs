@@ -4,7 +4,7 @@ use lambda_runtime::{run, service_fn, Error, LambdaEvent};
 use observability::{observability, TracedMessage};
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
-use shared::ports::{handle_pricing_updated_event, handle_stock_updated_event};
+use shared::ports::handle_stock_updated_event;
 use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
 
