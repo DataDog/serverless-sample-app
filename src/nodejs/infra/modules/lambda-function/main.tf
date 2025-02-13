@@ -105,5 +105,5 @@ module "aws_lambda_function" {
   )
 
   datadog_extension_layer_version = 68
-  datadog_node_layer_version = 118
+  datadog_node_layer_version = 120
 }

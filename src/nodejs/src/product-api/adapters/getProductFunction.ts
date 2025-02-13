@@ -12,7 +12,7 @@ import { GetProductHandler } from "../core/get-product/getProductHandler";
 import { DynamoDbProductRepository } from "./dynamoDbProductRepository";
 import { addDefaultServiceTagsTo } from "../../observability/observability";
 
-let isInitialized = false;
+  let isInitialized = false;
 const dynamoDbClient = new DynamoDBClient();
 const queryHandler = new GetProductHandler(
   new DynamoDbProductRepository(dynamoDbClient)
