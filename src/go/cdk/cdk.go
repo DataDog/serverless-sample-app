@@ -32,6 +32,7 @@ func main() {
 			Env: env(),
 		},
 	})
+	productAcl.AddDependency(sharedResourcesStack, jsii.String("Requires event bus"))
 
 	productApiStack := productapi.NewProductApiStack(app, "GoProductApiStack", &productapi.ProductApiStackProps{
 		StackProps: awscdk.StackProps{
