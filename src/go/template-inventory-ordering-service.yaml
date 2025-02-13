@@ -86,7 +86,7 @@ Resources:
   GoInventoryOrderingService:
     Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionUri: lib/inventory-ordering-service/workflows/ordering-workflow-setStock.asl.json
+      DefinitionUri: cdk/inventory-ordering-service/workflows/ordering-workflow-setStock.asl.json
       DefinitionSubstitutions:
         TableName: "{{resolve:ssm:/go/inventory-api/table-name:1}}"
       Policies:
