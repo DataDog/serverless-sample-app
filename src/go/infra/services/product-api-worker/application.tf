@@ -81,7 +81,7 @@ resource "aws_lambda_permission" "stock_updated_changed_sns" {
 }
 
 
-resource "aws_sns_topic_subscription" "product_created_sns_topic" {
+resource "aws_sns_topic_subscription" "inventory_stock_updated_sns_topic_subscription" {
   topic_arn = data.aws_ssm_parameter.product_stock_updated_topic.value
   protocol  = "lambda"
   endpoint  = module.product_api_stock_updated_worker.function_arn
