@@ -39,6 +39,6 @@ data "aws_iam_policy_document" "sqs_receive" {
 data "aws_iam_policy_document" "sns_publish" {
   statement {
     actions   = ["sns:Publish"]
-    resources = ["arn:aws:sns:*:${data.aws_caller_identity.current.account_id}:${aws_sns_topic.go_product_new_product_added.name}"]
+    resources = ["arn:aws:sns:*:${data.aws_caller_identity.current.account_id}:${aws_sns_topic.go_product_stock_level_updated.name}"]
   }
 }
