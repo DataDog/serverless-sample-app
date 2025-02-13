@@ -58,7 +58,7 @@ resource "aws_sfn_state_machine" "inventory_ordering_state_machine" {
     level                  = "ALL"
   }
 
-  definition = templatefile("${path.module}/../../../cdk/inventory-ordering-service/workflows/ordering-workflow-setStock.asl.json", {
+  definition = templatefile("${path.module}/../../../cdk/inventory-ordering-service/workflows/order-workflow-setStock.asl.json", {
     TableName = data.aws_ssm_parameter.inventory_table_name.value
   })
   tags = {
