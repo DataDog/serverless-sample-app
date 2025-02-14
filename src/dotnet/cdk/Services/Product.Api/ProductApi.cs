@@ -70,7 +70,6 @@ public class ProductApi : Construct
                 "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_GetProduct_Generated::GetProduct", apiEnvironmentVariables, props.DdApiKeySecret));
         Table.GrantReadData(getProductFunction.Function);
         
-
         var createProductFunction = new InstrumentedFunction(this, "CreateProductFunction",
             new FunctionProps(props.Shared,"CreateProduct", "../src/Product.Api/ProductApi.Adapters/",
                 "ProductApi.Adapters::ProductApi.Adapters.ApiFunctions_CreateProduct_Generated::CreateProduct", apiEnvironmentVariables, props.DdApiKeySecret));
