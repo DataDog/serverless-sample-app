@@ -147,8 +147,14 @@ build-ProductCreatedPricingServiceFunction:
 build-ProductApiPricingWorker:
 	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-pricing-changed/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
 
+build-ProductApiStockUpdatedWorker:
+	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-stock-updated/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
+
 build-ProductPublicEventPublisher:
 	cd src/product-event-publisher;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap public-event-publisher/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
+
+build-ProductInventoryStockUpdatedHandler:
+	cd src/product-acl;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap inventory-stock-updated-event-handler/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
 
 build-InventoryProductCreatedHandler:
 	cd src/inventory-acl;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap product-created-public-event-handler/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap

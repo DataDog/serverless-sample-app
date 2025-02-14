@@ -36,6 +36,7 @@ func (repo *DynamoDbProductRepository) Store(ctx context.Context, p core.Product
 		Price:         p.Price,
 		ProductId:     p.Id,
 		PriceBrackets: p.PriceBreakdown,
+		StockLevel:    p.StockLevel,
 	}
 
 	av, err := attributevalue.MarshalMap(item)
@@ -64,6 +65,7 @@ func (repo *DynamoDbProductRepository) Update(ctx context.Context, p core.Produc
 		Price:         p.Price,
 		ProductId:     p.Id,
 		PriceBrackets: p.PriceBreakdown,
+		StockLevel:    p.StockLevel,
 	}
 
 	av, err := attributevalue.MarshalMap(item)
@@ -113,6 +115,7 @@ func (repo *DynamoDbProductRepository) Get(ctx context.Context, productId string
 		Name:           item.Name,
 		Price:          item.Price,
 		PriceBreakdown: item.PriceBrackets,
+		StockLevel:     item.StockLevel,
 	}, nil
 }
 
@@ -147,6 +150,7 @@ func (repo *DynamoDbProductRepository) List(ctx context.Context) ([]core.Product
 			Name:           item.Name,
 			Price:          item.Price,
 			PriceBreakdown: item.PriceBrackets,
+			StockLevel:     item.StockLevel,
 		})
 	}
 
@@ -160,4 +164,5 @@ type Item struct {
 	Price         float32
 	ProductId     string
 	PriceBrackets []core.ProductPrice
+	StockLevel    int
 }

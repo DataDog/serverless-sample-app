@@ -83,7 +83,7 @@ func main() {
 		},
 	})
 	inventoryOrderingService.AddDependency(inventoryAcl, jsii.String("Requires SNS topics"))
-	inventoryApi.AddDependency(inventoryApi, jsii.String("Requires DynamoDB table to exist"))
+	inventoryOrderingService.AddDependency(inventoryApi, jsii.String("Requires DynamoDB table to exist"))
 
 	analyticsService := analyticsservice.NewAnalyticsServiceStack(app, *jsii.String("GoAnalyticsService"), &analyticsservice.AnalyticsServiceStackProps{
 		StackProps: awscdk.StackProps{
