@@ -1,0 +1,55 @@
+{
+  "name": "node-lambda-hybrid-tracing",
+  "version": "0.1.0",
+  "type": "commonjs",
+  "bin": {
+    "node-lambda-hybrid-tracing": "bin/node-lambda-hybrid-tracing.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest --no-cache",
+    "cdk": "cdk",
+    "dev:sst": "sst dev --stage=personal",
+    "build:sst": "sst build --stage=dev",
+    "deploy:sst": "sst deploy --stage=dev",
+    "remove:sst:personal": "sst remove --stage=personal",
+    "remove:sst": "sst remove --stage=dev",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-cloudformation": "^3.744.0",
+    "@aws-sdk/client-dynamodb": "^3.744.0",
+    "@aws-sdk/client-eventbridge": "^3.744.0",
+    "@aws-sdk/client-sfn": "^3.744.0",
+    "@aws-sdk/client-sns": "^3.744.0",
+    "@aws-sdk/client-sqs": "^3.744.0",
+    "@aws-sdk/client-ssm": "^3.744.0",
+    "@types/aws-lambda": "8.10.147",
+    "@types/jest": "^29.5.14",
+    "@types/node": "22.13.1",
+    "aws-cdk": "2.178.1",
+    "aws-cdk-lib": "^2.172.0",
+    "axios": "^1.7.9",
+    "constructs": "^10.4.2",
+    "datadog-cdk-constructs-v2": "^1.23.0",
+    "datadog-lambda-js": "^9.120.0",
+    "dd-trace": "^5.36.0",
+    "esbuild": "^0.20.2",
+    "jest": "^29.7.0",
+    "moq.ts": "^10.1.0",
+    "serverless-esbuild": "^1.54.6",
+    "serverless-plugin-datadog": "^5.77.0",
+    "serverless-step-functions": "^3.21.2",
+    "source-map-support": "^0.5.21",
+    "sst": "^2.45.1",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.7.2"
+  },
+  "dependencies": {
+    "@aws-lambda-powertools/logger": "^2.14.0",
+    "cloudevents": "^8.0.2",
+    "zod": "^3.24.2"
+  }
+}

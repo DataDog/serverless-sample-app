@@ -1,0 +1,26 @@
+service: serverless-shared
+frameworkVersion: "3"
+
+provider:
+  name: aws
+
+resources:
+  Resources:
+    SharedEventBus:
+      Type: AWS::Events::EventBus
+      Properties:
+        Name: "SharedEventBus-${sls:stage}"
+
+    SharedEventBusNameParameter:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /${sls:stage}/shared/event-bus-name
+        Type: String
+        Value: !Ref SharedEventBus
+
+    SharedEventBusArnParameter:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /${sls:stage}/shared/event-bus-arn
+        Type: String
+        Value: !GetAtt SharedEventBus.Arn
