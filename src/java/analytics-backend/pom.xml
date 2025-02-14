@@ -96,7 +96,7 @@
         <dependency>
             <groupId>com.datadoghq</groupId>
             <artifactId>dd-trace-api</artifactId>
-            <version>1.43.0</version>
+            <version>1.46.0</version>
         </dependency>
         <dependency>
             <groupId>com.datadoghq</groupId>
