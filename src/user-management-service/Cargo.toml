@@ -1,28 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
-  "src/product-api/lambdas/create_product",
-  "src/product-api/lambdas/list_products",
-  "src/product-api/lambdas/get_product",
-  "src/product-api/lambdas/update_product",
-  "src/product-api/lambdas/delete_product",
-  "src/product-api/lambdas/handle_pricing_updated",
-  "src/product-api/lambdas/handle_stock_updated",
-  "src/product-api/core",
-  "src/product-acl/core",
-  "src/product-acl/lambdas/inventory_stock_updated_handler",
-  "src/product-pricing/core",
-  "src/product-pricing/lambdas/product_created_pricing_handler",
-  "src/product-pricing/lambdas/product_updated_pricing_handler",
-  "src/product-event-publisher/core",
-  "src/product-event-publisher/lambdas/product_public_event_publisher",
-  "src/inventory-api/core",
-  "src/inventory-api/web",
-  "src/inventory-acl/core",
-  "src/inventory-acl/lambdas/product_created_handler",
-  "src/inventory-ordering/core",
-  "src/inventory-ordering/lambdas/product_added_handler",
-  "src/analytics/lambdas/analytics",
+  "src/user-management/lambdas/create_user",
+  "src/user-management/lambdas/login",
+  "src/user-management/lambdas/handle_order_completed_for_user",
+  "src/user-management/core",
+  "src/integration_tests",
   "src/observability"
 ]
 

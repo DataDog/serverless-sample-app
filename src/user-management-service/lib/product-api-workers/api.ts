@@ -76,7 +76,7 @@ export class ApiWorker extends Construct {
           TABLE_NAME: this.table.tableName,
           DD_SERVICE_MAPPING: `lambda_sns:${priceCalculatedTopic.topicName}`,
         }, 
-          manifestPath: "./src/product-api/lambdas/handle_pricing_updated/Cargo.toml"
+          manifestPath: "./src/user-management/lambdas/handle_pricing_updated/Cargo.toml"
       }
     );
 
@@ -117,7 +117,7 @@ export class ApiWorker extends Construct {
         environment: {
           TABLE_NAME: this.table.tableName,
         },
-        manifestPath: "./src/product-api/lambdas/handle_stock_updated/Cargo.toml"
+        manifestPath: "./src/user-management/lambdas/handle_stock_updated/Cargo.toml"
       }
     );
 

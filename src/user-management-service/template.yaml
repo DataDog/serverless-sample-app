@@ -5,134 +5,207 @@
 # Copyright 2024 Datadog, Inc.
 #
 
-AWSTemplateFormatVersion: '2010-09-09'
-Transform: AWS::Serverless-2016-10-31
+AWSTemplateFormatVersion : '2010-09-09'
+Transform:
+  - AWS::Serverless-2016-10-31
 
-Parameters: 
-  DDApiKeySecretArn:
+Parameters:
+  ServiceName:
     Type: String
-  DDSite:
-    Type: String
+    Default: UserManagementService
   Env:
     Type: String
     Default: dev
   CommitHash:
     Type: String
     Default: latest
+  DDApiKeySecretArn:
+    Type: String
+  DDSite:
+    Type: String
+
+Globals:
+  Function:
+    Runtime: provided.al2023
+    Timeout: 29
+    MemorySize: 512
+    Layers:
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:68
+    Environment:
+      Variables:
+        ENV: !Ref Env
+        DD_ENV: !Ref Env
+        DD_API_KEY_SECRET_ARN: !Ref DDApiKeySecretArn
+        DD_SITE: !Ref DDSite
+        DD_VERSION: !Ref CommitHash
+        DD_SERVICE: !Ref ServiceName
+        TABLE_NAME: !Ref UserTable
+        RUST_LOG: "info"
+    Architectures:
+      - x86_64
+  Api:
+    Cors:
+      AllowMethods: "'POST, GET, PUT, DELETE'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'http://localhost:8080'"
 
 Resources:
-    Shared:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-shared.yaml
-        Parameters:
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
+  CreateUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/user-management/lambdas/create_user/
+      Handler: create-user
+      FunctionName: !Sub ${ServiceName}-CreateUser-${Env}
+      Events:
+        GetProduct:
+          Type: Api
+          Properties:
+            Path: /user
+            Method: post
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+              Resource: !GetAtt UserTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt UserCreatedTopic.TopicName
+    Metadata:
+      BuildMethod: rust-cargolambda
 
-    ProductAcl:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-product-acl.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn: Shared
+  LoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/user-management/lambdas/login/
+      Handler: login
+      FunctionName: !Sub ${ServiceName}-Login-${Env}
+      Environment:
+        Variables:
+          TOKEN_SECRET_KEY: This is a sample secret key - please don't use in production environment.'
+          TOKEN_EXPIRATION: 86400 # 1 day in seconds
+      Events:
+        GetProduct:
+          Type: Api
+          Properties:
+            Path: /user/login
+            Method: post
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+              Resource: !GetAtt UserTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      BuildMethod: rust-cargolambda
 
-    ProductApi:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-api.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn: Shared
+  OrderCompletedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/user-management/lambdas/handle_order_completed_for_user/
+      Handler: handle-order-completed
+      FunctionName: !Sub RustOrderCompleted-${Env}
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Sub "{{resolve:ssm:/rust/${Env}/product/product-table-name:1}}"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      BuildMethod: rust-cargolambda
+      Binary: handle-order-completed
 
-    ProductPricingService:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-pricing-service.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn:
-        - Shared
-        - ProductApi
+  OrderCompletedDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-OrderCompletedDLQ-${Env}"
 
-    ProductApiWorker:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-product-api-worker.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn:
-        - ProductPricingService
-        - ProductAcl
-    
-    ProductPublicEventPublisher:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-product-event-publisher.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn:
-        - ProductApi
+  OrderCompletedQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-OrderCompletedQueue-${Env}"
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - "OrderCompletedDLQ"
+            - "Arn"
+        maxReceiveCount: 3
 
-    InventoryApi:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-inventory-api.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn: Shared
-    
-    InventoryAcl:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-inventory-acl.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn:
-        - Shared
-    
-    InventoryOrderingService:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-inventory-ordering-service.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn:
-        - InventoryAcl
-        - InventoryApi
-    
-    AnalyticsService:
-      Type: AWS::Serverless::Application
-      Properties:
-        Location: template-analytics-service.yaml
-        Parameters:
-          DDApiKeySecretArn: !Ref DDApiKeySecretArn
-          DDSite: !Ref DDSite
-          Env: !Ref Env
-          CommitHash: !Ref CommitHash
-      DependsOn:
-        - Shared
+  OrderCompletedEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: user-service-order-completed
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.orders"
+        detail-type:
+          - "orders.orderCompleted.v1"
+      Targets:
+        - Id: OrderCompletedQueue
+          Arn: !GetAtt OrderCompletedQueue.Arn
+
+  SnsToQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues:
+        - !Ref OrderCompletedQueue
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+          - Sid: allow-eb-send-message-messages
+            Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Resource: !GetAtt OrderCompletedQueue.Arn
+            Action: SQS:SendMessage
+  
+  UserCreatedTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${ServiceName}-UserCreated-${Env}"
+
+  UserTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${ServiceName}-Users-${Env}
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+
+  ApiEndpoint:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/api-endpoint
+      Type: String
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+
+Outputs:
+  RustProductApiEndpoint:
+    Description: User API Endpoint
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+    Export:
+      Name: UserApiEndpoint

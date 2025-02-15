@@ -5,16 +5,13 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.61"
-    }
-  }
-  //backend "s3" {}
-}
+resource "aws_dynamodb_table" "user_management_table" {
+  name           = "UserManagementService-Users-${var.env}"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "PK"
 
-provider "aws" {
-  region = var.region
+  attribute {
+    name = "PK"
+    type = "S"
+  }
 }

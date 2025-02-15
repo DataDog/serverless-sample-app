@@ -6,5 +6,5 @@
 //
 
 output "api_endpoint" {
-  value = "${module.product-api.api_endpoint}/dev"
+  value = "${module.user_management_service.api_endpoint}/dev"
 }

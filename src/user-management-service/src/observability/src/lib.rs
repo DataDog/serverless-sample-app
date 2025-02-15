@@ -95,7 +95,7 @@ pub fn trace_request(event: &Request) -> BoxedSpan {
 pub struct TracedMessage {
     trace_id: String,
     span_id: String,
-    pub message: String,
+    pub data: String,
     publish_time: String,
     #[serde(skip_serializing, skip_deserializing)]
     span_ctx: Option<SpanContext>,
@@ -131,7 +131,7 @@ impl TracedMessage {
             Self {
                 trace_id,
                 span_id,
-                message: serde_json::to_string(&message).unwrap(),
+                data: serde_json::to_string(&message).unwrap(),
                 publish_time: since_the_epoch.as_millis().to_string(),
                 ctx: None,
                 inflight_ctx: None,
@@ -143,7 +143,7 @@ impl TracedMessage {
             Self {
                 trace_id: "".to_string(),
                 span_id: "".to_string(),
-                message: serde_json::to_string(&message).unwrap(),
+                data: serde_json::to_string(&message).unwrap(),
                 publish_time: since_the_epoch.as_millis().to_string(),
                 ctx: None,
                 inflight_ctx: None,
@@ -270,7 +270,7 @@ impl TryFrom<&HeaderMap> for TracedMessage {
                 let mut traced_message = TracedMessage {
                     trace_id: parts[1].to_string(),
                     span_id: parts[2].to_string(),
-                    message: "".to_string(),
+                    data: "".to_string(),
                     publish_time: "".to_string(),
                     ctx: Some(Context::new().with_remote_span_context(span_context.clone())),
                     span_ctx: None,

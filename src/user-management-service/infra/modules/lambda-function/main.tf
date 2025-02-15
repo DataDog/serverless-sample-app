@@ -6,7 +6,7 @@
 //
 
 resource "aws_iam_role" "lambda_function_role" {
-  name = "tf-rust-${var.function_name}-lambda-role-${var.env}"
+  name = "UserManagement-${var.function_name}-lambda-role-${var.env}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -22,7 +22,7 @@ resource "aws_iam_role" "lambda_function_role" {
 }
 
 resource "aws_iam_policy" "function_logging_policy" {
-  name = "tf-rust-${var.function_name}-logging-policy-${var.env}"
+  name = "UserManagement-${var.function_name}-logging-policy-${var.env}"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -39,7 +39,7 @@ resource "aws_iam_policy" "function_logging_policy" {
 }
 
 resource "aws_iam_policy" "dd_api_secret_policy" {
-  name = "tf-rust-${var.function_name}-api-key-secret-policy-${var.env}"
+  name = "UserManagement-${var.function_name}-api-key-secret-policy-${var.env}"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -64,7 +64,7 @@ resource "aws_iam_role_policy_attachment" "secrets_retrieval_policy_attachment" 
 }
 
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
-  name              = "/aws/lambda/tf-rust-${var.function_name}-${var.env}"
+  name              = "/aws/lambda/UserManagement-${var.function_name}-${var.env}"
   retention_in_days = 7
   lifecycle {
     prevent_destroy = false
@@ -77,7 +77,7 @@ module "aws_lambda_function" {
   version = "1.4.0"
 
   filename                 = var.zip_file
-  function_name            = "tf-rust-${var.function_name}-${var.env}"
+  function_name            = "UserManagement-${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = "bootstrap"
   runtime                  = "provided.al2023"
@@ -87,7 +87,6 @@ module "aws_lambda_function" {
   timeout = 29
   environment_variables = merge(tomap({
     "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
-    "DD_EXTENSION_VERSION": "next"
     "DD_CAPTURE_LAMBDA_PAYLOAD": "true",
     "DD_ENV" : var.env
     "DD_SERVICE" : var.service_name
@@ -100,5 +99,5 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 66
+  datadog_extension_layer_version = 68
 }

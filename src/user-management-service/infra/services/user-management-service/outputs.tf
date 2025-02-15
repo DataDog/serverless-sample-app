@@ -5,16 +5,6 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.61"
-    }
-  }
-  //backend "s3" {}
-}
-
-provider "aws" {
-  region = var.region
+output "api_endpoint" {
+  value = aws_api_gateway_stage.rest_api_stage.invoke_url
 }

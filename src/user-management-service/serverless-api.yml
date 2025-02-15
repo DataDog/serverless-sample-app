@@ -5,14 +5,14 @@
 # Copyright 2024 Datadog, Inc.
 #
 
-service: serverless-product-api
+service: serverless-user-management
 frameworkVersion: "3"
 
 plugins:
   - serverless-plugin-datadog
 
 custom:
-  serviceName: RustProductApi
+  serviceName: UserManagementService
   datadog:
     apiKeySecretArn: ${param:DD_API_KEY_SECRET_ARN}
     site: ${param:DD_SITE}
@@ -43,147 +43,114 @@ provider:
           Action:
             - dynamodb:GetItem
             - dynamodb:PutItem
-            - dynamodb:UpdateItem
             - dynamodb:DeleteItem
           Resource: "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.TABLE_NAME}"
         - Effect: Allow
           Action:
             - secretsmanager:GetSecretValue
           Resource: ${param:DD_API_KEY_SECRET_ARN}
-        - Effect: Allow
-          Action:
-            - sns:Publish
-          Resource:
-            - !Ref ProductCreatedTopic
-            - !Ref ProductUpdatedTopic
-            - !Ref ProductDeletedTopic
 
 functions:
-  create:
+  register_user:
     handler: bootstrap
     package:
-      artifact: ./out/createProductFunction/createProductFunction.zip
+      artifact: ./out/registerUserFunction/registerUserFunction.zip
       individually: true
     environment:
-      PRODUCT_CREATED_TOPIC_ARN: !Ref ProductCreatedTopic
+      TOKEN_SECRET_KEY: This is a sample secret key - please don't use in production environment.'
+      TOKEN_EXPIRATION: 86400 # 1 day in seconds
     events:
       - httpApi:
-          path: /product
+          path: /user
           method: post
-  list:
+  login:
     handler: bootstrap
     package:
-      artifact: ./out/listProductsFunction/listProductsFunction.zip
+      artifact: ./out/loginFunction/loginFunction.zip
       individually: true
     events:
       - httpApi:
-          path: /product
-          method: get
-  get:
+          path: /user/login
+          method: post
+
+  handle_order_completed_event:
     handler: bootstrap
     package:
-      artifact: ./out/getProductFunction/getProductFunction.zip
+      artifact: ./out/handleOrderCompletedFunction/handleOrderCompletedFunction.zip
       individually: true
     events:
-      - httpApi:
-          path: /product/{productId}
-          method: get
-  update:
-    handler: bootstrap
-    package:
-      artifact: ./out/updateProductFunction/updateProductFunction.zip
-      individually: true
-    environment:
-      PRODUCT_UPDATED_TOPIC_ARN: !Ref ProductUpdatedTopic
-    events:
-      - httpApi:
-          path: /product
-          method: put
-  delete:
-    handler: bootstrap
-    package:
-      artifact: ./out/deleteProductFunction/deleteProductFunction.zip
-      individually: true
-    environment:
-      PRODUCT_DELETED_TOPIC_ARN: !Ref ProductDeletedTopic
-    events:
-      - httpApi:
-          path: /product/{productId}
-          method: delete
+      - sqs:
+          arn:
+            Fn::GetAtt: [OrderCompletedQueue, Arn]
 
 resources:
   Resources:
-    ProductDynamoDbTable:
-      Type: "AWS::DynamoDB::Table"
-      DeletionPolicy: Delete
+    OrderCompletedDLQ:
+      Type: AWS::SQS::Queue
       Properties:
+        QueueName: !Sub "${self:custom.serviceName}-OrderCompletedDLQ-${sls:stage}"
+
+    OrderCompletedQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: !Sub "${self:custom.serviceName}-OrderCompletedQueue-${sls:stage}"
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - "OrderCompletedDLQ"
+              - "Arn"
+          maxReceiveCount: 3
+
+    OrderCompletedEventRule:
+      Type: AWS::Events::Rule
+      Properties:
+        EventBusName: !Sub "{{resolve:ssm:/${sls:stage}/shared/event-bus-name:1}}"
+        Name: user-service-order-completed
+        State: ENABLED
+        EventPattern:
+          source:
+            - !Sub "${sls:stage}.orders"
+          detail-type:
+            - "orders.orderCompleted.v1"
+        Targets:
+          - Id: OrderCompletedQueue
+            Arn: !GetAtt OrderCompletedQueue.Arn
+
+    SnsToQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties: 
+        Queues:
+          - !Ref OrderCompletedQueue
+        PolicyDocument: 
+          Version: '2012-10-17'
+          Statement:
+            - Sid: allow-eb-send-message-messages
+              Effect: Allow
+              Principal:
+                Service: "events.amazonaws.com"
+              Resource: !GetAtt OrderCompletedQueue.Arn
+              Action: SQS:SendMessage
+    
+    UserCreatedTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: !Sub "${self:custom.serviceName}-UserCreated-${sls:stage}"
+
+    UserTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: !Sub ${self:custom.serviceName}-Users-${sls:stage}
         AttributeDefinitions:
           - AttributeName: PK
             AttributeType: S
+        BillingMode: PAY_PER_REQUEST
         KeySchema:
           - AttributeName: PK
             KeyType: HASH
-        BillingMode: PAY_PER_REQUEST
-        TableName: ${self:provider.environment.TABLE_NAME}
 
-    ProductCreatedTopic:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: !Sub "ProductCreatedTopic-${sls:stage}"
-    ProductUpdatedTopic:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: !Sub "ProductUpdatedTopic-${sls:stage}"
-    ProductDeletedTopic:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: !Sub "ProductDeletedTopic-${sls:stage}"
-
-    ProductCreatedTopicArn:
+    ApiEndpoint:
       Type: AWS::SSM::Parameter
       Properties:
-        Name: !Sub /rust/${Env}/product/product-created-topic
+        Name: !Sub /${sls:stage}/${self:custom.serviceName}/api-endpoint
         Type: String
-        Value: !Ref ProductCreatedTopic
-    ProductUpdatedTopicArn:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: !Sub /rust/${Env}/product/product-updated-topic
-        Type: String
-        Value: !Ref ProductUpdatedTopic
-    ProductDeletedTopicArn:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: !Sub /rust/${Env}/product/product-deleted-topic
-        Type: String
-        Value: !Ref ProductDeletedTopic
-    ProductCreatedTopicName:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: !Sub /rust/${Env}/product/product-created-topic-name
-        Type: String
-        Value: !GetAtt ProductCreatedTopic.TopicName
-    ProductUpdatedTopicName:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: !Sub /rust/${Env}/product/product-updated-topic-name
-        Type: String
-        Value: !GetAtt ProductUpdatedTopic.TopicName
-    ProductDeletedTopicName:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: !Sub /rust/${Env}/product/product-deleted-topic-name
-        Type: String
-        Value: !GetAtt ProductDeletedTopic.TopicName
-    ProductApiTableName:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: !Sub /rust/${Env}/product/product-table-name
-        Type: String
-        Value: !Ref ProductDynamoDbTable
-    ProductApiEndpoint:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: !Sub /rust/${Env}/product/api-endpoint
-        Type: String
-        Value: !GetAtt HttpApi.ApiEndpoint
+        Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
