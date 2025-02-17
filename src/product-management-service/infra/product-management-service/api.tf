@@ -40,6 +40,7 @@ module "create_product_lambda" {
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "PRODUCT_CREATED_TOPIC_ARN" : aws_sns_topic.product_created.arn
+    "JWT_SECRET_PARAM_NAME": "/${var.env}/shared/secret-access-key"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -50,6 +51,11 @@ module "create_product_lambda" {
 resource "aws_iam_role_policy_attachment" "create_product_lambda_dynamo_db_write" {
   role       = module.create_product_lambda.function_role_name
   policy_arn = aws_iam_policy.dynamo_db_write.arn
+}
+
+resource "aws_iam_role_policy_attachment" "create_product_lambda_read_ssm_param" {
+  role       = module.create_product_lambda.function_role_name
+  policy_arn = aws_iam_policy.allow_jwt_secret_access.arn
 }
 
 resource "aws_iam_role_policy_attachment" "create_product_lambda_sns_publish" {
@@ -147,6 +153,7 @@ module "update_product_lambda" {
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "PRODUCT_UPDATED_TOPIC_ARN" : aws_sns_topic.product_updated.arn
+    "JWT_SECRET_PARAM_NAME": "/${var.env}/shared/secret-access-key"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -162,6 +169,11 @@ resource "aws_iam_role_policy_attachment" "update_product_lambda_dynamo_db_read"
 resource "aws_iam_role_policy_attachment" "update_product_lambda_dynamo_db_write" {
   role       = module.update_product_lambda.function_role_name
   policy_arn = aws_iam_policy.dynamo_db_write.arn
+}
+
+resource "aws_iam_role_policy_attachment" "update_product_lambda_read_ssm_param" {
+  role       = module.update_product_lambda.function_role_name
+  policy_arn = aws_iam_policy.allow_jwt_secret_access.arn
 }
 
 resource "aws_iam_role_policy_attachment" "update_product_lambda_sns_publish" {
@@ -194,6 +206,7 @@ module "delete_product_lambda" {
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "PRODUCT_DELETED_TOPIC_ARN" : aws_sns_topic.product_deleted.arn
+    "JWT_SECRET_PARAM_NAME": "/${var.env}/shared/secret-access-key"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -209,6 +222,11 @@ resource "aws_iam_role_policy_attachment" "delete_product_lambda_dynamo_db_read"
 resource "aws_iam_role_policy_attachment" "delete_product_lambda_dynamo_db_write" {
   role       = module.delete_product_lambda.function_role_name
   policy_arn = aws_iam_policy.dynamo_db_write.arn
+}
+
+resource "aws_iam_role_policy_attachment" "delete_product_lambda_read_ssm_param" {
+  role       = module.delete_product_lambda.function_role_name
+  policy_arn = aws_iam_policy.allow_jwt_secret_access.arn
 }
 
 resource "aws_iam_role_policy_attachment" "delete_product_lambda_sns_publish" {

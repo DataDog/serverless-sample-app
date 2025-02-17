@@ -45,7 +45,7 @@ func NewInstrumentedFunction(scope constructs.Construct, id string, props *Instr
 
 	function.Function = awscdklambdagoalpha.NewGoFunction(scope, jsii.String(props.FunctionName), &awscdklambdagoalpha.GoFunctionProps{
 		Entry:        jsii.String(props.Entry),
-		FunctionName: jsii.Sprintf("%s-%s", props.FunctionName, props.SharedProps.Env),
+		FunctionName: jsii.Sprintf("%s-%s-%s", props.SharedProps.ServiceName, props.FunctionName, props.SharedProps.Env),
 		Runtime:      awslambda.Runtime_PROVIDED_AL2023(),
 		MemorySize:   jsii.Number(props.MemorySize),
 		Environment:  &defaultEnvironmentVariables,

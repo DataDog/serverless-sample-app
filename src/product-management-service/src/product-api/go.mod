@@ -11,6 +11,7 @@ require github.com/aws/aws-lambda-go v1.47.0
 require github.com/aws/aws-sdk-go-v2 v1.36.1
 
 require github.com/aws/aws-sdk-go-v2/service/sns v1.33.19
+require github.com/aws/aws-sdk-go-v2/service/ssm v1.56.12
 
 require github.com/aws/aws-sdk-go-v2/service/dynamodb v1.40.1
 
@@ -62,6 +63,7 @@ require (
 	github.com/aws/smithy-go v1.22.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.6.0-alpha.5 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect

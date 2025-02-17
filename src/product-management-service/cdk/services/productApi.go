@@ -21,6 +21,7 @@ import (
 
 type ProductApiProps struct {
 	sharedconstructs.SharedProps
+	JwtSecretAccessKeyParameter awsssm.IStringParameter
 }
 
 type ProductApi struct {
@@ -59,6 +60,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	environmentVariables["PRODUCT_CREATED_TOPIC_ARN"] = jsii.String(*productCreatedTopic.TopicArn())
 	environmentVariables["PRODUCT_UPDATED_TOPIC_ARN"] = jsii.String(*productUpdatedTopic.TopicArn())
 	environmentVariables["PRODUCT_DELETED_TOPIC_ARN"] = jsii.String(*productDeletedTopic.TopicArn())
+	environmentVariables["JWT_SECRET_PARAM_NAME"] = props.JwtSecretAccessKeyParameter.ParameterName()
 
 	listProductsFunction := sharedconstructs.NewInstrumentedFunction(scope, "ListProductsFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.SharedProps,
@@ -77,6 +79,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	})
 	table.GrantReadWriteData(createProductFunction.Function)
 	productCreatedTopic.GrantPublish(createProductFunction.Function)
+	props.JwtSecretAccessKeyParameter.GrantRead(createProductFunction.Function)
 
 	getProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "GetProductFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.SharedProps,
@@ -95,6 +98,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	})
 	table.GrantReadWriteData(updateProductFunction.Function)
 	productUpdatedTopic.GrantPublish(updateProductFunction.Function)
+	props.JwtSecretAccessKeyParameter.GrantRead(updateProductFunction.Function)
 
 	deleteProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "DeleteProductFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.SharedProps,
@@ -104,6 +108,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	})
 	table.GrantReadWriteData(deleteProductFunction.Function)
 	productDeletedTopic.GrantPublish(deleteProductFunction.Function)
+	props.JwtSecretAccessKeyParameter.GrantRead(deleteProductFunction.Function)
 
 	productResource := api.Root().AddResource(jsii.String("product"), &awsapigateway.ResourceOptions{})
 

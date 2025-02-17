@@ -71,6 +71,7 @@ func NewProductManagementService(scope constructs.Construct, id string, props *P
 			EnableDatadogTracing:   jsii.Bool(true),
 		})
 
+	jwtSecretKeyParam := awsssm.StringParameter_FromStringParameterName(stack, jsii.String("JwtSecretKeyParameter"), jsii.Sprintf("/%s/shared/secret-access-key", env))
 	eventBusParam := awsssm.StringParameter_FromStringParameterName(stack, jsii.String("EventBusNameParam"), jsii.Sprintf("/%s/shared/event-bus-name", env))
 
 	eventBus := awsevents.EventBus_FromEventBusName(stack, jsii.String("SharedEventBus"), eventBusParam.StringValue())
@@ -83,7 +84,8 @@ func NewProductManagementService(scope constructs.Construct, id string, props *P
 	}
 
 	productApi := services.NewProductApi(stack, "ProductApi", &services.ProductApiProps{
-		SharedProps: sharedProps,
+		SharedProps:                 sharedProps,
+		JwtSecretAccessKeyParameter: jwtSecretKeyParam,
 	})
 
 	productAcl := services.NewProductAclService(stack, "ProductAclService", &services.ProductAclServiceProps{

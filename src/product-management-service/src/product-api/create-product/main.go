@@ -10,15 +10,15 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"net/http"
 	"os"
-
 	"product-api/internal/adapters"
 	"product-api/internal/core"
 	"product-api/internal/utils"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
@@ -29,13 +29,27 @@ import (
 
 type LambdaHandler struct {
 	commandHandler core.CreateProductCommandHandler
+	authenticator  adapters.Authenticator
 }
 
-func NewLambdaHandler(commandHandler core.CreateProductCommandHandler) *LambdaHandler {
-	return &LambdaHandler{commandHandler: commandHandler}
+func NewLambdaHandler(commandHandler core.CreateProductCommandHandler, authenticator adapters.Authenticator) *LambdaHandler {
+	return &LambdaHandler{commandHandler: commandHandler, authenticator: authenticator}
 }
 
 func (lh *LambdaHandler) Handle(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	authHeader := request.Headers["Authorization"]
+	if authHeader == "" {
+		return events.APIGatewayProxyResponse{StatusCode: http.StatusUnauthorized, Body: "Missing Authorization header"}, nil
+	}
+	claims, authError := lh.authenticator.Authenticate(ctx, authHeader)
+	if authError != nil {
+		println(authError.Error())
+		return events.APIGatewayProxyResponse{StatusCode: http.StatusUnauthorized, Body: "Unauthorized"}, nil
+	}
+
+	if claims.UserType != "ADMIN" {
+		return events.APIGatewayProxyResponse{StatusCode: http.StatusForbidden, Body: "Unauthorized"}, nil
+	}
 
 	body := []byte(request.Body)
 
@@ -55,11 +69,26 @@ func main() {
 	awsCfg, _ := awscfg.LoadDefaultConfig(context.Background())
 	awstrace.AppendMiddleware(&awsCfg)
 	dynamoDbClient := dynamodb.NewFromConfig(awsCfg)
+	ssmClient := ssm.NewFromConfig(awsCfg)
 	snsClient := sns.NewFromConfig(awsCfg)
+
+	secretAccessKeyParameterName := os.Getenv("JWT_SECRET_PARAM_NAME")
+
+	secretAccessKeyParameter, err := ssmClient.GetParameter(context.Background(), &ssm.GetParameterInput{
+		Name: &secretAccessKeyParameterName,
+	})
+
+	if err != nil {
+		panic(err)
+	}
 
 	tableName := os.Getenv("TABLE_NAME")
 
-	handler := NewLambdaHandler(*core.NewCreateProductCommandHandler(adapters.NewDynamoDbProductRepository(*dynamoDbClient, tableName), adapters.NewSnsEventPublisher(*snsClient)))
+	handler := NewLambdaHandler(
+		*core.NewCreateProductCommandHandler(
+			adapters.NewDynamoDbProductRepository(*dynamoDbClient, tableName),
+			adapters.NewSnsEventPublisher(*snsClient)),
+		*adapters.NewAuthenticator(*secretAccessKeyParameter.Parameter.Value))
 
 	lambda.Start(ddlambda.WrapFunction(handler.Handle, nil))
 }

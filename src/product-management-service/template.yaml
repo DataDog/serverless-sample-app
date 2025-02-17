@@ -125,6 +125,7 @@ Resources:
       Environment:
         Variables:
           PRODUCT_CREATED_TOPIC_ARN: !Ref ProductCreatedTopic
+          JWT_SECRET_PARAM_NAME: !Sub "/${Env}/shared/secret-access-key"
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -140,6 +141,15 @@ Resources:
                 - secretsmanager:GetSecretValue
                 - dynamodb:GetItem
               Resource: !Ref DDApiKeySecretArn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductCreatedTopic.TopicName
     Metadata:
@@ -160,6 +170,7 @@ Resources:
       Environment:
         Variables:
           PRODUCT_UPDATED_TOPIC_ARN: !Ref ProductUpdatedTopic
+          JWT_SECRET_PARAM_NAME: !Sub "/${Env}/shared/secret-access-key"
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -174,6 +185,15 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductUpdatedTopic.TopicName
     Metadata:
@@ -194,6 +214,7 @@ Resources:
       Environment:
         Variables:
           PRODUCT_DELETED_TOPIC_ARN: !Ref ProductDeletedTopic
+          JWT_SECRET_PARAM_NAME: !Sub "/${Env}/shared/secret-access-key"
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -209,6 +230,15 @@ Resources:
                 - secretsmanager:GetSecretValue
                 - dynamodb:GetItem
               Resource: !Ref DDApiKeySecretArn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductDeletedTopic.TopicName
     Metadata:

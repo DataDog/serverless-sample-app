@@ -59,3 +59,9 @@ resource "aws_iam_policy" "event_publisher_sqs_receive_policy" {
   path   = "/"
   policy = data.aws_iam_policy_document.event_publisher_sqs_receive.json
 }
+
+resource "aws_iam_policy" "allow_jwt_secret_access" {
+  name   = "ProductManagementService-jwt_secret_access-${var.env}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.allow_jwt_secret_key_ssm_read.json
+}
