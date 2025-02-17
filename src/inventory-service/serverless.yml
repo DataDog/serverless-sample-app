@@ -49,6 +49,13 @@ provider:
             - states:StartExecution
           Resource:
             - !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:inventoryOrderingWorkflow${sls:stage}
+        - Effect: Allow
+          Action:
+            - "ssm:DescribeParameters"
+            - "ssm:GetParameter"
+            - "ssm:GetParameterHistory"
+            - "ssm:GetParameters"
+          Resource: "arn:aws:ssm:${aws:region}:*:parameter/${sls:stage}/shared/secret-access-key"
 functions:
   publishPublicEvents:
     handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
@@ -413,6 +420,17 @@ resources:
                   Action:
                     - secretsmanager:GetSecretValue
                   Resource: !Ref DDApiKeySecretArn
+          - PolicyName: allow-ssm-access-key-retrieve
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - "ssm:DescribeParameters"
+                    - "ssm:GetParameter"
+                    - "ssm:GetParameterHistory"
+                    - "ssm:GetParameters"
+                  Resource: !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${sls:stage}/shared/secret-access-key"
 
     ECSTaskDef:
       Type: AWS::ECS::TaskDefinition
@@ -438,6 +456,9 @@ resources:
               -
                 Name: EVENT_BUS_NAME
                 Value: !Sub "{{resolve:ssm:/${sls:stage}/shared/event-bus-name:1}}"
+              -
+                Name: JWT_SECRET_PARAM_NAME
+                Value: !Sub "/${sls:stage}/shared/secret-access-key"
               - 
                 Name: TEAM
                 Value: "inventory"

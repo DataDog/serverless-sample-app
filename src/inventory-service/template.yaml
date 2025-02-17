@@ -466,6 +466,17 @@ Resources:
                 Action:
                   - secretsmanager:GetSecretValue
                 Resource: !Ref DDApiKeySecretArn
+        - PolicyName: allow-ssm-access-key-retrieve
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ssm:DescribeParameters"
+                  - "ssm:GetParameter"
+                  - "ssm:GetParameterHistory"
+                  - "ssm:GetParameters"
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
 
   ECSTaskDef:
     Type: AWS::ECS::TaskDefinition
@@ -491,6 +502,9 @@ Resources:
             -
               Name: EVENT_BUS_NAME
               Value: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            -
+              Name: JWT_SECRET_PARAM_NAME
+              Value: !Sub "/${Env}/shared/secret-access-key"
             - 
               Name: TEAM
               Value: "inventory"

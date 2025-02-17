@@ -13,6 +13,7 @@ import software.amazon.awscdk.services.events.EventBus;
 import software.amazon.awscdk.services.events.IEventBus;
 import software.amazon.awscdk.services.secretsmanager.ISecret;
 import software.amazon.awscdk.services.secretsmanager.Secret;
+import software.amazon.awscdk.services.ssm.IStringParameter;
 import software.amazon.awscdk.services.ssm.StringParameter;
 import software.constructs.Construct;
 
@@ -32,7 +33,9 @@ public class InventoryServiceStack  extends Stack {
         String eventBusName = StringParameter.valueForStringParameter(this, String.format("/%s/shared/event-bus-name", env));
         IEventBus sharedBus = EventBus.fromEventBusName(this, "SharedEventBus", eventBusName);
 
-        var api = new InventoryApiContainer(this, "InventoryApi", new InventoryApiContainerProps(sharedProps, sharedBus));
+        IStringParameter jwtAccessKeyParameterName = StringParameter.fromStringParameterName(this, "JwtAccessKeyParameter", String.format("/%s/shared/secret-access-key", env));
+
+        var api = new InventoryApiContainer(this, "InventoryApi", new InventoryApiContainerProps(sharedProps, sharedBus, jwtAccessKeyParameterName));
 
         var acl = new InventoryAcl(this, "InventoryACL", new InventoryAclProps(sharedProps, sharedBus));
 

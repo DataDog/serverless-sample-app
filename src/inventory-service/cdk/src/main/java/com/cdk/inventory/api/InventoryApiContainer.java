@@ -81,7 +81,8 @@ public class InventoryApiContainer extends Construct {
                                 "ENV", props.sharedProps().env(),
                                 "DD_SERVICE", props.sharedProps().service(),
                                 "DD_ENV", props.sharedProps().env(),
-                                "DD_VERSION", props.sharedProps().version()
+                                "DD_VERSION", props.sharedProps().version(),
+                                "JWT_SECRET_PARAM_NAME", props.jwtAccessKeyParameter().getParameterName()
                         ))
                         .containerPort(8080)
                         .containerName("InventoryApi")
@@ -116,6 +117,7 @@ public class InventoryApiContainer extends Construct {
 
         table.grantReadWriteData(taskRole);
         props.sharedEventBus().grantPutEventsTo(taskRole);
+        props.jwtAccessKeyParameter().grantRead(taskRole);
         
         taskRole.addToPolicy(PolicyStatement.Builder.create()
                 .effect(Effect.ALLOW)

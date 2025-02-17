@@ -40,6 +40,20 @@ data "aws_iam_policy_document" "eb_publish" {
   }
 }
 
+data "aws_ssm_parameter" "secret_access_key_param" {
+  name = "/${var.env}/shared/secret-access-key"
+}
+
+data "aws_iam_policy_document" "allow_jwt_secret_key_ssm_read" {
+  statement {
+    actions = ["ssm:DescribeParameters",
+      "ssm:GetParameter",
+      "ssm:GetParameterHistory",
+      "ssm:GetParameters"]
+    resources = ["arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/shared/secret-access-key"]
+  }
+}
+
 data "aws_iam_policy_document" "retrieve_api_key_secret" {
   statement {
     actions   = ["secretsmanager:GetSecretValue"]

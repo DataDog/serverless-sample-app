@@ -57,6 +57,10 @@ resource "aws_iam_role_policy_attachment" "inventory_api_db_read_access" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.dynamo_db_read.arn
 }
+resource "aws_iam_role_policy_attachment" "inventory_api_read_ssm" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.allow_jwt_secret_access.arn
+}
 resource "aws_iam_role_policy_attachment" "inventory_api_db__writeaccess" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.dynamo_db_write.arn
@@ -96,6 +100,10 @@ module "inventory_api_web_service" {
     {
       name  = "DD_LOGS_INJECTION"
       value = "true"
+    },
+    {
+      name  = "JWT_SECRET_PARAM_NAME"
+      value = "/${var.env}/shared/secret-access-key"
     }
   ]
   dd_api_key_secret_arn = var.dd_api_key_secret_arn

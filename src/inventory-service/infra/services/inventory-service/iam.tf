@@ -48,6 +48,12 @@ resource "aws_iam_policy" "sfn_start_execution" {
   policy = data.aws_iam_policy_document.stepfunctions_start_execution.json
 }
 
+resource "aws_iam_policy" "allow_jwt_secret_access" {
+  name   = "InventoryOrdering-jwt_secret_access-${var.env}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.allow_jwt_secret_key_ssm_read.json
+}
+
 resource "aws_iam_role" "invetory_ordering_sfn_role" {
   name = "InventoryOrdering-sfn-role-${var.env}"
   assume_role_policy = jsonencode({
