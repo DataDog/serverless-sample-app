@@ -1,15 +1,23 @@
 use reqwest::redirect::Policy;
+use serde::Serialize;
 use serde_json::json;
+use observability::TracedMessage;
 
 pub(crate) struct ApiDriver {
+    env: String,
     client: reqwest::Client,
     eb_client: aws_sdk_eventbridge::Client,
     base_url: String,
     event_bus_name: String,
 }
 
+#[derive(Serialize)]
+pub struct UserCreatedEvent {
+    email_address: String,
+}
+
 impl ApiDriver {
-    pub async fn new(base_url: String, event_bus_name: String) -> Self {
+    pub async fn new(env: String, base_url: String, event_bus_name: String) -> Self {
         let client = reqwest::Client::builder()
             .redirect(Policy::none())
             .build()
@@ -19,6 +27,7 @@ impl ApiDriver {
         let event_bridge_client = aws_sdk_eventbridge::Client::new(&config);
 
         Self {
+            env,
             client,
             base_url,
             event_bus_name,
@@ -56,7 +65,7 @@ impl ApiDriver {
         });
 
         self.client
-            .post(&format!("{}/user/login", self.base_url))
+            .post(&format!("{}/login", self.base_url))
             .header("Content-Type", "application/json")
             .body(login_body.to_string())
             .send()
@@ -64,17 +73,24 @@ impl ApiDriver {
             .expect("Login user request failed")
     }
 
+    pub async fn get_user_details(&self, email: &str, bearer_token: &str) -> reqwest::Response {
+        self.client
+            .get(&format!("{}/user/{}", self.base_url, email))
+            .header("Content-Type", "application/json")
+            .header("Authorization", format!("Bearer {}", bearer_token))
+            .send()
+            .await
+            .expect("Get user details request failed")
+    }
+
     pub async fn publish_order_completed_event(&self, email: &str) {
-        let payload_string = json!({
-            "data": {
-                "email_address": email
-            }
-        });
+        let payload = TracedMessage::new(UserCreatedEvent{ email_address: email.to_string() });
+        let payload_string = serde_json::to_string(&payload).expect("Error serde");
 
         let request = aws_sdk_eventbridge::types::builders::PutEventsRequestEntryBuilder::default()
-            .set_source(Some("dev.orders".to_string()))
+            .set_source(Some(format!("{}.orders", &self.env)))
             .set_detail_type(Some("orders.orderCompleted.v1".to_string()))
-            .set_detail(Some(payload_string.to_string()))
+            .set_detail(Some(String::from(payload_string)))
             .set_event_bus_name(Some(self.event_bus_name.clone()))
             .build();
         let _ = self.eb_client

@@ -28,12 +28,9 @@ provider:
   runtime: provided.al2023
   memorySize: 128
   environment:
-    TABLE_NAME: ${self:service}-${sls:stage}
-    DD_EXTENSION_VERSION: "next"
+    TABLE_NAME: ${self:service}-Users-${sls:stage}
     RUST_LOG: "info"
     ENV: ${sls:stage}
-    POWERTOOLS_SERVICE_NAME: ${self:custom.serviceName}
-    POWERTOOLS_LOG_LEVEL: 'INFO'
   httpApi:
     cors: true
   iam:
@@ -49,6 +46,18 @@ provider:
           Action:
             - secretsmanager:GetSecretValue
           Resource: ${param:DD_API_KEY_SECRET_ARN}
+        - Effect: Allow
+          Action:
+            - "ssm:DescribeParameters"
+            - "ssm:GetParameter"
+            - "ssm:GetParameterHistory"
+            - "ssm:GetParameters"
+          Resource: "arn:aws:ssm:${aws:region}:*:parameter/${sls:stage}/shared/secret-access-key"
+        - Effect: Allow
+          Action:
+            - sns:Publish
+          Resource:
+            - !Ref UserCreatedTopic
 
 functions:
   register_user:
@@ -57,8 +66,7 @@ functions:
       artifact: ./out/registerUserFunction/registerUserFunction.zip
       individually: true
     environment:
-      TOKEN_SECRET_KEY: This is a sample secret key - please don't use in production environment.'
-      TOKEN_EXPIRATION: 86400 # 1 day in seconds
+      USER_CREATED_TOPIC_ARN: !Ref UserCreatedTopic
     events:
       - httpApi:
           path: /user
@@ -68,10 +76,26 @@ functions:
     package:
       artifact: ./out/loginFunction/loginFunction.zip
       individually: true
+    environment:
+      JWT_SECRET_PARAM_NAME: "/${sls:stage}/shared/secret-access-key"
+      TOKEN_EXPIRATION: 86400 # 1 day in seconds
     events:
       - httpApi:
-          path: /user/login
+          path: /login
           method: post
+
+  get_user_details:
+    handler: bootstrap
+    package:
+      artifact: ./out/getUserDetailsFunction/getUserDetailsFunction.zip
+      individually: true
+    environment:
+      JWT_SECRET_PARAM_NAME: "/${sls:stage}/shared/secret-access-key"
+      TOKEN_EXPIRATION: 86400 # 1 day in seconds
+    events:
+      - httpApi:
+          path: /user/{userId}
+          method: get
 
   handle_order_completed_event:
     handler: bootstrap
@@ -139,7 +163,7 @@ resources:
     UserTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: !Sub ${self:custom.serviceName}-Users-${sls:stage}
+        TableName: ${self:provider.environment.TABLE_NAME}
         AttributeDefinitions:
           - AttributeName: PK
             AttributeType: S
@@ -151,6 +175,6 @@ resources:
     ApiEndpoint:
       Type: AWS::SSM::Parameter
       Properties:
-        Name: !Sub /${sls:stage}/${self:custom.serviceName}/api-endpoint
+        Name: !Sub /${self:custom.serviceName}/${sls:stage}/api-endpoint
         Type: String
-        Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+        Value: !GetAtt HttpApi.ApiEndpoint

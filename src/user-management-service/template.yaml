@@ -15,7 +15,7 @@ Parameters:
     Default: UserManagementService
   Env:
     Type: String
-    Default: dev
+    Default: local
   CommitHash:
     Type: String
     Default: latest
@@ -56,6 +56,9 @@ Resources:
       CodeUri: ./src/user-management/lambdas/create_user/
       Handler: create-user
       FunctionName: !Sub ${ServiceName}-CreateUser-${Env}
+      Environment:
+        Variables:
+          USER_CREATED_TOPIC_ARN: !Ref UserCreatedTopic
       Events:
         GetProduct:
           Type: Api
@@ -80,6 +83,7 @@ Resources:
             TopicName: !GetAtt UserCreatedTopic.TopicName
     Metadata:
       BuildMethod: rust-cargolambda
+      Binary: create-user
 
   LoginFunction:
     Type: AWS::Serverless::Function
@@ -89,13 +93,13 @@ Resources:
       FunctionName: !Sub ${ServiceName}-Login-${Env}
       Environment:
         Variables:
-          TOKEN_SECRET_KEY: This is a sample secret key - please don't use in production environment.'
+          JWT_SECRET_PARAM_NAME: !Sub "/${Env}/shared/secret-access-key"
           TOKEN_EXPIRATION: 86400 # 1 day in seconds
       Events:
         GetProduct:
           Type: Api
           Properties:
-            Path: /user/login
+            Path: /login
             Method: post
       Policies:
         - Version: "2012-10-17"
@@ -111,8 +115,60 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
     Metadata:
       BuildMethod: rust-cargolambda
+      Binary: login
+
+  GetUserDetailsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/user-management/lambdas/get_user_details/
+      Handler: bootstrap
+      FunctionName: !Sub ${ServiceName}-GetUserDetails-${Env}
+      Environment:
+        Variables:
+          JWT_SECRET_PARAM_NAME: !Sub "/${Env}/shared/secret-access-key"
+          TOKEN_EXPIRATION: 86400 # 1 day in seconds
+      Events:
+        GetProduct:
+          Type: Api
+          Properties:
+            Path: /user/{userId}
+            Method: get
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt UserTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+    Metadata:
+      BuildMethod: rust-cargolambda
+      Binary: get-user-details
 
   OrderCompletedFunction:
     Type: AWS::Serverless::Function
@@ -120,9 +176,14 @@ Resources:
       CodeUri: ./src/user-management/lambdas/handle_order_completed_for_user/
       Handler: handle-order-completed
       FunctionName: !Sub RustOrderCompleted-${Env}
+      Events:
+        IntegrationQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt OrderCompletedQueue.Arn
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Sub "{{resolve:ssm:/rust/${Env}/product/product-table-name:1}}"
+            TableName: !Ref UserTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -199,7 +260,7 @@ Resources:
   ApiEndpoint:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /${Env}/${ServiceName}/api-endpoint
+      Name: !Sub /${ServiceName}/${Env}/api-endpoint
       Type: String
       Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
 

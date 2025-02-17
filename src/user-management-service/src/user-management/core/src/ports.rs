@@ -23,7 +23,40 @@ pub enum ApplicationError {
     InternalError(String),
     #[error("Provided Password Invalid")]
     InvalidPassword(),
+    #[error("Invalid authentication token")]
+    InvalidToken(),
 }
+
+#[derive(Deserialize)]
+pub struct GetUserDetailsQuery {
+    email_address: String,
+}
+
+impl GetUserDetailsQuery {
+    pub fn new(email_address: String) -> Self {
+        GetUserDetailsQuery {
+            email_address
+        }
+    }
+    
+    pub async fn handle<TRepo: Repository>(
+        &self,
+        repository: &TRepo,
+    ) -> Result<UserDTO, ApplicationError> {
+        let res = repository.get_user(&self.email_address).await;
+
+        match res {
+            Ok(user) => Ok(user.as_dto()),
+            Err(e) => match e {
+                RepositoryError::NotFound => Err(ApplicationError::NotFound),
+                RepositoryError::InternalError(e) => Err(ApplicationError::InternalError(e.to_string())),
+                _ => Err(ApplicationError::InternalError(e.to_string())),
+            },
+        }
+    }
+}
+
+
 
 #[derive(Deserialize)]
 pub struct CreateUserCommand {
@@ -89,10 +122,6 @@ pub async fn handle_login<TRepo: Repository>(
             };
         })?;
 
-    user.was_active();
-
-    let _res = repository.update_user_details(&user).await;
-
     let parsed_hash = PasswordHash::new(&user.get_password_hash())
         .map_err(|_e| ApplicationError::InternalError(_e.to_string()))?;
     let _verified_password = Argon2::default()
@@ -127,7 +156,7 @@ impl OrderCompleted {
                 };
             })?;
 
-        user.was_active();
+        user.order_placed();
 
         let _res = repository.update_user_details(&user).await;
 

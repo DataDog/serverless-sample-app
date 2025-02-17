@@ -20,10 +20,17 @@ module "user_resource" {
   rest_api_id        = module.api_gateway.api_id
 }
 
+module "user_id_resource" {
+  source             = "../../modules/api-gateway-cors-resource"
+  path_part          = "{userId}"
+  parent_resource_id = module.user_resource.id
+  rest_api_id        = module.api_gateway.api_id
+}
+
 module "login_resource" {
   source             = "../../modules/api-gateway-cors-resource"
-  path_part          = "{user}"
-  parent_resource_id = module.user_resource.id
+  path_part          = "login"
+  parent_resource_id = module.api_gateway.root_resource_id
   rest_api_id        = module.api_gateway.api_id
 }
 
@@ -82,7 +89,7 @@ module "login_function" {
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.user_management_table.name
-    "TOKEN_SECRET_KEY": "This is a sample secret key - please don't use in production environment.'"
+    "JWT_SECRET_PARAM_NAME": "/${var.env}/shared/secret-access-key"
     "TOKEN_EXPIRATION": 86400
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
@@ -94,6 +101,11 @@ module "login_function" {
 resource "aws_iam_role_policy_attachment" "login_function_dynamo_db_read" {
   role       = module.login_function.function_role_name
   policy_arn = aws_iam_policy.dynamo_db_read.arn
+}
+
+resource "aws_iam_role_policy_attachment" "login_function_jwt_param_read" {
+  role       = module.login_function.function_role_name
+  policy_arn = aws_iam_policy.allow_jwt_secret_access.arn
 }
 
 
@@ -109,15 +121,57 @@ module "login_function_api" {
   env               = var.env
 }
 
+module "get_user_details_function" {
+  service_name   = "UserManagementService"
+  source         = "../../modules/lambda-function"
+  zip_file       = "../out/getUserDetailsFunction/getUserDetailsFunction.zip"
+  function_name  = "GetUserDetails"
+  lambda_handler = "index.handler"
+  environment_variables = {
+    "TABLE_NAME" : aws_dynamodb_table.user_management_table.name
+    "JWT_SECRET_PARAM_NAME": "/${var.env}/shared/secret-access-key"
+    "TOKEN_EXPIRATION": 86400
+  }
+  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site               = var.dd_site
+  app_version           = var.app_version
+  env                   = var.env
+}
+
+resource "aws_iam_role_policy_attachment" "get_user_details_function_dynamo_db_read" {
+  role       = module.get_user_details_function.function_role_name
+  policy_arn = aws_iam_policy.dynamo_db_read.arn
+}
+
+resource "aws_iam_role_policy_attachment" "get_user_details_function_jwt_param_read" {
+  role       = module.get_user_details_function.function_role_name
+  policy_arn = aws_iam_policy.allow_jwt_secret_access.arn
+}
+
+
+module "get_user_details_function_api" {
+  source            = "../../modules/api-gateway-lambda-integration"
+  api_id            = module.api_gateway.api_id
+  api_arn           = module.api_gateway.api_arn
+  function_arn      = module.get_user_details_function.function_invoke_arn
+  function_name     = module.get_user_details_function.function_name
+  http_method       = "GET"
+  api_resource_id   = module.user_id_resource.id
+  api_resource_path = module.user_id_resource.path_part
+  env               = var.env
+}
+
 resource "aws_api_gateway_deployment" "rest_api_deployment" {
   rest_api_id = module.api_gateway.api_id
   depends_on = [module.register_user_function_api,
-    module.login_function_api
+    module.login_function_api,
+    module.get_user_details_function_api,
   ]
   triggers = {
     redeployment = sha1(jsonencode([
       module.register_user_function_api,
-      module.login_function_api
+      module.login_function_api,
+      module.get_user_details_function_api
     ]))
   }
   variables = {

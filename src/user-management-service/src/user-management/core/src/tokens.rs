@@ -1,21 +1,34 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use jsonwebtoken::{encode, EncodingKey, Header};
-use serde::Serialize;
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header};
+use lambda_http::http::StatusCode;
+use serde::{Deserialize, Serialize};
 
 use crate::core::User;
+use crate::ports::ApplicationError;
+use crate::response::empty_response;
 
 pub struct TokenGenerator {
     secret: String,
     expiration: usize,
 }
 
-#[derive(Debug, Serialize)]
-struct Claims {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Claims {
     sub: String, // email address
     user_type: String,
     exp: usize, // expiration time
     iat: usize, // issued at
+}
+
+impl Claims {
+    fn is_for_user(&self, email_address: &str) -> Result<(), ()> {
+        if self.sub == email_address {
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
 }
 
 impl TokenGenerator {
@@ -45,5 +58,46 @@ impl TokenGenerator {
             &EncodingKey::from_secret(self.secret.as_bytes()),
         )
         .unwrap()
+    }
+    
+    pub fn validate_token(&self, token: &str, email_address: &str) -> Result<Claims, ApplicationError> {
+        tracing::info!("Validating {} against {}", token, email_address);
+        
+        let token = if token.contains("Bearer ") {
+            let token = token.replace("Bearer ", "");
+            token
+        } else { 
+            token.to_string()
+        };
+        
+        let claim = decode::<Claims>(
+            &token,
+            &DecodingKey::from_secret(self.secret.as_bytes()),
+            &jsonwebtoken::Validation::default(),
+        )
+        .map(|data| data.claims)
+            .map_err(|_e| {
+                ApplicationError::InvalidToken()
+            })?;
+        
+        claim.is_for_user(email_address).map_err(|_e| ApplicationError::InvalidToken())?;
+        
+        Ok(claim)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_token() {
+        let token_generator = TokenGenerator::new("c2c45e2d-d682-4f44-88ce-e6be0e1da918".to_string(), 3600);
+
+        let res = token_generator.validate_token(
+            "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0QHRlc3QuY29tIiwidXNlcl90eXBlIjoiU1RBTkRBUkQiLCJleHAiOjE3Mzk4NzUwMjEsImlhdCI6MTczOTc4ODYyMX0.DAV-VaxuHxrTSqxW-iJmYqswOeASXVnzJa-B7PAIzMc",
+            "test@test.com");
+
+        assert!(res.is_ok());
     }
 }

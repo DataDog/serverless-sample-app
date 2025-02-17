@@ -14,7 +14,7 @@ use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
 use shared::ports::{handle_create_user, CreateUserCommand};
 
-#[instrument(name = "POST /", skip(client, event_publisher, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]
+#[instrument(name = "POST /user", skip(client, event_publisher, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]
 async fn function_handler<TRepository: Repository, TEventPublisher: EventPublisher>(
     client: &TRepository,
     event_publisher: &TEventPublisher,

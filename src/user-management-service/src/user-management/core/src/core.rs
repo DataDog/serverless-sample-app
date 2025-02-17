@@ -37,7 +37,9 @@ pub struct UserDTO {
     #[serde(rename = "lastName")]
     last_name: String,
     #[serde(rename = "emailAddress")]
-    email_address: String
+    email_address: String,
+    #[serde(rename = "orderCount")]
+    order_count: usize
 }
 
 #[derive(Clone)]
@@ -56,6 +58,7 @@ pub struct UserDetails {
     pub(crate) password_hash: String,
     pub(crate) created_at: DateTime<Utc>,
     pub(crate) last_active: Option<DateTime<Utc>>,
+    pub(crate) order_count: usize
 }
 
 impl User {
@@ -77,7 +80,8 @@ impl User {
             last_name,
             password_hash,
             created_at: Utc::now(),
-            last_active: Option::Some(Utc::now())
+            last_active: Option::Some(Utc::now()),
+            order_count: 0
         })
     }
 
@@ -92,7 +96,7 @@ impl User {
         details.last_name = last_name;
     }
     
-    pub(crate) fn was_active(&mut self) {
+    pub(crate) fn order_placed(&mut self) {
         let details = match self {
             User::Standard(details) => details,
             User::Premium(details) => details,
@@ -100,6 +104,11 @@ impl User {
         };
         
         details.last_active = Option::Some(Utc::now());
+        details.order_count = details.order_count + 1;
+        
+        if details.order_count > 10 {
+            *self = User::Premium(details.clone());
+        }
     }
 
     pub (crate) fn get_password_hash(&self) -> &str {
@@ -141,7 +150,8 @@ impl User {
             user_id: details.user_id.clone(),
             email_address: details.email_address.clone(),
             first_name: details.first_name.clone(),
-            last_name: details.last_name.clone()
+            last_name: details.last_name.clone(),
+            order_count: details.order_count
         }
     }
 }

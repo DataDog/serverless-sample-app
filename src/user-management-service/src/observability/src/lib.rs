@@ -14,6 +14,7 @@ use opentelemetry::{global, Context, KeyValue};
 use opentelemetry_datadog::new_pipeline;
 use serde::{Deserialize, Serialize};
 use std::env;
+use std::num::ParseIntError;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::{info, Subscriber};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
@@ -290,19 +291,28 @@ impl TryFrom<&HeaderMap> for TracedMessage {
 
 impl TracedMessage {
     fn generate_span_context(&mut self) {
-        let trace_id = TraceId::from_hex(&self.trace_id.as_str()).unwrap();
-        let span_id = SpanId::from_hex(&self.span_id.as_str()).unwrap();
+        let trace_id = TraceId::from_hex(&self.trace_id.as_str());
+        
+        match trace_id {
+            Ok(trace_id) => {
+                let span_id = SpanId::from_hex(&self.span_id.as_str()).unwrap();
 
-        let span_context = SpanContext::new(
-            trace_id,
-            span_id,
-            TraceFlags::SAMPLED,
-            false,
-            TraceState::NONE,
-        );
+                let span_context = SpanContext::new(
+                    trace_id,
+                    span_id,
+                    TraceFlags::SAMPLED,
+                    false,
+                    TraceState::NONE,
+                );
 
-        self.span_ctx = Some(span_context.clone());
-        self.ctx = Some(Context::new().with_remote_span_context(span_context.clone()));
+                self.span_ctx = Some(span_context.clone());
+                self.ctx = Some(Context::new().with_remote_span_context(span_context.clone()));
+            }
+            Err(_) => {
+                self.span_ctx = None;
+                self.ctx = None;
+            }
+        }
     }
 
     fn generate_inflight_span_for_sns(&mut self, record: &SnsRecord) {

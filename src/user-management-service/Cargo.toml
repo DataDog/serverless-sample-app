@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
   "src/user-management/lambdas/create_user",
+  "src/user-management/lambdas/get_user_details",
   "src/user-management/lambdas/login",
   "src/user-management/lambdas/handle_order_completed_for_user",
   "src/user-management/core",

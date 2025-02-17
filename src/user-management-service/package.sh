@@ -4,6 +4,7 @@ function deploy {
   mkdir out
   mkdir out/registerUserFunction
   mkdir out/loginFunction
+  mkdir out/getUserDetailsFunction
   mkdir out/handleOrderCompletedFunction
 
   cargo lambda build --release --manifest-path src/user-management/lambdas/create_user/Cargo.toml
@@ -11,6 +12,9 @@ function deploy {
   
   cargo lambda build --release --manifest-path src/user-management/lambdas/login/Cargo.toml
   zip -r -j out/loginFunction/loginFunction.zip target/lambda/login/bootstrap
+  
+  cargo lambda build --release --manifest-path src/user-management/lambdas/get_user_details/Cargo.toml
+  zip -r -j out/getUserDetailsFunction/getUserDetailsFunction.zip target/lambda/get-user-details/bootstrap
 
   cargo lambda build --release --manifest-path src/user-management/lambdas/handle_order_completed_for_user/Cargo.toml
   zip -r -j out/handleOrderCompletedFunction/handleOrderCompletedFunction.zip target/lambda/handle-order-completed/bootstrap

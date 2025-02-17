@@ -12,6 +12,10 @@ data "aws_ssm_parameter" "eb_name" {
   name = "/${var.env}/shared/event-bus-name"
 }
 
+data "aws_ssm_parameter" "secret_access_key_param" {
+  name = "/${var.env}/shared/secret-access-key"
+}
+
 data "aws_iam_policy_document" "dynamo_db_read" {
   statement {
     actions   = ["dynamodb:GetItem", "dynamodb:Scan", "dynamodb:Query", "dynamodb:BatchGetItem", "dynamodb:DescribeTable"]
@@ -57,5 +61,15 @@ data "aws_iam_policy_document" "sqs_receive" {
       "sqs:DeleteMessage",
     "sqs:GetQueueAttributes"]
     resources = ["arn:aws:sqs:*:${data.aws_caller_identity.current.account_id}:${aws_sqs_queue.order_completed_queue.name}"]
+  }
+}
+
+data "aws_iam_policy_document" "allow_jwt_secret_key_ssm_read" {
+  statement {
+    actions = ["ssm:DescribeParameters",
+      "ssm:GetParameter",
+      "ssm:GetParameterHistory",
+      "ssm:GetParameters"]
+    resources = ["arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/shared/secret-access-key"]
   }
 }

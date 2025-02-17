@@ -1,6 +1,8 @@
 use lambda_http::http::StatusCode;
 use lambda_http::{Body, Error, Response};
 use serde::Serialize;
+use tracing::Span;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 #[derive(Serialize)]
 struct ResponseWrapper<T>
@@ -12,6 +14,7 @@ where
 }
 
 pub fn empty_response(status: &StatusCode) -> Result<Response<Body>, Error> {
+    Span::current().set_attribute("http.status_code", status.as_u16().to_string());
     let response = Response::builder()
         .status(status)
         .header("Access-Control-Allow-Origin", "*")
@@ -24,6 +27,7 @@ pub fn empty_response(status: &StatusCode) -> Result<Response<Body>, Error> {
 }
 
 pub fn json_response(status: &StatusCode, body: &impl Serialize) -> Result<Response<Body>, Error> {
+    Span::current().set_attribute("http.status_code", status.as_u16().to_string());
     let wrapper = ResponseWrapper {
         data: body,
         message: "".to_string(),

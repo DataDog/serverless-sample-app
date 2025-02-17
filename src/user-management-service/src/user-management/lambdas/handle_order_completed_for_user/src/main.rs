@@ -20,10 +20,12 @@ async fn function_handler<TRepository: Repository>(
     client: &TRepository,
     event: LambdaEvent<SqsEvent>,
 ) -> Result<(), Error> {
-    for record in &event.payload.records {
-        let traced_message: CloudWatchEvent<WrappedMessage> = serde_json::from_str(&record.body.clone().unwrap()).unwrap();
+    tracing::info!("Received event: {:?}", event);
+    
+    for sqs_message in &event.payload.records {
+        let traced_message: TracedMessage = sqs_message.into();
 
-        let order_completed_event: OrderCompleted = serde_json::from_str(&traced_message.detail.unwrap().data).unwrap();
+        let order_completed_event: OrderCompleted = serde_json::from_str(&traced_message.data).unwrap();
 
         order_completed_event.handle(client).await?;
     }

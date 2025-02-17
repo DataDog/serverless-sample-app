@@ -2,6 +2,9 @@ use crate::core::{EventPublisher, Repository, RepositoryError, User, UserCreated
 use async_trait::async_trait;
 use aws_sdk_dynamodb::types::AttributeValue;
 use aws_sdk_dynamodb::Client;
+use aws_sdk_dynamodb::config::http::HttpResponse;
+use aws_sdk_dynamodb::error::SdkError;
+use aws_sdk_dynamodb::operation::put_item::PutItemError;
 use observability::{parse_name_from_arn, TracedMessage};
 use tracing::{instrument, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
@@ -21,6 +24,8 @@ const USER_TYPE_KEY: &str = "UserType";
 const CREATED_AT_KEY: &str = "CreatedAt";
 const LAST_ACTIVE_KEY: &str = "LastActive";
 
+const ORDER_COUNT_KEY: &str = "OrderCount";
+
 impl DynamoDbRepository {
     pub fn new(client: Client, table_name: String) -> DynamoDbRepository {
         DynamoDbRepository { client, table_name }
@@ -32,11 +37,15 @@ impl DynamoDbRepository {
             format!("DynamoDB.PutItem {}", &self.table_name),
         );
         
+        tracing::info!("Storing user details in DynamoDB");
+        
         let (user_type, details) = match user {
             User::Standard(details) => ("STANDARD", details),
             User::Premium(details) => ("PREMIUM", details),
             User::Admin(details) => ("ADMIN", details),
         };
+
+        tracing::info!("Sending put item request");
         
         let put_item_builder = self
             .client
@@ -49,7 +58,8 @@ impl DynamoDbRepository {
             .item(USER_ID_KEY, AttributeValue::S(details.user_id.clone()))
             .item(PASSWORD_HASH_KEY, AttributeValue::S(details.password_hash.clone()))
             .item(USER_TYPE_KEY, AttributeValue::S(user_type.to_string()))
-            .item(CREATED_AT_KEY, AttributeValue::S(details.created_at.to_string()));
+            .item(CREATED_AT_KEY, AttributeValue::S(details.created_at.to_string()))
+            .item(ORDER_COUNT_KEY, AttributeValue::N(details.order_count.to_string()));
 
         let res = if details.last_active.is_some() {
             put_item_builder.clone().item(
@@ -69,9 +79,31 @@ impl DynamoDbRepository {
         match res {
             Ok(_) => Ok(()),
             Err(e) => {
-                tracing::error!("{}", e.to_string());
+                let error_message = match e {
+                    SdkError::ConstructionFailure(_) => "construction failure",
+                    SdkError::TimeoutError(_) => "timeout error",
+                    SdkError::DispatchFailure(_) => "dispatch failure",
+                    SdkError::ResponseError(_) => "response error",
+                    SdkError::ServiceError(e) => {
+                        match e.err(){
+                            PutItemError::ConditionalCheckFailedException(_) => "conditional check failed",
+                            PutItemError::InternalServerError(_) => "DynamoDB internal server error",
+                            PutItemError::InvalidEndpointException(_) => "invalid endpoint",
+                            PutItemError::ItemCollectionSizeLimitExceededException(_) => "item collection size limit exceeded",
+                            PutItemError::ProvisionedThroughputExceededException(_) => "provisioned throughput exceeded",
+                            PutItemError::ReplicatedWriteConflictException(_) => "replicated write conflict",
+                            PutItemError::RequestLimitExceeded(_) => "request limit exceeded",
+                            PutItemError::ResourceNotFoundException(_) => "resource not found",
+                            PutItemError::TransactionConflictException(_) => "transaction conflict",
+                            _ => "unknown error"
+                        }
+                    }
+                    _ => "unknown error",
+                };
+                
+                tracing::error!("Error storing user details in DynamoDB: {}", error_message);
 
-                Err(RepositoryError::InternalError(e.to_string()))
+                Err(RepositoryError::InternalError(error_message.to_string()))
             }
         }
     }
@@ -79,6 +111,7 @@ impl DynamoDbRepository {
 
 #[async_trait]
 impl Repository for DynamoDbRepository {
+    #[instrument(name = "get_user", skip(self, email_address))]
     async fn get_user(&self, email_address: &str) -> Result<User, RepositoryError> {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
@@ -113,6 +146,7 @@ impl Repository for DynamoDbRepository {
                         Some(value) => Some(value.as_s().unwrap().parse().unwrap()),
                         None => None,  
                     },
+                    order_count: attributes.get(ORDER_COUNT_KEY).unwrap().as_n().unwrap().parse().unwrap(),
                 };
 
                 User::from_details(user_details, &attributes.get(USER_TYPE_KEY).unwrap().as_s().unwrap().clone())?
@@ -121,6 +155,7 @@ impl Repository for DynamoDbRepository {
         }
     }
 
+    #[instrument(name = "update_user_details", skip(self, body))]
     async fn update_user_details(&self, body: &User) -> Result<(), RepositoryError> {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         self.put_to_dynamo(body).await
