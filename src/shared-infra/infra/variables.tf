@@ -31,8 +31,3 @@ variable "region" {
   type = string
   description = "The AWS region to deploy to"
 }
-
-variable "tf_state_bucket_name" {
-  type = string
-  default = "The name of the S3 bucket to store state"
-}

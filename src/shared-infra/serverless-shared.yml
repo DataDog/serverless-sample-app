@@ -24,3 +24,10 @@ resources:
         Name: /${sls:stage}/shared/event-bus-arn
         Type: String
         Value: !GetAtt SharedEventBus.Arn
+
+    JwtSecretAccessKeyParameter:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /${sls:stage}/shared/secret-access-key
+        Type: String
+        Value: "This is a sample secret key - please don't use in production environment.'"

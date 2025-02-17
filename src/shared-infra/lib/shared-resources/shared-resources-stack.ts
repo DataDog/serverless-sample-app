@@ -9,6 +9,7 @@ import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { EventBus } from "aws-cdk-lib/aws-events";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
+import { randomUUID } from "crypto";
 
 // no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class SharedResourcesStack extends cdk.Stack {
@@ -37,5 +38,9 @@ export class SharedResourcesStack extends cdk.Stack {
         stringValue: sharedEventBus.eventBusArn,
       }
     );
+    const jwtSecretKeyParameter = new StringParameter(this, "JwtSecretKey", {
+      parameterName: `/${env}/shared/secret-access-key`,
+      stringValue: randomUUID().toString(),
+    });
   }
 }

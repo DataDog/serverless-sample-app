@@ -15,7 +15,7 @@ resource "aws_ssm_parameter" "eb_name" {
   value = aws_cloudwatch_event_bus.shared_event_bus.name
 }
 
-resource "aws_ssm_parameter" "eb_name" {
+resource "aws_ssm_parameter" "eb_arn" {
   name  = "/${var.env}/shared/event-bus-arn"
   type  = "String"
   value = aws_cloudwatch_event_bus.shared_event_bus.arn
