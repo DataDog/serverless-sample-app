@@ -85,6 +85,19 @@ impl User {
         })
     }
 
+    pub(crate) fn new_admin(email_address: String, first_name: String, last_name: String, password_hash: String) -> Self {
+        Self::Admin(UserDetails {
+            user_id: email_address.to_uppercase(),
+            email_address,
+            first_name,
+            last_name,
+            password_hash,
+            created_at: Utc::now(),
+            last_active: Option::Some(Utc::now()),
+            order_count: 0
+        })
+    }
+
     pub(crate) fn update(&mut self, first_name: String, last_name: String) {
         let details = match self {
             User::Standard(details) => details,
@@ -108,6 +121,18 @@ impl User {
         
         if details.order_count > 10 {
             *self = User::Premium(details.clone());
+        }
+    }
+
+    pub(crate) fn is_admin(&mut self) {
+        let details = match self {
+            User::Standard(details) => details,
+            User::Premium(details) => details,
+            User::Admin(details) => details
+        };
+
+        if details.order_count > 10 {
+            *self = User::Admin(details.clone());
         }
     }
 

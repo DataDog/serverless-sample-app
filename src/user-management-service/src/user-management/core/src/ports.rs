@@ -8,6 +8,7 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
+use aws_sdk_sns::config::BehaviorVersion;
 use jsonwebtoken::{encode, EncodingKey, Header};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -64,35 +65,65 @@ pub struct CreateUserCommand {
     first_name: String,
     last_name: String,
     password: String,
+    admin_user: Option<bool>,
 }
 
-pub async fn handle_create_user<TRepo: Repository, TEventPublisher: EventPublisher>(
-    repository: &TRepo,
-    event_publisher: &TEventPublisher,
-    create_user_command: CreateUserCommand,
-) -> Result<UserDTO, ApplicationError> {
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
-    let hash = argon2
-        .hash_password(create_user_command.password.as_bytes(), &salt)
-        .map_err(|_e| ApplicationError::InternalError(_e.to_string()))?
-        .to_string();
+impl CreateUserCommand {
+    pub fn new(email_address: String, first_name: String, last_name: String, password: String) -> Self {
+        CreateUserCommand {
+            email_address,
+            first_name,
+            last_name,
+            password,
+            admin_user: None
+        }
+    }
+    pub fn new_admin_user(email_address: String, first_name: String, last_name: String, password: String) -> Self {
+        CreateUserCommand {
+            email_address,
+            first_name,
+            last_name,
+            password,
+            admin_user: Some(true)
+        }
+    }
 
-    let user = User::new(
-        create_user_command.email_address,
-        create_user_command.first_name,
-        create_user_command.last_name,
-        hash,
-    );
+    pub async fn handle<TRepo: Repository, TEventPublisher: EventPublisher>(
+        &self,
+        repository: &TRepo,
+        event_publisher: &TEventPublisher,
+    ) -> Result<UserDTO, ApplicationError> {
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        let hash = argon2
+            .hash_password(&self.password.as_bytes(), &salt)
+            .map_err(|_e| ApplicationError::InternalError(_e.to_string()))?
+            .to_string();
 
-    let _res = repository.update_user_details(&user).await;
+        let mut user = match &self.admin_user {
+            None => User::new(
+                self.email_address.clone(),
+                self.first_name.clone(),
+                self.last_name.clone(),
+                hash,
+            ),
+            Some(_) => User::new_admin(
+                self.email_address.clone(),
+                self.first_name.clone(),
+                self.last_name.clone(),
+                hash,
+            )
+        };
 
-    event_publisher
-        .publish_user_created_event(user.clone().into())
-        .await
-        .map_err(|_e| ApplicationError::InternalError("Failure publishing event".to_string()))?;
+        let _res = repository.update_user_details(&user).await;
 
-    Ok(user.as_dto())
+        event_publisher
+            .publish_user_created_event(user.clone().into())
+            .await
+            .map_err(|_e| ApplicationError::InternalError("Failure publishing event".to_string()))?;
+
+        Ok(user.as_dto())
+    }
 }
 
 #[derive(Deserialize)]

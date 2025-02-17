@@ -13,7 +13,7 @@ use shared::core::{EventPublisher, Repository};
 use std::env;
 use aws_config::SdkConfig;
 use tracing_subscriber::util::SubscriberInitExt;
-use shared::ports::{handle_create_user, ApplicationError, CreateUserCommand, GetUserDetailsQuery};
+use shared::ports::{ApplicationError, GetUserDetailsQuery};
 use shared::tokens::TokenGenerator;
 
 #[instrument(name = "GET /user/{userId}", skip(client, token_generator, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]

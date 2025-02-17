@@ -12,7 +12,7 @@ use shared::adapters::{DynamoDbRepository, SnsEventPublisher};
 use shared::core::{EventPublisher, Repository};
 use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
-use shared::ports::{handle_create_user, CreateUserCommand};
+use shared::ports::CreateUserCommand;
 
 #[instrument(name = "POST /user", skip(client, event_publisher, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]
 async fn function_handler<TRepository: Repository, TEventPublisher: EventPublisher>(
@@ -29,7 +29,7 @@ async fn function_handler<TRepository: Repository, TEventPublisher: EventPublish
     match request_body {
         None => empty_response(&StatusCode::BAD_REQUEST),
         Some(command) => {
-            let result = handle_create_user(client, event_publisher, command).await;
+            let result = command.handle(client, event_publisher).await;
 
             match result {
                 Ok(response) => json_response(&StatusCode::OK, &response),
@@ -55,6 +55,9 @@ async fn main() -> Result<(), Error> {
     let sns_client = aws_sdk_sns::Client::new(&config);
     let event_publisher = SnsEventPublisher::new(sns_client);
 
+    // Seed default admin user
+    seed_default_user(&repository, &event_publisher).await;
+
     run(service_fn(|event: Request| async {
         let mut handler_span = trace_request(&event);
 
@@ -65,4 +68,10 @@ async fn main() -> Result<(), Error> {
         res
     }))
     .await
+}
+
+async fn seed_default_user<TRepository: Repository, TEventPublisher: EventPublisher>(repository: &TRepository, sns_event_publisher: &TEventPublisher) {
+    let create_user_command = CreateUserCommand::new_admin_user("admin@serverless-sample.com".to_string(), "Admin".to_string(), "Serverless".to_string(), "Admin!23".to_string());
+
+    let _ = create_user_command.handle(repository, sns_event_publisher).await;
 }

@@ -39,10 +39,10 @@ impl DynamoDbRepository {
         
         tracing::info!("Storing user details in DynamoDB");
         
-        let (user_type, details) = match user {
-            User::Standard(details) => ("STANDARD", details),
-            User::Premium(details) => ("PREMIUM", details),
-            User::Admin(details) => ("ADMIN", details),
+        let (details) = match user {
+            User::Standard(details) => (details),
+            User::Premium(details) => (details),
+            User::Admin(details) => (details),
         };
 
         tracing::info!("Sending put item request");
@@ -57,7 +57,7 @@ impl DynamoDbRepository {
             .item(EMAIL_ADDRESS_KEY, AttributeValue::S(details.email_address.clone()))
             .item(USER_ID_KEY, AttributeValue::S(details.user_id.clone()))
             .item(PASSWORD_HASH_KEY, AttributeValue::S(details.password_hash.clone()))
-            .item(USER_TYPE_KEY, AttributeValue::S(user_type.to_string()))
+            .item(USER_TYPE_KEY, AttributeValue::S(user.user_type().to_string()))
             .item(CREATED_AT_KEY, AttributeValue::S(details.created_at.to_string()))
             .item(ORDER_COUNT_KEY, AttributeValue::N(details.order_count.to_string()));
 
