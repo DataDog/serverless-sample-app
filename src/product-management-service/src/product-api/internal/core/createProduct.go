@@ -23,8 +23,8 @@ type CreateProductCommandHandler struct {
 	eventPublisher    ProductEventPublisher
 }
 
-func NewCreateProductCommandHandler(productRepository ProductRepository, eventPublisher ProductEventPublisher) *CreateProductCommandHandler {
-	return &CreateProductCommandHandler{
+func NewCreateProductCommandHandler(productRepository ProductRepository, eventPublisher ProductEventPublisher) CreateProductCommandHandler {
+	return CreateProductCommandHandler{
 		productRepository: productRepository,
 		eventPublisher:    eventPublisher,
 	}
@@ -32,6 +32,7 @@ func NewCreateProductCommandHandler(productRepository ProductRepository, eventPu
 
 func (handler *CreateProductCommandHandler) Handle(ctx context.Context, command CreateProductCommand) (*ProductDTO, error) {
 	span, _ := tracer.SpanFromContext(ctx)
+	defer span.Finish()
 	span.SetTag("product.name", command.Name)
 	span.SetTag("product.price", command.Name)
 

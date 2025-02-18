@@ -9,6 +9,8 @@ package main
 
 import (
 	"context"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"os"
 	"product-api/internal/adapters"
 	"product-api/internal/core"
@@ -23,12 +25,21 @@ import (
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
 )
 
-type LambdaHandler struct {
-	queryHandler core.ListProductsQueryHandler
-}
+var (
+	awsCfg = func() aws.Config {
+		awsCfg, _ := awscfg.LoadDefaultConfig(context.TODO())
+		awstrace.AppendMiddleware(&awsCfg)
+		return awsCfg
+	}()
+	handler = core.NewListProductsQueryHandler(
+		adapters.NewDynamoDbProductRepository(*dynamodb.NewFromConfig(awsCfg), os.Getenv("TABLE_NAME")))
+)
 
-func (lh *LambdaHandler) Handle(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	res, err := lh.queryHandler.Handle(ctx, core.ListProductsQuery{})
+func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	span, _ := tracer.SpanFromContext(ctx)
+	defer span.Finish()
+
+	res, err := handler.Handle(ctx, core.ListProductsQuery{})
 
 	if err != nil {
 		return utils.GenerateApiResponseForError(err)
@@ -38,15 +49,5 @@ func (lh *LambdaHandler) Handle(ctx context.Context, request events.APIGatewayPr
 }
 
 func main() {
-	awsCfg, _ := awscfg.LoadDefaultConfig(context.Background())
-	awstrace.AppendMiddleware(&awsCfg)
-	dynamoDbClient := dynamodb.NewFromConfig(awsCfg)
-
-	tableName := os.Getenv("TABLE_NAME")
-
-	handler := LambdaHandler{
-		queryHandler: *core.NewListProductsQueryHandler(adapters.NewDynamoDbProductRepository(*dynamoDbClient, tableName)),
-	}
-
-	lambda.Start(ddlambda.WrapFunction(handler.Handle, nil))
+	lambda.Start(ddlambda.WrapFunction(functionHandler, nil))
 }

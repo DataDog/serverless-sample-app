@@ -9,8 +9,8 @@ package main
 
 import (
 	"context"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
-	"net/http"
 	"os"
 	"product-api/internal/adapters"
 	"product-api/internal/core"
@@ -26,55 +26,32 @@ import (
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
 )
 
-type LambdaHandler struct {
-	deleteProductCommandHandler core.DeleteProductCommandHandler
-	authenticator               adapters.Authenticator
-}
+var (
+	awsCfg = func() aws.Config {
+		awsCfg, _ := awscfg.LoadDefaultConfig(context.TODO())
+		awstrace.AppendMiddleware(&awsCfg)
+		return awsCfg
+	}()
+	handler = core.NewDeleteProductCommandHandler(
+		adapters.NewDynamoDbProductRepository(*dynamodb.NewFromConfig(awsCfg), os.Getenv("TABLE_NAME")),
+		adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg)))
+	authenticator = adapters.NewAuthenticator(context.Background(), *ssm.NewFromConfig(awsCfg))
+)
 
-func (lh *LambdaHandler) Handle(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	authHeader := request.Headers["Authorization"]
-	if authHeader == "" {
-		return events.APIGatewayProxyResponse{StatusCode: http.StatusUnauthorized, Body: "Missing Authorization header"}, nil
-	}
-	claims, authError := lh.authenticator.Authenticate(ctx, authHeader)
-	if authError != nil {
-		return events.APIGatewayProxyResponse{StatusCode: http.StatusUnauthorized, Body: "Unauthorized"}, nil
-	}
+func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	_, err := authenticator.AuthenticateAPIGatewayRequest(ctx, request, "ADMIN")
 
-	if claims.UserType != "ADMIN" {
-		return events.APIGatewayProxyResponse{StatusCode: http.StatusForbidden, Body: "Unauthorized"}, nil
+	if err != nil {
+		return events.APIGatewayProxyResponse{StatusCode: 401, Body: "Unauthorized"}, nil
 	}
 
 	productId := request.PathParameters["productId"]
 
-	lh.deleteProductCommandHandler.Handle(ctx, core.DeleteProductCommand{ProductId: productId})
+	handler.Handle(ctx, core.DeleteProductCommand{ProductId: productId})
 
 	return utils.GenerateApiResponseFor("OK", 200, "")
 }
 
 func main() {
-	awsCfg, _ := awscfg.LoadDefaultConfig(context.Background())
-	awstrace.AppendMiddleware(&awsCfg)
-	dynamoDbClient := dynamodb.NewFromConfig(awsCfg)
-	ssmClient := ssm.NewFromConfig(awsCfg)
-	snsClient := sns.NewFromConfig(awsCfg)
-
-	secretAccessKeyParameterName := os.Getenv("JWT_SECRET_PARAM_NAME")
-
-	secretAccessKeyParameter, err := ssmClient.GetParameter(context.Background(), &ssm.GetParameterInput{
-		Name: &secretAccessKeyParameterName,
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	tableName := os.Getenv("TABLE_NAME")
-
-	handler := LambdaHandler{
-		deleteProductCommandHandler: *core.NewDeleteProductCommandHandler(adapters.NewDynamoDbProductRepository(*dynamoDbClient, tableName), adapters.NewSnsEventPublisher(*snsClient)),
-		authenticator:               *adapters.NewAuthenticator(*secretAccessKeyParameter.Parameter.Value),
-	}
-
-	lambda.Start(ddlambda.WrapFunction(handler.Handle, nil))
+	lambda.Start(ddlambda.WrapFunction(functionHandler, nil))
 }

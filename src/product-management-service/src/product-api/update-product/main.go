@@ -10,8 +10,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
-	"net/http"
 	"os"
 
 	"product-api/internal/adapters"
@@ -29,27 +29,23 @@ import (
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
 )
 
-type LambdaHandler struct {
-	commandHandler core.UpdateProductCommandHandler
-	authenticator  adapters.Authenticator
-}
+var (
+	awsCfg = func() aws.Config {
+		awsCfg, _ := awscfg.LoadDefaultConfig(context.TODO())
+		awstrace.AppendMiddleware(&awsCfg)
+		return awsCfg
+	}()
+	handler = core.NewUpdateProductCommandHandler(
+		adapters.NewDynamoDbProductRepository(*dynamodb.NewFromConfig(awsCfg), os.Getenv("TABLE_NAME")),
+		adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg)))
+	authenticator = adapters.NewAuthenticator(context.Background(), *ssm.NewFromConfig(awsCfg))
+)
 
-func NewLambdaHandler(commandHandler core.UpdateProductCommandHandler, authenticator adapters.Authenticator) *LambdaHandler {
-	return &LambdaHandler{commandHandler: commandHandler, authenticator: authenticator}
-}
+func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	_, err := authenticator.AuthenticateAPIGatewayRequest(ctx, request, "ADMIN")
 
-func (lh *LambdaHandler) Handle(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	authHeader := request.Headers["Authorization"]
-	if authHeader == "" {
-		return events.APIGatewayProxyResponse{StatusCode: http.StatusUnauthorized, Body: "Missing Authorization header"}, nil
-	}
-	claims, authError := lh.authenticator.Authenticate(ctx, authHeader)
-	if authError != nil {
-		return events.APIGatewayProxyResponse{StatusCode: http.StatusUnauthorized, Body: "Unauthorized"}, nil
-	}
-
-	if claims.UserType != "ADMIN" {
-		return events.APIGatewayProxyResponse{StatusCode: http.StatusForbidden, Body: "Unauthorized"}, nil
+	if err != nil {
+		return events.APIGatewayProxyResponse{StatusCode: 401, Body: "Unauthorized"}, nil
 	}
 
 	body := []byte(request.Body)
@@ -57,7 +53,7 @@ func (lh *LambdaHandler) Handle(ctx context.Context, request events.APIGatewayPr
 	var command core.UpdateProductCommand
 	json.Unmarshal(body, &command)
 
-	res, err := lh.commandHandler.Handle(ctx, command)
+	res, err := handler.Handle(ctx, command)
 
 	if err != nil {
 		return utils.GenerateApiResponseForError(err)
@@ -67,28 +63,5 @@ func (lh *LambdaHandler) Handle(ctx context.Context, request events.APIGatewayPr
 }
 
 func main() {
-	awsCfg, _ := awscfg.LoadDefaultConfig(context.Background())
-	awstrace.AppendMiddleware(&awsCfg)
-	dynamoDbClient := dynamodb.NewFromConfig(awsCfg)
-	ssmClient := ssm.NewFromConfig(awsCfg)
-	snsClient := sns.NewFromConfig(awsCfg)
-
-	secretAccessKeyParameterName := os.Getenv("JWT_SECRET_PARAM_NAME")
-
-	secretAccessKeyParameter, err := ssmClient.GetParameter(context.Background(), &ssm.GetParameterInput{
-		Name: &secretAccessKeyParameterName,
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	tableName := os.Getenv("TABLE_NAME")
-
-	handler := NewLambdaHandler(
-		*core.NewUpdateProductCommandHandler(adapters.NewDynamoDbProductRepository(*dynamoDbClient, tableName), adapters.NewSnsEventPublisher(*snsClient)),
-		*adapters.NewAuthenticator(*secretAccessKeyParameter.Parameter.Value),
-	)
-
-	lambda.Start(ddlambda.WrapFunction(handler.Handle, nil))
+	lambda.Start(ddlambda.WrapFunction(functionHandler, nil))
 }

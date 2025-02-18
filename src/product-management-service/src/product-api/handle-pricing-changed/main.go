@@ -10,6 +10,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"os"
 
 	"product-api/internal/adapters"
@@ -32,15 +33,20 @@ type TracedMessage[T any] struct {
 	Datadog tracer.TextMapCarrier `json:"_datadog"`
 }
 
-type LambdaHandler struct {
-	commandHandler core.PricingUpdatedEventHandler
-}
+var (
+	awsCfg = func() aws.Config {
+		awsCfg, _ := awscfg.LoadDefaultConfig(context.TODO())
+		awstrace.AppendMiddleware(&awsCfg)
+		return awsCfg
+	}()
+	handler = core.NewPricingUpdatedEventHandler(
+		adapters.NewDynamoDbProductRepository(*dynamodb.NewFromConfig(awsCfg), os.Getenv("TABLE_NAME")))
+)
 
-func NewLambdaHandler(commandHandler core.PricingUpdatedEventHandler) *LambdaHandler {
-	return &LambdaHandler{commandHandler: commandHandler}
-}
+func functionHandler(ctx context.Context, request events.SNSEvent) {
+	span, _ := tracer.SpanFromContext(ctx)
+	defer span.Finish()
 
-func (lh *LambdaHandler) Handle(ctx context.Context, request events.SNSEvent) {
 	for index := range request.Records {
 		record := request.Records[index]
 
@@ -65,7 +71,7 @@ func (lh *LambdaHandler) Handle(ctx context.Context, request events.SNSEvent) {
 		span, context := tracer.StartSpanFromContext(ctx, "process.message", tracer.WithSpanLinks(spanLinks))
 		defer span.Finish()
 
-		_, err = lh.commandHandler.Handle(context, evt.Data)
+		_, err = handler.Handle(context, evt.Data)
 
 		if err != nil {
 			println(err.Error())
@@ -75,13 +81,5 @@ func (lh *LambdaHandler) Handle(ctx context.Context, request events.SNSEvent) {
 }
 
 func main() {
-	awsCfg, _ := awscfg.LoadDefaultConfig(context.Background())
-	awstrace.AppendMiddleware(&awsCfg)
-	dynamoDbClient := dynamodb.NewFromConfig(awsCfg)
-
-	tableName := os.Getenv("TABLE_NAME")
-
-	handler := NewLambdaHandler(*core.NewPricingUpdatedEventHandler(adapters.NewDynamoDbProductRepository(*dynamoDbClient, tableName)))
-
-	lambda.Start(ddlambda.WrapFunction(handler.Handle, nil))
+	lambda.Start(ddlambda.WrapFunction(functionHandler, nil))
 }

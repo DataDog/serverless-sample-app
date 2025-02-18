@@ -6,7 +6,7 @@
 //
 
 resource "aws_iam_role" "lambda_function_role" {
-  name = "TfGo-${var.function_name}-${var.env}-lambda-role"
+  name = "${var.service_name}-${var.function_name}-${var.env}-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -22,7 +22,7 @@ resource "aws_iam_role" "lambda_function_role" {
 }
 
 resource "aws_iam_policy" "function_logging_policy" {
-  name = "TfGo-${var.function_name}-${var.env}-logging-policy"
+  name = "${var.service_name}-${var.function_name}-${var.env}-logging-policy"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -39,7 +39,7 @@ resource "aws_iam_policy" "function_logging_policy" {
 }
 
 resource "aws_iam_policy" "dd_api_secret_policy" {
-  name = "TfGo-${var.function_name}-${var.env}-api-key-secret-policy"
+  name = "${var.service_name}-${var.function_name}-${var.env}-api-key-secret-policy"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -65,7 +65,7 @@ resource "aws_iam_role_policy_attachment" "secrets_retrieval_policy_attachment" 
 }
 
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
-  name              = "/aws/lambda/TfGo-${var.function_name}-${var.env}"
+  name              = "/aws/lambda/${var.service_name}-${var.function_name}-${var.env}"
   retention_in_days = 7
   lifecycle {
     prevent_destroy = false
@@ -88,19 +88,14 @@ module "aws_lambda_function" {
   timeout                  = 29
 
   environment_variables = merge(tomap({
-    "AWS_LAMBDA_EXEC_WRAPPER": "/opt/datadog_wrapper",
     "DD_COLD_START_TRACING": "true",
     "DD_CAPTURE_LAMBDA_PAYLOAD" : "true",
-    "DD_TRACE_ENABLED": "true",
-    "DD_LAMBDA_HANDLER": "bootstrap",
     "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
     "DD_ENV" : var.env
     "DD_SERVICE" : var.service_name
     "DD_SITE" : var.dd_site
     "DD_VERSION" : var.app_version
-    "ENV" : var.env
-    "POWERTOOLS_SERVICE_NAME" : var.service_name
-    "POWERTOOLS_LOG_LEVEL" : "INFO" }),
+    "ENV" : var.env }),
     var.environment_variables
   )
 
