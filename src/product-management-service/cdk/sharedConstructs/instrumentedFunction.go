@@ -46,7 +46,7 @@ func NewInstrumentedFunction(scope constructs.Construct, id string, props *Instr
 		props.MemorySize = 512
 	}
 
-	functionName := fmt.Sprintf("%s-%s-%s", props.SharedProps.ServiceName, props.FunctionName, props.SharedProps.Env)
+	functionName := fmt.Sprintf("CDK-%s-%s-%s", props.SharedProps.ServiceName, props.FunctionName, props.SharedProps.Env)
 
 	if len(functionName) > 64 {
 		functionName = functionName[0:64]

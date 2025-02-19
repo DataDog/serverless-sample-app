@@ -6,7 +6,7 @@
 //
 
 resource "aws_iam_role" "lambda_function_role" {
-  name = "${var.service_name}-${var.function_name}-${var.env}-role"
+  name = "TF-${var.service_name}-${var.function_name}-${var.env}-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -22,7 +22,7 @@ resource "aws_iam_role" "lambda_function_role" {
 }
 
 resource "aws_iam_policy" "function_logging_policy" {
-  name = "${var.service_name}-${var.function_name}-${var.env}-logging-policy"
+  name = "TF-${var.service_name}-${var.function_name}-${var.env}-logging-policy"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -39,7 +39,7 @@ resource "aws_iam_policy" "function_logging_policy" {
 }
 
 resource "aws_iam_policy" "dd_api_secret_policy" {
-  name = "${var.service_name}-${var.function_name}-${var.env}-api-key-secret-policy"
+  name = "TF-${var.service_name}-${var.function_name}-${var.env}-api-key-secret-policy"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -65,7 +65,7 @@ resource "aws_iam_role_policy_attachment" "secrets_retrieval_policy_attachment" 
 }
 
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
-  name              = "/aws/lambda/${var.service_name}-${var.function_name}-${var.env}"
+  name              = "/aws/lambda/TF-${var.service_name}-${var.function_name}-${var.env}"
   retention_in_days = 7
   lifecycle {
     prevent_destroy = false
@@ -77,7 +77,7 @@ module "aws_lambda_function" {
   version = "1.4.0"
 
   filename                 = "../out/${var.function_name}/${var.function_name}.zip"
-  function_name            = "${var.service_name}-${var.function_name}-${var.env}"
+  function_name            = "TF-${var.service_name}-${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = "bootstrap"
   runtime                  = "provided.al2023"

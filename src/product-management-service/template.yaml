@@ -63,7 +63,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub ${ServiceName}-GetProduct-${Env}
+      FunctionName: !Sub SAM-${ServiceName}-GetProduct-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -89,7 +89,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub ${ServiceName}-ListProduct-${Env}
+      FunctionName: !Sub SAM-${ServiceName}-ListProduct-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -115,7 +115,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub ${ServiceName}-CreateProduct-${Env}
+      FunctionName: !Sub SAM-${ServiceName}-CreateProduct-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -160,7 +160,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub ${ServiceName}-UpdateProduct-${Env}
+      FunctionName: !Sub SAM-${ServiceName}-UpdateProduct-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -204,7 +204,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub ${ServiceName}-DeleteProduct-${Env}
+      FunctionName: !Sub SAM-${ServiceName}-DeleteProduct-${Env}
       Events:
         GetProduct:
           Type: Api
@@ -320,7 +320,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub ${ServiceName}-StockUpdated-${Env}
+      FunctionName: !Sub SAM-${ServiceName}-StockUpdated-${Env}
       Events:
         StockUpdatedTopic:
           Type: SNS
@@ -343,7 +343,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub ${ServiceName}-AclInventoryStockUpdated-${Env}
+      FunctionName: !Sub SAM-${ServiceName}-AclInventoryStockUpdated-${Env}
       Environment:
         Variables:
           STOCK_LEVEL_UPDATED_TOPIC_ARN: !Ref StockUpdatedTopic
@@ -421,7 +421,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub ${ServiceName}-PublicEventPublisher-${Env}
+      FunctionName: !Sub SAM-${ServiceName}-PublicEventPublisher-${Env}
       Environment:
         Variables:
           EVENT_BUS_NAME: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
