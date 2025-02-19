@@ -10,9 +10,6 @@ terraform {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.61"
-      default_tags = {
-        DD_PRESERVE_STACK = "true"
-      }
     }
   }
   backend "s3" {}
@@ -20,4 +17,10 @@ terraform {
 
 provider "aws" {
   region = var.region
+
+  default_tags {
+    tags = {
+      DD_PRESERVE_STACK = "true"
+    }
+  }
 }
