@@ -32,9 +32,11 @@ func (c Claims) Valid() error {
 
 func NewAuthenticator(ctx context.Context, ssmClient ssm.Client) *Authenticator {
 	secretAccessKeyParameterName := os.Getenv("JWT_SECRET_PARAM_NAME")
+	enableDecryption := true
 
 	secretAccessKeyParameter, err := ssmClient.GetParameter(ctx, &ssm.GetParameterInput{
-		Name: &secretAccessKeyParameterName,
+		Name:           &secretAccessKeyParameterName,
+		WithDecryption: &enableDecryption,
 	})
 
 	if err != nil {
