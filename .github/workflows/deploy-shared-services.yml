@@ -37,14 +37,14 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
-          ENV: "test"
+          ENV: "dev"
           DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_2_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "eu-west-2"
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
           cd src/shared-infra
-          make tf-destroy
+          make tf-apply
 
   deploy-cdk:
     runs-on: ubuntu-latest
