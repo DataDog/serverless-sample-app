@@ -17,4 +17,10 @@ terraform {
 
 provider "aws" {
   region = var.region
+
+  default_tags {
+    tags = {
+      DD_PRESERVE_STACK = "true"
+    }
+  }
 }

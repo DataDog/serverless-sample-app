@@ -3,6 +3,8 @@ frameworkVersion: "3"
 
 provider:
   name: aws
+  tags:
+    DD_PRESERVE_STACK: "true"
 
 resources:
   Resources:
