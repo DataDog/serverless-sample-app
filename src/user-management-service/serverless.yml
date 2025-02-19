@@ -25,6 +25,8 @@ custom:
 
 provider:
   name: aws
+  tags:
+    DD_PRESERVE_STACK: "true"
   runtime: provided.al2023
   memorySize: 128
   environment:
