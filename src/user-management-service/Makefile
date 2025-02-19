@@ -10,8 +10,11 @@ sam:
 cdk-deploy:
 	cd cdk;cdk deploy --all --require-approval never --concurrency 3 --region ${AWS_REGION} --tags DD_PRESERVE_STACK=true
 
+integration-test:
+	cd src/integration_tests;cargo test
+
 serverless-framework:
-	sls deploy --region ${AWS_REGION} --stage ${ENV}
+	sls deploy --region ${AWS_REGION} --stage ${ENV} --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION}
 
 cleanup:
 	rm -r out -f

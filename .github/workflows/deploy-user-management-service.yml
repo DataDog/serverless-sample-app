@@ -51,6 +51,15 @@ jobs:
           cd src/user-management-service
           make build
           make tf-apply
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "eu-west-2"
+        run: |
+          cd src/user-management-service
+          make integration-test
+
 
   deploy-cdk:
     runs-on: ubuntu-latest
@@ -93,6 +102,14 @@ jobs:
           cd src/user-management-service
           npm i
           make cdk-deploy
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "eu-west-1"
+        run: |
+          cd src/user-management-service
+          make integration-test
 
   deploy-sam:
     runs-on: ubuntu-latest
@@ -134,6 +151,15 @@ jobs:
           cd src/user-management-service
           make build
           make sam
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "us-east-1"
+        run: |
+          cd src/user-management-service
+          make integration-test
+
 
   deploy-sls-framework:
     name: deploy
@@ -175,3 +201,12 @@ jobs:
           npm i
           make build
           make serverless-framework
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "us-east-2"
+        run: |
+          cd src/user-management-service
+          make integration-test
+
