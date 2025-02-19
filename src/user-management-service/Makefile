@@ -14,7 +14,7 @@ integration-test:
 	cd src/integration_tests;cargo test
 
 serverless-framework:
-	sls deploy --region ${AWS_REGION} --stage ${ENV} --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --region=${AWS_REGION}
+	sls deploy --region ${AWS_REGION} --stage ${ENV} --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}"
 
 cleanup:
 	rm -r out -f
