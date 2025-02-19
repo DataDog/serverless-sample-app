@@ -29,7 +29,7 @@ export class InstrumentedLambdaFunction extends Construct {
         super(scope, id);
 
         this.function = new RustFunction(this, props.functionName, {
-            functionName: `${props.sharedProps.serviceName}-${id}-${props.sharedProps.environment}`,
+            functionName: `CDK-${props.sharedProps.serviceName}-${id}-${props.sharedProps.environment}`,
             manifestPath: props.manifestPath,
             memorySize: 256,
             environment: {

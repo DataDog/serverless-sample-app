@@ -55,7 +55,7 @@ Resources:
     Properties:
       CodeUri: ./src/user-management/lambdas/create_user/
       Handler: create-user
-      FunctionName: !Sub ${ServiceName}-CreateUser-${Env}
+      FunctionName: !Sub SAM-${ServiceName}-CreateUser-${Env}
       Environment:
         Variables:
           USER_CREATED_TOPIC_ARN: !Ref UserCreatedTopic
@@ -90,7 +90,7 @@ Resources:
     Properties:
       CodeUri: ./src/user-management/lambdas/login/
       Handler: login
-      FunctionName: !Sub ${ServiceName}-Login-${Env}
+      FunctionName: !Sub SAM-${ServiceName}-Login-${Env}
       Environment:
         Variables:
           JWT_SECRET_PARAM_NAME: !Sub "/${Env}/shared/secret-access-key"
@@ -133,7 +133,7 @@ Resources:
     Properties:
       CodeUri: ./src/user-management/lambdas/get_user_details/
       Handler: bootstrap
-      FunctionName: !Sub ${ServiceName}-GetUserDetails-${Env}
+      FunctionName: !Sub SAM-${ServiceName}-GetUserDetails-${Env}
       Environment:
         Variables:
           JWT_SECRET_PARAM_NAME: !Sub "/${Env}/shared/secret-access-key"
@@ -175,7 +175,7 @@ Resources:
     Properties:
       CodeUri: ./src/user-management/lambdas/handle_order_completed_for_user/
       Handler: handle-order-completed
-      FunctionName: !Sub RustOrderCompleted-${Env}
+      FunctionName: !Sub SAM-RustOrderCompleted-${Env}
       Events:
         IntegrationQueue:
           Type: SQS

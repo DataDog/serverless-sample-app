@@ -12,9 +12,16 @@ terraform {
       version = "~> 5.61"
     }
   }
-  //backend "s3" {}
+  backend "s3" {}
 }
 
 provider "aws" {
   region = var.region
+
+  default_tags {
+    tags = {
+      DD_PRESERVE_STACK = "true"
+      MANAGED_BY        = "Terraform"
+    }
+  }
 }
