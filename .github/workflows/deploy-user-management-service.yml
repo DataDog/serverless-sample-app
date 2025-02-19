@@ -1,0 +1,176 @@
+name: Deploy User Management Service
+
+on:
+    push:
+      paths:
+        - src/user-management-service
+      branches:
+          - 'service-per-lang'
+    workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-tf:
+    runs-on: ubuntu-latest
+    concurrency:
+        group: tf-user-management
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: mlugg/setup-zig@v1
+      - name: Install Cargo Lambda
+        run: |
+          cargo install cargo-lambda
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: "eu-west-2"
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Terraform apply
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_2_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/user-management-service
+          make build
+          make tf-apply
+
+  deploy-cdk:
+    runs-on: ubuntu-latest
+    concurrency:
+        group: cdk-user-management
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+      - name: Install CDK
+        run: |
+          npm install -g aws-cdk
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: mlugg/setup-zig@v1
+      - name: Install Cargo Lambda
+        run: |
+          cargo install cargo-lambda
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: "eu-west-1"
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Deploy to AWS
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          cd src/user-management-service
+          npm i
+          make cdk
+
+  deploy-sam:
+    runs-on: ubuntu-latest
+    concurrency:
+        group: sam-user-management
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: mlugg/setup-zig@v1
+      - name: Install Cargo Lambda
+        run: |
+          cargo install cargo-lambda
+      - uses: aws-actions/setup-sam@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: "us-east-1"
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Deploy to AWS
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "us-east-1"
+        run: |
+          cd src/user-management-service
+          make build
+          make sam
+
+  deploy-sls-framework:
+    name: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: mlugg/setup-zig@v1
+      - name: Install Cargo Lambda
+        run: |
+          cargo install cargo-lambda
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: "us-east-2"
+      - name: Install Serverless Framework
+        run: |
+          npm install -g serverless@3.40.0
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Deploy to AWS
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "us-east-2"
+        run: |
+          cd src/user-management-service
+          make build
+          make serverless-framework
