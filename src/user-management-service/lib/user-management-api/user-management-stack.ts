@@ -27,7 +27,7 @@ export class UserManagementStack extends cdk.Stack {
       process.env.DD_API_KEY_SECRET_ARN!
     );
 
-    const service = "UserManagementService";
+    const service = "UserMgmt";
     const env = process.env.ENV ?? "dev";
     const version = process.env["COMMIT_HASH"] ?? "latest";
     const team = "UserManagement";
