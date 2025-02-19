@@ -133,7 +133,7 @@ jobs:
           aws-region: "us-east-2"
       - name: Install Serverless Framework
         run: |
-          npm install -g serverless
+          npm install -g serverless@3.40.0
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
