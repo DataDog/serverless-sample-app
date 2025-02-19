@@ -80,6 +80,7 @@ jobs:
           DD_SITE: "datadoghq.eu"
         run: |
           cd src/shared-infra
+          npm i
           make cdk
   deploy-sam:
     runs-on: ubuntu-latest
