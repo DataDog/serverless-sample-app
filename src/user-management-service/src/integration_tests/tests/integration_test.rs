@@ -99,7 +99,6 @@ async fn retrieve_paramater_values(environment: &str) -> (ApiEndpoint, EventBusN
 
     let api_endpoint = ssm_client
         .get_parameter()
-        .get_with_decryption()
         .name(format!(
             "/UserManagementService/{}/api-endpoint",
             environment
@@ -114,7 +113,6 @@ async fn retrieve_paramater_values(environment: &str) -> (ApiEndpoint, EventBusN
 
     let event_bus_name = ssm_client
         .get_parameter()
-        .get_with_decryption()
         .name(format!("/{}/shared/event-bus-name", environment))
         .send()
         .await
