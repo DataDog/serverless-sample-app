@@ -58,8 +58,11 @@ type ApiDriver struct {
 
 func NewApiDriver(env string, ssmClient ssm.Client, eventBridgeClient eventbridge.Client) *ApiDriver {
 	paramName := fmt.Sprintf("/%s/ProductManagementService/api-endpoint", env)
+	shouldDecrypt := true
+
 	req := ssm.GetParameterInput{
-		Name: &paramName,
+		Name:           &paramName,
+		WithDecryption: &shouldDecrypt,
 	}
 	resp, err := ssmClient.GetParameter(context.TODO(), &req)
 	if err != nil {
