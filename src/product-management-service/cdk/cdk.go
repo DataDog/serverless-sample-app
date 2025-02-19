@@ -78,22 +78,22 @@ func NewProductManagementService(scope constructs.Construct, id string, props *P
 		Datadog:     datadog,
 	}
 
-	mockedResources := services.NewMockedSharedResources(stack, "MockedSharedResources", &services.MockedSharedResourceProps{
-		SharedProps: sharedProps,
-	})
+	// mockedResources := services.NewMockedSharedResources(stack, "MockedSharedResources", &services.MockedSharedResourceProps{
+	// 	SharedProps: sharedProps,
+	// })
 
-	_ = awsssm.StringParameter_FromStringParameterName(stack, jsii.String("JwtSecretKeyParameter"), jsii.Sprintf("/%s/shared/secret-access-key", env))
+	jwtSecretAccessKey := awsssm.StringParameter_FromStringParameterName(stack, jsii.String("JwtSecretKeyParameter"), jsii.Sprintf("/%s/shared/secret-access-key", env))
 	eventBusParam := awsssm.StringParameter_FromStringParameterName(stack, jsii.String("EventBusNameParam"), jsii.Sprintf("/%s/shared/event-bus-name", env))
-	_ = awsevents.EventBus_FromEventBusName(stack, jsii.String("SharedEventBus"), eventBusParam.StringValue())
+	sharedEventBus := awsevents.EventBus_FromEventBusName(stack, jsii.String("SharedEventBus"), eventBusParam.StringValue())
 
 	productApi := services.NewProductApi(stack, "ProductApi", &services.ProductApiProps{
 		SharedProps:                 sharedProps,
-		JwtSecretAccessKeyParameter: mockedResources.JWTSecretAccessKey,
+		JwtSecretAccessKeyParameter: jwtSecretAccessKey,
 	})
 
 	productAcl := services.NewProductAclService(stack, "ProductAclService", &services.ProductAclServiceProps{
 		SharedProps:    sharedProps,
-		SharedEventBus: mockedResources.SharedEventBus,
+		SharedEventBus: sharedEventBus,
 	})
 
 	services.NewProductBackgroundServices(stack, "ProductBackgroundServices", &services.ProductBackgroundServiceProps{
@@ -107,7 +107,7 @@ func NewProductManagementService(scope constructs.Construct, id string, props *P
 		ProductCreatedTopic: productApi.ProductCreatedTopic,
 		ProductUpdatedTopic: productApi.ProductUpdatedTopic,
 		ProductDeletedTopic: productApi.ProductDeletedTopic,
-		SharedEventBus:      mockedResources.SharedEventBus,
+		SharedEventBus:      sharedEventBus,
 	})
 
 	return stack

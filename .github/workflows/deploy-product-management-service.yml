@@ -47,7 +47,7 @@ jobs:
           cd src/product-management-service
           make pre-build
           make build
-          make tf-destroy
+          make tf-apply
 
   deploy-cdk:
     runs-on: ubuntu-latest
