@@ -172,5 +172,6 @@ jobs:
           AWS_REGION: "us-east-2"
         run: |
           cd src/user-management-service
+          npm i
           make build
           make serverless-framework
