@@ -39,14 +39,14 @@ pub struct UserDTO {
     #[serde(rename = "emailAddress")]
     email_address: String,
     #[serde(rename = "orderCount")]
-    order_count: usize
+    order_count: usize,
 }
 
 #[derive(Clone)]
 pub enum User {
     Standard(UserDetails),
     Premium(UserDetails),
-    Admin(UserDetails)
+    Admin(UserDetails),
 }
 
 #[derive(Clone, Serialize)]
@@ -58,21 +58,29 @@ pub struct UserDetails {
     pub(crate) password_hash: String,
     pub(crate) created_at: DateTime<Utc>,
     pub(crate) last_active: Option<DateTime<Utc>>,
-    pub(crate) order_count: usize
+    pub(crate) order_count: usize,
 }
 
 impl User {
-    pub(crate) fn from_details(user_details: UserDetails, user_type: &str) -> Result<Self, RepositoryError> {
+    pub(crate) fn from_details(
+        user_details: UserDetails,
+        user_type: &str,
+    ) -> Result<Self, RepositoryError> {
         //TODO: Update use of magic strings
         match user_type {
             "STANDARD" => Ok(User::Standard(user_details)),
             "PREMIUM" => Ok(User::Premium(user_details)),
             "ADMIN" => Ok(User::Admin(user_details)),
-            _ => Err(RepositoryError::InvalidUserType(user_type.to_string()))
-        }    
+            _ => Err(RepositoryError::InvalidUserType(user_type.to_string())),
+        }
     }
-    
-    pub(crate) fn new(email_address: String, first_name: String, last_name: String, password_hash: String) -> Self {        
+
+    pub(crate) fn new(
+        email_address: String,
+        first_name: String,
+        last_name: String,
+        password_hash: String,
+    ) -> Self {
         Self::Standard(UserDetails {
             user_id: email_address.to_uppercase(),
             email_address,
@@ -81,11 +89,16 @@ impl User {
             password_hash,
             created_at: Utc::now(),
             last_active: Option::Some(Utc::now()),
-            order_count: 0
+            order_count: 0,
         })
     }
 
-    pub(crate) fn new_admin(email_address: String, first_name: String, last_name: String, password_hash: String) -> Self {
+    pub(crate) fn new_admin(
+        email_address: String,
+        first_name: String,
+        last_name: String,
+        password_hash: String,
+    ) -> Self {
         Self::Admin(UserDetails {
             user_id: email_address.to_uppercase(),
             email_address,
@@ -94,73 +107,50 @@ impl User {
             password_hash,
             created_at: Utc::now(),
             last_active: Option::Some(Utc::now()),
-            order_count: 0
+            order_count: 0,
         })
     }
 
-    pub(crate) fn update(&mut self, first_name: String, last_name: String) {
-        let details = match self {
-            User::Standard(details) => details,
-            User::Premium(details) => details,
-            User::Admin(details) => details
-        };
-        
-        details.first_name = first_name;
-        details.last_name = last_name;
-    }
-    
     pub(crate) fn order_placed(&mut self) {
         let details = match self {
             User::Standard(details) => details,
             User::Premium(details) => details,
-            User::Admin(details) => details
+            User::Admin(details) => details,
         };
-        
+
         details.last_active = Option::Some(Utc::now());
         details.order_count = details.order_count + 1;
-        
+
         if details.order_count > 10 {
             *self = User::Premium(details.clone());
         }
     }
 
-    pub(crate) fn is_admin(&mut self) {
+    pub(crate) fn get_password_hash(&self) -> &str {
         let details = match self {
             User::Standard(details) => details,
             User::Premium(details) => details,
-            User::Admin(details) => details
+            User::Admin(details) => details,
         };
 
-        if details.order_count > 10 {
-            *self = User::Admin(details.clone());
-        }
-    }
-
-    pub (crate) fn get_password_hash(&self) -> &str {
-        let details = match self {
-            User::Standard(details) => details,
-            User::Premium(details) => details,
-            User::Admin(details) => details
-        };
-        
         details.password_hash.as_str()
     }
-    
-    pub (crate) fn email_address(&self) -> &str {
+
+    pub(crate) fn email_address(&self) -> &str {
         let details = match self {
             User::Standard(details) => details,
             User::Premium(details) => details,
-            User::Admin(details) => details
+            User::Admin(details) => details,
         };
-        
+
         &details.email_address.as_str()
     }
-    
-    pub (crate) fn user_type(&self) -> &str {
+
+    pub(crate) fn user_type(&self) -> &str {
         match self {
             User::Standard(_) => "STANDARD",
             User::Premium(_) => "PREMIUM",
-            User::Admin(_) => "ADMIN"
+            User::Admin(_) => "ADMIN",
         }
     }
 
@@ -168,15 +158,15 @@ impl User {
         let details = match self {
             User::Standard(details) => details,
             User::Premium(details) => details,
-            User::Admin(details) => details
+            User::Admin(details) => details,
         };
-        
+
         UserDTO {
             user_id: details.user_id.clone(),
             email_address: details.email_address.clone(),
             first_name: details.first_name.clone(),
             last_name: details.last_name.clone(),
-            order_count: details.order_count
+            order_count: details.order_count,
         }
     }
 }
@@ -198,6 +188,6 @@ impl From<User> for UserCreatedEvent {
             User::Admin(details) => UserCreatedEvent {
                 user_id: details.user_id,
             },
-        } 
+        }
     }
 }

@@ -1,10 +1,11 @@
-use crate::core::{EventPublisher, Repository, RepositoryError, User, UserCreatedEvent, UserDetails};
+use crate::core::{
+    EventPublisher, Repository, RepositoryError, User, UserCreatedEvent, UserDetails,
+};
 use async_trait::async_trait;
-use aws_sdk_dynamodb::types::AttributeValue;
-use aws_sdk_dynamodb::Client;
-use aws_sdk_dynamodb::config::http::HttpResponse;
 use aws_sdk_dynamodb::error::SdkError;
 use aws_sdk_dynamodb::operation::put_item::PutItemError;
+use aws_sdk_dynamodb::types::AttributeValue;
+use aws_sdk_dynamodb::Client;
 use observability::{parse_name_from_arn, TracedMessage};
 use tracing::{instrument, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
@@ -36,44 +37,61 @@ impl DynamoDbRepository {
             "resource.name",
             format!("DynamoDB.PutItem {}", &self.table_name),
         );
-        
+
         tracing::info!("Storing user details in DynamoDB");
-        
-        let (details) = match user {
-            User::Standard(details) => (details),
-            User::Premium(details) => (details),
-            User::Admin(details) => (details),
+
+        let details = match user {
+            User::Standard(details) => details,
+            User::Premium(details) => details,
+            User::Admin(details) => details,
         };
 
         tracing::info!("Sending put item request");
-        
+
         let put_item_builder = self
             .client
             .put_item()
             .table_name(&self.table_name)
-            .item(PARTITION_KEY, AttributeValue::S(details.email_address.clone()))
-            .item(FIRST_NAME_KEY, AttributeValue::S(details.first_name.clone()))
+            .item(
+                PARTITION_KEY,
+                AttributeValue::S(details.email_address.clone()),
+            )
+            .item(
+                FIRST_NAME_KEY,
+                AttributeValue::S(details.first_name.clone()),
+            )
             .item(LAST_NAME_KEY, AttributeValue::S(details.last_name.clone()))
-            .item(EMAIL_ADDRESS_KEY, AttributeValue::S(details.email_address.clone()))
+            .item(
+                EMAIL_ADDRESS_KEY,
+                AttributeValue::S(details.email_address.clone()),
+            )
             .item(USER_ID_KEY, AttributeValue::S(details.user_id.clone()))
-            .item(PASSWORD_HASH_KEY, AttributeValue::S(details.password_hash.clone()))
-            .item(USER_TYPE_KEY, AttributeValue::S(user.user_type().to_string()))
-            .item(CREATED_AT_KEY, AttributeValue::S(details.created_at.to_string()))
-            .item(ORDER_COUNT_KEY, AttributeValue::N(details.order_count.to_string()));
+            .item(
+                PASSWORD_HASH_KEY,
+                AttributeValue::S(details.password_hash.clone()),
+            )
+            .item(
+                USER_TYPE_KEY,
+                AttributeValue::S(user.user_type().to_string()),
+            )
+            .item(
+                CREATED_AT_KEY,
+                AttributeValue::S(details.created_at.to_string()),
+            )
+            .item(
+                ORDER_COUNT_KEY,
+                AttributeValue::N(details.order_count.to_string()),
+            );
 
         let res = if details.last_active.is_some() {
             put_item_builder.clone().item(
                 LAST_ACTIVE_KEY,
                 AttributeValue::S(details.last_active.clone().unwrap().to_string()),
             );
-            
-            put_item_builder
-                .send()
-                .await
+
+            put_item_builder.send().await
         } else {
-            put_item_builder
-            .send()
-            .await
+            put_item_builder.send().await
         };
 
         match res {
@@ -84,23 +102,29 @@ impl DynamoDbRepository {
                     SdkError::TimeoutError(_) => "timeout error",
                     SdkError::DispatchFailure(_) => "dispatch failure",
                     SdkError::ResponseError(_) => "response error",
-                    SdkError::ServiceError(e) => {
-                        match e.err(){
-                            PutItemError::ConditionalCheckFailedException(_) => "conditional check failed",
-                            PutItemError::InternalServerError(_) => "DynamoDB internal server error",
-                            PutItemError::InvalidEndpointException(_) => "invalid endpoint",
-                            PutItemError::ItemCollectionSizeLimitExceededException(_) => "item collection size limit exceeded",
-                            PutItemError::ProvisionedThroughputExceededException(_) => "provisioned throughput exceeded",
-                            PutItemError::ReplicatedWriteConflictException(_) => "replicated write conflict",
-                            PutItemError::RequestLimitExceeded(_) => "request limit exceeded",
-                            PutItemError::ResourceNotFoundException(_) => "resource not found",
-                            PutItemError::TransactionConflictException(_) => "transaction conflict",
-                            _ => "unknown error"
+                    SdkError::ServiceError(e) => match e.err() {
+                        PutItemError::ConditionalCheckFailedException(_) => {
+                            "conditional check failed"
                         }
-                    }
+                        PutItemError::InternalServerError(_) => "DynamoDB internal server error",
+                        PutItemError::InvalidEndpointException(_) => "invalid endpoint",
+                        PutItemError::ItemCollectionSizeLimitExceededException(_) => {
+                            "item collection size limit exceeded"
+                        }
+                        PutItemError::ProvisionedThroughputExceededException(_) => {
+                            "provisioned throughput exceeded"
+                        }
+                        PutItemError::ReplicatedWriteConflictException(_) => {
+                            "replicated write conflict"
+                        }
+                        PutItemError::RequestLimitExceeded(_) => "request limit exceeded",
+                        PutItemError::ResourceNotFoundException(_) => "resource not found",
+                        PutItemError::TransactionConflictException(_) => "transaction conflict",
+                        _ => "unknown error",
+                    },
                     _ => "unknown error",
                 };
-                
+
                 tracing::error!("Error storing user details in DynamoDB: {}", error_message);
 
                 Err(RepositoryError::InternalError(error_message.to_string()))
@@ -136,20 +160,60 @@ impl Repository for DynamoDbRepository {
                 let attributes = item.item().unwrap().clone();
 
                 let user_details = UserDetails {
-                    email_address: attributes.get(EMAIL_ADDRESS_KEY).unwrap().as_s().unwrap().clone(),
-                    first_name: attributes.get(FIRST_NAME_KEY).unwrap().as_s().unwrap().clone(),
-                    last_name: attributes.get(LAST_NAME_KEY).unwrap().as_s().unwrap().clone(),
+                    email_address: attributes
+                        .get(EMAIL_ADDRESS_KEY)
+                        .unwrap()
+                        .as_s()
+                        .unwrap()
+                        .clone(),
+                    first_name: attributes
+                        .get(FIRST_NAME_KEY)
+                        .unwrap()
+                        .as_s()
+                        .unwrap()
+                        .clone(),
+                    last_name: attributes
+                        .get(LAST_NAME_KEY)
+                        .unwrap()
+                        .as_s()
+                        .unwrap()
+                        .clone(),
                     user_id: attributes.get(USER_ID_KEY).unwrap().as_s().unwrap().clone(),
-                    password_hash: attributes.get(PASSWORD_HASH_KEY).unwrap().as_s().unwrap().clone(),
-                    created_at: attributes.get(CREATED_AT_KEY).unwrap().as_s().unwrap().parse().unwrap(),
+                    password_hash: attributes
+                        .get(PASSWORD_HASH_KEY)
+                        .unwrap()
+                        .as_s()
+                        .unwrap()
+                        .clone(),
+                    created_at: attributes
+                        .get(CREATED_AT_KEY)
+                        .unwrap()
+                        .as_s()
+                        .unwrap()
+                        .parse()
+                        .unwrap(),
                     last_active: match attributes.get(LAST_ACTIVE_KEY) {
                         Some(value) => Some(value.as_s().unwrap().parse().unwrap()),
-                        None => None,  
+                        None => None,
                     },
-                    order_count: attributes.get(ORDER_COUNT_KEY).unwrap().as_n().unwrap().parse().unwrap(),
+                    order_count: attributes
+                        .get(ORDER_COUNT_KEY)
+                        .unwrap()
+                        .as_n()
+                        .unwrap()
+                        .parse()
+                        .unwrap(),
                 };
 
-                User::from_details(user_details, &attributes.get(USER_TYPE_KEY).unwrap().as_s().unwrap().clone())?
+                User::from_details(
+                    user_details,
+                    &attributes
+                        .get(USER_TYPE_KEY)
+                        .unwrap()
+                        .as_s()
+                        .unwrap()
+                        .clone(),
+                )?
             }),
             Err(_e) => Err(RepositoryError::NotFound),
         }
@@ -174,11 +238,11 @@ impl SnsEventPublisher {
 
 #[async_trait]
 impl EventPublisher for SnsEventPublisher {
-    #[instrument(
-        name = "publish-user-created-event",
-        skip(self, user_created_event)
-    )]
-    async fn publish_user_created_event(&self, user_created_event: UserCreatedEvent) -> Result<(), ()> {
+    #[instrument(name = "publish-user-created-event", skip(self, user_created_event))]
+    async fn publish_user_created_event(
+        &self,
+        user_created_event: UserCreatedEvent,
+    ) -> Result<(), ()> {
         Span::current().set_attribute(
             "peer.service",
             parse_name_from_arn(&std::env::var("USER_CREATED_TOPIC_ARN").unwrap()),

@@ -1,14 +1,13 @@
-use aws_lambda_events::cloudwatch_events::CloudWatchEvent;
 use aws_lambda_events::sqs::SqsEvent;
 use lambda_runtime::{run, service_fn, Error, LambdaEvent};
 use observability::{observability, TracedMessage};
+use serde::{Deserialize, Serialize};
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
 use shared::ports::OrderCompleted;
 use std::env;
 use tracing::instrument;
 use tracing_subscriber::util::SubscriberInitExt;
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct WrappedMessage {
@@ -21,11 +20,12 @@ async fn function_handler<TRepository: Repository>(
     event: LambdaEvent<SqsEvent>,
 ) -> Result<(), Error> {
     tracing::info!("Received event: {:?}", event);
-    
+
     for sqs_message in &event.payload.records {
         let traced_message: TracedMessage = sqs_message.into();
 
-        let order_completed_event: OrderCompleted = serde_json::from_str(&traced_message.data).unwrap();
+        let order_completed_event: OrderCompleted =
+            serde_json::from_str(&traced_message.data).unwrap();
 
         order_completed_event.handle(client).await?;
     }

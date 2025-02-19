@@ -291,7 +291,7 @@ impl TryFrom<&HeaderMap> for TracedMessage {
 impl TracedMessage {
     fn generate_span_context(&mut self) {
         let trace_id = TraceId::from_hex(&self.trace_id.as_str());
-        
+
         match trace_id {
             Ok(trace_id) => {
                 let span_id = SpanId::from_hex(&self.span_id.as_str()).unwrap();

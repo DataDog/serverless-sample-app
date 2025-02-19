@@ -2,19 +2,19 @@ use lambda_http::http::StatusCode;
 use lambda_http::{
     run, service_fn,
     tracing::{self, instrument},
-    Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
+    Error, IntoResponse, Request, RequestExt,
 };
 use opentelemetry::global::ObjectSafeSpan;
 use shared::response::{empty_response, json_response};
 
-use observability::{observability, trace_request, TracedMessage};
-use shared::adapters::{DynamoDbRepository, SnsEventPublisher};
-use shared::core::{EventPublisher, Repository};
-use std::env;
 use aws_config::SdkConfig;
-use tracing_subscriber::util::SubscriberInitExt;
-use shared::ports::{ApplicationError, GetUserDetailsQuery};
+use observability::{observability, trace_request, TracedMessage};
+use shared::adapters::DynamoDbRepository;
+use shared::core::Repository;
+use shared::ports::GetUserDetailsQuery;
 use shared::tokens::TokenGenerator;
+use std::env;
+use tracing_subscriber::util::SubscriberInitExt;
 
 #[instrument(name = "GET /user/{userId}", skip(client, token_generator, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]
 async fn function_handler<TRepository: Repository>(
@@ -25,7 +25,7 @@ async fn function_handler<TRepository: Repository>(
     let _: Result<TracedMessage, &str> = event.headers().try_into();
 
     tracing::info!("Received event: {:?}", event);
-    
+
     let auth_header = event
         .headers()
         .get("Authorization")
@@ -38,8 +38,9 @@ async fn function_handler<TRepository: Repository>(
     match user_id {
         None => empty_response(&StatusCode::BAD_REQUEST),
         Some(user_id) => {
-            let is_valid_token = token_generator.validate_token(auth_header.to_str().unwrap(), user_id);
-            
+            let is_valid_token =
+                token_generator.validate_token(auth_header.to_str().unwrap(), user_id);
+
             match is_valid_token {
                 Ok(_) => {
                     let query = GetUserDetailsQuery::new(user_id.to_string());
@@ -73,10 +74,14 @@ async fn main() -> Result<(), Error> {
     let repository: DynamoDbRepository =
         DynamoDbRepository::new(dynamodb_client, table_name.clone());
 
-    let secret = load_jwt_secret(&config).await.expect("Failed to load JWT secret");
+    let secret = load_jwt_secret(&config)
+        .await
+        .expect("Failed to load JWT secret");
     println!("JWT secret value is {}", secret);
-    
-    let expiration:  usize = env::var("TOKEN_EXPIRATION").unwrap_or(String::from("86400")).parse()?;
+
+    let expiration: usize = env::var("TOKEN_EXPIRATION")
+        .unwrap_or(String::from("86400"))
+        .parse()?;
 
     let token_generator = TokenGenerator::new(secret, expiration);
 
@@ -94,8 +99,8 @@ async fn main() -> Result<(), Error> {
 
 async fn load_jwt_secret(config: &SdkConfig) -> Result<String, ()> {
     let ssm_client = aws_sdk_ssm::Client::new(&config);
-    let environment = std::env::var("ENV").unwrap_or("dev".to_string());
-    let secret_key_name = std::env::var("JWT_SECRET_PARAM_NAME").expect("JWT_SECRET_PARAM_NAME name not set");
+    let secret_key_name =
+        std::env::var("JWT_SECRET_PARAM_NAME").expect("JWT_SECRET_PARAM_NAME name not set");
 
     let jwt_secret_key = ssm_client
         .get_parameter()

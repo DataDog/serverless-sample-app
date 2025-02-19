@@ -1,5 +1,3 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use crate::{
     core::{EventPublisher, Repository, RepositoryError, User, UserDTO},
     tokens::TokenGenerator,
@@ -8,9 +6,6 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
-use aws_sdk_sns::config::BehaviorVersion;
-use jsonwebtoken::{encode, EncodingKey, Header};
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -35,11 +30,9 @@ pub struct GetUserDetailsQuery {
 
 impl GetUserDetailsQuery {
     pub fn new(email_address: String) -> Self {
-        GetUserDetailsQuery {
-            email_address
-        }
+        GetUserDetailsQuery { email_address }
     }
-    
+
     pub async fn handle<TRepo: Repository>(
         &self,
         repository: &TRepo,
@@ -50,14 +43,14 @@ impl GetUserDetailsQuery {
             Ok(user) => Ok(user.as_dto()),
             Err(e) => match e {
                 RepositoryError::NotFound => Err(ApplicationError::NotFound),
-                RepositoryError::InternalError(e) => Err(ApplicationError::InternalError(e.to_string())),
+                RepositoryError::InternalError(e) => {
+                    Err(ApplicationError::InternalError(e.to_string()))
+                }
                 _ => Err(ApplicationError::InternalError(e.to_string())),
             },
         }
     }
 }
-
-
 
 #[derive(Deserialize)]
 pub struct CreateUserCommand {
@@ -69,22 +62,32 @@ pub struct CreateUserCommand {
 }
 
 impl CreateUserCommand {
-    pub fn new(email_address: String, first_name: String, last_name: String, password: String) -> Self {
+    pub fn new(
+        email_address: String,
+        first_name: String,
+        last_name: String,
+        password: String,
+    ) -> Self {
         CreateUserCommand {
             email_address,
             first_name,
             last_name,
             password,
-            admin_user: None
+            admin_user: None,
         }
     }
-    pub fn new_admin_user(email_address: String, first_name: String, last_name: String, password: String) -> Self {
+    pub fn new_admin_user(
+        email_address: String,
+        first_name: String,
+        last_name: String,
+        password: String,
+    ) -> Self {
         CreateUserCommand {
             email_address,
             first_name,
             last_name,
             password,
-            admin_user: Some(true)
+            admin_user: Some(true),
         }
     }
 
@@ -100,7 +103,7 @@ impl CreateUserCommand {
             .map_err(|_e| ApplicationError::InternalError(_e.to_string()))?
             .to_string();
 
-        let mut user = match &self.admin_user {
+        let user = match &self.admin_user {
             None => User::new(
                 self.email_address.clone(),
                 self.first_name.clone(),
@@ -112,7 +115,7 @@ impl CreateUserCommand {
                 self.first_name.clone(),
                 self.last_name.clone(),
                 hash,
-            )
+            ),
         };
 
         let _res = repository.update_user_details(&user).await;
@@ -120,7 +123,9 @@ impl CreateUserCommand {
         event_publisher
             .publish_user_created_event(user.clone().into())
             .await
-            .map_err(|_e| ApplicationError::InternalError("Failure publishing event".to_string()))?;
+            .map_err(|_e| {
+                ApplicationError::InternalError("Failure publishing event".to_string())
+            })?;
 
         Ok(user.as_dto())
     }
@@ -142,7 +147,7 @@ pub async fn handle_login<TRepo: Repository>(
     token_generator: &TokenGenerator,
     login_command: LoginCommand,
 ) -> Result<LoginResponse, ApplicationError> {
-    let mut user = repository
+    let user = repository
         .get_user(&login_command.email_address)
         .await
         .map_err(|e| {

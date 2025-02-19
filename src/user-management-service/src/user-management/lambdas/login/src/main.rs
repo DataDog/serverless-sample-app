@@ -1,3 +1,4 @@
+use aws_config::SdkConfig;
 use lambda_http::http::StatusCode;
 use lambda_http::{
     run, service_fn,
@@ -11,7 +12,6 @@ use shared::ports::{handle_login, ApplicationError, LoginCommand};
 use shared::response::{empty_response, json_response};
 use shared::tokens::TokenGenerator;
 use std::env;
-use aws_config::SdkConfig;
 use tracing_subscriber::util::SubscriberInitExt;
 
 #[instrument(name = "POST /login", skip(client, token_generator, event), fields(http.method = event.method().as_str(), http.path_group = event.raw_http_path()))]
@@ -54,9 +54,13 @@ async fn main() -> Result<(), Error> {
     let dynamodb_client = aws_sdk_dynamodb::Client::new(&config);
     let repository: DynamoDbRepository =
         DynamoDbRepository::new(dynamodb_client, table_name.clone());
-    
-    let secret = load_jwt_secret(&config).await.expect("Failed to load JWT secret");
-    let expiration:  usize = env::var("TOKEN_EXPIRATION").unwrap_or(String::from("86400")).parse()?;
+
+    let secret = load_jwt_secret(&config)
+        .await
+        .expect("Failed to load JWT secret");
+    let expiration: usize = env::var("TOKEN_EXPIRATION")
+        .unwrap_or(String::from("86400"))
+        .parse()?;
 
     let token_generator = TokenGenerator::new(secret, expiration);
 
@@ -68,9 +72,9 @@ async fn main() -> Result<(), Error> {
 
 async fn load_jwt_secret(config: &SdkConfig) -> Result<String, ()> {
     let ssm_client = aws_sdk_ssm::Client::new(&config);
-    let environment = std::env::var("ENV").unwrap_or("dev".to_string());
-    let secret_key_name = std::env::var("JWT_SECRET_PARAM_NAME").expect("JWT_SECRET_PARAM_NAME name set");
-    
+    let secret_key_name =
+        std::env::var("JWT_SECRET_PARAM_NAME").expect("JWT_SECRET_PARAM_NAME name set");
+
     let jwt_secret_key = ssm_client
         .get_parameter()
         .name(secret_key_name)
@@ -81,6 +85,6 @@ async fn load_jwt_secret(config: &SdkConfig) -> Result<String, ()> {
         .expect("Secret key not found")
         .value
         .expect("Secret key value not found");
-    
+
     Ok(jwt_secret_key)
 }

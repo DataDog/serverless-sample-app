@@ -10,9 +10,9 @@ use shared::response::{empty_response, json_response};
 use observability::{observability, trace_request, TracedMessage};
 use shared::adapters::{DynamoDbRepository, SnsEventPublisher};
 use shared::core::{EventPublisher, Repository};
+use shared::ports::CreateUserCommand;
 use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
-use shared::ports::CreateUserCommand;
 
 #[instrument(name = "POST /user", skip(client, event_publisher, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]
 async fn function_handler<TRepository: Repository, TEventPublisher: EventPublisher>(
@@ -70,8 +70,18 @@ async fn main() -> Result<(), Error> {
     .await
 }
 
-async fn seed_default_user<TRepository: Repository, TEventPublisher: EventPublisher>(repository: &TRepository, sns_event_publisher: &TEventPublisher) {
-    let create_user_command = CreateUserCommand::new_admin_user("admin@serverless-sample.com".to_string(), "Admin".to_string(), "Serverless".to_string(), "Admin!23".to_string());
+async fn seed_default_user<TRepository: Repository, TEventPublisher: EventPublisher>(
+    repository: &TRepository,
+    sns_event_publisher: &TEventPublisher,
+) {
+    let create_user_command = CreateUserCommand::new_admin_user(
+        "admin@serverless-sample.com".to_string(),
+        "Admin".to_string(),
+        "Serverless".to_string(),
+        "Admin!23".to_string(),
+    );
 
-    let _ = create_user_command.handle(repository, sns_event_publisher).await;
+    let _ = create_user_command
+        .handle(repository, sns_event_publisher)
+        .await;
 }

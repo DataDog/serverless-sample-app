@@ -1,12 +1,10 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header};
-use lambda_http::http::StatusCode;
 use serde::{Deserialize, Serialize};
 
 use crate::core::User;
 use crate::ports::ApplicationError;
-use crate::response::empty_response;
 
 pub struct TokenGenerator {
     secret: String,
@@ -33,10 +31,7 @@ impl Claims {
 
 impl TokenGenerator {
     pub fn new(secret: String, expiration: usize) -> Self {
-        TokenGenerator {
-            secret,
-            expiration,
-        }
+        TokenGenerator { secret, expiration }
     }
 
     pub fn generate_token(&self, user: User) -> String {
@@ -59,29 +54,33 @@ impl TokenGenerator {
         )
         .unwrap()
     }
-    
-    pub fn validate_token(&self, token: &str, email_address: &str) -> Result<Claims, ApplicationError> {
+
+    pub fn validate_token(
+        &self,
+        token: &str,
+        email_address: &str,
+    ) -> Result<Claims, ApplicationError> {
         tracing::info!("Validating {} against {}", token, email_address);
-        
+
         let token = if token.contains("Bearer ") {
             let token = token.replace("Bearer ", "");
             token
-        } else { 
+        } else {
             token.to_string()
         };
-        
+
         let claim = decode::<Claims>(
             &token,
             &DecodingKey::from_secret(self.secret.as_bytes()),
             &jsonwebtoken::Validation::default(),
         )
         .map(|data| data.claims)
-            .map_err(|_e| {
-                ApplicationError::InvalidToken()
-            })?;
-        
-        claim.is_for_user(email_address).map_err(|_e| ApplicationError::InvalidToken())?;
-        
+        .map_err(|_e| ApplicationError::InvalidToken())?;
+
+        claim
+            .is_for_user(email_address)
+            .map_err(|_e| ApplicationError::InvalidToken())?;
+
         Ok(claim)
     }
 }
@@ -92,7 +91,8 @@ mod tests {
 
     #[test]
     fn test_validate_token() {
-        let token_generator = TokenGenerator::new("c2c45e2d-d682-4f44-88ce-e6be0e1da918".to_string(), 3600);
+        let token_generator =
+            TokenGenerator::new("c2c45e2d-d682-4f44-88ce-e6be0e1da918".to_string(), 3600);
 
         let res = token_generator.validate_token(
             "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0QHRlc3QuY29tIiwidXNlcl90eXBlIjoiU1RBTkRBUkQiLCJleHAiOjE3Mzk4NzUwMjEsImlhdCI6MTczOTc4ODYyMX0.DAV-VaxuHxrTSqxW-iJmYqswOeASXVnzJa-B7PAIzMc",

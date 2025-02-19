@@ -1,7 +1,7 @@
+use observability::TracedMessage;
 use reqwest::redirect::Policy;
 use serde::Serialize;
 use serde_json::json;
-use observability::TracedMessage;
 
 pub(crate) struct ApiDriver {
     env: String,
@@ -84,7 +84,9 @@ impl ApiDriver {
     }
 
     pub async fn publish_order_completed_event(&self, email: &str) {
-        let payload = TracedMessage::new(UserCreatedEvent{ email_address: email.to_string() });
+        let payload = TracedMessage::new(UserCreatedEvent {
+            email_address: email.to_string(),
+        });
         let payload_string = serde_json::to_string(&payload).expect("Error serde");
 
         let request = aws_sdk_eventbridge::types::builders::PutEventsRequestEntryBuilder::default()
@@ -93,7 +95,8 @@ impl ApiDriver {
             .set_detail(Some(String::from(payload_string)))
             .set_event_bus_name(Some(self.event_bus_name.clone()))
             .build();
-        let _ = self.eb_client
+        let _ = self
+            .eb_client
             .put_events()
             .entries(request)
             .send()
