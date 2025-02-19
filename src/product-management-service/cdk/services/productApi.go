@@ -48,6 +48,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	})
 
 	api := awsapigateway.NewRestApi(scope, jsii.String("ProductApi"), &awsapigateway.RestApiProps{
+		RestApiName: jsii.Sprintf("%s-Api-%s", props.SharedProps.ServiceName, props.SharedProps.Env),
 		DefaultCorsPreflightOptions: &awsapigateway.CorsOptions{
 			AllowOrigins: jsii.Strings("*"),
 			AllowHeaders: jsii.Strings("*"),

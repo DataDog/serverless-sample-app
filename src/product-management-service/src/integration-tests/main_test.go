@@ -1,0 +1,97 @@
+package integration_tests
+
+import (
+	"context"
+	"encoding/json"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awscfg "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
+	"os"
+	"testing"
+	"time"
+)
+
+var (
+	awsCfg = func() aws.Config {
+		awsCfg, _ := awscfg.LoadDefaultConfig(context.TODO())
+		awstrace.AppendMiddleware(&awsCfg)
+		return awsCfg
+	}()
+	ssmClient         = *ssm.NewFromConfig(awsCfg)
+	eventBridgeClient = *eventbridge.NewFromConfig(awsCfg)
+	apiDriver         = NewApiDriver(os.Getenv("ENV"), ssmClient, eventBridgeClient)
+)
+
+func TestProductEndToEndProcess(t *testing.T) {
+	productNameUnderTest := "test-product"
+	priceUnderTest := 10.0
+	stockLevelUnderTest := 10.0
+
+	createdProductResult := apiDriver.CreateProduct(t, CreateProductCommand{Name: productNameUnderTest, Price: priceUnderTest})
+
+	if createdProductResult.StatusCode != 201 {
+		t.Fatalf("Expected status code 201, but got %d", createdProductResult.StatusCode)
+	}
+
+	var product ApiResponse[ProductDTO]
+	if err := json.NewDecoder(createdProductResult.Body).Decode(&product); err != nil {
+		t.Fatalf("Error decoding product: %v", err)
+	}
+
+	if product.Data.Name != productNameUnderTest {
+		t.Fatalf("Expected product name to be %s, but got %s", productNameUnderTest, product.Data.Name)
+	}
+
+	apiDriver.InjectProductStockUpdatedEvent(t, product.Data.ProductId, stockLevelUnderTest)
+
+	// Wait for the event to be processed
+	time.Sleep(2 * time.Second)
+
+	updateProductBody := apiDriver.UpdateProduct(t, UpdateProductCommand{ProductId: product.Data.ProductId, Name: "updated-product", Price: 20.0})
+
+	if updateProductBody.StatusCode != 200 {
+		t.Fatalf("Expected update product status code 200, but got %d", updateProductBody.StatusCode)
+	}
+
+	getProductResult := apiDriver.GetProduct(t, product.Data.ProductId)
+
+	var getProduct ApiResponse[ProductDTO]
+	if err := json.NewDecoder(getProductResult.Body).Decode(&getProduct); err != nil {
+		t.Fatalf("Error decoding product: %v", err)
+	}
+
+	if getProduct.Data.StockLevel != stockLevelUnderTest {
+		t.Fatalf("Expected stock level to be %f, but got %f", stockLevelUnderTest, getProduct.Data.StockLevel)
+	}
+
+	listedProducts := apiDriver.ListProducts(t)
+
+	if listedProducts.StatusCode != 200 {
+		t.Fatalf("Expected status code 200, but got %d", listedProducts.StatusCode)
+	}
+
+	var productList ApiResponse[[]ProductDTO]
+	if err := json.NewDecoder(listedProducts.Body).Decode(&productList); err != nil {
+		t.Fatalf("Error decoding product: %v", err)
+	}
+
+	found := false
+	for _, p := range productList.Data {
+		if p.ProductId == product.Data.ProductId {
+			found = true
+			break
+		}
+
+		if !found {
+			t.Fatalf("Created product with ID %s not found in the product list", product.Data.ProductId)
+		}
+	}
+
+	deleteProductResult := apiDriver.DeleteProduct(t, product.Data.ProductId)
+
+	if deleteProductResult.StatusCode != 200 {
+		t.Fatalf("Expected status code 200, but got %d", listedProducts.StatusCode)
+	}
+}

@@ -2,6 +2,8 @@ github.com/DataDog/datadog-cdk-constructs-go/ddcdkconstruct v1.16.1 h1:qw2iogkuD
 github.com/DataDog/datadog-cdk-constructs-go/ddcdkconstruct v1.16.1/go.mod h1:8Z+S8e9EMZov5IaSD06SqgjIQWvgTeQbfrG2zWZLXL8=
 github.com/Masterminds/semver/v3 v3.2.1 h1:RN9w6+7QoMeJVGyfmbcgs28Br8cvmnucEXnY0rYXWg0=
 github.com/Masterminds/semver/v3 v3.2.1/go.mod h1:qvl/7zhW3nngYb5+80sSMF+FG2BjYrf8m9wsX0PNOMQ=
+github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
+github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/aws/aws-cdk-go/awscdk/v2 v2.160.0 h1:fJtFdVKEJOchhJ2a7GxtF2hY3IVNOOAxwxSHOGowpuw=
 github.com/aws/aws-cdk-go/awscdk/v2 v2.160.0/go.mod h1:yYaymWYxyViLcsF3+rX8gq8MBkViop4q392HsOuAi9M=
 github.com/aws/aws-cdk-go/awscdklambdagoalpha/v2 v2.160.0-alpha.0 h1:zoQOOn59ikZVDe4XJjJ+HtHsrGStvEMeWdAfcDOj/r0=

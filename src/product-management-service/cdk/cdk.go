@@ -78,22 +78,22 @@ func NewProductManagementService(scope constructs.Construct, id string, props *P
 		Datadog:     datadog,
 	}
 
-	_ = services.NewMockedSharedResources(stack, "MockedSharedResources", &services.MockedSharedResourceProps{
+	mockedResources := services.NewMockedSharedResources(stack, "MockedSharedResources", &services.MockedSharedResourceProps{
 		SharedProps: sharedProps,
 	})
 
-	jwtSecretKeyParam := awsssm.StringParameter_FromStringParameterName(stack, jsii.String("JwtSecretKeyParameter"), jsii.Sprintf("/%s/shared/secret-access-key", env))
+	_ = awsssm.StringParameter_FromStringParameterName(stack, jsii.String("JwtSecretKeyParameter"), jsii.Sprintf("/%s/shared/secret-access-key", env))
 	eventBusParam := awsssm.StringParameter_FromStringParameterName(stack, jsii.String("EventBusNameParam"), jsii.Sprintf("/%s/shared/event-bus-name", env))
-	eventBus := awsevents.EventBus_FromEventBusName(stack, jsii.String("SharedEventBus"), eventBusParam.StringValue())
+	_ = awsevents.EventBus_FromEventBusName(stack, jsii.String("SharedEventBus"), eventBusParam.StringValue())
 
 	productApi := services.NewProductApi(stack, "ProductApi", &services.ProductApiProps{
 		SharedProps:                 sharedProps,
-		JwtSecretAccessKeyParameter: jwtSecretKeyParam,
+		JwtSecretAccessKeyParameter: mockedResources.JWTSecretAccessKey,
 	})
 
 	productAcl := services.NewProductAclService(stack, "ProductAclService", &services.ProductAclServiceProps{
 		SharedProps:    sharedProps,
-		SharedEventBus: eventBus,
+		SharedEventBus: mockedResources.SharedEventBus,
 	})
 
 	services.NewProductBackgroundServices(stack, "ProductBackgroundServices", &services.ProductBackgroundServiceProps{
@@ -107,7 +107,7 @@ func NewProductManagementService(scope constructs.Construct, id string, props *P
 		ProductCreatedTopic: productApi.ProductCreatedTopic,
 		ProductUpdatedTopic: productApi.ProductUpdatedTopic,
 		ProductDeletedTopic: productApi.ProductDeletedTopic,
-		SharedEventBus:      eventBus,
+		SharedEventBus:      mockedResources.SharedEventBus,
 	})
 
 	return stack

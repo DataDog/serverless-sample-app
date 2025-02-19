@@ -10,7 +10,6 @@ package main
 import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"os"
 	"product-api/internal/adapters"
 	"product-api/internal/core"
@@ -36,9 +35,6 @@ var (
 )
 
 func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	span, _ := tracer.SpanFromContext(ctx)
-	defer span.Finish()
-
 	productId := request.PathParameters["productId"]
 
 	res, err := handler.Handle(ctx, core.GetProductQuery{ProductId: productId})

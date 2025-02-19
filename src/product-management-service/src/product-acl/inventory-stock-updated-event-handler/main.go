@@ -64,11 +64,15 @@ func (lh *LambdaHandler) Handle(ctx context.Context, request events.SQSEvent) (e
 			println(err.Error())
 		}
 
-		spanLinks := []ddtrace.SpanLink{
-			{
-				TraceID: sctx.TraceID(),
-				SpanID:  sctx.SpanID(),
-			},
+		spanLinks := []ddtrace.SpanLink{}
+		
+		if sctx != nil {
+			spanLinks = []ddtrace.SpanLink{
+				{
+					TraceID: sctx.TraceID(),
+					SpanID:  sctx.SpanID(),
+				},
+			}
 		}
 
 		span, context := tracer.StartSpanFromContext(ctx, "process.message", tracer.WithSpanLinks(spanLinks))

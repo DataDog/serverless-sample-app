@@ -8,6 +8,7 @@
 package sharedconstructs
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
@@ -45,9 +46,15 @@ func NewInstrumentedFunction(scope constructs.Construct, id string, props *Instr
 		props.MemorySize = 512
 	}
 
+	functionName := fmt.Sprintf("%s-%s-%s", props.SharedProps.ServiceName, props.FunctionName, props.SharedProps.Env)
+
+	if len(functionName) > 64 {
+		functionName = functionName[0:64]
+	}
+
 	function.Function = awscdklambdagoalpha.NewGoFunction(scope, jsii.String(props.FunctionName), &awscdklambdagoalpha.GoFunctionProps{
 		Entry:        jsii.String(props.Entry),
-		FunctionName: jsii.Sprintf("%s-%s-%s", props.SharedProps.ServiceName, props.FunctionName, props.SharedProps.Env),
+		FunctionName: jsii.String(functionName),
 		Runtime:      awslambda.Runtime_PROVIDED_AL2023(),
 		MemorySize:   jsii.Number(props.MemorySize),
 		Environment:  &defaultEnvironmentVariables,

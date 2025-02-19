@@ -1,9 +1,12 @@
 module cdk
 
-go 1.18
+go 1.21
+
+toolchain go1.24.0
 
 require (
 	github.com/DataDog/datadog-cdk-constructs-go/ddcdkconstruct v1.16.1
+	github.com/Microsoft/go-winio v0.6.2
 	github.com/aws/aws-cdk-go/awscdk/v2 v2.160.0
 	github.com/aws/aws-cdk-go/awscdklambdagoalpha/v2 v2.160.0-alpha.0
 	github.com/aws/constructs-go/constructs/v10 v10.3.0
