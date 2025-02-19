@@ -44,7 +44,7 @@ jobs:
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
           cd src/shared-infra
-          make tf-apply
+          make tf-destroy
 
   deploy-cdk:
     runs-on: ubuntu-latest
