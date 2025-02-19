@@ -21,6 +21,7 @@ provider "aws" {
   default_tags {
     tags = {
       DD_PRESERVE_STACK = "true"
+      MANAGED_BY        = "Terraform"
     }
   }
 }
