@@ -4,17 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
+
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/dgrijalva/jwt-go"
-	"net/http"
-	"os"
 
-	observability "github.com/datadog/serverless-sample-observability"
 	"strings"
 	"testing"
 	"time"
+
+	observability "github.com/datadog/serverless-sample-observability"
 )
 
 type ApiResponse[T any] struct {
@@ -221,6 +223,8 @@ func (a *ApiDriver) InjectProductStockUpdatedEvent(t *testing.T, productId strin
 
 	detailType := "inventory.stockUpdated.v1"
 	source := fmt.Sprintf("%s.inventory", os.Getenv("ENV"))
+
+	t.Logf("Publishing event to event bus %s with detail type %s and source %s", a.busName, detailType, source)
 
 	entiries := []types.PutEventsRequestEntry{
 		{

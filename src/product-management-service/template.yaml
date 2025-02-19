@@ -385,6 +385,21 @@ Resources:
             - "Arn"
         maxReceiveCount: 3
 
+  ProductStockUpdatedSQSQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues:
+        - !Ref ProductStockUpdatedEventQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: allow-eb-send-message-messages
+            Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Resource: !GetAtt ProductStockUpdatedEventQueue.Arn
+            Action: SQS:SendMessage
+
   ProductCreatedEventRule:
     Type: AWS::Events::Rule
     Properties:
@@ -399,22 +414,6 @@ Resources:
       Targets:
         - Id: ProductCreatedEventQueue
           Arn: !GetAtt ProductStockUpdatedEventQueue.Arn
-
-  SnsToQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues:
-        - !Ref ProductStockUpdatedEventQueue
-      PolicyDocument: 
-        Version: '2012-10-17'
-        Statement:
-          - Sid: allow-eb-send-message-messages
-            Effect: Allow
-            Principal:
-              Service: "events.amazonaws.com"
-            Resource: !GetAtt ProductStockUpdatedEventQueue.Arn
-            Action: SQS:SendMessage
-
 
   ProductPublicEventPublisher:
     Type: AWS::Serverless::Function
