@@ -14,7 +14,6 @@ use opentelemetry::{global, Context, KeyValue};
 use opentelemetry_datadog::new_pipeline;
 use serde::{Deserialize, Serialize};
 use std::env;
-use std::num::ParseIntError;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::{info, Subscriber};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
