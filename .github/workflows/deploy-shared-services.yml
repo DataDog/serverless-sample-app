@@ -37,7 +37,7 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
-          ENV: "test"
+          ENV: "dev"
           DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_2_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "eu-west-2"
@@ -75,7 +75,7 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
-          ENV: "test"
+          ENV: "dev"
           DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
         run: |
@@ -108,10 +108,44 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
-          ENV: "test"
+          ENV: "dev"
           DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "us-east-1"
         run: |
           cd src/shared-infra
           make sam
+
+  deploy-sls-framework:
+    name: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: "us-east-2"
+      - name: Install Serverless Framework
+        run: |
+          npm install -g serverless
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Deploy to AWS
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "us-east-2"
+        run: |
+          cd src/shared-infra
+          make serverless-framework
