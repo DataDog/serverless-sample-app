@@ -79,6 +79,7 @@ async fn load_jwt_secret(config: &SdkConfig) -> Result<String, ()> {
         .get_parameter()
         .with_decryption(true)
         .name(secret_key_name)
+        .send()
         .await
         .expect("Failed to retrieve secret key")
         .parameter
