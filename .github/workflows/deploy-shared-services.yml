@@ -3,7 +3,7 @@ name: Deploy Shared Services
 on:
     push:
       paths:
-        - src/shared-infra
+        - src/shared-infra/**
       branches:
           - 'service-per-lang'
     workflow_dispatch:
