@@ -148,7 +148,7 @@ jobs:
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "us-east-1"
         run: |
-          cd src/user-management-serviceI 
+          cd src/user-management-service
           make sam
       - name: Integration test dev
         shell: bash
