@@ -10,6 +10,9 @@ sam:
 cdk-deploy:
 	cd cdk;cdk deploy --all --require-approval never --concurrency 3 --region ${AWS_REGION} --tags DD_PRESERVE_STACK=true
 
+integration-test:
+	cd src/integration-tests; go test
+
 cleanup:
 	rm -r out -f
 
