@@ -47,7 +47,7 @@ jobs:
           cd src/product-management-service
           make pre-build
           make build
-          make tf-apply
+          make tf-destroy
 
   deploy-cdk:
     runs-on: ubuntu-latest
@@ -84,7 +84,7 @@ jobs:
           DD_SITE: "datadoghq.eu"
         run: |
           cd src/product-management-service
-          make cdk
+          make cdk-deploy
   deploy-sam:
     runs-on: ubuntu-latest
     concurrency:

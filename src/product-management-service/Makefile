@@ -7,20 +7,8 @@ tf-destroy:
 sam:
 	sam build;sam deploy --stack-name ProductManagementService-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION}
 
-cdk:
+cdk-deploy:
 	cd cdk;cdk deploy --all --require-approval never --concurrency 3 --region ${AWS_REGION}
-
-deploy:
-	sam deploy \
-		--template-file deployments/template.yaml \
-	    --stack-name remove-me-test-cookiecutter \
-	    --s3-bucket $(shell aws ssm get-parameter --name sam-bucket-name --query "Parameter.Value" --output text) \
-	    --s3-prefix=product-api \
-	    --no-confirm-changeset --no-fail-on-empty-changeset \
-		--tags Project=PRODUCT-API \
-        --parameter-overrides \
-            LogLevel="INFO" \
-		--capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
 
 cleanup:
 	rm -r out -f
