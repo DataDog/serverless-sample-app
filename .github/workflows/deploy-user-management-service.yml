@@ -92,7 +92,7 @@ jobs:
         run: |
           cd src/user-management-service
           npm i
-          make cdk
+          make cdk-deploy
 
   deploy-sam:
     runs-on: ubuntu-latest
