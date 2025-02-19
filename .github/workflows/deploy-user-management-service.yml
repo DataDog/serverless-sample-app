@@ -3,7 +3,7 @@ name: Deploy User Management Service
 on:
     push:
       paths:
-        - src/user-management-service
+        - src/user-management-service/**
       branches:
           - 'service-per-lang'
     workflow_dispatch:

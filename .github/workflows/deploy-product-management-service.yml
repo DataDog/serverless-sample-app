@@ -3,7 +3,7 @@ name: Deploy Product Management Service
 on:
     push:
       paths:
-        - src/product-management-service
+        - src/product-management-service/**
       branches:
         - 'service-per-lang'
     workflow_dispatch:
