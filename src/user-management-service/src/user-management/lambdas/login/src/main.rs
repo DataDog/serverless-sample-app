@@ -77,6 +77,7 @@ async fn load_jwt_secret(config: &SdkConfig) -> Result<String, ()> {
 
     let jwt_secret_key = ssm_client
         .get_parameter()
+        .get_with_decryption()
         .name(secret_key_name)
         .send()
         .await
