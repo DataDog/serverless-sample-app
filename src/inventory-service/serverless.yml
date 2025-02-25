@@ -13,7 +13,7 @@ plugins:
   - serverless-plugin-datadog
 
 custom:
-  serviceName: InventoryManagementService
+  serviceName: InventoryService
   datadog:
     apiKeySecretArn: ${param:DD_API_KEY_SECRET_ARN}
     site: ${param:DD_SITE}
@@ -23,7 +23,9 @@ custom:
     # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
     captureLambdaPayload: true
     propagateUpstreamTrace: true
-  newProductAddedTopicName: !Sub InventoryNewProductAddedTopic-${sls:stage}
+  newProductAddedTopicName: InventoryNewProductAddedTopic-${sls:stage}
+  apiKeySecret: ${ssm:/aws/reference/secretsmanager/dd-api-key-je-serverless-sample-app}
+
 
 provider:
   name: aws
@@ -42,7 +44,7 @@ provider:
         - Effect: Allow
           Action:
             - secretsmanager:GetSecretValue
-          Resource: ${param:DD_API_KEY_SECRET_ARN}
+          Resource: !Sub ${param:DD_API_KEY_SECRET_ARN}
         - Effect: Allow
           Action:
             - states:StartExecution
@@ -79,10 +81,7 @@ functions:
       artifact: ./inventory-ordering-service/target/com.inventory.ordering-0.0.1-SNAPSHOT-aws.jar
       individually: true
     events:
-      - sns:
-          arn:
-            Fn::GetAtt: [NewProductAddedTopic, Arn]
-
+      - sns: ${self:custom.newProductAddedTopicName}
 
 stepFunctions:
   stateMachines:
@@ -103,7 +102,7 @@ resources:
     NewProductAddedTopic:
       Type: AWS::SNS::Topic
       Properties:
-        TopicName: !Sub "InventoryNewProductAddedTopic-${sls:stage}"
+        TopicName: !Sub ${self:custom.newProductAddedTopicName}
 
     InventoryProductCreatedEventDLQ:
       Type: AWS::SQS::Queue
@@ -296,7 +295,7 @@ resources:
       Type: AWS::ElasticLoadBalancingV2::TargetGroup
       Properties:
         HealthCheckPath: /health
-        Name: !Sub ${self:custom.serviceName}-target-group-${sls:stage}
+        Name: !Sub ${self:custom.serviceName}-tg-${sls:stage}
         Port: 80
         Matcher:
           HttpCode: 200-499
@@ -336,7 +335,7 @@ resources:
       Type: AWS::IAM::Role
       Properties:
         AssumeRolePolicyDocument:
-          Version: 2012-10-17
+          Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Principal:
@@ -348,7 +347,7 @@ resources:
         Policies:
           - PolicyName: ecs-service-policy
             PolicyDocument:
-              Version: 2012-10-17
+              Version: "2012-10-17"
               Statement:
                 - Effect: Allow
                   Action:
@@ -357,7 +356,7 @@ resources:
                   Resource: "*"
           - PolicyName: cloudwatch-logs-policy
             PolicyDocument:
-              Version: 2012-10-17
+              Version: "2012-10-17"
               Statement:
                 - Effect: Allow
                   Action:
@@ -368,18 +367,18 @@ resources:
                   Resource: "*"
           - PolicyName: allow-secrets-retrieve
             PolicyDocument:
-              Version: 2012-10-17
+              Version: "2012-10-17"
               Statement:
                 - Effect: Allow
                   Action:
                     - secretsmanager:GetSecretValue
-                  Resource: !Ref DDApiKeySecretArn
+                  Resource: !Sub ${param:DD_API_KEY_SECRET_ARN}
 
     ECSTaskRole:
       Type: AWS::IAM::Role
       Properties:
         AssumeRolePolicyDocument:
-          Version: 2012-10-17
+          Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Principal:
@@ -391,7 +390,7 @@ resources:
         Policies:
           - PolicyName: dynamo-db-crud
             PolicyDocument:
-              Version: 2012-10-17
+              Version: "2012-10-17"
               Statement:
                 - Effect: Allow
                   Action:
@@ -410,7 +409,7 @@ resources:
                   Resource: !GetAtt InventoryApiTable.Arn
           - PolicyName: allow-eb-publish
             PolicyDocument:
-              Version: 2012-10-17
+              Version: "2012-10-17"
               Statement:
                 - Effect: Allow
                   Action:
@@ -419,12 +418,12 @@ resources:
                   Resource: "*"
           - PolicyName: allow-secrets-retrieve
             PolicyDocument:
-              Version: 2012-10-17
+              Version: "2012-10-17"
               Statement:
                 - Effect: Allow
                   Action:
                     - secretsmanager:GetSecretValue
-                  Resource: !Ref DDApiKeySecretArn
+                  Resource: !Sub ${param:DD_API_KEY_SECRET_ARN}
           - PolicyName: allow-ssm-access-key-retrieve
             PolicyDocument:
               Version: "2012-10-17"
@@ -472,7 +471,7 @@ resources:
                 Value: "inventory"
               -
                 Name: ENV
-                Value: !Ref ${sls:stage}
+                Value: !Sub ${sls:stage}
             PortMappings:
               - ContainerPort: 8080
                 Protocol: tcp
@@ -486,11 +485,11 @@ resources:
                 Name: "datadog"
                 Host: "http-intake.logs.datadoghq.eu"
                 TLS: "on"
-                dd_service: !Ref ${self:custom.serviceName}
+                dd_service: !Sub ${self:custom.serviceName}
                 dd_source: "quarkus"
                 dd_message_key: "log"
                 provider: "ecs"
-                apikey: !Sub "{{resolve:secretsmanager:${DDApiKeySecretArn}}}"
+                apikey: !Sub ${self:custom.apiKeySecret}
           - Name: DatadogAgent
             Image: public.ecr.aws/datadog/agent:latest
             Environment:
@@ -520,19 +519,19 @@ resources:
                 Value: "true"
               -
                 Name: DD_ENV
-                Value: !Ref Env
+                Value: !Sub ${sls:stage}
               -
                 Name: DD_SERVICE
-                Value: !Ref ServiceName
+                Value: !Sub ${self:custom.serviceName}
               -
                 Name: DD_VERSION
-                Value: !Ref CommitHash
+                Value: !Sub ${param:COMMIT_HASH}
               -
                 Name: DD_APM_IGNORE_RESOURCES
                 Value: "GET /"
             Secrets:
               - Name: DD_API_KEY
-                ValueFrom: !Ref DDApiKeySecretArn
+                ValueFrom: !Sub ${param:DD_API_KEY_SECRET_ARN}
             PortMappings:
               - ContainerPort: 8125
                 HostPort: 8125

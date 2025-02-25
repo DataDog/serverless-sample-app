@@ -104,14 +104,14 @@ jobs:
           cd src/inventory-service
           make build
           make cdk-deploy
-      # - name: Integration test dev
-      #   shell: bash
-      #   env:
-      #     ENV: "dev"
-      #     AWS_REGION: "eu-west-1"
-      #   run: |
-      #     cd src/inventory-service
-      #     make integration-test
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "eu-west-1"
+        run: |
+          cd src/inventory-service
+          make integration-test
 
   deploy-sam:
     runs-on: ubuntu-latest
@@ -154,14 +154,14 @@ jobs:
           cd src/inventory-service
           make build
           make sam
-      # - name: Integration test dev
-      #   shell: bash
-      #   env:
-      #     ENV: "dev"
-      #     AWS_REGION: "us-east-1"
-      #   run: |
-      #     cd src/inventory-service
-      #     make integration-test
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "us-east-1"
+        run: |
+          cd src/inventory-service
+          make integration-test
 
 
   # deploy-sls-framework:

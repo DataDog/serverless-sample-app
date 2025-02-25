@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutionException;
 public class ApiDriver {
     static final int SLEEP_TIME_BETWEEN_RETRIES=5000;
     static final int MAX_RETRIES=5;
+    static final int HTTP_TIMEOUT=20;
 
     private final EventBridgeClient eventBridgeClient;
     private final String apiEndpoint;
@@ -39,7 +40,7 @@ public class ApiDriver {
     public ApiDriver(String env, SsmClient ssmClient, EventBridgeClient eventBridgeClient, ObjectMapper objectMapper) {
         this.eventBridgeClient = eventBridgeClient;
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(2))
+                .connectTimeout(Duration.ofSeconds(HTTP_TIMEOUT))
                 .build();
         this.objectMapper = objectMapper;
 
@@ -64,7 +65,7 @@ public class ApiDriver {
                 .header("Authorization", "Bearer " + jwt)
                 .header("Accept", "application/json")     // Add Accept header
                 .header("Content-Type", "application/json") // Add Content-Type header
-                .timeout(Duration.ofSeconds(2))
+                .timeout(Duration.ofSeconds(HTTP_TIMEOUT))
                 .GET()
                 .build();
 
@@ -111,7 +112,7 @@ public class ApiDriver {
                 .header("Authorization", "Bearer " + jwt)
                 .header("Accept", "application/json")     // Add Accept header
                 .header("Content-Type", "application/json") // Add Content-Type header
-                .timeout(Duration.ofSeconds(2))
+                .timeout(Duration.ofSeconds(HTTP_TIMEOUT))
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(command)))
                 .build();
 

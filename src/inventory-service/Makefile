@@ -11,10 +11,10 @@ cdk-deploy:
 	cd cdk;cdk deploy --all --require-approval never --concurrency 3 --region ${AWS_REGION} --tags DD_PRESERVE_STACK=true
 
 integration-test:
-	cd src/integration_tests;cargo test
+	mvn test
 
 serverless-framework:
-	sls deploy --stage ${ENV} --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --region=${AWS_REGION}
+	sls deploy --stage ${ENV} --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --"region=${AWS_REGION}" --param="COMMIT_HASH=${COMMIT_HASH}"
 
 build:
 	mvn clean package -DskipTests
