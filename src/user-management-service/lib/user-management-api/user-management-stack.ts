@@ -80,7 +80,7 @@ export class UserManagementStack extends cdk.Stack {
       this,
       "UserManagementApiEndpointParameter",
       {
-        parameterName: `/UserManagementService/${sharedProps.environment}/api-endpoint`,
+        parameterName: `/${sharedProps.environment}/UserManagementService/api-endpoint`,
         stringValue: api.api.url,
       }
     );

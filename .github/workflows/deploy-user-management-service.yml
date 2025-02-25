@@ -163,6 +163,8 @@ jobs:
   deploy-sls-framework:
     name: deploy
     runs-on: ubuntu-latest
+    concurrency:
+        group: sls-user-management
     steps:
       - uses: actions/checkout@v3
       - name: Set up Node

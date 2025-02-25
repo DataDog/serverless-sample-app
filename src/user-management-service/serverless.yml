@@ -178,6 +178,6 @@ resources:
     ApiEndpoint:
       Type: AWS::SSM::Parameter
       Properties:
-        Name: !Sub /${self:custom.serviceName}/${sls:stage}/api-endpoint
+        Name: !Sub /${sls:stage}/${self:custom.serviceName}/api-endpoint
         Type: String
         Value: !GetAtt HttpApi.ApiEndpoint

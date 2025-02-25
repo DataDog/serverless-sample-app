@@ -100,7 +100,7 @@ async fn retrieve_paramater_values(environment: &str) -> (ApiEndpoint, EventBusN
     let api_endpoint = ssm_client
         .get_parameter()
         .name(format!(
-            "/UserManagementService/{}/api-endpoint",
+            "/{}/UserManagementService/api-endpoint",
             environment
         ))
         .send()

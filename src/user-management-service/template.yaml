@@ -260,7 +260,7 @@ Resources:
   ApiEndpoint:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /${ServiceName}/${Env}/api-endpoint
+      Name: !Sub /${Env}/${ServiceName}/api-endpoint
       Type: String
       Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
 

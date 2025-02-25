@@ -189,7 +189,7 @@ resource "aws_api_gateway_stage" "rest_api_stage" {
 }
 
 resource "aws_ssm_parameter" "api_endpoint" {
-  name  = "/UserManagementService/${var.env}/api-endpoint"
+  name  = "/${var.env}/UserManagementService/api-endpoint"
   type  = "String"
   value = aws_api_gateway_stage.rest_api_stage.invoke_url
 }
