@@ -346,7 +346,7 @@ Resources:
         HttpCode: 200-499
       Protocol: HTTP
       TargetType: ip
-      HealthCheckPort: 8080
+      HealthCheckPort: "traffic-port"
       HealthCheckProtocol: HTTP 
       HealthCheckIntervalSeconds: 60
       HealthCheckTimeoutSeconds: 30
