@@ -149,4 +149,5 @@ jobs:
           AWS_REGION: "us-east-2"
         run: |
           cd src/shared-infra
+          npm i
           make serverless-framework
