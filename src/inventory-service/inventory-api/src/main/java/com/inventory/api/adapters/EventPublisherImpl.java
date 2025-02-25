@@ -6,7 +6,6 @@
 
 package com.inventory.api.adapters;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inventory.api.core.EventPublisher;
@@ -22,7 +21,6 @@ import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsRequest;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 

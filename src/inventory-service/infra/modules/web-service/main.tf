@@ -130,7 +130,7 @@ resource "aws_ecs_service" "main" {
   name                  = var.service_name
   cluster               = var.ecs_cluster_id
   task_definition       = aws_ecs_task_definition.main.arn
-  desired_count         = 1
+  desired_count         = 2
   launch_type           = "FARGATE"
   wait_for_steady_state = true
   network_configuration {

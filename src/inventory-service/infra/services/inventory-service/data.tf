@@ -14,7 +14,7 @@ data "aws_availability_zones" "available" {
 data "aws_iam_policy_document" "dynamo_db_read" {
   statement {
     actions   = ["dynamodb:GetItem", "dynamodb:Scan", "dynamodb:Query", "dynamodb:BatchGetItem", "dynamodb:DescribeTable"]
-    resources = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.java_inventory_api.name}", "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.java_inventory_api.name}/*"]
+    resources = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.inventory_api.name}", "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.inventory_api.name}/*"]
   }
 }
 
@@ -25,7 +25,7 @@ data "aws_iam_policy_document" "dynamo_db_write" {
       "dynamodb:BatchWriteItem",
     "dynamodb:DeleteItem",
     "dynamodb:DescribeTable"]
-    resources = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.java_inventory_api.name}", "arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.java_inventory_api.name}/*"]
+    resources = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.inventory_api.name}", "arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.inventory_api.name}/*"]
   }
 }
 
@@ -35,8 +35,12 @@ data "aws_ssm_parameter" "eb_name" {
 
 data "aws_iam_policy_document" "eb_publish" {
   statement {
-    actions   = ["events:PutEvents", "events:ListEventBuses"]
+    actions   = ["events:PutEvents"]
     resources = ["arn:aws:events:*:${data.aws_caller_identity.current.account_id}:event-bus/${data.aws_ssm_parameter.eb_name.value}"]
+  }
+  statement {
+    actions   = ["events:ListEventBuses"]
+    resources = ["*"]
   }
 }
 

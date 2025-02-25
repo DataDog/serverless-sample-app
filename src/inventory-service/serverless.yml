@@ -23,6 +23,7 @@ custom:
     # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
     captureLambdaPayload: true
     propagateUpstreamTrace: true
+  newProductAddedTopicName: !Sub InventoryNewProductAddedTopic-${sls:stage}
 
 provider:
   name: aws
@@ -32,8 +33,6 @@ provider:
   logRetentionInDays: 1
   environment:
     ENV: ${sls:stage}
-    POWERTOOLS_SERVICE_NAME: ${self:custom.serviceName}
-    POWERTOOLS_LOG_LEVEL: 'INFO'
     DD_LOGS_INJECTION: "true"
     MAIN_CLASS: com.inventory.ordering.FunctionConfiguration
     AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
@@ -80,7 +79,10 @@ functions:
       artifact: ./inventory-ordering-service/target/com.inventory.ordering-0.0.1-SNAPSHOT-aws.jar
       individually: true
     events:
-      - sns: !Ref NewProductAddedTopic
+      - sns:
+          arn:
+            Fn::GetAtt: [NewProductAddedTopic, Arn]
+
 
 stepFunctions:
   stateMachines:
@@ -295,10 +297,13 @@ resources:
       Properties:
         HealthCheckPath: /health
         Name: !Sub ${self:custom.serviceName}-target-group-${sls:stage}
-        Port: 8080
+        Port: 80
+        Matcher:
+          HttpCode: 200-499
         Protocol: HTTP
         TargetType: ip
-        HealthCheckProtocol: HTTP 
+        HealthCheckPort: 8080
+        HealthCheckProtocol: HTTP
         HealthCheckIntervalSeconds: 60
         HealthCheckTimeoutSeconds: 30
         HealthyThresholdCount: 2

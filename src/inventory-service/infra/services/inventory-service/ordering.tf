@@ -10,7 +10,7 @@ module "inventory_ordering_service" {
   package_name = "com.inventory.ordering"
   source         = "../../modules/lambda-function"
   jar_file       = "../inventory-ordering-service/target/com.inventory.ordering-0.0.1-SNAPSHOT-aws.jar"
-  function_name  = "InventoryOrderingService"
+  function_name  = "Workflow"
   lambda_handler = "handleNewProductAdded"
   environment_variables = {
     ORDERING_SERVICE_WORKFLOW_ARN : aws_sfn_state_machine.inventory_ordering_state_machine.arn
@@ -59,7 +59,7 @@ resource "aws_sfn_state_machine" "inventory_ordering_state_machine" {
   }
 
   definition = templatefile("${path.module}/../../../cdk/src/main/java/com/cdk/inventory/ordering/workflows/workflow.setStock.asl.json", {
-    TableName = aws_dynamodb_table.inventory_table.name
+    TableName = aws_dynamodb_table.inventory_api.name
   })
   tags = {
     DD_ENHANCED_METRICS : "true"

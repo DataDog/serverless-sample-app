@@ -49,12 +49,12 @@ resource "aws_lambda_event_source_mapping" "public_event_publisher" {
   function_response_types = ["ReportBatchItemFailures"]
 }
 
-resource "aws_iam_role_policy_attachment" "product_created_handler_sqs_receive_permission" {
+resource "aws_iam_role_policy_attachment" "inventory_acl_sqs_receive_policy" {
   role       = module.inventory_acl_function.function_role_name
   policy_arn = aws_iam_policy.sqs_receive_policy.arn
 }
 
-resource "aws_iam_role_policy_attachment" "product_created_handler_sns_publish" {
+resource "aws_iam_role_policy_attachment" "inventory_acl_sns_publish" {
   role       = module.inventory_acl_function.function_role_name
   policy_arn = aws_iam_policy.sns_publish.arn
 }

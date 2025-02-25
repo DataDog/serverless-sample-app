@@ -2,55 +2,76 @@ package com.inventory.api;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.inventory.api.adapters.DynamoDbClientProducer;
-import com.inventory.api.adapters.InventoryItemRepositoryImpl;
-import com.inventory.api.core.InventoryItem;
-import com.inventory.api.core.InventoryItemRepository;
-import com.inventory.api.core.InventoryItemService;
-import com.inventory.api.core.UpdateInventoryStockRequest;
-import io.quarkus.test.Mock;
-import io.quarkus.test.junit.QuarkusTest;
+import com.inventory.api.driver.ApiDriver;
+import com.inventory.api.driver.UpdateStockLevelCommand;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.http.crt.AwsCrtHttpClient;
+import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
+import software.amazon.awssdk.services.ssm.SsmClient;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.is;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
-@QuarkusTest
-@Testcontainers
 class ProductResourceTest {
-    @Container
-    public GenericContainer dynamoDb = new GenericContainer(DockerImageName.parse("amazon/dynamodb-local:1.19.0"))
-            .withCommand("-jar DynamoDBLocal.jar -inMemory -sharedDb");
-    
-    public InventoryItemService productService;
-    public InventoryItemRepository repo;
-    
+    ApiDriver apiDriver;
+    ObjectMapper objectMapper;
+    static final int WORKFLOW_MINIMUM_EXECUTION=15000;
+
     @BeforeEach
     public void setup() {
-        ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        repo = new MockInventoryItemRepository();
+        objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        productService = new InventoryItemService(repo, new TestEventPublisher());
+        SsmClient ssmClient = SsmClient.builder()
+                .httpClientBuilder(AwsCrtHttpClient.builder()
+                        .connectionTimeout(Duration.ofSeconds(3))
+                        .maxConcurrency(100))
+                .build();
+
+        EventBridgeClient eventBridgeClient = EventBridgeClient.builder()
+                .httpClientBuilder(AwsCrtHttpClient.builder()
+                        .connectionTimeout(Duration.ofSeconds(3))
+                        .maxConcurrency(100))
+                .build();
+
+        apiDriver = new ApiDriver(System.getenv("ENV"), ssmClient, eventBridgeClient, objectMapper);
     }
 
     @Test
-    public void testGetProductById() {
-        repo.update(new InventoryItem("TESTPRODUCT", 0.0));
+    public void test_when_product_created_event_received_product_is_available_through_api() throws IOException, ExecutionException, InterruptedException {
+            var randomProductId = UUID.randomUUID().toString();
 
-        var stockRequest = new UpdateInventoryStockRequest();
-        stockRequest.setProductId("TESTPRODUCT");
-        stockRequest.setStockLevel(10.0);
+            apiDriver.injectProductCreatedEvent(randomProductId);
 
-        var result = productService.updateStock(stockRequest);
+            Thread.sleep(WORKFLOW_MINIMUM_EXECUTION);
 
-        // Act: Execute the method being tested
+            var stockLevel = apiDriver.getProductStockLevel(randomProductId);
 
-        // Assert: Verify the result
+            Assertions.assertNotNull(stockLevel.getData());
+            Assertions.assertEquals(randomProductId, stockLevel.getData().getProductId());
+    }
+
+    @Test
+    public void test_product_stock_levels_can_be_updated() throws IOException, ExecutionException, InterruptedException {
+        var randomProductId = UUID.randomUUID().toString();
+
+        apiDriver.injectProductCreatedEvent(randomProductId);
+
+        Thread.sleep(WORKFLOW_MINIMUM_EXECUTION);
+
+        var stockLevel = apiDriver.getProductStockLevel(randomProductId);
+        Assertions.assertEquals(randomProductId, stockLevel.getData().getProductId());
+
+        var updateStockLevelResult = apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
+
+        Assertions.assertEquals(200, updateStockLevelResult.statusCode());
+
+        stockLevel = apiDriver.getProductStockLevel(randomProductId);
+
+        Assertions.assertNotNull(stockLevel.getData());
+        Assertions.assertEquals(10.0, stockLevel.getData().getCurrentStockLevel());
     }
 }

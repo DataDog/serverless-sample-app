@@ -10,7 +10,7 @@ resource "aws_ecs_cluster" "main" {
 }
 
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "InventoryApiTaskExecutionRole-${var.env}"
+  name = "TF_InventoryApiTaskExecutionRole-${var.env}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -27,7 +27,7 @@ resource "aws_iam_role" "ecs_task_execution_role" {
 }
 
 resource "aws_iam_role" "ecs_task_role" {
-  name = "InventoryApiTaskRole-${var.env}"
+  name = "TF_InventoryApiTaskRole-${var.env}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -114,4 +114,10 @@ module "inventory_api_web_service" {
   subnet_ids            = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
   security_group_ids    = [aws_security_group.ecs_sg.id]
   target_group_arn      = aws_lb_target_group.target_group.arn
+}
+
+resource "aws_ssm_parameter" "api_endpoint" {
+  name  = "/${var.env}/InventoryService/api-endpoint"
+  type  = "String"
+  value = "http://${aws_alb.application_load_balancer.dns_name}"
 }

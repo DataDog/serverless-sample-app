@@ -15,8 +15,8 @@
     <name>com.inventory.ordering</name>
     <description>Inventory Ordering Service</description>
     <parent>
-        <groupId>com.javasample</groupId>
-        <artifactId>com.javasample</artifactId>
+        <groupId>com.inventory</groupId>
+        <artifactId>com.inventory</artifactId>
         <version>1.0.0</version>
     </parent>
     <properties>

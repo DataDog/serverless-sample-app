@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.jboss.logging.Logger;
 import software.amazon.awssdk.services.ssm.SsmClient;
 import software.amazon.awssdk.services.ssm.model.GetParameterRequest;
 
@@ -13,6 +14,7 @@ import java.security.Key;
 public class Authenticator {
     private static final String USER_TYPE_CLAIM = "user_type";
     private static final String ADMIN = "ADMIN";
+    private static final Logger LOGGER = Logger.getLogger("Listener");
 
     private final SsmClient ssmClient;
     private final String secretString;
@@ -30,6 +32,8 @@ public class Authenticator {
 
     public boolean Authorize(String token) {
         try {
+            LOGGER.info(secretString);
+
             Key key = Keys.hmacShaKeyFor(secretString.getBytes());
             Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
 
@@ -37,6 +41,7 @@ public class Authenticator {
                 return false;
             }
         } catch (Exception e) {
+            LOGGER.error("User type: " + e.getMessage());
             return false;
         }
 

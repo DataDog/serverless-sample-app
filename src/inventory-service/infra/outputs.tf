@@ -5,6 +5,3 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-output "api_endpoint" {
-  value = "${module.product-api.api_endpoint}"
-}

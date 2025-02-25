@@ -13,13 +13,16 @@ import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.ext.Provider;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
+import org.jboss.logging.Logger;
+
 import java.io.IOException;
 import java.security.Key;
-import java.util.logging.Logger;
 
 @Provider
 @Priority(Priorities.AUTHENTICATION)
 public class JWTFilter implements ContainerRequestFilter {
+    private static final org.jboss.logging.Logger LOGGER = Logger.getLogger("Listener");
+
     @Inject
     Authenticator authenticator;
 

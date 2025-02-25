@@ -341,9 +341,12 @@ Resources:
     Properties:
       HealthCheckPath: /health
       Name: !Sub ${ServiceName}-tg-${Env}
-      Port: 8080
+      Port: 80
+      Matcher:
+        HttpCode: 200-499
       Protocol: HTTP
       TargetType: ip
+      HealthCheckPort: 8080
       HealthCheckProtocol: HTTP 
       HealthCheckIntervalSeconds: 60
       HealthCheckTimeoutSeconds: 30
@@ -587,3 +590,10 @@ Resources:
             Type: fluentbit
             Options:
               enable-ecs-log-metadata: "true"
+
+  InventoryApiEndpoint:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/api-endpoint
+      Type: String
+      Value: !Sub "http://${ECSALB.DNSName}"
