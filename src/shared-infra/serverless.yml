@@ -3,8 +3,11 @@ frameworkVersion: "3"
 
 provider:
   name: aws
-  tags:
+  stackTags:
     DD_PRESERVE_STACK: "true"
+
+plugins:
+  - serverless-plugin-resource-tagging
 
 resources:
   Resources:

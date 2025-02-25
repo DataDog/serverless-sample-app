@@ -50,6 +50,7 @@
   "dependencies": {
     "@aws-lambda-powertools/logger": "^2.14.0",
     "cloudevents": "^8.0.2",
+    "serverless-plugin-resource-tagging": "^1.2.0",
     "zod": "^3.24.2"
   }
 }
