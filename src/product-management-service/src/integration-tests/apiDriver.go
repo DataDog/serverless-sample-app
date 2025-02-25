@@ -70,13 +70,10 @@ func NewApiDriver(env string, ssmClient ssm.Client, eventBridgeClient eventbridg
 	}
 	accessKeyParameterName := "/%s/shared/secret-access-key"
 
-	if env == "local" {
-		accessKeyParameterName = fmt.Sprintf("/ProductManagementService/local/JWTSecretAccessKey")
-	}
-
 	secretKeyParamName := fmt.Sprintf(accessKeyParameterName, env)
 	secretKeyRequest := ssm.GetParameterInput{
-		Name: &secretKeyParamName,
+		Name:           &secretKeyParamName,
+		WithDecryption: &shouldDecrypt,
 	}
 	secretKeyResponse, secretKeyErr := ssmClient.GetParameter(context.TODO(), &secretKeyRequest)
 	if secretKeyErr != nil {
@@ -84,7 +81,8 @@ func NewApiDriver(env string, ssmClient ssm.Client, eventBridgeClient eventbridg
 	}
 	busNameParamName := fmt.Sprintf("/%s/shared/event-bus-name", env)
 	eventBusRequest := ssm.GetParameterInput{
-		Name: &busNameParamName,
+		Name:           &busNameParamName,
+		WithDecryption: &shouldDecrypt,
 	}
 	eventBusResponse, eventBusErr := ssmClient.GetParameter(context.TODO(), &eventBusRequest)
 	if eventBusErr != nil {
@@ -136,7 +134,6 @@ func (a *ApiDriver) GetProduct(t *testing.T, id string) *http.Response {
 }
 
 func (a *ApiDriver) CreateProduct(t *testing.T, command CreateProductCommand) *http.Response {
-
 	body, err := json.Marshal(command)
 	if err != nil {
 		return nil
