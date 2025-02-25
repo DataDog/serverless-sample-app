@@ -1,0 +1,19 @@
+{
+  "name": "rust-datadog-sample",
+  "version": "0.1.0",
+  "bin": {
+    "rust-datadog-sample": "bin/rust-datadog-sample.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "serverless-plugin-datadog": "^5.78.0",
+    "serverless-plugin-resource-tagging": "^1.2.0"
+  },
+  "dependencies": {
+  }
+}

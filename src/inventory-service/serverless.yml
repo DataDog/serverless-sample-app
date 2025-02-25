@@ -84,7 +84,10 @@ functions:
       artifact: ./inventory-ordering-service/target/com.inventory.ordering-0.0.1-SNAPSHOT-aws.jar
       individually: true
     events:
-      - sns: ${self:custom.newProductAddedTopicName}
+      - sns: 
+          arn:
+            Fn::GetAtt: [NewProductAddedTopic, TopicArn]
+          topicName: InventoryNewProductAddedTopic-${sls:stage}
 
 stepFunctions:
   stateMachines:
@@ -549,9 +552,9 @@ resources:
               Options:
                 enable-ecs-log-metadata: "true"
 
-    InventoryApiEndpoint:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: !Sub ${self:custom.serviceName}/${sls:stage}/api-endpoint
-        Type: String
-        Value: !Sub "http://${ECSALB.DNSName}"
+    # InventoryApiEndpoint:
+    #   Type: AWS::SSM::Parameter
+    #   Properties:
+    #     Name: !Sub /${sls:stage}/${self:custom.serviceName}/api-endpoint
+    #     Type: String
+    #     Value: !Sub "http://${ECSALB.DNSName}"
