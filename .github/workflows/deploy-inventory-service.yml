@@ -102,7 +102,6 @@ jobs:
           DD_SITE: "datadoghq.eu"
         run: |
           cd src/inventory-service
-          npm i
           make build
           make cdk-deploy
       # - name: Integration test dev
@@ -153,6 +152,7 @@ jobs:
           AWS_REGION: "us-east-1"
         run: |
           cd src/inventory-service
+          make build
           make sam
       # - name: Integration test dev
       #   shell: bash
