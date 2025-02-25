@@ -11,6 +11,7 @@
     "cdk": "cdk"
   },
   "devDependencies": {
+    "serverless-step-functions": "^3.21.2",
     "serverless-plugin-datadog": "^5.78.0",
     "serverless-plugin-resource-tagging": "^1.2.0"
   },
