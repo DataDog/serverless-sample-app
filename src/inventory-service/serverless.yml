@@ -11,6 +11,7 @@ frameworkVersion: "3"
 plugins:
   - serverless-step-functions
   - serverless-plugin-datadog
+  - serverless-plugin-resource-tagging
 
 custom:
   serviceName: InventoryService
@@ -33,6 +34,8 @@ provider:
   memorySize: 2048
   timeout: 29
   logRetentionInDays: 1
+  stackTags:
+    DD_PRESERVE_STACK: "true"
   environment:
     ENV: ${sls:stage}
     DD_LOGS_INJECTION: "true"
