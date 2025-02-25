@@ -1,0 +1,216 @@
+name: Deploy Inventory Service
+
+on:
+    push:
+      paths:
+        - src/inventory-service/**
+      branches:
+          - 'service-per-lang'
+    workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-tf:
+    runs-on: ubuntu-latest
+    concurrency:
+        group: tf-inventory-service
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+      - name: Set up Java 21 for x64
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+          architecture: x64
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: "eu-west-2"
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Terraform apply
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_2_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/inventory-service
+          make build
+          make tf-apply
+      # - name: Integration test dev
+      #   shell: bash
+      #   env:
+      #     ENV: "dev"
+      #     AWS_REGION: "eu-west-2"
+      #   run: |
+      #     cd src/inventory-service
+      #     make integration-test
+
+
+  deploy-cdk:
+    runs-on: ubuntu-latest
+    concurrency:
+        group: cdk-inventory-service
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+      - name: Install CDK
+        run: |
+          npm install -g aws-cdk
+      - name: Set up Java 21 for x64
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+          architecture: x64
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: "eu-west-1"
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Deploy to AWS
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          cd src/inventory-service
+          npm i
+          make build
+          make cdk-deploy
+      # - name: Integration test dev
+      #   shell: bash
+      #   env:
+      #     ENV: "dev"
+      #     AWS_REGION: "eu-west-1"
+      #   run: |
+      #     cd src/inventory-service
+      #     make integration-test
+
+  deploy-sam:
+    runs-on: ubuntu-latest
+    concurrency:
+        group: sam-inventory-service
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+      - name: Set up Java 21 for x64
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+          architecture: x64
+      - uses: aws-actions/setup-sam@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: "us-east-1"
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Deploy to AWS
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "us-east-1"
+        run: |
+          cd src/inventory-service
+          make sam
+      # - name: Integration test dev
+      #   shell: bash
+      #   env:
+      #     ENV: "dev"
+      #     AWS_REGION: "us-east-1"
+      #   run: |
+      #     cd src/inventory-service
+      #     make integration-test
+
+
+  # deploy-sls-framework:
+  #   name: deploy
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Set up Node
+  #       uses: actions/setup-node@v3
+  #       with:
+  #         node-version: "22"
+  #     - name: Set up Java 21 for x64
+  #       uses: actions/setup-java@v4
+  #       with:
+  #         java-version: '21'
+  #         distribution: 'corretto'
+  #         architecture: x64
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@master
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+  #         role-session-name: GitHub_to_AWS_via_FederatedOIDC
+  #         aws-region: "us-east-2"
+  #     - name: Install Serverless Framework
+  #       run: |
+  #         npm install -g serverless@3.40.0
+  #     - name: Set Commit Hash Environment Variables
+  #       shell: bash
+  #       run: |
+  #         echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+  #     - name: Deploy to AWS
+  #       shell: bash
+  #       env:
+  #         COMMIT_HASH: ${{ env.sha_short }}
+  #         ENV: "dev"
+  #         DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
+  #         DD_SITE: "datadoghq.eu"
+  #         AWS_REGION: "us-east-2"
+  #       run: |
+  #         cd src/inventory-service
+  #         npm i
+  #         make build
+  #         make serverless-framework
+  #     - name: Integration test dev
+  #       shell: bash
+  #       env:
+  #         ENV: "dev"
+  #         AWS_REGION: "us-east-2"
+  #       run: |
+  #         cd src/inventory-service
+  #         make integration-test
+
