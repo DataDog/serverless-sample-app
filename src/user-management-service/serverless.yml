@@ -10,6 +10,7 @@ frameworkVersion: "3"
 
 plugins:
   - serverless-plugin-datadog
+  - serverless-plugin-resource-tagging
 
 custom:
   serviceName: UserManagementService
@@ -25,7 +26,7 @@ custom:
 
 provider:
   name: aws
-  tags:
+  stackTags:
     DD_PRESERVE_STACK: "true"
   runtime: provided.al2023
   memorySize: 128
