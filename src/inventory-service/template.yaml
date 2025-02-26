@@ -293,6 +293,16 @@ Resources:
           FromPort: 8080
           ToPort: 8080
           Description: Allow incoming HTTP traffic from ALB
+
+  ALBToServiceSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt MicroServiceSecurityGroup.GroupId
+      Description: Allow traffic from ALB to service
+      SourceSecurityGroupId: !GetAtt ALBSecurityGroup.GroupId
+      FromPort: 0
+      ToPort: 65535
+
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:

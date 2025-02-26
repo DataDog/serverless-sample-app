@@ -244,7 +244,7 @@ resources:
         GroupDescription: Allow incoming HTTP traffic
         VpcId: !Ref VPC
         SecurityGroupIngress:
-          - CidrIp: 0.0.0.0/0 
+          - CidrIp: 0.0.0.0/0
             IpProtocol: tcp
             FromPort: 8080
             ToPort: 8080
@@ -254,6 +254,16 @@ resources:
             FromPort: 8080
             ToPort: 8080
             Description: Allow incoming HTTP traffic from ALB
+
+    ALBToServiceSecurityGroupIngress:
+      Type: AWS::EC2::SecurityGroupIngress
+      Properties:
+        GroupId: !GetAtt MicroServiceSecurityGroup.GroupId
+        Description: Allow traffic from ALB to service
+        SourceSecurityGroupId: !GetAtt ALBSecurityGroup.GroupId
+        FromPort: 0
+        ToPort: 65535
+
     ECSCluster:
       Type: AWS::ECS::Cluster
       Properties:
