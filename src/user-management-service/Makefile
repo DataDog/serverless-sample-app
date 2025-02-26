@@ -7,8 +7,14 @@ tf-destroy:
 sam:
 	sam build --beta-features;sam deploy --stack-name UserManagementService-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION} --tags DD_PRESERVE_STACK=true
 
+sam-destroy:
+	sam delete --stack-name UserManagementService-${ENV} --no-prompts
+
 cdk-deploy:
-	cd cdk;cdk deploy --all --require-approval never --concurrency 3 --region ${AWS_REGION} --tags DD_PRESERVE_STACK=true
+	cdk deploy --all --require-approval never --concurrency 3 --region ${AWS_REGION} --tags DD_PRESERVE_STACK=true
+
+cdk-destroy:
+	cdk destroy --all --force
 
 integration-test:
 	cd src/integration_tests;cargo test

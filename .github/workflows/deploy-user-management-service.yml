@@ -59,6 +59,20 @@ jobs:
         run: |
           cd src/user-management-service
           make integration-test
+      - name: Terraform destroy
+        if: always()
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_2_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/user-management-service
+          make build
+          make tf-destroy
 
 
   deploy-cdk:
@@ -110,6 +124,18 @@ jobs:
         run: |
           cd src/user-management-service
           make integration-test
+      - name: Destroy
+        if: always()
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          cd src/user-management-service
+          npm i
+          make cdk-destroy
 
   deploy-sam:
     runs-on: ubuntu-latest
@@ -158,6 +184,18 @@ jobs:
         run: |
           cd src/user-management-service
           make integration-test
+      - name: Destroy
+        if: always()
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "us-east-1"
+        run: |
+          cd src/user-management-service
+          make sam-destroy
 
 
   deploy-sls-framework:

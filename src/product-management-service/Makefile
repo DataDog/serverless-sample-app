@@ -10,8 +10,14 @@ tf-destroy:
 sam:
 	sam build;sam deploy --stack-name ProductManagementService-${ENV} --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION} --tags DD_PRESERVE_STACK=true
 
+sam-destroy:
+	sam delete --stack-name ProductManagementService-${ENV} --no-prompts
+
 cdk-deploy:
 	cd cdk;cdk deploy --all --require-approval never --concurrency 3 --region ${AWS_REGION} --tags DD_PRESERVE_STACK=true
+
+cdk-destroy:
+	cd cdk;cdk destroy --all --force
 
 integration-test:
 	cd src/integration-tests; go test

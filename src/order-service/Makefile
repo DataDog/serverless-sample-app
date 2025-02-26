@@ -10,5 +10,8 @@ sam:
 cdk-deploy:
 	cd cdk;cdk deploy --all --require-approval never --concurrency 3 --region ${AWS_REGION} --tags DD_PRESERVE_STACK=true
 
+cdk-destroy:
+	cd cdk;cdk destroy --all --force
+
 integration-test:
 	cd src/Orders.IntegrationTests;dotnet test
