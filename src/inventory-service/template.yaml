@@ -302,6 +302,7 @@ Resources:
       SourceSecurityGroupId: !GetAtt ALBSecurityGroup.GroupId
       FromPort: 0
       ToPort: 65535
+      IpProtocol: tcp
 
   ECSCluster:
     Type: AWS::ECS::Cluster
