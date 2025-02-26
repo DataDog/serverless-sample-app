@@ -552,9 +552,9 @@ resources:
               Options:
                 enable-ecs-log-metadata: "true"
 
-    # InventoryApiEndpoint:
-    #   Type: AWS::SSM::Parameter
-    #   Properties:
-    #     Name: !Sub /${sls:stage}/${self:custom.serviceName}/api-endpoint
-    #     Type: String
-    #     Value: !Sub "http://${ECSALB.DNSName}"
+    InventoryApiEndpoint:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: !Sub /${sls:stage}/${self:custom.serviceName}/api-endpoint
+        Type: String
+        Value: !Sub "http://${ECSALB.DNSName}"
