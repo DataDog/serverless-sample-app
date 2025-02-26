@@ -352,7 +352,7 @@ Resources:
       UnhealthyThresholdCount: 5
       HealthCheckTimeoutSeconds: 30
       HealthCheckIntervalSeconds: 60
-      VpcId: !Ref VPCP
+      VpcId: !Ref VPC
 
   ECSALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
