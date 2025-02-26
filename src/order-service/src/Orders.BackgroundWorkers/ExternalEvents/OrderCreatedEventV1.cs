@@ -2,8 +2,9 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2024 Datadog, Inc.
 
-using Amazon.CDK.AWS.SecretsManager;
+namespace Orders.BackgroundWorkers.ExternalEvents;
 
-namespace OrdersService.CDK.Constructs;
-
-public record SharedProps(string ServiceName, string Env, string Version, ISecret DDApiKeySecret);
+public record OrderCreatedEventV1
+{
+    public string OrderNumber { get; set; } = "";
+}

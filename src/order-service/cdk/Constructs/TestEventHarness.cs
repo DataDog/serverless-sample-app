@@ -6,14 +6,12 @@ using System.Collections.Generic;
 using Amazon.CDK;
 using Amazon.CDK.AWS.APIGateway;
 using Amazon.CDK.AWS.DynamoDB;
-using Amazon.CDK.AWS.Events.Targets;
 using Amazon.CDK.AWS.Lambda.EventSources;
 using Amazon.CDK.AWS.SecretsManager;
 using Amazon.CDK.AWS.SNS;
-using Amazon.JSII.Runtime.Deputy;
 using Constructs;
 
-namespace ServerlessGettingStarted.CDK.Constructs;
+namespace OrdersService.CDK.Constructs;
 
 public record TestEventHarnessProps(SharedProps Shared, ISecret DdApiKeySecret, string JsonPropertyKeyName, List<ITopic> SnsTopics);
 

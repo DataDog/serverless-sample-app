@@ -1,0 +1,13 @@
+{
+    "request": {
+      "method": "GET",
+      "urlPathPattern": "/product/([A-Za-z0-9]*)"
+    },
+    "response": {
+      "status": 200,
+      "bodyFileName": "get_product.json",
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  }

@@ -5,7 +5,7 @@
 using Amazon.CDK.AWS.SQS;
 using Constructs;
 
-namespace ServerlessGettingStarted.CDK.Constructs;
+namespace OrdersService.CDK.Constructs;
 
 public record ResilientQueueProps(string QueueName, string Env);
 

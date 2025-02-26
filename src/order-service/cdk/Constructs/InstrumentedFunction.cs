@@ -13,7 +13,7 @@ using Amazon.CDK.AWS.SecretsManager;
 using Constructs;
 using Environment = System.Environment;
 
-namespace ServerlessGettingStarted.CDK.Constructs;
+namespace OrdersService.CDK.Constructs;
 
 public record FunctionProps(SharedProps Shared, string FunctionName, string ProjectPath, string Handler, Dictionary<string, string> EnvironmentVariables, ISecret DdApiKeySecret);
 

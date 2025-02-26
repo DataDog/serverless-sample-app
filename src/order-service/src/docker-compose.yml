@@ -1,0 +1,33 @@
+version: "3"
+
+services:
+  datadog-agent:
+    image: "gcr.io/datadoghq/agent:latest"
+    ports:
+      - "8126:8126"
+    environment:
+      DD_API_KEY: "${DD_API_KEY:?Set DD_API_KEY in your shell to send traces to Datadog}"
+      DD_SITE: "datadoghq.eu"
+      DD_APM_ENABLED: "true"
+      DD_APM_NON_LOCAL_TRAFFIC: "true"
+      DD_ENV: "${DD_ENV}"
+      
+  dynamodb-local:
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+    image: "amazon/dynamodb-local:latest"
+    container_name: dynamodb-local
+    ports:
+      - "8000:8000"
+    volumes:
+      - "./docker/dynamodb:/home/dynamodblocal/data"
+    working_dir: /home/dynamodblocal
+  
+  wiremock:
+    image: wiremock/wiremock:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./mocks/product-api:/home/wiremock
+      
+  
+      

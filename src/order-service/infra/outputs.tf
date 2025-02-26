@@ -4,7 +4,3 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2024 Datadog, Inc.
 //
-
-output "api_endpoint" {
-  value = "${module.product-api.api_endpoint}"
-}

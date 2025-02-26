@@ -1,5 +1,5 @@
 {
-  "app": "dotnet run --project ./ServerlessGettingStarted.CDK.csproj",
+  "app": "dotnet run --project ./OrdersService.CDK.csproj",
   "watch": {
     "include": [
       "**"
