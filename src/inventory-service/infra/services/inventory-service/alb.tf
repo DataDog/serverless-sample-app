@@ -57,7 +57,6 @@ resource "aws_security_group_rule" "ecs_alb_ingress" {
     description                 = "Allow inbound traffic on port 80 from ALB"
     security_group_id           = aws_security_group.ecs_sg.id
     source_security_group_id    = aws_security_group.alb_sg.id
-    cidr_blocks = ["0.0.0.0/0"]
 }
 # ------------------------------------------------------------------------------
 # ECS app Security Group Rules - OUTBOUND
