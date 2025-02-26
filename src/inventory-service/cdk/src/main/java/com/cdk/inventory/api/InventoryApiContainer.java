@@ -12,7 +12,7 @@ import software.amazon.awscdk.CfnOutputProps;
 import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.services.dynamodb.*;
-import software.amazon.awscdk.services.ec2.Vpc;
+import software.amazon.awscdk.services.ec2.*;
 import software.amazon.awscdk.services.ecs.*;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedTaskImageOptions;
@@ -102,6 +102,14 @@ public class InventoryApiContainer extends Construct {
                 .memoryLimitMiB(512)
                 .publicLoadBalancer(true)
                 .build();
+
+        var allowHttpSecurityGroup = new SecurityGroup(this, "AllowHttpSecurityGroup", SecurityGroupProps.builder()
+                .vpc(vpc)
+                .allowAllOutbound(true)
+                .build());
+        allowHttpSecurityGroup.addIngressRule(Peer.anyIpv4(), Port.tcp(80));
+
+        application.getLoadBalancer().addSecurityGroup(allowHttpSecurityGroup);
 
         application.getTaskDefinition().addFirelensLogRouter("firelens", FirelensLogRouterDefinitionOptions.builder()
                 .essential(true)

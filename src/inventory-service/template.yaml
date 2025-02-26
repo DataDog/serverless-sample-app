@@ -339,20 +339,20 @@ Resources:
   ECSALBTargetGroup:  
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      HealthCheckPath: /health
       Name: !Sub ${ServiceName}-tg-${Env}
-      Port: 80
-      Matcher:
-        HttpCode: 200-499
+      Port: 8080
       Protocol: HTTP
       TargetType: ip
+      Matcher:
+        HttpCode: 200-499
+      HealthCheckPath: /health
       HealthCheckPort: "traffic-port"
-      HealthCheckProtocol: HTTP 
-      HealthCheckIntervalSeconds: 60
-      HealthCheckTimeoutSeconds: 30
+      HealthCheckProtocol: HTTP
       HealthyThresholdCount: 2
       UnhealthyThresholdCount: 5
-      VpcId: !Ref VPC
+      HealthCheckTimeoutSeconds: 30
+      HealthCheckIntervalSeconds: 60
+      VpcId: !Ref VPCP
 
   ECSALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
