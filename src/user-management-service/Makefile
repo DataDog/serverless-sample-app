@@ -22,6 +22,9 @@ integration-test:
 serverless-framework:
 	npm i;sls deploy --region ${AWS_REGION} --stage ${ENV} --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}"
 
+serverless-framework-destroy:
+	npm i;sls remove --stage ${ENV} --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --"region=${AWS_REGION}" --param="COMMIT_HASH=${COMMIT_HASH}"
+
 cleanup:
 	rm -r out -f
 

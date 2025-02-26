@@ -68,8 +68,6 @@ jobs:
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
           cd src/product-management-service
-          make pre-build
-          make build
           make tf-destroy
           
 
