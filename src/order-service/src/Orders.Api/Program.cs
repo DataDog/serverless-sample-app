@@ -1,4 +1,5 @@
 using Orders.Api;
+using Orders.Api.CompleteOrder;
 using Orders.Api.CreateOrder;
 using Orders.Api.GetOrderDetails;
 using Orders.Core;
@@ -39,8 +40,9 @@ try
     app.UseAuthorization();
 
     app.MapGet("/health", () => Results.Ok("Healthy!"));
-    app.MapGet("/orders/{orderId}", GetOrderDetailsHandler.Handle);
+    app.MapGet("/orders/{OrderId}", GetOrderDetailsHandler.Handle);
     app.MapPost("/orders", CreateOrderHandler.Handle);
+    app.MapPost("/orders/{OrderId}/complete", CompleteOrderHandler.Handle);
 
     Log.Information("Starting up application");
 

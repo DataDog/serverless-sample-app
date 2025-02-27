@@ -2,9 +2,12 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025 Datadog, Inc.
 
-namespace Orders.Core.InternalEvents;
+using System.Text.Json.Serialization;
 
-public record OrderCreatedEvent
+namespace Orders.Api.CompleteOrder;
+
+public record CompleteOrderRequest
 {
-    public string OrderNumber { get; set; } = "";
+    [JsonPropertyName("orderId")]
+    public string OrderId { get; set; }
 }

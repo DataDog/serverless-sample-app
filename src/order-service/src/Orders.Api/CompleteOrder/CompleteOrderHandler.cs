@@ -3,43 +3,45 @@
 // Copyright 2025 Datadog, Inc.
 
 using Microsoft.AspNetCore.Authorization;
+using Orders.Api.CreateOrder;
 using Orders.Core;
 
-namespace Orders.Api.CreateOrder;
+namespace Orders.Api.CompleteOrder;
 
-public class CreateOrderHandler
+public class CompleteOrderHandler
 {
     [Authorize]
     public static async Task<IResult> Handle(
         HttpContext context,
-        CreateOrderRequest request,
+        CompleteOrderRequest request,
         IOrders orders,
-        IOrderWorkflow orderWorkflow,
+        IEventGateway eventGateway,
         ILogger<CreateOrderHandler> logger)
     {
         try
         {
             var userClaims = context.User.Claims.ExtractUserId();
 
-            Order? newOrder = null;
+            var order = await orders.WithOrderId(userClaims.UserId, request.OrderId);
 
-            if (userClaims.UserType == "PREMIUM")
+            if (order == null)
             {
-                newOrder = Order.CreatePriorityOrder(userClaims.UserId, request.Products);
+                return Results.NotFound();
             }
-            else
-            {
-                newOrder = Order.CreateStandardOrder(userClaims.UserId, request.Products);
-            }
-            
-            await orders.Store(newOrder);
-            await orderWorkflow.StartWorkflowFor(newOrder);
-            
-            return Results.Ok(new OrderDTO(newOrder));
+
+            order.CompleteOrder();
+            await orders.Store(order);
+            await eventGateway.HandleOrderCompleted(order);
+
+            return Results.Ok(new OrderDTO(order));
+        }
+        catch (OrderNotConfirmedException)
+        {
+            return Results.BadRequest("");
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Error creating order");
+            logger.LogError(e, "Error retrieving order");
             return Results.InternalServerError();
         }
     }

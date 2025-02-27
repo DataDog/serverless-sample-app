@@ -1,10 +1,10 @@
 // Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
-// Copyright 2025 Datadog, Inc.
+// Copyright 2024 Datadog, Inc.
 
-namespace Orders.BackgroundWorkers.ExternalEvents;
+namespace Orders.Core.PublicEvents;
 
-public interface IPublicEventPublisher
+public record OrderConfirmedEventV1
 {
-    Task Publish(OrderCreatedEventV1 evt);
+    public string OrderNumber { get; set; } = "";
 }

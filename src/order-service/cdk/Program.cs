@@ -3,7 +3,6 @@
 // Copyright 2024 Datadog, Inc.
 
 using Amazon.CDK;
-using OrdersService.CDK.Services.Orders.Service;
 
 namespace OrdersService.CDK;
 

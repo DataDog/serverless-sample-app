@@ -14,6 +14,7 @@ using Amazon.StepFunctions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Orders.Core.Adapters;
+using Orders.Core.PublicEvents;
 using Serilog;
 using Serilog.Formatting.Compact;
 
@@ -74,7 +75,7 @@ public static class Startup
             
             services.AddSingleton(dynamoDbClient);
 
-            services.AddSingleton<IEventPublisher, NoOpEventPublisher>();
+            services.AddSingleton<IPublicEventPublisher, NoOpEventPublisher>();
             services.AddSingleton<IOrderWorkflow, NoOpOrderWorkflow>();
         }
         else
@@ -85,13 +86,21 @@ public static class Startup
             
             var snsClient = new AmazonSimpleNotificationServiceClient(regionEndpoint);
             services.AddSingleton(snsClient);
-            services.AddSingleton<IEventPublisher, SnsEventPublisher>();
 
             var stepFunctionsClient = new AmazonStepFunctionsClient();
             services.AddSingleton(stepFunctionsClient);
             services.AddSingleton<IOrderWorkflow, StepFunctionsOrderWorkflow>();
+            
+            var eventBridgeClient = new AmazonEventBridgeClient();
+            eventBridgeClient.DescribeEventBusAsync(new DescribeEventBusRequest()
+            {
+                Name = configuration["EVENT_BUS_NAME"]
+            }).GetAwaiter().GetResult();
+            services.AddSingleton(eventBridgeClient);
+            services.AddSingleton<IPublicEventPublisher, EventBridgeEventPublisher>();
         }
         
+        services.AddSingleton<IEventGateway, EventGateway>();
         services.AddSingleton<IOrders, DynamoDBOrders>();
         
         return services;

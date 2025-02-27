@@ -8,7 +8,6 @@ using Amazon.Lambda.SQSEvents;
 using Datadog.Trace;
 using Orders.BackgroundWorkers.ExternalEvents;
 using Orders.Core;
-using Orders.Core.InternalEvents;
 
 namespace Orders.BackgroundWorkers;
 

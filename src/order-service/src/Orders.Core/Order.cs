@@ -82,4 +82,14 @@ public record Order
     public OrderType OrderType { get; init; }
     
     public decimal TotalPrice { get; set; }
+
+    public void CompleteOrder()
+    {
+        if (OrderStatus != OrderStatus.Confirmed)
+        {
+            return;
+        }
+        
+        OrderStatus = OrderStatus.Completed;
+    }
 }

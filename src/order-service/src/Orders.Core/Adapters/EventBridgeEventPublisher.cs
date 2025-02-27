@@ -7,9 +7,9 @@ using System.Text.Json.Nodes;
 using Amazon.EventBridge;
 using Amazon.EventBridge.Model;
 using Microsoft.Extensions.Logging;
-using Orders.Core.Adapters;
+using Orders.Core.PublicEvents;
 
-namespace Orders.BackgroundWorkers.ExternalEvents;
+namespace Orders.Core.Adapters;
 
 public class EventBridgeEventPublisher(
     AmazonEventBridgeClient eventBridgeClient,
@@ -49,6 +49,32 @@ public class EventBridgeEventPublisher(
             EventBusName = EventBusName,
             Source = Source,
             DetailType = "orders.orderCreated.v1",
+            Detail = JsonSerializer.Serialize(evt)
+        };
+
+        await Publish(putEventRecord);
+    }
+
+    public async Task Publish(OrderConfirmedEventV1 evt)
+    {
+        var putEventRecord = new PutEventsRequestEntry()
+        {
+            EventBusName = EventBusName,
+            Source = Source,
+            DetailType = "orders.orderConfirmed.v1",
+            Detail = JsonSerializer.Serialize(evt)
+        };
+
+        await Publish(putEventRecord);
+    }
+
+    public async Task Publish(OrderCompletedEventV1 evt)
+    {
+        var putEventRecord = new PutEventsRequestEntry()
+        {
+            EventBusName = EventBusName,
+            Source = Source,
+            DetailType = "orders.orderCompleted.v1",
             Detail = JsonSerializer.Serialize(evt)
         };
 

@@ -29,9 +29,3 @@ resource "aws_iam_policy" "get_api_key_secret" {
   path   = "/"
   policy = data.aws_iam_policy_document.retrieve_api_key_secret.json
 }
-
-resource "aws_iam_policy" "get_product_api_endpoint_ssm_read" {
-  name   = "tf-orders-api-get-product-api-${var.env}"
-  path   = "/"
-  policy = data.aws_iam_policy_document.allow_product_api_endpoint_ssm_read.json
-}

@@ -2,9 +2,6 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025 Datadog, Inc.
 
-using Amazon.CDK.AWS.SSM;
-using Constructs;
-using OrdersService.CDK.Constructs;
 using System.Collections.Generic;
 using Amazon.CDK;
 using Amazon.CDK.AWS.DynamoDB;
@@ -15,17 +12,17 @@ using Amazon.CDK.AWS.Events;
 using Amazon.CDK.AWS.IAM;
 using Amazon.CDK.AWS.Logs;
 using Amazon.CDK.AWS.SNS;
+using Amazon.CDK.AWS.SSM;
 using Amazon.CDK.AWS.StepFunctions;
-using EventBus = Amazon.CDK.AWS.Events.Targets.EventBus;
+using Constructs;
+using OrdersService.CDK.Constructs;
 using HealthCheck = Amazon.CDK.AWS.ElasticLoadBalancingV2.HealthCheck;
 
-namespace OrdersService.CDK.Services.Orders.Service;
+namespace OrdersService.CDK.Services;
 
 public record OrdersApiProps(
     SharedProps SharedProps,
-    IStringParameter JwtSecretKeyParam,
-    IEventBus OrdersServiceEventBus,
-    IEventBus? SharedEventBus);
+    OrderServiceProps ServiceProps);
 
 public class OrdersApi : Construct
 {
@@ -65,7 +62,7 @@ public class OrdersApi : Construct
             DefinitionBody = DefinitionBody.FromFile(workflowFilePath),
             DefinitionSubstitutions = new Dictionary<string, string>(1)
             {
-                { "EventBusName", props.OrdersServiceEventBus.EventBusName },
+                { "EventBusName", props.ServiceProps.OrdersEventBus.EventBus.EventBusName },
                 { "TableName", OrdersTable.TableName },
                 { "Env", props.SharedProps.Env }
             },
@@ -76,7 +73,7 @@ public class OrdersApi : Construct
                 Level = LogLevel.ALL
             }
         });
-        props.OrdersServiceEventBus.GrantPutEventsTo(OrdersWorkflow);
+        props.ServiceProps.OrdersEventBus.EventBus.GrantPutEventsTo(OrdersWorkflow);
         OrdersTable.GrantWriteData(OrdersWorkflow);
 
         var cluster = new Cluster(this, "DotnetInventoryApiCluster", new ClusterProps()
@@ -125,10 +122,10 @@ public class OrdersApi : Construct
                     Environment = new Dictionary<string, string>
                     {
                         { "ORDER_CREATED_TOPIC_ARN", OrderCreatedTopic.TopicArn },
-                        { "JWT_SECRET_PARAM_NAME", props.JwtSecretKeyParam.ParameterName },
+                        { "JWT_SECRET_PARAM_NAME", props.ServiceProps.JwtSecretAccessKey.ParameterName },
                         { "ORDER_WORKFLOW_ARN", OrdersWorkflow.StateMachineArn},
                         { "TABLE_NAME", OrdersTable.TableName },
-                        { "EVENT_BUS_NAME", props.OrdersServiceEventBus.EventBusName },
+                        { "EVENT_BUS_NAME", props.ServiceProps.OrdersEventBus.EventBus.EventBusName },
                         { "TEAM", "orders" },
                         { "DOMAIN", "orders" },
                         { "ENV", props.SharedProps.Env },
@@ -181,16 +178,16 @@ public class OrdersApi : Construct
             }
         });
 
-        props.JwtSecretKeyParam.GrantRead(taskRole);
+        props.ServiceProps.JwtSecretAccessKey.GrantRead(taskRole);
         OrdersTable.GrantReadWriteData(taskRole);
-        props.OrdersServiceEventBus.GrantPutEventsTo(taskRole);
+        props.ServiceProps.OrdersEventBus.EventBus.GrantPutEventsTo(taskRole);
         OrderCreatedTopic.GrantPublish(taskRole);
         OrdersWorkflow.GrantStartExecution(taskRole);
         
         taskRole.AddToPolicy(new PolicyStatement(new PolicyStatementProps()
         {
             Effect = Effect.ALLOW,
-            Resources = new[] { props.OrdersServiceEventBus.EventBusArn },
+            Resources = new[] { props.ServiceProps.OrdersEventBus.EventBus.EventBusArn },
             Actions = new[] { "events:DescribeEventBus" }
         }));
         props.SharedProps.DDApiKeySecret.GrantRead(taskRole);

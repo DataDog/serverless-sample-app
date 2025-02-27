@@ -8,21 +8,17 @@ using Amazon.CDK.AWS.Events;
 using Amazon.CDK.AWS.Events.Targets;
 using Amazon.CDK.AWS.IAM;
 using Amazon.CDK.AWS.Lambda.EventSources;
-using Amazon.CDK.AWS.SNS;
 using Amazon.CDK.AWS.SQS;
-using Amazon.CDK.AWS.SSM;
 using Amazon.CDK.AWS.StepFunctions;
 using Constructs;
 using OrdersService.CDK.Constructs;
 using EventBus = Amazon.CDK.AWS.Events.Targets.EventBus;
-using Policy = Amazon.CDK.AWS.SNS.Policy;
 
-namespace OrdersService.CDK.Services.Orders.Service;
+namespace OrdersService.CDK.Services;
 
 public record OrdersBackgroundWorkerProps(
     SharedProps SharedProps,
-    IEventBus OrdersEventBus,
-    IEventBus? SharedEventBus,
+    OrderServiceProps ServiceProps,
     ITable OrdersTable,
     IStateMachine OrdersWorkflow);
 
@@ -32,11 +28,11 @@ public class OrdersBackgroundWorker : Construct
     {
         var environmentVariables = new Dictionary<string, string>(2)
         {
-            { "EVENT_BUS_NAME", props.OrdersEventBus.EventBusName },
+            { "EVENT_BUS_NAME", props.ServiceProps.OrdersEventBus.EventBus.EventBusName },
             { "TABLE_NAME", props.OrdersTable.TableName }
         };
 
-        var describeEventBusPolicy = new Amazon.CDK.AWS.IAM.Policy(this, "DescribeEventBusPolicy", new PolicyProps()
+        var describeEventBusPolicy = new Policy(this, "DescribeEventBusPolicy", new PolicyProps()
         {
             PolicyName = $"cdk-{props.SharedProps.ServiceName}-describe-event-bus-{props.SharedProps.Env}",
             Statements = new[]
@@ -44,7 +40,7 @@ public class OrdersBackgroundWorker : Construct
                 new PolicyStatement(new PolicyStatementProps()
                 {
                     Effect = Effect.ALLOW,
-                    Resources = new[] { props.OrdersEventBus.EventBusArn },
+                    Resources = new[] { props.ServiceProps.OrdersEventBus.EventBus.EventBusArn },
                     Actions = new[] { "events:DescribeEventBus" }
                 })
             }
@@ -94,19 +90,19 @@ public class OrdersBackgroundWorker : Construct
 
     private void AddSharedBusRule(string name, OrdersBackgroundWorkerProps props, EventPattern pattern, IQueue target)
     {
-        if (props.SharedEventBus != null)
+        if (props.ServiceProps.SharedEventBus.EventBus != null)
         {
             var sharedBusRule = new Rule(this, $"{name}SharedBusRule", new RuleProps()
             {
-                EventBus = props.SharedEventBus
+                EventBus = props.ServiceProps.SharedEventBus.EventBus
             });
             sharedBusRule.AddEventPattern(pattern);
-            sharedBusRule.AddTarget(new EventBus(props.OrdersEventBus));
+            sharedBusRule.AddTarget(new EventBus(props.ServiceProps.OrdersEventBus.EventBus));
         }
 
         var ordersBusRule = new Rule(this, $"{name}OrdersBusRule", new RuleProps()
         {
-            EventBus = props.OrdersEventBus
+            EventBus = props.ServiceProps.OrdersEventBus.EventBus
         });
         ordersBusRule.AddEventPattern(pattern);
         ordersBusRule.AddTarget(new SqsQueue(target));

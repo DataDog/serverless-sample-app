@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Orders.BackgroundWorkers.ExternalEvents;
 using Orders.Core;
 using Orders.Core.Adapters;
+using Orders.Core.PublicEvents;
 using StatsdClient;
 
 namespace Orders.BackgroundWorkers;
@@ -31,19 +32,9 @@ public class Startup
         var configuration = new ConfigurationBuilder()
             .AddEnvironmentVariables()
             .Build();
-        
-        var eventBridgeClient = new AmazonEventBridgeClient();
-        eventBridgeClient.DescribeEventBusAsync(new DescribeEventBusRequest()
-        {
-            Name = configuration["EVENT_BUS_NAME"]
-        }).GetAwaiter().GetResult();
-        services.AddSingleton(eventBridgeClient);
 
         services.AddSingleton<IConfiguration>(configuration);
         services.AddCore(configuration);;
         services.AddLogging();
-
-        services.AddSingleton<IPublicEventPublisher, EventBridgeEventPublisher>();
-        services.AddSingleton<EventGateway>();
     }
 }

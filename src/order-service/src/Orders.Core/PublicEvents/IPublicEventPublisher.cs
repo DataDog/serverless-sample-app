@@ -2,13 +2,13 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025 Datadog, Inc.
 
-using Orders.Core.PublicEvents;
+namespace Orders.Core.PublicEvents;
 
-namespace Orders.Core;
-
-public interface IEventGateway
+public interface IPublicEventPublisher
 {
-    Task HandleOrderCreated(Order order);
-    Task HandleOrderConfirmed(Order order);
-    Task HandleOrderCompleted(Order order);
+    Task Publish(OrderCreatedEventV1 evt);
+    
+    Task Publish(OrderConfirmedEventV1 evt);
+    
+    Task Publish(OrderCompletedEventV1 evt);
 }

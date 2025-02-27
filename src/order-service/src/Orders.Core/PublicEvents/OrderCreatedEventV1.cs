@@ -2,9 +2,11 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2024 Datadog, Inc.
 
-namespace Orders.BackgroundWorkers.ExternalEvents;
+namespace Orders.Core.PublicEvents;
 
 public record OrderCreatedEventV1
 {
     public string OrderNumber { get; set; } = "";
+
+    public string[] Products { get; set; } = [];
 }

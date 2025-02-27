@@ -2,13 +2,8 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025 Datadog, Inc.
 
-using Orders.Core.PublicEvents;
-
 namespace Orders.Core;
 
-public interface IEventGateway
+public class OrderNotConfirmedException : Exception
 {
-    Task HandleOrderCreated(Order order);
-    Task HandleOrderConfirmed(Order order);
-    Task HandleOrderCompleted(Order order);
 }

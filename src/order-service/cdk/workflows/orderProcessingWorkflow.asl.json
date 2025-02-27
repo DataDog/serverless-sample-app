@@ -138,6 +138,31 @@
           }
         }
       },
+      "Output": {
+        "original": "{% $states.input %}",
+        "result": "{% $states.result %}"
+      },
+      "Next": "Publish Order Confirmed Event"
+    },
+    "Publish Order Confirmed Event": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::events:putEvents",
+      "Arguments": {
+        "Entries": [
+          {
+            "Detail": {
+              "data": {
+                "orderNumber": "{% $states.input.original.orderNumber %}",
+              },
+              "id": "{% $uuid() %}",
+              "_datadog": "{% $states.input._datadog %}"
+            },
+            "DetailType": "orders.orderConfirmed.v1",
+            "EventBusName": "${EventBusName}",
+            "Source": "${Env}.orders"
+          }
+        ]
+      },
       "End": true
     },
     "Handle Stock Reservation Failed": {

@@ -58,20 +58,6 @@ data "aws_iam_policy_document" "allow_jwt_secret_key_ssm_read" {
   }
 }
 
-data "aws_ssm_parameter" "product_api_endpoint" {
-  name = "/${var.env}/ProductManagementService/api-endpoint"
-}
-
-data "aws_iam_policy_document" "allow_product_api_endpoint_ssm_read" {
-  statement {
-    actions = ["ssm:DescribeParameters",
-      "ssm:GetParameter",
-      "ssm:GetParameterHistory",
-      "ssm:GetParameters"]
-    resources = ["arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/ProductManagementService/api-endpoint"]
-  }
-}
-
 data "aws_iam_policy_document" "retrieve_api_key_secret" {
   statement {
     actions   = ["secretsmanager:GetSecretValue"]

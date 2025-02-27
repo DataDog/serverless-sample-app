@@ -3,13 +3,25 @@
 // Copyright 2025 Datadog, Inc.
 
 using Microsoft.Extensions.Logging;
-using Orders.Core.InternalEvents;
+using Orders.Core.PublicEvents;
 
 namespace Orders.Core.Adapters;
 
-public class NoOpEventPublisher(ILogger<NoOpEventPublisher> logger) : IEventPublisher
+public class NoOpEventPublisher(ILogger<NoOpEventPublisher> logger) : IPublicEventPublisher
 {
-    public Task Publish(OrderCreatedEvent evt)
+    public Task Publish(OrderCreatedEventV1 evt)
+    {
+        logger.LogWarning("Call to NoOp Event Publisher!");
+        return Task.CompletedTask;
+    }
+
+    public Task Publish(OrderConfirmedEventV1 evt)
+    {
+        logger.LogWarning("Call to NoOp Event Publisher!");
+        return Task.CompletedTask;
+    }
+
+    public Task Publish(OrderCompletedEventV1 evt)
     {
         logger.LogWarning("Call to NoOp Event Publisher!");
         return Task.CompletedTask;
