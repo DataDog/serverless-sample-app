@@ -164,12 +164,12 @@ Resources:
   InventoryOrderCreatedEventDLQ:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "InventoryOrderCreatedEventDLQ-${sls:stage}"
+      QueueName: !Sub "InventoryOrderCreatedEventDLQ-${Env}"
 
   InventoryOrderCreatedEventQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "InventoryOrderCreatedEventQueue-${sls:stage}"
+      QueueName: !Sub "InventoryOrderCreatedEventQueue-${Env}"
       RedrivePolicy:
         deadLetterTargetArn:
           Fn::GetAtt:
@@ -180,12 +180,12 @@ Resources:
   OrderCreatedEventRule:
     Type: AWS::Events::Rule
     Properties:
-      EventBusName: !Sub "${ssm:/${sls:stage}/shared/event-bus-name}"
+      EventBusName: !Sub "${ssm:/${Env}/shared/event-bus-name}"
       Name: inventory-order-created
       State: ENABLED
       EventPattern:
         source:
-          - !Sub "${sls:stage}.orders"
+          - !Sub "${Env}.orders"
         detail-type:
           - "orders.orderCreated.v1"
       Targets:
