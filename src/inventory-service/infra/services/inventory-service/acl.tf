@@ -32,7 +32,7 @@ module "inventory_acl_function" {
   package_name = "com.inventory.acl"
   source         = "../../modules/lambda-function"
   jar_file       = "../inventory-acl/target/function.zip"
-  function_name  = "InventoryAcl"
+  function_name  = "InventoryProductCreated"
   lambda_handler = "io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest"
   routing_expression = "handleProductCreated"
   environment_variables = {
@@ -105,7 +105,7 @@ module "order_created_function" {
   package_name = "com.inventory.acl"
   source         = "../../modules/lambda-function"
   jar_file       = "../inventory-acl/target/function.zip"
-  function_name  = "InventoryAcl"
+  function_name  = "InventoryOrderCreated"
   lambda_handler = "io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest"
   routing_expression = "handleOrderCreated"
   environment_variables = {
