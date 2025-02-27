@@ -180,7 +180,7 @@ Resources:
   OrderCreatedEventRule:
     Type: AWS::Events::Rule
     Properties:
-      EventBusName: !Sub "${ssm:/${Env}/shared/event-bus-name}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
       Name: inventory-order-created
       State: ENABLED
       EventPattern:
