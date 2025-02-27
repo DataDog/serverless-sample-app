@@ -30,7 +30,7 @@ Globals:
     Timeout: 29
     MemorySize: 512
     Layers:
-      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:68
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:71
     Environment:
       Variables:
         ENV: !Ref Env

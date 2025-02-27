@@ -1,0 +1,166 @@
+{
+  "QueryLanguage": "JSONata",
+  "Comment": "A description of my state machine",
+  "StartAt": "Generate UniqueIDs",
+  "States": {
+    "Generate UniqueIDs": {
+      "Type": "Pass",
+      "Next": "Publish Order Created Event & Wait For Stock Reserved",
+      "Assign": {
+        "eventId": "{% $uuid() %}"
+      }
+    },
+    "Publish Order Created Event & Wait For Stock Reserved": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::events:putEvents.waitForTaskToken",
+      "Arguments": {
+        "Entries": [
+          {
+            "Detail": {
+              "data": {
+                "orderNumber": "{% $states.input.orderNumber %}",
+                "products": "{% $states.input.products %}"
+              },
+              "conversationId": "{% $states.context.Task.Token %}",
+              "id": "{% $eventId %}",
+              "_datadog": "{% $states.input._datadog %}"
+            },
+            "DetailType": "orders.orderCreated.v1",
+            "EventBusName": "${EventBusName}",
+            "Source": "${Env}.orders"
+          }
+        ]
+      },
+      "Next": "Handle Stock Reservation Success",
+      "TimeoutSeconds": 60,
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.Timeout"
+          ],
+          "Next": "Retry Publish Order Created",
+          "Output": {
+            "userId": "{% $states.input.userId %}",
+            "orderNumber": "{% $states.input.orderNumber %}",
+            "products": "{% $states.input.products %}",
+            "_datadog": "{% $states.input._datadog %}"
+          }
+        },
+        {
+          "ErrorEquals": [
+            "States.TaskFailed"
+          ],
+          "Next": "Handle Stock Reservation Failed",
+          "Output": {
+            "userId": "{% $states.input.userId %}",
+            "orderNumber": "{% $states.input.orderNumber %}",
+            "products": "{% $states.input.products %}",
+            "_datadog": "{% $states.input._datadog %}"
+          }
+        }
+      ],
+      "Output": {
+        "original": "{% $states.input %}",
+        "result": "{% $states.result %}"
+      }
+    },
+    "Retry Publish Order Created": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::events:putEvents.waitForTaskToken",
+      "Arguments": {
+        "Entries": [
+          {
+            "Detail": {
+              "data": {
+                "orderNumber": "{% $states.input.orderNumber %}",
+                "products": "{% $states.input.products %}"
+              },
+              "conversationId": "{% $states.context.Task.Token %}",
+              "id": "{% $eventId %}",
+              "_datadog": "{% $states.input._datadog %}"
+            },
+            "DetailType": "orders.orderCreated.v1",
+            "EventBusName": "${EventBusName}",
+            "Source": "${Env}.orders"
+          }
+        ]
+      },
+      "TimeoutSeconds": 60,
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.Timeout"
+          ],
+          "Next": "Handle Stock Reservation Failed",
+          "Output": {
+            "userId": "{% $states.input.userId %}",
+            "orderNumber": "{% $states.input.orderNumber %}",
+            "products": "{% $states.input.products %}",
+            "_datadog": "{% $states.input._datadog %}"
+          }
+        },
+        {
+          "ErrorEquals": [
+            "States.TaskFailed"
+          ],
+          "Next": "Handle Stock Reservation Failed",
+          "Output": {
+            "userId": "{% $states.input.userId %}",
+            "orderNumber": "{% $states.input.orderNumber %}",
+            "products": "{% $states.input.products %}",
+            "_datadog": "{% $states.input._datadog %}"
+          }
+        }
+      ],
+      "Output": {
+        "original": "{% $states.input %}",
+        "result": "{% $states.result %}"
+      },
+      "Next": "Handle Stock Reservation Success"
+    },
+    "Handle Stock Reservation Success": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:updateItem",
+      "Arguments": {
+        "TableName": "${TableName}",
+        "Key": {
+          "PK": {
+            "S": "{% $states.input.original.userId %}"
+          },
+          "SK": {
+            "S": "{% $states.input.original.orderNumber %}"
+          }
+        },
+        "UpdateExpression": "SET orderStatus = :orderStatus",
+        "ExpressionAttributeValues": {
+          ":orderStatus": {
+            "N": "1"
+          }
+        }
+      },
+      "End": true
+    },
+    "Handle Stock Reservation Failed": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:updateItem",
+      "Arguments": {
+        "TableName": "${TableName}",
+        "Key": {
+          "PK": {
+            "S": "{% $states.input.userId %}"
+          },
+          "SK": {
+            "S": "{% $states.input.orderNumber %}"
+          }
+        },
+        "UpdateExpression": "SET orderStatus = :orderStatus",
+        "ExpressionAttributeValues": {
+          ":orderStatus": {
+            "N": "3"
+          }
+        }
+      },
+      "End": true
+    }
+  }
+}

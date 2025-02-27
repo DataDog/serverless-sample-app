@@ -4,7 +4,7 @@
 
 namespace TestHarness.Lambda;
 
-public record ReceivedEvent(string Key, string EventData, DateTime ReceivedOn, string ReceivedFrom)
+public record ReceivedEvent(string Key, string EventData, DateTime ReceivedOn, string ReceivedFrom, string? ConversationId = null)
 {
     public string Key { get; set; } = Key;
 
@@ -13,4 +13,6 @@ public record ReceivedEvent(string Key, string EventData, DateTime ReceivedOn, s
     public DateTime ReceivedOn { get; set; } = ReceivedOn;
 
     public string ReceivedFrom { get; set; } = ReceivedFrom;
+    
+    public string ConversationId { get; set; } = ConversationId ?? "";
 }

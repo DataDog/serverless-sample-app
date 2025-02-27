@@ -35,6 +35,12 @@
           "stockLevel": {
             "N.$": "States.Format('{}', $.stock.stockLevel)"
           },
+          "reservedStockLevel": {
+            "N": "0"
+          },
+          "stockOrders": {
+            "SS": [""]
+          },
           "Type": {
             "S": "InventoryItem"
           }

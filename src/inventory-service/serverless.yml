@@ -20,7 +20,7 @@ custom:
     site: ${param:DD_SITE}
     env: ${sls:stage}
     service: ${self:custom.serviceName}
-    version: 68
+    version: 71
     # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
     captureLambdaPayload: true
     propagateUpstreamTrace: true
@@ -60,20 +60,44 @@ provider:
             - "ssm:GetParameterHistory"
             - "ssm:GetParameters"
           Resource: "arn:aws:ssm:${aws:region}:*:parameter/${sls:stage}/shared/secret-access-key"
+        - Effect: Allow
+          Action:
+            - "dynamodb:GetItem"
+            - "dynamodb:PutItem"
+          Resource: !GetAtt InventoryApiTable.Arn
+        - Effect: Allow
+          Action:
+            - "events:PutEvents"
+            - "events:ListEventBuses"
+          Resource: "*"
+
 functions:
-  publishPublicEvents:
-    handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+  handleProductCreated:
+    handler: oio.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest
     environment:
       PRODUCT_ADDED_TOPIC_ARN: !Ref NewProductAddedTopic
       DD_SERVICE_MAPPING: !Sub "lambda_sqs:${InventoryProductCreatedEventQueue.QueueName}"
-      spring_cloud_function_definition: handleProductCreatedEvent
+      QUARKUS_LAMBDA_HANDLER: handleProductCreated
     package:
-      artifact: ./inventory-acl/target/com.inventory.acl-0.0.1-SNAPSHOT-aws.jar
+      artifact: ./inventory-acl/target/function.zip
       individually: true
     events:
       - sqs:
           arn:
             Fn::GetAtt: [InventoryProductCreatedEventQueue, Arn]
+  handleOrderCreated:
+    handler: oio.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest
+    environment:
+      TABLE_NAME: !Ref InventoryApiTable
+      DD_SERVICE_MAPPING: !Sub "lambda_sqs:${InventoryOrderCreatedEventQueue.QueueName}"
+      QUARKUS_LAMBDA_HANDLER: handleOrderCreated
+    package:
+      artifact: ./inventory-acl/target/function.zip
+      individually: true
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [InventoryOrderCreatedEventQueue, Arn]
 
   startOrderWorkflow:
     handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
@@ -154,6 +178,52 @@ resources:
               Principal:
                 Service: "events.amazonaws.com"
               Resource: !GetAtt InventoryProductCreatedEventQueue.Arn
+              Action: SQS:SendMessage
+
+    InventoryOrderCreatedEventDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: !Sub "InventoryOrderCreatedEventDLQ-${sls:stage}"
+
+    InventoryOrderCreatedEventQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: !Sub "InventoryOrderCreatedEventQueue-${sls:stage}"
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - "InventoryOrderCreatedEventDLQ"
+              - "Arn"
+          maxReceiveCount: 3
+
+    OrderCreatedEventRule:
+      Type: AWS::Events::Rule
+      Properties:
+        EventBusName: !Sub "${ssm:/${sls:stage}/shared/event-bus-name}"
+        Name: inventory-order-created
+        State: ENABLED
+        EventPattern:
+          source:
+            - !Sub "${sls:stage}.orders"
+          detail-type:
+            - "orders.orderCreated.v1"
+        Targets:
+          - Id: OrderCreatedEventQueue
+            Arn: !GetAtt InventoryOrderCreatedEventQueue.Arn
+
+    EBToOrderCreatedQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref InventoryOrderCreatedEventQueue
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Sid: allow-eb-send-message-messages
+              Effect: Allow
+              Principal:
+                Service: "events.amazonaws.com"
+              Resource: !GetAtt InventoryOrderCreatedEventQueue.Arn
               Action: SQS:SendMessage
 
     InventoryOrderingServiceLogGroup: 

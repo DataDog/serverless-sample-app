@@ -15,28 +15,12 @@ public class CreateOrderHandler
         HttpContext context,
         CreateOrderRequest request,
         IOrders orders,
-        IEventPublisher eventPublisher,
-        IProductService productService,
+        IOrderWorkflow orderWorkflow,
         ILogger<CreateOrderHandler> logger)
     {
         try
         {
             var userClaims = context.User.Claims.ExtractUserId();
-
-            var invalidProducts = new List<string>();
-            
-            foreach (var productId in request.Products)
-            {
-                if (!await productService.VerifyProductExists(productId))
-                {
-                    invalidProducts.Add(productId);
-                }
-            }
-
-            if (invalidProducts.Any())
-            {
-                return Results.BadRequest($"Invalid products: {string.Join(", ", invalidProducts)}");
-            }
 
             Order? newOrder = null;
 
@@ -50,10 +34,7 @@ public class CreateOrderHandler
             }
             
             await orders.Store(newOrder);
-            await eventPublisher.Publish(new OrderCreatedEvent()
-            {
-                OrderNumber = newOrder.OrderNumber,
-            });
+            await orderWorkflow.StartWorkflowFor(newOrder);
             
             return Results.Ok(new OrderDTO(newOrder));
         }

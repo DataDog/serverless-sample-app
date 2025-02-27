@@ -13,7 +13,9 @@ public record OrderDTO
         OrderId = order.OrderNumber;
         OrderDate= order.OrderDate;
         Products = order.Products;
+        OrderStatus = order.OrderStatus.ToString();
     }
+    
     [JsonPropertyName("orderId")]
     public string OrderId { get; set; }
     
@@ -22,5 +24,8 @@ public record OrderDTO
 
     [JsonPropertyName("products")]
     public string[] Products { get; set; }
+    
+    [JsonPropertyName("status")]
+    public string OrderStatus { get; set; }
     
 }

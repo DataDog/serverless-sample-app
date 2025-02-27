@@ -1,7 +1,7 @@
 package com.inventory.api;
 
-import com.inventory.api.core.InventoryItem;
-import com.inventory.api.core.InventoryItemRepository;
+import com.inventory.core.InventoryItem;
+import com.inventory.core.InventoryItemRepository;
 
 import java.util.HashMap;
 import java.util.Map;

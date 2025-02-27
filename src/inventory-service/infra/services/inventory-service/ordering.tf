@@ -11,7 +11,8 @@ module "inventory_ordering_service" {
   source         = "../../modules/lambda-function"
   jar_file       = "../inventory-ordering-service/target/com.inventory.ordering-0.0.1-SNAPSHOT-aws.jar"
   function_name  = "Workflow"
-  lambda_handler = "handleNewProductAdded"
+  lambda_handler = "org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest"
+  routing_expression = "handleNewProductAdded"
   environment_variables = {
     ORDERING_SERVICE_WORKFLOW_ARN : aws_sfn_state_machine.inventory_ordering_state_machine.arn
   }

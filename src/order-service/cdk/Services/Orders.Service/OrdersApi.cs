@@ -13,7 +13,10 @@ using Amazon.CDK.AWS.ECS;
 using Amazon.CDK.AWS.ECS.Patterns;
 using Amazon.CDK.AWS.Events;
 using Amazon.CDK.AWS.IAM;
+using Amazon.CDK.AWS.Logs;
 using Amazon.CDK.AWS.SNS;
+using Amazon.CDK.AWS.StepFunctions;
+using EventBus = Amazon.CDK.AWS.Events.Targets.EventBus;
 using HealthCheck = Amazon.CDK.AWS.ElasticLoadBalancingV2.HealthCheck;
 
 namespace OrdersService.CDK.Services.Orders.Service;
@@ -21,34 +24,18 @@ namespace OrdersService.CDK.Services.Orders.Service;
 public record OrdersApiProps(
     SharedProps SharedProps,
     IStringParameter JwtSecretKeyParam,
-    IStringParameter ProductApiEndpointParameter,
-    IEventBus SharedEventBus);
+    IEventBus OrdersServiceEventBus,
+    IEventBus? SharedEventBus);
 
 public class OrdersApi : Construct
 {
     public ITopic OrderCreatedTopic { get; private set; }
     public ITable OrdersTable { get; private set; }
-    
+    public IStateMachine OrdersWorkflow { get; private set; }
+
     public OrdersApi(Construct scope, string id, OrdersApiProps props) : base(scope, id)
     {
-        var vpc = new Vpc(this, "OrdersServiceVpc", new VpcProps()
-        {
-            VpcName = $"{props.SharedProps.ServiceName}-Orders-{props.SharedProps.Env}",
-            MaxAzs = 2
-        });
-
-        var cluster = new Cluster(this, "DotnetInventoryApiCluster", new ClusterProps()
-        {
-            ClusterName = $"{props.SharedProps.ServiceName}-Orders-{props.SharedProps.Env}",
-            Vpc = vpc
-        });
-
-        this.OrderCreatedTopic = new Topic(this, "OrderCreatedTopic", new TopicProps()
-        {
-            TopicName = $"{props.SharedProps.ServiceName}-OrderCreated-{props.SharedProps.Env}"
-        });
-
-        this.OrdersTable = new Table(this, "DotnetOrdersTable", new TableProps()
+        OrdersTable = new Table(this, "DotnetOrdersTable", new TableProps()
         {
             PartitionKey = new Attribute() { Name = "PK", Type = AttributeType.STRING },
             SortKey = new Attribute() { Name = "SK", Type = AttributeType.STRING },
@@ -56,6 +43,51 @@ public class OrdersApi : Construct
             TableName = $"{props.SharedProps.ServiceName}-OrderTable-{props.SharedProps.Env}",
             TableClass = TableClass.STANDARD,
             RemovalPolicy = RemovalPolicy.DESTROY
+        });
+        
+        var vpc = new Vpc(this, "OrdersServiceVpc", new VpcProps()
+        {
+            VpcName = $"{props.SharedProps.ServiceName}-Orders-{props.SharedProps.Env}",
+            MaxAzs = 2
+        });
+        
+        LogGroup workflowLogGroup = new LogGroup(this, "InventoryOrderingWorkflowLogGroup", new LogGroupProps()
+            {
+               LogGroupName = $"/aws/vendedlogs/states/{props.SharedProps.ServiceName}-OrderWorkflow-{props.SharedProps.Env}",
+               RemovalPolicy = RemovalPolicy.DESTROY
+            });
+
+        string workflowFilePath = "workflows/orderProcessingWorkflow.asl.json";
+
+        OrdersWorkflow = new StateMachine(this, "InventoryOrderingWorkflow", new StateMachineProps()
+        {
+            StateMachineName = $"{props.SharedProps.ServiceName}-OrderWorkflow-{props.SharedProps.Env}",
+            DefinitionBody = DefinitionBody.FromFile(workflowFilePath),
+            DefinitionSubstitutions = new Dictionary<string, string>(1)
+            {
+                { "EventBusName", props.OrdersServiceEventBus.EventBusName },
+                { "TableName", OrdersTable.TableName },
+                { "Env", props.SharedProps.Env }
+            },
+            Logs = new LogOptions()
+            {
+                Destination = workflowLogGroup,
+                IncludeExecutionData = true,
+                Level = LogLevel.ALL
+            }
+        });
+        props.OrdersServiceEventBus.GrantPutEventsTo(OrdersWorkflow);
+        OrdersTable.GrantWriteData(OrdersWorkflow);
+
+        var cluster = new Cluster(this, "DotnetInventoryApiCluster", new ClusterProps()
+        {
+            ClusterName = $"{props.SharedProps.ServiceName}-Orders-{props.SharedProps.Env}",
+            Vpc = vpc
+        });
+
+        OrderCreatedTopic = new Topic(this, "OrderCreatedTopic", new TopicProps()
+        {
+            TopicName = $"{props.SharedProps.ServiceName}-OrderCreated-{props.SharedProps.Env}"
         });
 
         var executionRole = new Role(this, "OrdersApiExecutionRole", new RoleProps()
@@ -94,9 +126,9 @@ public class OrdersApi : Construct
                     {
                         { "ORDER_CREATED_TOPIC_ARN", OrderCreatedTopic.TopicArn },
                         { "JWT_SECRET_PARAM_NAME", props.JwtSecretKeyParam.ParameterName },
-                        { "PRODUCT_API_ENDPOINT_PARAMETER", props.ProductApiEndpointParameter.ParameterName },
+                        { "ORDER_WORKFLOW_ARN", OrdersWorkflow.StateMachineArn},
                         { "TABLE_NAME", OrdersTable.TableName },
-                        { "EVENT_BUS_NAME", props.SharedEventBus.EventBusName },
+                        { "EVENT_BUS_NAME", props.OrdersServiceEventBus.EventBusName },
                         { "TEAM", "orders" },
                         { "DOMAIN", "orders" },
                         { "ENV", props.SharedProps.Env },
@@ -150,15 +182,15 @@ public class OrdersApi : Construct
         });
 
         props.JwtSecretKeyParam.GrantRead(taskRole);
-        props.ProductApiEndpointParameter.GrantRead(taskRole);
         OrdersTable.GrantReadWriteData(taskRole);
-        props.SharedEventBus.GrantPutEventsTo(taskRole);
+        props.OrdersServiceEventBus.GrantPutEventsTo(taskRole);
         OrderCreatedTopic.GrantPublish(taskRole);
+        OrdersWorkflow.GrantStartExecution(taskRole);
         
         taskRole.AddToPolicy(new PolicyStatement(new PolicyStatementProps()
         {
             Effect = Effect.ALLOW,
-            Resources = new[] { props.SharedEventBus.EventBusArn },
+            Resources = new[] { props.OrdersServiceEventBus.EventBusArn },
             Actions = new[] { "events:DescribeEventBus" }
         }));
         props.SharedProps.DDApiKeySecret.GrantRead(taskRole);

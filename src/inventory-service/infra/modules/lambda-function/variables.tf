@@ -48,6 +48,11 @@ variable "lambda_handler" {
   type        = string
 }
 
+variable "routing_expression" {
+  default = "The Lambda routing expression"
+  type = string
+}
+
 variable "environment_variables" {
   description = "Environment variables to pass to the Lambda function"
   type        = map(string)

@@ -81,7 +81,7 @@ module "aws_lambda_function" {
   filename                 = var.jar_file
   function_name            = "TF-${var.service_name}-${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
-  handler                  = "org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest"
+  handler                  = var.lambda_handler
   runtime                  = "java21"
   memory_size              = var.memory_size
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
@@ -102,12 +102,13 @@ module "aws_lambda_function" {
     "DD_SERVERLESS_APPSEC_ENABLED": "true"
     "DD_IAST_ENABLED": "true"
     "DD_LOGS_INJECTION" : "true"
-    "spring_cloud_function_definition" : var.lambda_handler }),
+    "spring_cloud_function_definition" : var.routing_expression
+    "QUARKUS_LAMBDA_HANDLERQUARKUS_LAMBDA_HANDLER": var.routing_expression}),
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 68
-  datadog_java_layer_version      = 15
+  datadog_extension_layer_version = 71
+  datadog_java_layer_version      = 18
 }
 
 resource "aws_lambda_alias" "SnapStartAlias" {

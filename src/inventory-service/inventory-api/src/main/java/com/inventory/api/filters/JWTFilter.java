@@ -1,6 +1,6 @@
 package com.inventory.api.filters;
 
-import com.inventory.api.adapters.Authenticator;
+import com.inventory.core.adapters.Authenticator;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;

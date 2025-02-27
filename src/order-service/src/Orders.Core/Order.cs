@@ -6,6 +6,14 @@ using System.Text.Json.Serialization;
 
 namespace Orders.Core;
 
+public enum OrderStatus
+{
+    Created,
+    Confirmed,
+    Completed,
+    NoStock
+}
+
 public enum OrderType
 {
     Standard,
@@ -28,7 +36,8 @@ public record Order
             OrderDate = DateTime.UtcNow,
             OrderType = OrderType.Standard,
             TotalPrice = 0,
-            Products = products
+            Products = products,
+            OrderStatus = OrderStatus.Created
         };
     }
     
@@ -41,11 +50,12 @@ public record Order
             OrderDate = DateTime.UtcNow,
             OrderType = OrderType.Priority,
             TotalPrice = 0,
-            Products = products
+            Products = products,
+            OrderStatus = OrderStatus.Created
         };
     }
     
-    internal static Order From(string userId, string orderId, DateTime orderDate, OrderType orderType, decimal totalPrice, string[] products)
+    internal static Order From(string userId, string orderId, DateTime orderDate, OrderType orderType, decimal totalPrice, string[] products, OrderStatus status)
     {
         return new Order()
         {
@@ -54,9 +64,12 @@ public record Order
             OrderDate = orderDate,
             OrderType = orderType,
             TotalPrice = totalPrice,
-            Products = products
+            Products = products,
+            OrderStatus = status
         };
     }
+    
+    public OrderStatus OrderStatus { get; set; }
 
     public string OrderNumber { get; set; } = "";
 

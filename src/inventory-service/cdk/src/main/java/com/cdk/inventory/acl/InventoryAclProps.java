@@ -7,6 +7,7 @@
 package com.cdk.inventory.acl;
 
 import com.cdk.constructs.SharedProps;
+import software.amazon.awscdk.services.dynamodb.ITable;
 import software.amazon.awscdk.services.events.IEventBus;
 
-public record InventoryAclProps(SharedProps sharedProps, IEventBus sharedEventBus) { }
+public record InventoryAclProps(SharedProps sharedProps, IEventBus sharedEventBus, ITable inventoryTable) { }

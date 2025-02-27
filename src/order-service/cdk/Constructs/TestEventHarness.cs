@@ -3,17 +3,21 @@
 // Copyright 2025 Datadog, Inc.
 
 using System.Collections.Generic;
+using System.Linq;
 using Amazon.CDK;
 using Amazon.CDK.AWS.APIGateway;
 using Amazon.CDK.AWS.DynamoDB;
+using Amazon.CDK.AWS.Events;
+using Amazon.CDK.AWS.Events.Targets;
 using Amazon.CDK.AWS.Lambda.EventSources;
 using Amazon.CDK.AWS.SecretsManager;
 using Amazon.CDK.AWS.SNS;
+using Amazon.CDK.AWS.SSM;
 using Constructs;
 
 namespace OrdersService.CDK.Constructs;
 
-public record TestEventHarnessProps(SharedProps Shared, ISecret DdApiKeySecret, string JsonPropertyKeyName, List<ITopic> SnsTopics);
+public record TestEventHarnessProps(SharedProps Shared, ISecret DdApiKeySecret, string JsonPropertyKeyName, List<ITopic> SnsTopics, List<Rule> EventBridgeRules);
 
 public class TestEventHarness : Construct
 {
@@ -55,8 +59,14 @@ public class TestEventHarness : Construct
         
         var specificProductResource = productResource.AddResource("{eventId}");
         specificProductResource.AddMethod("GET", new LambdaIntegration(eventApiFunction.Function));
+        
+        var apiEndpointParam = new StringParameter(this, "TestEventHarnessApiEndpoint", new StringParameterProps()
+        {
+            ParameterName = $"/{props.Shared.Env}/{props.Shared.ServiceName}_TestHarness/api-endpoint",
+            StringValue = httpAPi.Url
+        });
 
-        if (props.SnsTopics != null)
+        if (props.SnsTopics != null && props.SnsTopics.Any())
         {
             var snsHandlerEnvVariables = new Dictionary<string, string>(2)
             {
@@ -72,7 +82,24 @@ public class TestEventHarness : Construct
             {
                 handlerFunction.Function.AddEventSource(new SnsEventSource(topic));
             }
-            
+        }
+
+        if (props.EventBridgeRules != null && props.EventBridgeRules.Any())
+        {
+            var eventBridgeHandlerVariables = new Dictionary<string, string>(2)
+            {
+                { "TABLE_NAME", TestEventTable.TableName },
+                { "KEY_PROPERTY_NAME", props.JsonPropertyKeyName }
+            };
+            var handlerFunction = new InstrumentedFunction(this, $"EventHarnessEventBridge-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", 
+                new FunctionProps(props.Shared,$"EBEvent-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", "../src/TestHarness/TestHarness.Lambda",
+                    "TestHarness.Lambda::TestHarness.Lambda.HandlerFunctions_HandleEventBridge_Generated::HandleEventBridge", eventBridgeHandlerVariables, props.DdApiKeySecret));
+            TestEventTable.GrantReadWriteData(handlerFunction.Function);
+
+            foreach (var rule in props.EventBridgeRules)
+            {
+                rule.AddTarget(new LambdaFunction(handlerFunction.Function));
+            }
         }
     }
 }

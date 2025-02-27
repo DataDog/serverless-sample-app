@@ -3,7 +3,9 @@
 // Copyright 2024 Datadog, Inc.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Amazon.Lambda.Annotations;
+using Amazon.Lambda.CloudWatchEvents;
 using Amazon.Lambda.SNSEvents;
 using AWS.Lambda.Powertools.Logging;
 using Datadog.Trace;
@@ -53,6 +55,64 @@ public class HandlerFunctions(IEventStore eventStore)
             {
                 processingSpan.Close();
             }
+        }
+    }
+    
+    [LambdaFunction]
+    public async Task HandleEventBridge(CloudWatchEvent<JsonObject> evt)
+    {
+        var activeSpan = Tracer.Instance.ActiveScope?.Span;
+
+        var processingSpan = Tracer.Instance.StartActive("process", new SpanCreationSettings()
+        {
+            Parent = activeSpan?.Context
+        });
+
+        try
+        {
+            using var document = JsonDocument.Parse(evt.Detail.ToJsonString());
+            var root = document.RootElement;
+
+            var keyName = Environment.GetEnvironmentVariable("KEY_PROPERTY_NAME") ?? "unknown";
+
+            string? conversationId = null;
+
+            if (root.TryGetProperty("conversationId", out JsonElement conversationIdElement))
+            {
+                conversationId = conversationIdElement.GetString();
+            }
+            
+            // First try to extract from the data property
+            if (root.TryGetProperty("data", out JsonElement dataElement))
+            {
+                if (dataElement.TryGetProperty(keyName, out JsonElement childOrderIdentifierElement))
+                {
+                    await eventStore.Store(new ReceivedEvent(childOrderIdentifierElement.GetString(), evt.Detail.ToJsonString(), DateTime.Now, evt.Source, conversationId));
+                }
+
+                processingSpan.Close();
+                return;
+            }
+            else
+            {
+                Logger.LogInformation($"Data property not found.");
+            }
+            
+            // Then try to extract from a top level property
+            if (root.TryGetProperty(keyName, out JsonElement orderIdentifierElement))
+            {
+                await eventStore.Store(new ReceivedEvent(orderIdentifierElement.GetString(), evt.Detail.ToJsonString(), DateTime.Now, evt.Source, conversationId));
+            }
+
+            processingSpan.Close();
+        }
+        catch (Exception e)
+        {
+            throw;
+        }
+        finally
+        {
+            processingSpan.Close();
         }
     }
 }

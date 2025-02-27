@@ -34,7 +34,7 @@ export class UserManagementStack extends cdk.Stack {
     const domain = "UserManagement";
 
     const datadogConfiguration = new Datadog(this, "Datadog", {
-      extensionLayerVersion: 68,
+      extensionLayerVersion: 71,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
       service,

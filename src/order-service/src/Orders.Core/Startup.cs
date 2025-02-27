@@ -10,6 +10,7 @@ using Amazon.EventBridge.Model;
 using Amazon.SimpleNotificationService;
 using Amazon.SimpleSystemsManagement;
 using Amazon.SimpleSystemsManagement.Model;
+using Amazon.StepFunctions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Orders.Core.Adapters;
@@ -29,34 +30,8 @@ public static class Startup
             .CreateBootstrapLogger();
         
         services.AddLogging();
-        
-        services.AddAwsServices(configuration)
-            .AddProductServiceIntegration(configuration);
 
-        return services;
-    }
-
-    internal static IServiceCollection AddProductServiceIntegration(this IServiceCollection services,
-        IConfiguration configuration)
-    {
-        var env = configuration["ENV"];
-        var productApiEndpoint = configuration["ProductApiEndpoint"];
-        
-        if (env != "local")
-        {
-            var ssmClient = new AmazonSimpleSystemsManagementClient();
-            
-            productApiEndpoint = ssmClient.GetParameterAsync(new GetParameterRequest
-            {
-                Name = configuration["PRODUCT_API_ENDPOINT_PARAMETER"],
-                WithDecryption = true
-            }).Result.Parameter.Value;   
-        }
-        
-        services.AddHttpClient<IProductService, HttpProductService>(options =>
-        {
-            options.BaseAddress = new Uri(productApiEndpoint);
-        });
+        services.AddAwsServices(configuration);
 
         return services;
     }
@@ -100,6 +75,7 @@ public static class Startup
             services.AddSingleton(dynamoDbClient);
 
             services.AddSingleton<IEventPublisher, NoOpEventPublisher>();
+            services.AddSingleton<IOrderWorkflow, NoOpOrderWorkflow>();
         }
         else
         {
@@ -110,6 +86,10 @@ public static class Startup
             var snsClient = new AmazonSimpleNotificationServiceClient(regionEndpoint);
             services.AddSingleton(snsClient);
             services.AddSingleton<IEventPublisher, SnsEventPublisher>();
+
+            var stepFunctionsClient = new AmazonStepFunctionsClient();
+            services.AddSingleton(stepFunctionsClient);
+            services.AddSingleton<IOrderWorkflow, StepFunctionsOrderWorkflow>();
         }
         
         services.AddSingleton<IOrders, DynamoDBOrders>();

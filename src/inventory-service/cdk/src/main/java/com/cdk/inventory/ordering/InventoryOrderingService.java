@@ -61,7 +61,7 @@ public class InventoryOrderingService extends Construct {
         HashMap<String, String> functionEnvVars = new HashMap<>(2);
         functionEnvVars.put("ORDERING_SERVICE_WORKFLOW_ARN", workflow.getStateMachineArn());
 
-        String compiledJarFilePath = "../inventory-ordering-service/target/com.inventory.ordering-0.0.1-SNAPSHOT-aws.jar";
+        String compiledJarFilePath = "../inventory-ordering-service/target/com.inventory.ordering-1.0.0-SNAPSHOT-aws.jar";
         IFunction handleProductAddedFunction = new InstrumentedFunction(this, "ProductAddedFunction",
                 new InstrumentedFunctionProps(props.sharedProps(), "com.inventory.ordering", compiledJarFilePath, "handleNewProductAdded", functionEnvVars)).getFunction();
         workflow.grantStartExecution(handleProductAddedFunction);

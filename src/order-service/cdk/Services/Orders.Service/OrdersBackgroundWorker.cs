@@ -5,23 +5,26 @@
 using System.Collections.Generic;
 using Amazon.CDK.AWS.DynamoDB;
 using Amazon.CDK.AWS.Events;
+using Amazon.CDK.AWS.Events.Targets;
 using Amazon.CDK.AWS.IAM;
 using Amazon.CDK.AWS.Lambda.EventSources;
 using Amazon.CDK.AWS.SNS;
 using Amazon.CDK.AWS.SQS;
 using Amazon.CDK.AWS.SSM;
+using Amazon.CDK.AWS.StepFunctions;
 using Constructs;
 using OrdersService.CDK.Constructs;
+using EventBus = Amazon.CDK.AWS.Events.Targets.EventBus;
 using Policy = Amazon.CDK.AWS.SNS.Policy;
 
 namespace OrdersService.CDK.Services.Orders.Service;
 
 public record OrdersBackgroundWorkerProps(
     SharedProps SharedProps,
-    IEventBus SharedEventBus,
+    IEventBus OrdersEventBus,
+    IEventBus? SharedEventBus,
     ITable OrdersTable,
-    ITopic OrderCreatedTopic,
-    IStringParameter ProductApiEndpointParameter);
+    IStateMachine OrdersWorkflow);
 
 public class OrdersBackgroundWorker : Construct
 {
@@ -29,40 +32,83 @@ public class OrdersBackgroundWorker : Construct
     {
         var environmentVariables = new Dictionary<string, string>(2)
         {
-            { "PRODUCT_API_ENDPOINT_PARAMETER", props.ProductApiEndpointParameter.ParameterName },
-            { "EVENT_BUS_NAME", props.SharedEventBus.EventBusName },
-            { "TABLE_NAME", props.OrdersTable.TableName } 
+            { "EVENT_BUS_NAME", props.OrdersEventBus.EventBusName },
+            { "TABLE_NAME", props.OrdersTable.TableName }
         };
 
-        var handleOrderCreated = new InstrumentedFunction(this, "HandleOrderCreatedFunction",
-            new FunctionProps(props.SharedProps, "HandleOrderCreated", "../src/Orders.BackgroundWorkers/",
-                "Orders.BackgroundWorkers::Orders.BackgroundWorkers.Functions_HandleOrderCreated_Generated::HandleOrderCreated",
-                environmentVariables, props.SharedProps.DDApiKeySecret));
-        handleOrderCreated.Function.AddEventSource(new SnsEventSource(props.OrderCreatedTopic, new SnsEventSourceProps
+        var describeEventBusPolicy = new Amazon.CDK.AWS.IAM.Policy(this, "DescribeEventBusPolicy", new PolicyProps()
         {
-            DeadLetterQueue = new Queue(this,
-                "OrderCreatedHandlerQueue",
-                new QueueProps()
-                {
-                    QueueName = $"{props.SharedProps.ServiceName}-OrderCreatedHandlerDLQ-{props.SharedProps.Env}"
-                })
-        }));
-        handleOrderCreated.Function.Role?.AttachInlinePolicy(new Amazon.CDK.AWS.IAM.Policy(this, "DescribeEventBusPolicy", new PolicyProps()
-        {
-            PolicyName = "allow-describe-event-bus",
-            Statements = new []
+            PolicyName = $"cdk-{props.SharedProps.ServiceName}-describe-event-bus-{props.SharedProps.Env}",
+            Statements = new[]
             {
                 new PolicyStatement(new PolicyStatementProps()
                 {
                     Effect = Effect.ALLOW,
-                    Resources = new[] { props.SharedEventBus.EventBusArn },
+                    Resources = new[] { props.OrdersEventBus.EventBusArn },
                     Actions = new[] { "events:DescribeEventBus" }
                 })
             }
-        }));
+        });
 
-        props.OrdersTable.GrantReadWriteData(handleOrderCreated.Function);
-        props.SharedEventBus.GrantPutEventsTo(handleOrderCreated.Function);
-        props.ProductApiEndpointParameter.GrantRead(handleOrderCreated.Function);
+        var stockReservedEventQueue = new ResilientQueue(this, "ProductStockReservedEventQueue",
+            new ResilientQueueProps($"{props.SharedProps.ServiceName}-StockReserved", props.SharedProps.Env));
+
+        var handleStockReserved = new InstrumentedFunction(this, "HandleStockReservedFunction",
+            new FunctionProps(props.SharedProps, "HandleStockReserved", "../src/Orders.BackgroundWorkers/",
+                "Orders.BackgroundWorkers::Orders.BackgroundWorkers.Functions_HandleStockReserved_Generated::HandleStockReserved",
+                environmentVariables, props.SharedProps.DDApiKeySecret));
+        handleStockReserved.Function.AddEventSource(new SqsEventSource(stockReservedEventQueue.Queue));
+
+        handleStockReserved.Function.Role?.AttachInlinePolicy(describeEventBusPolicy);
+
+        props.OrdersTable.GrantReadWriteData(handleStockReserved.Function);
+        props.OrdersWorkflow.Grant(handleStockReserved.Function,
+            new[] { "states:SendTaskSuccess", "states:SendTaskFailure" });
+
+        AddSharedBusRule("OrdersStockReserved", props, new EventPattern()
+        {
+            DetailType = ["inventory.stockReserved.v1"],
+            Source = [$"{props.SharedProps.Env}.inventory"]
+        }, stockReservedEventQueue.Queue);
+
+        var stockReservationFailedEventQueue = new ResilientQueue(this, "ProductStockReservationFailedEventQueue",
+            new ResilientQueueProps($"{props.SharedProps.ServiceName}-StockReservationFailed", props.SharedProps.Env));
+        var handleOutOfStock = new InstrumentedFunction(this, "HandleStockReservationFailedFunction",
+            new FunctionProps(props.SharedProps, "HandleStockReservationFailed", "../src/Orders.BackgroundWorkers/",
+                "Orders.BackgroundWorkers::Orders.BackgroundWorkers.Functions_HandleReservationFailed_Generated::HandleReservationFailed",
+                environmentVariables, props.SharedProps.DDApiKeySecret));
+        handleOutOfStock.Function.AddEventSource(new SqsEventSource(stockReservationFailedEventQueue.Queue));
+
+        handleOutOfStock.Function.Role?.AttachInlinePolicy(describeEventBusPolicy);
+
+        props.OrdersTable.GrantReadWriteData(handleOutOfStock.Function);
+        props.OrdersWorkflow.Grant(handleOutOfStock.Function,
+            new[] { "states:SendTaskSuccess", "states:SendTaskFailure" });
+
+        AddSharedBusRule("OrdersStockReservationFailed", props, new EventPattern()
+        {
+            DetailType = ["inventory.stockReservationFailed.v1"],
+            Source = [$"{props.SharedProps.Env}.inventory"]
+        }, stockReservationFailedEventQueue.Queue);
+    }
+
+    private void AddSharedBusRule(string name, OrdersBackgroundWorkerProps props, EventPattern pattern, IQueue target)
+    {
+        if (props.SharedEventBus != null)
+        {
+            var sharedBusRule = new Rule(this, $"{name}SharedBusRule", new RuleProps()
+            {
+                EventBus = props.SharedEventBus
+            });
+            sharedBusRule.AddEventPattern(pattern);
+            sharedBusRule.AddTarget(new EventBus(props.OrdersEventBus));
+        }
+
+        var ordersBusRule = new Rule(this, $"{name}OrdersBusRule", new RuleProps()
+        {
+            EventBus = props.OrdersEventBus
+        });
+        ordersBusRule.AddEventPattern(pattern);
+        ordersBusRule.AddTarget(new SqsQueue(target));
     }
 }

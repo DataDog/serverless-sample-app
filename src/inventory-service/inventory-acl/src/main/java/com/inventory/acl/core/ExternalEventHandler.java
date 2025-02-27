@@ -6,18 +6,26 @@
 
 package com.inventory.acl.core;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import com.inventory.acl.core.events.external.OrderCreatedEventV1;
+import com.inventory.core.*;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import com.inventory.acl.core.events.external.ProductCreatedEventV1;
-import com.inventory.acl.core.events.internal.NewProductAddedEvent;
 
-@Service
+@ApplicationScoped
 public class ExternalEventHandler {
-    @Autowired
-    EventPublisher publisher;
+    @Inject
+    EventPublisher eventPublisher;
+
+    @Inject
+    InventoryItemService itemService;
     
     public void handleProductCreatedV1Event(ProductCreatedEventV1 evt) {
-        this.publisher.publishNewProductAddedEvent(new NewProductAddedEvent(evt.getProductId()));
+        this.eventPublisher.publishNewProductAddedEvent(new NewProductAddedEvent(evt.getProductId()));
+    }
+
+    public boolean handleOrderCreatedV1Event(OrderCreatedEventV1 evt, String conversationId) {
+        return (this.itemService.reserveStockForOrder(evt.getOrderNumber(), evt.getProducts(), conversationId)).isSuccess();
     }
 }

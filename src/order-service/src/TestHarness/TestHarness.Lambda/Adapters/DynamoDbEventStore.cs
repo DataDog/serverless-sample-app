@@ -19,6 +19,7 @@ public class DynamoDbEventStore(
     private const string EventDataKey = "EventData";
     private const string ReceivedFromKey = "ReceivedFrom";
     private const string DateTimeKey = "DateTime";
+    private const string ConversationId = "ConversationId";
 
     public async Task Store(ReceivedEvent evt)
     {
@@ -27,7 +28,8 @@ public class DynamoDbEventStore(
             { PartitionKeyItemKey, new AttributeValue(evt.Key) },
             { EventDataKey, new AttributeValue(evt.EventData) },
             { DateTimeKey, new AttributeValue(evt.ReceivedOn.ToString("yyyyMMddhhmmss")) },
-            { ReceivedFromKey, new AttributeValue(evt.ReceivedFrom) }
+            { ReceivedFromKey, new AttributeValue(evt.ReceivedFrom) },
+            { ConversationId, new AttributeValue(evt.ConversationId)}
         });
     }
 
@@ -48,7 +50,8 @@ public class DynamoDbEventStore(
             evts.Add(new ReceivedEvent(eventItem[PartitionKeyItemKey].S,
                 eventItem[EventDataKey].S,
                 DateTime.ParseExact(eventItem[DateTimeKey].S, "yyyyMMddhhmmss", CultureInfo.InvariantCulture),
-                eventItem[ReceivedFromKey].S));
+                eventItem[ReceivedFromKey].S,
+                eventItem[ConversationId].S));
 
         return evts;
     }

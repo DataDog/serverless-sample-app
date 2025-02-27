@@ -17,4 +17,7 @@ public record OrderDTO
     [JsonPropertyName("products")]
     public string[] Products { get; set; }
     
+    [JsonPropertyName("status")]
+    public string OrderStatus { get; set; }
+    
 }

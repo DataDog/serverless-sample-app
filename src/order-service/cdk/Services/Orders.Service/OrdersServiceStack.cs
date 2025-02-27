@@ -2,18 +2,14 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025 Datadog, Inc.
 
+using System;
 using System.Collections.Generic;
 using Amazon.CDK;
-using Amazon.CDK.AWS.DynamoDB;
-using Amazon.CDK.AWS.EC2;
-using Amazon.CDK.AWS.ECS;
-using Amazon.CDK.AWS.ECS.Patterns;
 using Amazon.CDK.AWS.Events;
-using Amazon.CDK.AWS.IAM;
+using Amazon.CDK.AWS.SNS;
 using Amazon.CDK.AWS.SSM;
 using Constructs;
 using OrdersService.CDK.Constructs;
-using HealthCheck = Amazon.CDK.AWS.ElasticLoadBalancingV2.HealthCheck;
 using Secret = Amazon.CDK.AWS.SecretsManager.Secret;
 
 namespace OrdersService.CDK.Services.Orders.Service;
@@ -30,19 +26,69 @@ public class OrdersServiceStack : Stack
         var version = System.Environment.GetEnvironmentVariable("VERSION") ?? "latest";
         var sharedProps = new SharedProps(serviceName, env, version, secret);
 
-        var jwtAccessKeyParameter =
-            StringParameter.FromStringParameterName(this, "JwtAccessKeyParameter", $"/{env}/shared/secret-access-key");
-        var productApiEndpointParameter = StringParameter.FromStringParameterName(this, "ProductApiEndpointParameter",
-            $"/{env}/ProductManagementService/api-endpoint");
+        IEventBus? sharedEventBus = null;
+        IStringParameter jwtAccessKeyParameter = null;
+        var integratedEnvironments = new List<string> {"prod", "dev"};
+        
+        var orderServiceEventBus = new EventBus(this, "OrdersEventBus", new EventBusProps()
+        {
+            EventBusName = $"{serviceName}-bus-{env}"
+        });
+        var ordersEventBusParameter = new StringParameter(this, "OrdersTestEventBusName",
+            new StringParameterProps
+            {
+                ParameterName = $"/{env}/{serviceName}/event-bus-name",
+                StringValue = orderServiceEventBus.EventBusName
+            });
+        var ordersEventBusArnParameter = new StringParameter(this, "OrdersTestEventBusArn",
+            new StringParameterProps
+            {
+                ParameterName = $"/{env}/{serviceName}/event-bus-arn",
+                StringValue = orderServiceEventBus.EventBusArn
+            });
 
-        var eventBusTopicArn = StringParameter.FromStringParameterName(this, "EventBusTopicArn",
-            $"/{env}/shared/event-bus-name");
-        var eventBus = EventBus.FromEventBusName(this, "SharedEventBus", eventBusTopicArn.StringValue);
+        if (!integratedEnvironments.Contains(env))
+        {
+            jwtAccessKeyParameter = new StringParameter(this, "OrdersTestJwtAccessKeyParameter",
+                new StringParameterProps
+                {
+                    ParameterName = $"/{env}/{serviceName}/secret-access-key",
+                    StringValue = "This is a sample secret key that should not be used in production`"
+                });
+        }
+        else
+        {
+            jwtAccessKeyParameter =
+                StringParameter.FromStringParameterName(this, "JwtAccessKeyParameter", $"/{env}/shared/secret-access-key");
+
+            var eventBusTopicArn = StringParameter.FromStringParameterName(this, "EventBusTopicArn",
+                $"/{env}/shared/event-bus-name");
+            sharedEventBus = EventBus.FromEventBusName(this, "SharedEventBus", eventBusTopicArn.StringValue);
+        }
+        
+        var stockReservedRule = new Rule(this, "OrderCreatedTestRule", new RuleProps()
+        {
+            EventBus = orderServiceEventBus,
+        });
+        stockReservedRule.AddEventPattern(new EventPattern()
+        {
+            DetailType = ["orders.orderCreated.v1"],
+            Source = [$"{sharedProps.Env}.orders"]
+        });
+
+        var testEventHarness = new TestEventHarness(this, "OrdersTestEventHarness",
+            new TestEventHarnessProps(sharedProps, secret, "orderNumber", new List<ITopic>(), new List<Rule>(){stockReservedRule}));
 
         var orderApi = new OrdersApi(this, "OrdersApi",
-            new OrdersApiProps(sharedProps, jwtAccessKeyParameter, productApiEndpointParameter, eventBus));
+            new OrdersApiProps(sharedProps, jwtAccessKeyParameter, orderServiceEventBus, sharedEventBus));
 
         var ordersWorker = new OrdersBackgroundWorker(this, "OrdersWorker",
-            new OrdersBackgroundWorkerProps(sharedProps, eventBus, orderApi.OrdersTable, orderApi.OrderCreatedTopic, productApiEndpointParameter));
+            new OrdersBackgroundWorkerProps(sharedProps, orderServiceEventBus, sharedEventBus, orderApi.OrdersTable, orderApi.OrdersWorkflow));
+
+        // Add forwarding rules for shared event bus
+        if (sharedEventBus != null)
+        {
+            stockReservedRule.AddTarget(new Amazon.CDK.AWS.Events.Targets.EventBus(sharedEventBus));
+        }
     }
 }

@@ -37,7 +37,7 @@ public class InventoryServiceStack  extends Stack {
 
         var api = new InventoryApiContainer(this, "InventoryApi", new InventoryApiContainerProps(sharedProps, sharedBus, jwtAccessKeyParameterName));
 
-        var acl = new InventoryAcl(this, "InventoryACL", new InventoryAclProps(sharedProps, sharedBus));
+        var acl = new InventoryAcl(this, "InventoryACL", new InventoryAclProps(sharedProps, sharedBus, api.getTable()));
 
         new InventoryOrderingService(this, "InventoryOrdering", new InventoryOrderingServiceProps(sharedProps, api.getTable(), acl.getNewProductAddedTopic()));
     }

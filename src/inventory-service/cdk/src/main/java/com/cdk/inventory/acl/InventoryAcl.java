@@ -18,6 +18,8 @@ import software.amazon.awscdk.services.events.IRule;
 import software.amazon.awscdk.services.events.Rule;
 import software.amazon.awscdk.services.events.RuleProps;
 import software.amazon.awscdk.services.events.targets.SqsQueue;
+import software.amazon.awscdk.services.iam.Effect;
+import software.amazon.awscdk.services.iam.PolicyStatement;
 import software.amazon.awscdk.services.lambda.IFunction;
 import software.amazon.awscdk.services.lambda.eventsources.SqsEventSource;
 import software.amazon.awscdk.services.lambda.eventsources.SqsEventSourceProps;
@@ -43,15 +45,20 @@ public class InventoryAcl extends Construct {
 
         ResilientQueue queue = new ResilientQueue(this, "ProductCreatedEventQueue", new ResilientQueueProps("InventoryProductCreatedEventQueue", props.sharedProps()));
 
-        HashMap<String, String> functionEnvVars = new HashMap<>(2);
-        functionEnvVars.put("EVENT_BUS_NAME", props.sharedEventBus().getEventBusName());
-        functionEnvVars.put("PRODUCT_ADDED_TOPIC_ARN", newProductAddedTopic.getTopicArn());
+        HashMap<String, String> productCreatedFunctionEnvVars = new HashMap<>(2);
+        productCreatedFunctionEnvVars.put("EVENT_BUS_NAME", props.sharedEventBus().getEventBusName());
+        productCreatedFunctionEnvVars.put("PRODUCT_ADDED_TOPIC_ARN", newProductAddedTopic.getTopicArn());
 
-        String compiledJarFilePath = "../inventory-acl/target/com.inventory.acl-0.0.1-SNAPSHOT-aws.jar";
+        String compiledJarFilePath = "../inventory-acl/target/function.zip";
 
         IFunction productCreatedEventHandlerFunction = new InstrumentedFunction(this, "InventoryAclFunction",
-                new InstrumentedFunctionProps(props.sharedProps(), "com.inventory.acl", compiledJarFilePath, "handleProductCreatedEvent", functionEnvVars)).getFunction();
+                new InstrumentedFunctionProps(props.sharedProps(), "com.inventory.acl", compiledJarFilePath, "handleProductCreated", productCreatedFunctionEnvVars, true)).getFunction();
         newProductAddedTopic.grantPublish(productCreatedEventHandlerFunction);
+        productCreatedEventHandlerFunction.addToRolePolicy(PolicyStatement.Builder.create()
+                .effect(Effect.ALLOW)
+                .resources(List.of("*"))
+                .actions(List.of("events:ListEventBuses"))
+                .build());
 
         productCreatedEventHandlerFunction.addEventSource(new SqsEventSource(queue.getQueue(), SqsEventSourceProps.builder()
                 .reportBatchItemFailures(true)
@@ -67,6 +74,37 @@ public class InventoryAcl extends Construct {
                         .source(List.of(String.format("%s.products", props.sharedProps().env())))
                 .build());
         rule.addTarget(new SqsQueue(queue.getQueue()));
+
+        ResilientQueue orderCreatedQueue = new ResilientQueue(this, "OrderCreatedEventQueue", new ResilientQueueProps("InventoryOrderCreatedEventQueue", props.sharedProps()));
+
+        HashMap<String, String> orderCreatedFunctionEnvVars = new HashMap<>(2);
+        orderCreatedFunctionEnvVars.put("EVENT_BUS_NAME", props.sharedEventBus().getEventBusName());
+        orderCreatedFunctionEnvVars.put("TABLE_NAME", props.inventoryTable().getTableName());
+
+        IFunction orderCreatedFunction = new InstrumentedFunction(this, "OrderCreatedACLFunction",
+                new InstrumentedFunctionProps(props.sharedProps(), "com.inventory.acl", compiledJarFilePath, "handleOrderCreated", orderCreatedFunctionEnvVars, true)).getFunction();
+
+        orderCreatedFunction.addEventSource(new SqsEventSource(orderCreatedQueue.getQueue(), SqsEventSourceProps.builder()
+                .reportBatchItemFailures(true)
+                .maxBatchingWindow(Duration.seconds(10))
+                .batchSize(10)
+                .build()));
+        props.sharedEventBus().grantPutEventsTo(orderCreatedFunction);
+        orderCreatedFunction.addToRolePolicy(PolicyStatement.Builder.create()
+                .effect(Effect.ALLOW)
+                .resources(List.of("*"))
+                .actions(List.of("events:ListEventBuses"))
+                .build());
+        props.inventoryTable().grantReadWriteData(orderCreatedFunction);
+
+        Rule orderCreatedRule = new Rule(this, "InventoryOrderCreatedRule", RuleProps.builder()
+                .eventBus(props.sharedEventBus())
+                .build());
+        orderCreatedRule.addEventPattern(EventPattern.builder()
+                .detailType(List.of("orders.orderCreated.v1"))
+                .source(List.of(String.format("%s.orders", props.sharedProps().env())))
+                .build());
+        orderCreatedRule.addTarget(new SqsQueue(orderCreatedQueue.getQueue()));
     }
 
     public ITopic getNewProductAddedTopic() {

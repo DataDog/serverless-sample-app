@@ -6,22 +6,33 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using Amazon.EventBridge;
+using Amazon.EventBridge.Model;
 using Amazon.SimpleSystemsManagement;
 using Amazon.SimpleSystemsManagement.Model;
 using Microsoft.IdentityModel.Tokens;
+using Xunit.Abstractions;
 
 namespace Orders.IntegrationTests;
 
 public class ApiDriver
 {
+    private readonly ITestOutputHelper _testOutputHelper;
+    private string env;
+    private string testHarnessApiEndpoint;
     private string apiEndpoint;
-    private string productServiceApiEndpoint;
     private string secretKey;
+    private string eventBusName;
     private HttpClient _httpClient;
+    private AmazonEventBridgeClient _eventBridgeClient;
     
-    public ApiDriver(string env, AmazonSimpleSystemsManagementClient ssmClient)
+    public ApiDriver(ITestOutputHelper testOutputHelper, string env, AmazonSimpleSystemsManagementClient ssmClient)
     {
+        _testOutputHelper = testOutputHelper;
+        this.env = env;
         _httpClient = new HttpClient();
+        _eventBridgeClient = new AmazonEventBridgeClient();
+        string serviceName = env == "dev" || env == "prod" ? "shared" : "OrdersService";
         
         apiEndpoint = ssmClient.GetParameterAsync(new GetParameterRequest
         {
@@ -29,26 +40,23 @@ public class ApiDriver
             WithDecryption = true
         }).GetAwaiter().GetResult().Parameter.Value;
         
-        productServiceApiEndpoint = ssmClient.GetParameterAsync(new GetParameterRequest
+        testHarnessApiEndpoint = ssmClient.GetParameterAsync(new GetParameterRequest
         {
-            Name = $"/{env}/ProductManagementService/api-endpoint",
+            Name = $"/{env}/OrdersService_TestHarness/api-endpoint",
             WithDecryption = true
         }).GetAwaiter().GetResult().Parameter.Value;
         
         secretKey = ssmClient.GetParameterAsync(new GetParameterRequest
         {
-            Name = $"/{env}/shared/secret-access-key",
+            Name = $"/{env}/{serviceName}/secret-access-key",
             WithDecryption = true
         }).GetAwaiter().GetResult().Parameter.Value;
-    }
-
-    public async Task<List<string>> LoadProductList()
-    {
-        var productResponse = await _httpClient.GetStringAsync($"{productServiceApiEndpoint}product");
-
-        var products = JsonSerializer.Deserialize<ApiResponse<List<ProductDTO>>>(productResponse);
-
-        return products.Data.Select(item => item.ProductId).ToList();
+        
+        eventBusName = ssmClient.GetParameterAsync(new GetParameterRequest
+        {
+            Name = $"/{env}/{serviceName}/event-bus-name",
+            WithDecryption = true
+        }).GetAwaiter().GetResult().Parameter.Value;
     }
     
     public async Task<HttpResponseMessage> CreateOrderFor(string[] products)
@@ -76,6 +84,88 @@ public class ApiDriver
         return await _httpClient.SendAsync(request);
     }
 
+    public async Task StockReservationSuccessfulFor(string orderId)
+    {
+        var testEventApiEndpoint = $"{testHarnessApiEndpoint}/events/{orderId}";
+        _testOutputHelper.WriteLine($"Test harness endpoint is: {testEventApiEndpoint}");
+        
+        await Task.Delay(TimeSpan.FromSeconds(10));
+        
+        var request = new HttpRequestMessage(HttpMethod.Get, testEventApiEndpoint);
+        
+        var eventResult = await _httpClient.SendAsync(request);
+        var responseString = await eventResult.Content.ReadAsStringAsync();
+        
+        _testOutputHelper.WriteLine(responseString);
+
+        var events = JsonSerializer.Deserialize<List<ReceivedEvent>>(responseString);
+        
+        if (!events.Any())
+        {
+            throw new Exception($"No events received for order {orderId}");
+        }
+
+        var stockReservedEvent = events.FirstOrDefault();
+
+        await _eventBridgeClient.PutEventsAsync(new PutEventsRequest()
+        {
+            Entries = new List<PutEventsRequestEntry>(1)
+            {
+                new()
+                {
+                    EventBusName = eventBusName,
+                    Source = $"{this.env}.inventory",
+                    DetailType = "inventory.stockReserved.v1",
+                    Detail = "{\"conversationId\":\"" + stockReservedEvent.ConversationId + "\"}"
+                }
+            }
+        });
+
+        await Task.Delay(TimeSpan.FromSeconds(5));
+    }
+    
+    
+
+    public async Task StockReservationFailedFor(string orderId)
+    {
+        var testEventApiEndpoint = $"{testHarnessApiEndpoint}/events/{orderId}";
+        _testOutputHelper.WriteLine($"Test harness endpoint is: {testEventApiEndpoint}");
+        
+        await Task.Delay(TimeSpan.FromSeconds(10));
+        
+        var request = new HttpRequestMessage(HttpMethod.Get, testEventApiEndpoint);
+        
+        var eventResult = await _httpClient.SendAsync(request);
+        var responseString = await eventResult.Content.ReadAsStringAsync();
+        
+        _testOutputHelper.WriteLine(responseString);
+
+        var events = JsonSerializer.Deserialize<List<ReceivedEvent>>(responseString);
+        
+        if (!events.Any())
+        {
+            throw new Exception($"No events received for order {orderId}");
+        }
+
+        var stockReservedEvent = events.FirstOrDefault();
+
+        await _eventBridgeClient.PutEventsAsync(new PutEventsRequest()
+        {
+            Entries = new List<PutEventsRequestEntry>(1)
+            {
+                new()
+                {
+                    EventBusName = eventBusName,
+                    Source = $"{this.env}.inventory",
+                    DetailType = "inventory.stockReservationFailed.v1",
+                    Detail = "{\"conversationId\":\"" + stockReservedEvent.ConversationId + "\"}"
+                }
+            }
+        });
+
+        await Task.Delay(TimeSpan.FromSeconds(5));
+    }
+    
     private string generateJwt()
     {
         var accountId = "test-user";
@@ -97,6 +187,8 @@ public class ApiDriver
                 signingCredentials: signingCredentials
             )
         );
+        
+        _testOutputHelper.WriteLine($"Generated JWT: {userToken}");
 
         return userToken;
     }

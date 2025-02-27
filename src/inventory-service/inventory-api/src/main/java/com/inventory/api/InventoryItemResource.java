@@ -1,9 +1,9 @@
 package com.inventory.api;
 
-import com.inventory.api.core.HandlerResponse;
-import com.inventory.api.core.InventoryItemDTO;
-import com.inventory.api.core.InventoryItemService;
-import com.inventory.api.core.UpdateInventoryStockRequest;
+import com.inventory.core.HandlerResponse;
+import com.inventory.core.InventoryItemDTO;
+import com.inventory.core.InventoryItemService;
+import com.inventory.core.UpdateInventoryStockRequest;
 import io.smallrye.common.constraint.NotNull;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;

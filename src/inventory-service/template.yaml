@@ -12,8 +12,8 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
-      javaLayerVersion: "15"
-      extensionLayerVersion: "68"
+      javaLayerVersion: "18"
+      extensionLayerVersion: "71"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -55,13 +55,13 @@ Resources:
   InventoryProductCreatedPublicEventHandler:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./inventory-acl/target/com.inventory.acl-0.0.1-SNAPSHOT-aws.jar
-      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      CodeUri: ./inventory-acl/target/function.zip
+      Handler: io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest
       FunctionName: !Sub ${ServiceName}-AclProductCreated-${Env}
       Environment:
         Variables:
           PRODUCT_ADDED_TOPIC_ARN: !Ref NewProductAddedTopic
-          spring_cloud_function_definition: handleProductCreatedEvent
+          QUARKUS_LAMBDA_HANDLER: handleProductCreated
           MAIN_CLASS: com.inventory.acl.FunctionConfiguration
       Events:
         IntegrationQueue:
@@ -77,6 +77,36 @@ Resources:
               Resource: !Ref DDApiKeySecretArn
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt NewProductAddedTopic.TopicName
+    Metadata:
+      SkipBuild: True
+
+  InventoryOrderCreatedPublicEventHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./inventory-acl/target/function.zip
+      Handler: io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest
+      FunctionName: !Sub ${ServiceName}-AclOrderCreated-${Env}
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref InventoryApiTable
+          QUARKUS_LAMBDA_HANDLER: handleOrderCreated
+          MAIN_CLASS: com.inventory.acl.FunctionConfiguration
+      Events:
+        IntegrationQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt InventoryOrderCreatedEventQueue.Arn
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InventoryApiTable
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
     Metadata:
       SkipBuild: True
  
@@ -129,6 +159,52 @@ Resources:
             Principal:
               Service: "events.amazonaws.com"
             Resource: !GetAtt InventoryProductCreatedEventQueue.Arn
+            Action: SQS:SendMessage
+
+  InventoryOrderCreatedEventDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "InventoryOrderCreatedEventDLQ-${sls:stage}"
+
+  InventoryOrderCreatedEventQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "InventoryOrderCreatedEventQueue-${sls:stage}"
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - "InventoryOrderCreatedEventDLQ"
+            - "Arn"
+        maxReceiveCount: 3
+
+  OrderCreatedEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Sub "${ssm:/${sls:stage}/shared/event-bus-name}"
+      Name: inventory-order-created
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${sls:stage}.orders"
+        detail-type:
+          - "orders.orderCreated.v1"
+      Targets:
+        - Id: OrderCreatedEventQueue
+          Arn: !GetAtt InventoryOrderCreatedEventQueue.Arn
+
+  EBToOrderCreatedQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref InventoryOrderCreatedEventQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: allow-eb-send-message-messages
+            Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Resource: !GetAtt InventoryOrderCreatedEventQueue.Arn
             Action: SQS:SendMessage
 
   InventoryOrderingWorkflow:
@@ -199,7 +275,6 @@ Resources:
       Tags:
         DD_ENHANCED_METRICS: "true"
         DD_TRACE_ENABLED: "true"
-
 
   InventoryApiTable:
     Type: AWS::DynamoDB::Table

@@ -87,12 +87,27 @@ data "aws_iam_policy_document" "inventory_acl_queue_policy" {
   }
 }
 
+data "aws_iam_policy_document" "inventory_product_created_queue_policy" {
+  statement {
+    sid    = "AllowEBPost"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com"]
+    }
+
+    actions   = ["sqs:SendMessage"]
+    resources = [aws_sqs_queue.order_created_queue.arn]
+  }
+}
+
 data "aws_iam_policy_document" "sqs_receive" {
   statement {
     actions = ["sqs:ReceiveMessage",
       "sqs:DeleteMessage",
     "sqs:GetQueueAttributes"]
-    resources = ["arn:aws:sqs:*:${data.aws_caller_identity.current.account_id}:${aws_sqs_queue.public_event_acl_queue.name}"]
+    resources = ["arn:aws:sqs:*:${data.aws_caller_identity.current.account_id}:${aws_sqs_queue.public_event_acl_queue.name}", "arn:aws:sqs:*:${data.aws_caller_identity.current.account_id}:${aws_sqs_queue.order_created_queue.name}"]
   }
 }
 
