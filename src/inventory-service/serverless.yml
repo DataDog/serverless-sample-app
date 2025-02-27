@@ -105,7 +105,7 @@ functions:
       ORDERING_SERVICE_WORKFLOW_ARN: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:inventoryOrderingWorkflow${sls:stage}
       spring_cloud_function_definition: handleNewProductAdded
     package:
-      artifact: ./inventory-ordering-service/target/com.inventory.ordering-0.0.1-SNAPSHOT-aws.jar
+      artifact: ./inventory-ordering-service/target/com.inventory.ordering-1.0.0-SNAPSHOT-aws.jar
       individually: true
     events:
       - sns: 

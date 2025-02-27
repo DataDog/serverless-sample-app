@@ -210,7 +210,7 @@ Resources:
   InventoryOrderingWorkflow:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./inventory-ordering-service/target/com.inventory.ordering-0.0.1-SNAPSHOT-aws.jar
+      CodeUri: ./inventory-ordering-service/target/com.inventory.ordering-1.0.0-SNAPSHOT-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       FunctionName: !Sub ${ServiceName}-WorkflowTrigger-${Env}
       Environment:

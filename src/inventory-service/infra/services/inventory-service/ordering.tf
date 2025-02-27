@@ -9,7 +9,7 @@ module "inventory_ordering_service" {
   service_name   = "InventoryOrderingService"
   package_name = "com.inventory.ordering"
   source         = "../../modules/lambda-function"
-  jar_file       = "../inventory-ordering-service/target/com.inventory.ordering-0.0.1-SNAPSHOT-aws.jar"
+  jar_file       = "../inventory-ordering-service/target/com.inventory.ordering-1.0.0-SNAPSHOT-aws.jar"
   function_name  = "Workflow"
   lambda_handler = "org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest"
   routing_expression = "handleNewProductAdded"
