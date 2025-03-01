@@ -213,15 +213,15 @@ dependencies = [
 
 [[package]]
 name = "aws-sdk-eventbridge"
-version = "1.47.0"
+version = "1.63.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abb7aae006d1be0fbf2151f50928dc9e5ccacbcda1c0ee5d24404f9d296b47bc"
+checksum = "e2bbcc84e87c5e6e304f599a4dabc9d8b1c1de0e99cb1163bcfc5af6f5de813e"
 dependencies = [
  "aws-credential-types",
  "aws-runtime",
  "aws-smithy-async",
  "aws-smithy-http",
- "aws-smithy-json 0.60.7",
+ "aws-smithy-json 0.61.2",
  "aws-smithy-runtime",
  "aws-smithy-runtime-api",
  "aws-smithy-types",
