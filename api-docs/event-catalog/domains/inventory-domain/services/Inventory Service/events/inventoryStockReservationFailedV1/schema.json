@@ -1,0 +1,11 @@
+{
+    "type": "object",
+    "properties": {
+        "orderNumber": {
+            "type": "string",
+            "description": "The order number",
+            "x-parser-schema-id": "<anonymous-schema-4>"
+        }
+    },
+    "x-parser-schema-id": "<anonymous-schema-3>"
+}

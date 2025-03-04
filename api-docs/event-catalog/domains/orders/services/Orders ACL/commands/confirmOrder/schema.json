@@ -1,0 +1,11 @@
+{
+    "type": "object",
+    "properties": {
+        "orderNumber": {
+            "type": "string",
+            "description": "The order number to mark as confirmed",
+            "x-parser-schema-id": "<anonymous-schema-6>"
+        }
+    },
+    "x-parser-schema-id": "<anonymous-schema-5>"
+}

@@ -7,4 +7,6 @@ namespace Orders.IntegrationTests;
 public record ReceivedEvent
 {
     public string ConversationId { get; set; }
+    
+    public string EventType { get; set; }
 }

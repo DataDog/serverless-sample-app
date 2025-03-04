@@ -7,4 +7,6 @@ namespace Orders.Core.PublicEvents;
 public record OrderConfirmedEventV1
 {
     public string OrderNumber { get; set; } = "";
+
+    public string UserId { get; set; } = "";
 }

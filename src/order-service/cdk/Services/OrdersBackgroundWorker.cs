@@ -45,12 +45,18 @@ public class OrdersBackgroundWorker : Construct
                 })
             }
         });
+        
+        CreateStockReservedEventAcl(props, describeEventBusPolicy, environmentVariables);
+        CreateStockReservationFailedEventAcl(props, describeEventBusPolicy, environmentVariables);
+    }
 
+    private void CreateStockReservedEventAcl(OrdersBackgroundWorkerProps props, Policy describeEventBusPolicy, Dictionary<string, string> environmentVariables)
+    {
         var stockReservedEventQueue = new ResilientQueue(this, "ProductStockReservedEventQueue",
             new ResilientQueueProps($"{props.SharedProps.ServiceName}-StockReserved", props.SharedProps.Env));
 
-        var handleStockReserved = new InstrumentedFunction(this, "HandleStockReservedFunction",
-            new FunctionProps(props.SharedProps, "HandleStockReserved", "../src/Orders.BackgroundWorkers/",
+        var handleStockReserved = new InstrumentedFunction(this, "StockReservedACLFunction",
+            new FunctionProps(props.SharedProps, "StockReservationSuccessACL", "../src/Orders.BackgroundWorkers/",
                 "Orders.BackgroundWorkers::Orders.BackgroundWorkers.Functions_HandleStockReserved_Generated::HandleStockReserved",
                 environmentVariables, props.SharedProps.DDApiKeySecret));
         handleStockReserved.Function.AddEventSource(new SqsEventSource(stockReservedEventQueue.Queue));
@@ -66,10 +72,14 @@ public class OrdersBackgroundWorker : Construct
             DetailType = ["inventory.stockReserved.v1"],
             Source = [$"{props.SharedProps.Env}.inventory"]
         }, stockReservedEventQueue.Queue);
+    }
 
+    private void CreateStockReservationFailedEventAcl(OrdersBackgroundWorkerProps props, Policy describeEventBusPolicy, Dictionary<string, string> environmentVariables)
+    {
         var stockReservationFailedEventQueue = new ResilientQueue(this, "ProductStockReservationFailedEventQueue",
-            new ResilientQueueProps($"{props.SharedProps.ServiceName}-StockReservationFailed", props.SharedProps.Env));
-        var handleOutOfStock = new InstrumentedFunction(this, "HandleStockReservationFailedFunction",
+            new ResilientQueueProps($"{props.SharedProps.ServiceName}-StockReservationFailedACL", props.SharedProps.Env));
+        
+        var handleOutOfStock = new InstrumentedFunction(this, "StockReservationFailedACLFunction",
             new FunctionProps(props.SharedProps, "HandleStockReservationFailed", "../src/Orders.BackgroundWorkers/",
                 "Orders.BackgroundWorkers::Orders.BackgroundWorkers.Functions_HandleReservationFailed_Generated::HandleReservationFailed",
                 environmentVariables, props.SharedProps.DDApiKeySecret));
@@ -87,7 +97,7 @@ public class OrdersBackgroundWorker : Construct
             Source = [$"{props.SharedProps.Env}.inventory"]
         }, stockReservationFailedEventQueue.Queue);
     }
-
+    
     private void AddSharedBusRule(string name, OrdersBackgroundWorkerProps props, EventPattern pattern, IQueue target)
     {
         if (props.ServiceProps.SharedEventBus.EventBus != null)

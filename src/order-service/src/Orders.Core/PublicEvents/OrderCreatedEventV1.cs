@@ -9,4 +9,6 @@ public record OrderCreatedEventV1
     public string OrderNumber { get; set; } = "";
 
     public string[] Products { get; set; } = [];
+
+    public string UserId { get; set; } = "";
 }

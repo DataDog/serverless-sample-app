@@ -1,0 +1,110 @@
+asyncapi: 3.0.0
+info:
+  title: Order ACL
+  description: The order service anti-corruption layer
+  version: 1.0.0
+
+operations:
+  sendOrderConfirmed:
+    action: send
+    channel:
+      $ref: '#/channels/orderConfirmed'
+    messages:
+      - $ref: '#/channels/orderConfirmed/messages/orderConfirmedV1'
+
+  receiveStockReserved:
+    action: receive
+    channel:
+      $ref: '#/channels/inventoryStockReserved'
+    messages:
+      - $ref: '#/channels/inventoryStockReserved/messages/inventoryStockReservedV1'
+
+  receiveStockReservationFailed:
+    action: receive
+    channel:
+      $ref: '#/channels/inventoryStockReservationFailed'
+    messages:
+      - $ref: '#/channels/inventoryStockReservationFailed/messages/inventoryStockReservationFailedV1'
+
+  receiveConfirmOrder:
+    action: receive
+    channel:
+      $ref: '#/channels/confirmOrder'
+    messages:
+      - $ref: '#/channels/confirmOrder/messages/confirmOrder'
+
+channels:
+  orderConfirmed:
+    address: orders.orderConfirmed.V1
+    messages:
+      orderConfirmedV1:
+        $ref: '#/components/messages/orderConfirmedV1'
+
+  inventoryStockReserved:
+    address: inventory.stockReserved.V1
+    messages:
+      inventoryStockReservedV1:
+        $ref: '#/components/messages/stockReservedV1'
+  inventoryStockReservationFailed:
+    address: inventory.stockReservationFailed.v1
+    messages:
+      inventoryStockReservationFailedV1:
+        $ref: '#/components/messages/stockReservationFailedV1'
+  confirmOrder:
+    address: inventory.stockReserved.v1
+    messages:
+      confirmOrder:
+        $ref: '#/components/messages/confirmOrder'
+
+components:
+  messages:
+    orderConfirmedV1:
+      description: 'Event received when an order is confirmed'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: provider
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number
+          userId:
+            type: string
+            description: The users id
+
+    stockReservedV1:
+      name: Stock Reserved
+      description: 'Event triggered when inventory is reserved for an order'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: client
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number
+
+    stockReservationFailedV1:
+      name: Stock Reservation Failed
+      description: 'Event triggered when stock reservation fails for an order'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: client
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number
+
+    confirmOrder:
+      description: 'Mark the order as confirmed'
+      x-eventcatalog-message-type: command
+      tags:
+        - name: 'ConfirmOrder'
+          description: 'Confirm Order command'
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number to mark as confirmed

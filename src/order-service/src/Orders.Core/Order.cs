@@ -83,6 +83,21 @@ public record Order
     
     public decimal TotalPrice { get; set; }
 
+    public void ReservationFailed()
+    {
+        OrderStatus = OrderStatus.NoStock;
+    }
+    
+    public void ConfirmOrder()
+    {
+        if (OrderStatus != OrderStatus.Created)
+        {
+            return;
+        }
+
+        OrderStatus = OrderStatus.Confirmed;
+    }
+
     public void CompleteOrder()
     {
         if (OrderStatus != OrderStatus.Confirmed)

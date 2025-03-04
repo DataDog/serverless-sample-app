@@ -9,13 +9,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.405.28" />
-        <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.400.101" />
-        <PackageReference Include="AWSSDK.EventBridge" Version="3.7.402.43" />
-        <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="3.7.303.2" />
-        <PackageReference Include="AWSSDK.StepFunctions" Version="3.7.403.45" />
+        <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.405.31" />
+        <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.400.104" />
+        <PackageReference Include="AWSSDK.EventBridge" Version="3.7.402.46" />
+        <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="3.7.403.49" />
+        <PackageReference Include="AWSSDK.StepFunctions" Version="3.7.403.47" />
         <PackageReference Include="FluentValidation" Version="11.11.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.2" />
         <PackageReference Include="Datadog.Trace" Version="3.11.1" />
         <PackageReference Include="NJsonSchema" Version="11.1.0" />
         <PackageReference Include="Serilog" Version="4.2.0" />

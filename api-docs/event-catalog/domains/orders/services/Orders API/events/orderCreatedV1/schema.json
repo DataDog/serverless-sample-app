@@ -1,0 +1,25 @@
+{
+    "type": "object",
+    "properties": {
+        "orderNumber": {
+            "type": "string",
+            "description": "The order number",
+            "x-parser-schema-id": "<anonymous-schema-2>"
+        },
+        "userId": {
+            "type": "string",
+            "description": "The users id",
+            "x-parser-schema-id": "<anonymous-schema-3>"
+        },
+        "products": {
+            "type": "array",
+            "description": "The products on the order",
+            "items": {
+                "type": "string",
+                "x-parser-schema-id": "<anonymous-schema-5>"
+            },
+            "x-parser-schema-id": "<anonymous-schema-4>"
+        }
+    },
+    "x-parser-schema-id": "<anonymous-schema-1>"
+}

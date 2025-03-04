@@ -15,6 +15,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Orders.Core.Adapters;
 using Orders.Core.PublicEvents;
+using Orders.Core.StockReservationFailure;
+using Orders.Core.StockReservationSuccess;
 using Serilog;
 using Serilog.Formatting.Compact;
 
@@ -102,6 +104,8 @@ public static class Startup
         
         services.AddSingleton<IEventGateway, EventGateway>();
         services.AddSingleton<IOrders, DynamoDBOrders>();
+        services.AddSingleton<StockReservationFailureHandler>();
+        services.AddSingleton<StockReservationSuccessHandler>();
         
         return services;
     }

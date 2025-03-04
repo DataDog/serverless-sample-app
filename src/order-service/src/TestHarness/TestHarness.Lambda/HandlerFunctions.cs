@@ -17,11 +17,15 @@ public class HandlerFunctions(IEventStore eventStore)
     [LambdaFunction]
     public async Task HandleSns(SNSEvent evt)
     {
+        Logger.LogInformation("Handling SNS Event");
+        
         var activeSpan = Tracer.Instance.ActiveScope?.Span;
         evt.AddToTelemetry();
 
         foreach (var record in evt.Records)
         {
+            Logger.LogInformation($"Handling SNS message from {record.Sns.TopicArn}");
+            
             var processingSpan = Tracer.Instance.StartActive("process", new SpanCreationSettings()
             {
                 Parent = activeSpan?.Context
@@ -38,7 +42,7 @@ public class HandlerFunctions(IEventStore eventStore)
                 
                 if (root.TryGetProperty(keyName, out JsonElement orderIdentifierElement))
                 {
-                    await eventStore.Store(new ReceivedEvent(orderIdentifierElement.GetString(), record.Sns.Message, DateTime.Now, record.Sns.TopicArn));
+                    await eventStore.Store(new ReceivedEvent(orderIdentifierElement.GetString(), record.Sns.Message, record.Sns.TopicArn, DateTime.Now, record.Sns.TopicArn));
                 }
                 else
                 {
@@ -49,7 +53,7 @@ public class HandlerFunctions(IEventStore eventStore)
             }
             catch (Exception e)
             {
-                throw;
+                Logger.LogError(e, "Failure processing event");
             }
             finally
             {
@@ -62,6 +66,8 @@ public class HandlerFunctions(IEventStore eventStore)
     public async Task HandleEventBridge(CloudWatchEvent<JsonObject> evt)
     {
         var activeSpan = Tracer.Instance.ActiveScope?.Span;
+        
+        Logger.LogInformation($"Handling EventBridge event from {evt.Source} with type {evt.DetailType}");
 
         var processingSpan = Tracer.Instance.StartActive("process", new SpanCreationSettings()
         {
@@ -87,7 +93,7 @@ public class HandlerFunctions(IEventStore eventStore)
             {
                 if (dataElement.TryGetProperty(keyName, out JsonElement childOrderIdentifierElement))
                 {
-                    await eventStore.Store(new ReceivedEvent(childOrderIdentifierElement.GetString(), evt.Detail.ToJsonString(), DateTime.Now, evt.Source, conversationId));
+                    await eventStore.Store(new ReceivedEvent(childOrderIdentifierElement.GetString(), evt.Detail.ToJsonString(), evt.DetailType, DateTime.Now, evt.Source, conversationId));
                 }
 
                 processingSpan.Close();
@@ -101,14 +107,14 @@ public class HandlerFunctions(IEventStore eventStore)
             // Then try to extract from a top level property
             if (root.TryGetProperty(keyName, out JsonElement orderIdentifierElement))
             {
-                await eventStore.Store(new ReceivedEvent(orderIdentifierElement.GetString(), evt.Detail.ToJsonString(), DateTime.Now, evt.Source, conversationId));
+                await eventStore.Store(new ReceivedEvent(orderIdentifierElement.GetString(), evt.Detail.ToJsonString(), evt.DetailType, DateTime.Now, evt.Source, conversationId));
             }
 
             processingSpan.Close();
         }
         catch (Exception e)
         {
-            throw;
+            Logger.LogError(e, "Failure processing event");
         }
         finally
         {

@@ -31,7 +31,7 @@
           }
         ]
       },
-      "Next": "Handle Stock Reservation Success",
+      "Next": "Confirm Order",
       "TimeoutSeconds": 60,
       "Catch": [
         {
@@ -50,7 +50,7 @@
           "ErrorEquals": [
             "States.TaskFailed"
           ],
-          "Next": "Handle Stock Reservation Failed",
+          "Next": "Order No Stock",
           "Output": {
             "userId": "{% $states.input.userId %}",
             "orderNumber": "{% $states.input.orderNumber %}",
@@ -61,7 +61,8 @@
       ],
       "Output": {
         "original": "{% $states.input %}",
-        "result": "{% $states.result %}"
+        "result": "{% $states.result %}",
+        "_datadog": "{% $states.input._datadog %}"
       }
     },
     "Retry Publish Order Created": {
@@ -91,7 +92,7 @@
           "ErrorEquals": [
             "States.Timeout"
           ],
-          "Next": "Handle Stock Reservation Failed",
+          "Next": "Order No Stock",
           "Output": {
             "userId": "{% $states.input.userId %}",
             "orderNumber": "{% $states.input.orderNumber %}",
@@ -103,7 +104,7 @@
           "ErrorEquals": [
             "States.TaskFailed"
           ],
-          "Next": "Handle Stock Reservation Failed",
+          "Next": "Order No Stock",
           "Output": {
             "userId": "{% $states.input.userId %}",
             "orderNumber": "{% $states.input.orderNumber %}",
@@ -116,75 +117,70 @@
         "original": "{% $states.input %}",
         "result": "{% $states.result %}"
       },
-      "Next": "Handle Stock Reservation Success"
+      "Next": "Confirm Order"
     },
-    "Handle Stock Reservation Success": {
+    "Confirm Order": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::dynamodb:updateItem",
+      "Resource": "arn:aws:states:::lambda:invoke",
       "Arguments": {
-        "TableName": "${TableName}",
-        "Key": {
-          "PK": {
-            "S": "{% $states.input.original.userId %}"
-          },
-          "SK": {
-            "S": "{% $states.input.original.orderNumber %}"
-          }
-        },
-        "UpdateExpression": "SET orderStatus = :orderStatus",
-        "ExpressionAttributeValues": {
-          ":orderStatus": {
-            "N": "1"
-          }
+        "FunctionName": "${ConfirmOrderLambda}",
+        "Payload": {
+          "UserId": "{% $states.input.original.userId %}",
+          "OrderNumber": "{% $states.input.original.orderNumber %}",
+          "_datadog": "{% $states.input._datadog %}"
         }
       },
       "Output": {
         "original": "{% $states.input %}",
-        "result": "{% $states.result %}"
+        "result": "{% $states.result %}",
+        "_datadog": "{% $states.input._datadog %}"
       },
-      "Next": "Publish Order Confirmed Event"
-    },
-    "Publish Order Confirmed Event": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::events:putEvents",
-      "Arguments": {
-        "Entries": [
-          {
-            "Detail": {
-              "data": {
-                "orderNumber": "{% $states.input.original.orderNumber %}",
-              },
-              "id": "{% $uuid() %}",
-              "_datadog": "{% $states.input._datadog %}"
-            },
-            "DetailType": "orders.orderConfirmed.v1",
-            "EventBusName": "${EventBusName}",
-            "Source": "${Env}.orders"
-          }
-        ]
-      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
       "End": true
     },
-    "Handle Stock Reservation Failed": {
+    "Order No Stock": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::dynamodb:updateItem",
+      "Resource": "arn:aws:states:::lambda:invoke",
       "Arguments": {
-        "TableName": "${TableName}",
-        "Key": {
-          "PK": {
-            "S": "{% $states.input.userId %}"
-          },
-          "SK": {
-            "S": "{% $states.input.orderNumber %}"
-          }
-        },
-        "UpdateExpression": "SET orderStatus = :orderStatus",
-        "ExpressionAttributeValues": {
-          ":orderStatus": {
-            "N": "3"
-          }
+        "FunctionName": "${NoStockLambda}",
+        "Payload": {
+          "UserId": "{% $states.input.userId %}",
+          "OrderNumber": "{% $states.input.orderNumber %}",
+          "_datadog": "{% $states.input._datadog %}"
         }
       },
+      "Output": {
+        "original": "{% $states.input %}",
+        "result": "{% $states.result %}",
+        "_datadog": "{% $states.input._datadog %}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
       "End": true
     }
   }

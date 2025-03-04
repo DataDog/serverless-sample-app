@@ -26,12 +26,17 @@ public class TestEventHarness : Construct
     {
         TestEventTable = new Table(this, $"DotnetEvts{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", new TableProps()
         {
-            TableName = $"DotnetEvts{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}",
+            TableName = $"{props.Shared.ServiceName}-Events-{props.Shared.Env}-{props.Shared.Version}",
             TableClass = TableClass.STANDARD,
             BillingMode = BillingMode.PAY_PER_REQUEST,
             PartitionKey = new Attribute()
             {
                 Name = "PK",
+                Type = AttributeType.STRING
+            },
+            SortKey = new Attribute()
+            {
+                Name = "SK",
                 Type = AttributeType.STRING
             },
             RemovalPolicy = RemovalPolicy.DESTROY

@@ -1,7 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Transform": "AWS::Serverless-2016-10-31",
-  "Description": "This template is partially managed by Amazon.Lambda.Annotations (v1.6.2.0).",
+  "Description": "This template is partially managed by Amazon.Lambda.Annotations (v1.6.3.0).",
   "Resources": {
     "OrdersBackgroundWorkersFunctionsHandleStockReservedGenerated": {
       "Type": "AWS::Serverless::Function",
@@ -35,6 +35,40 @@
         ],
         "PackageType": "Zip",
         "Handler": "Orders.BackgroundWorkers::Orders.BackgroundWorkers.Functions_HandleReservationFailed_Generated::HandleReservationFailed"
+      }
+    },
+    "OrdersBackgroundWorkersWorkflowHandlersReservationFailedGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations"
+      },
+      "Properties": {
+        "Runtime": "dotnet8",
+        "CodeUri": ".",
+        "MemorySize": 512,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "Orders.BackgroundWorkers::Orders.BackgroundWorkers.WorkflowHandlers_ReservationFailed_Generated::ReservationFailed"
+      }
+    },
+    "OrdersBackgroundWorkersWorkflowHandlersReservationSuccessGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations"
+      },
+      "Properties": {
+        "Runtime": "dotnet8",
+        "CodeUri": ".",
+        "MemorySize": 512,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "Orders.BackgroundWorkers::Orders.BackgroundWorkers.WorkflowHandlers_ReservationSuccess_Generated::ReservationSuccess"
       }
     }
   }

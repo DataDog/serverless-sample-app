@@ -1,0 +1,172 @@
+asyncapi: 3.0.0
+info:
+  title: Order API
+  description: The order service API
+  version: 1.0.0
+
+operations:
+  sendOrderCreated:
+    action: send
+    channel:
+      $ref: '#/channels/orderCreated'
+    messages:
+      - $ref: '#/channels/orderCreated/messages/orderCreatedV1'
+      
+  sendOrderCompleted:
+    action: send
+    channel:
+      $ref: '#/channels/orderCompleted'
+    messages:
+      - $ref: '#/channels/orderCompleted/messages/orderCompletedV1'
+
+  receiveCreateOrder:
+    action: receive
+    channel:
+      $ref: '#/channels/createOrder'
+    messages:
+      - $ref: '#/channels/createOrder/messages/createOrder'
+
+  receiveCompleteOrder:
+    action: receive
+    channel:
+      $ref: '#/channels/completeOrder'
+    messages:
+      - $ref: '#/channels/completeOrder/messages/completeOrder'
+
+  receiveGetOrderDetails:
+    action: receive
+    channel:
+      $ref: '#/channels/getOrderDetails'
+    messages:
+      - $ref: '#/channels/getOrderDetails/messages/getOrderDetails'
+
+  receiveGetUserOrders:
+    action: receive
+    channel:
+      $ref: '#/channels/getUserOrders'
+    messages:
+      - $ref: '#/channels/getUserOrders/messages/getUserOrders'
+
+channels:
+  orderCreated:
+    address: orders.orderCreated.V1
+    messages:
+      orderCreatedV1:
+        $ref: '#/components/messages/orderCreatedV1'
+  orderCompleted:
+    address: orders.orderCompleted.V1
+    messages:
+      orderCompletedV1:
+        $ref: '#/components/messages/orderCompletedV1'
+  createOrder:
+    address: POST /orders
+    messages:
+      createOrder:
+        $ref: '#/components/messages/createOrder'
+  completeOrder:
+    address: POST /orders/{orderNumber}/complete
+    messages:
+      completeOrder:
+        $ref: '#/components/messages/completeOrder'
+  getOrderDetails:
+    address: GET /orders/{orderNumber}
+    messages:
+      getOrderDetails:
+        $ref: '#/components/messages/getOrderDetails'
+  getUserOrders:
+    address: GET /orders
+    messages:
+      getUserOrders:
+        $ref: '#/components/messages/getUserOrders'
+
+components:
+  messages:
+    orderCreatedV1:
+      description: 'Event received when an order is created'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: provider
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number
+          userId:
+            type: string
+            description: The users id
+          products:
+            type: array
+            description: The products on the order
+            items:
+              type: string
+
+    orderCompletedV1:
+      description: 'Event received when an order is confirmed'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: provider
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number
+          userId:
+            type: string
+            description: The users id
+
+    createOrder:
+      description: 'A user submits a request to create an order'
+      x-eventcatalog-message-type: command
+      tags:
+        - name: 'CreateOrder'
+          description: 'Create Order command'
+      payload:
+        type: object
+        properties:
+          products:
+            type: array
+            description: The products on the order
+            items:
+              type: string
+
+    completeOrder:
+      description: 'Mark the order as completed'
+      x-eventcatalog-message-type: command
+      tags:
+        - name: 'CompleteOrder'
+          description: 'Complete Order command'
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number to mark as completed
+
+    getOrderDetails:
+      description: 'A user requests details about an order'
+      x-eventcatalog-message-type: query
+      tags:
+        - name: 'GetOrderDetails'
+          description: 'Get order details query'
+      payload:
+        type: object
+        properties:
+          userId:
+            type: string
+            description: The user who placed the order
+          orderNumber:
+            type: string
+            description: The order number ot retrieve details for
+
+    getUserOrders:
+      description: 'Get all orders for a specific user'
+      x-eventcatalog-message-type: query
+      tags:
+        - name: 'GetUserOrders'
+          description: 'Get all a users orders'
+      payload:
+        type: object
+        properties:
+          userId:
+            type: string
+            description: The user ID to retreive the orders for

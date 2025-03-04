@@ -121,11 +121,9 @@ public class ApiDriver
             }
         });
 
-        await Task.Delay(TimeSpan.FromSeconds(5));
+        await Task.Delay(TimeSpan.FromSeconds(10));
     }
     
-    
-
     public async Task StockReservationFailedFor(string orderId)
     {
         var testEventApiEndpoint = $"{testHarnessApiEndpoint}/events/{orderId}";
@@ -163,7 +161,31 @@ public class ApiDriver
             }
         });
 
-        await Task.Delay(TimeSpan.FromSeconds(5));
+        await Task.Delay(TimeSpan.FromSeconds(10));
+    }
+
+    public async Task<bool> VerifyOrderConfirmedEventPublishedFor(string orderId)
+    {
+        var testEventApiEndpoint = $"{testHarnessApiEndpoint}/events/{orderId}";
+        _testOutputHelper.WriteLine($"Test harness endpoint is: {testEventApiEndpoint}");
+        
+        await Task.Delay(TimeSpan.FromSeconds(10));
+        
+        var request = new HttpRequestMessage(HttpMethod.Get, testEventApiEndpoint);
+        
+        var eventResult = await _httpClient.SendAsync(request);
+        var responseString = await eventResult.Content.ReadAsStringAsync();
+
+        var events = JsonSerializer.Deserialize<List<ReceivedEvent>>(responseString);
+        
+        if (!events.Any())
+        {
+            throw new Exception($"No events received for order {orderId}");
+        }
+        
+        var orderConfirmedEvent = events.FirstOrDefault(evt => evt.EventType == "orders.orderConfirmed.v1");
+        
+        return orderConfirmedEvent != null;
     }
     
     private string generateJwt()
