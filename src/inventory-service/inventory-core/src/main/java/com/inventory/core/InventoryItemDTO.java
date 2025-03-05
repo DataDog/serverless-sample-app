@@ -13,7 +13,7 @@ public class InventoryItemDTO {
 
     public InventoryItemDTO(InventoryItem item) {
         this.productId = item.getProductId();
-        this.currentStockLevel = item.getCurrentStockLevel();
+        this.currentStockLevel = item.getAvailableStockLevel();
     }
 
     public String getProductId() {

@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "properties": {
+    "points": {
+      "type": "integer",
+      "format": "int64",
+      "example": 198
+    }
+  }
+}

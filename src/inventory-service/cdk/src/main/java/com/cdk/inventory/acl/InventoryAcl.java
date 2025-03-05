@@ -105,6 +105,37 @@ public class InventoryAcl extends Construct {
                 .source(List.of(String.format("%s.orders", props.sharedProps().env())))
                 .build());
         orderCreatedRule.addTarget(new SqsQueue(orderCreatedQueue.getQueue()));
+
+        ResilientQueue orderCompletedQueue = new ResilientQueue(this, "OrderCompletedEventQueue", new ResilientQueueProps("InventoryOrderCompletedEventQueue", props.sharedProps()));
+
+        HashMap<String, String> orderCompletedFunctionEnvVars = new HashMap<>(2);
+        orderCompletedFunctionEnvVars.put("EVENT_BUS_NAME", props.sharedEventBus().getEventBusName());
+        orderCompletedFunctionEnvVars.put("TABLE_NAME", props.inventoryTable().getTableName());
+
+        IFunction orderCompletedFunction = new InstrumentedFunction(this, "OrderCompletedACLFunction",
+                new InstrumentedFunctionProps(props.sharedProps(), "com.inventory.acl", compiledJarFilePath, "handleOrderCompleted", orderCompletedFunctionEnvVars, true)).getFunction();
+
+        orderCompletedFunction.addEventSource(new SqsEventSource(orderCompletedQueue.getQueue(), SqsEventSourceProps.builder()
+                .reportBatchItemFailures(true)
+                .maxBatchingWindow(Duration.seconds(10))
+                .batchSize(10)
+                .build()));
+        props.sharedEventBus().grantPutEventsTo(orderCompletedFunction);
+        orderCreatedFunction.addToRolePolicy(PolicyStatement.Builder.create()
+                .effect(Effect.ALLOW)
+                .resources(List.of("*"))
+                .actions(List.of("events:ListEventBuses"))
+                .build());
+        props.inventoryTable().grantReadWriteData(orderCompletedFunction);
+
+        Rule orderCompletedRule = new Rule(this, "InventoryOrderCompletedRule", RuleProps.builder()
+                .eventBus(props.sharedEventBus())
+                .build());
+        orderCompletedRule.addEventPattern(EventPattern.builder()
+                .detailType(List.of("orders.orderCompleted.v1"))
+                .source(List.of(String.format("%s.orders", props.sharedProps().env())))
+                .build());
+        orderCompletedRule.addTarget(new SqsQueue(orderCompletedQueue.getQueue()));
     }
 
     public ITopic getNewProductAddedTopic() {

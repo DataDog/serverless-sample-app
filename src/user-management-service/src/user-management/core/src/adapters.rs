@@ -226,38 +226,47 @@ impl Repository for DynamoDbRepository {
     }
 }
 
-pub struct SnsEventPublisher {
-    client: aws_sdk_sns::Client,
+pub struct EventBridgeEventPublisher {
+    client: aws_sdk_eventbridge::Client,
+    event_bus_name: String,
+    source: String,
 }
 
-impl SnsEventPublisher {
-    pub fn new(client: aws_sdk_sns::Client) -> SnsEventPublisher {
-        SnsEventPublisher { client }
+impl EventBridgeEventPublisher {
+    pub fn new(client: aws_sdk_eventbridge::Client, event_bus_name: String, env: String) -> Self {
+        Self {
+            client,
+            event_bus_name,
+            source: format!("{}.users", env),
+        }
     }
 }
 
 #[async_trait]
-impl EventPublisher for SnsEventPublisher {
+impl EventPublisher for EventBridgeEventPublisher {
     #[instrument(name = "publish-user-created-event", skip(self, user_created_event))]
     async fn publish_user_created_event(
         &self,
         user_created_event: UserCreatedEvent,
     ) -> Result<(), ()> {
-        Span::current().set_attribute(
-            "peer.service",
-            parse_name_from_arn(&std::env::var("USER_CREATED_TOPIC_ARN").unwrap()),
-        );
-        tracing::Span::current().set_attribute(
-            "peer.messaging.destination",
-            std::env::var("USER_CREATED_TOPIC_ARN").unwrap(),
-        );
-        let _publish_res = &self
-            .client
-            .publish()
-            .topic_arn(std::env::var("USER_CREATED_TOPIC_ARN").unwrap())
-            .message(serde_json::to_string(&TracedMessage::new(user_created_event)).unwrap())
+        let payload = TracedMessage::new(user_created_event);
+        let payload_string = serde_json::to_string(&payload).expect("Error serde");
+
+        let request = aws_sdk_eventbridge::types::builders::PutEventsRequestEntryBuilder::default()
+            .set_source(Some(self.source.clone()))
+            .set_detail_type(Some("users.userCreated.v1".to_string()))
+            .set_detail(Some(String::from(payload_string)))
+            .set_event_bus_name(Some(self.event_bus_name.clone()))
+            .build();
+        self.client
+            .put_events()
+            .entries(request)
             .send()
-            .await;
+            .await
+            .map_err(|err| {
+                tracing::error!("{}", err);
+                ()
+            })?;
 
         Ok(())
     }

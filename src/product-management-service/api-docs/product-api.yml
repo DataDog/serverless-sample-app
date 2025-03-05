@@ -1,0 +1,172 @@
+openapi: 3.0.3
+info:
+  title: Product API
+  version: 1.0.0
+paths:
+  /product:
+    get:
+      summary: List all products
+      description: List all the products in the product catalogue
+      operationId: listProducts
+      x-eventcatalog-message-type: query
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ProductList'
+    post:
+      summary: Create a new product
+      description: Create a brand new product in the product catalogue
+      operationId: createProduct
+      x-eventcatalog-message-type: command
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductCommand'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+    put:
+      summary: Update a product
+      description: Update an existing product in the catalogue
+      operationId: updateProduct
+      x-eventcatalog-message-type: command
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductCommand'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+  /product/{productId}:
+    get:
+      summary: Get a specific product from the catalogue
+      description: Returns the details for a specific product
+      operationId: getProduct
+      x-eventcatalog-message-type: query
+      parameters:
+        - name: productId
+          in: path
+          description: ID of product to return
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+    delete:
+      summary: Delete a product
+      description: Delete a product from the catalogue
+      operationId: deleteProduct
+      x-eventcatalog-message-type: command
+      parameters:
+        - name: productId
+          in: path
+          description: ID of product to delete
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+        '404':
+          description: Product not found
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        productId:
+          type: string
+        name:
+          type: string
+        price:
+          type: integer
+          format: int64
+          example: 198772
+        stockLevel:
+          type: integer
+          format: int64
+          example: 198772
+    ProductList:
+      type: object
+      properties:
+        productId:
+          type: string
+        name:
+          type: string
+        price:
+          type: integer
+          format: int64
+          example: 10.99
+        stockLevel:
+          type: integer
+          format: int64
+          example: 2
+        pricingBrackets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductPrice'
+    ProductPrice:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          format: int64
+          example: 1
+        price:
+          type: integer
+          format: int64
+          example: 10.99
+    CreateProductCommand:
+      type: object
+      properties:
+        name:
+          type: string
+        price:
+          type: integer
+          format: int64
+          example: 198772
+    UpdateProductCommand:
+      type: object
+      properties:
+        productId:
+          type: string
+        name:
+          type: string
+        price:
+          type: integer
+          format: int64
+          example: 198772
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        type:
+          type: string
+        message:
+          type: string

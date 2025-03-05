@@ -6,7 +6,11 @@ namespace Orders.Core;
 
 public interface IOrders
 {
-    Task<Order?> WithOrderId(string userId, string productId);
+    Task<List<Order>> ForUser(string userId);
+    
+    Task<List<Order>> ConfirmedOrders();
+    
+    Task<Order?> WithOrderId(string userId, string orderNumber);
 
     Task Store(Order item);
 }

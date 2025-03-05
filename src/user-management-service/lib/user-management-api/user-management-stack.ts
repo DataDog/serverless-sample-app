@@ -66,7 +66,8 @@ export class UserManagementStack extends cdk.Stack {
     const api = new UserManagementApi(this, "UserManagementApi", {
       sharedProps,
       ddApiKeySecret: ddApiKey,
-        jwtSecretKeyParameter
+        jwtSecretKeyParameter,
+      sharedEventBus: eventBus
     });
     
     const backgroundWorker = new UserManagementBackgroundWorkers(this, "UserManagementBackgroundWorkers", {

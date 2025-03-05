@@ -51,6 +51,19 @@ public class TestEventPublisher implements EventPublisher {
     }
 
     @Override
+    public void publishProductOutOfStockEvent(ProductOutOfStockEventV1 evt) {
+        try {
+            var evtWrapper = new EventWrapper<ProductOutOfStockEventV1>(evt);
+            String evtData = mapper.writeValueAsString(evtWrapper);
+
+            String lowered = evt.toString();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    @Override
     public void publishStockReservationFailedEvent(StockReservationFailedEventV1 evt, String conversationId) {
         try {
             var evtWrapper = new EventWrapper<StockReservationFailedEventV1>(evt, conversationId);

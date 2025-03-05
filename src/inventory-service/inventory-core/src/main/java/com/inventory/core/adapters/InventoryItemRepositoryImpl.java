@@ -90,7 +90,5 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
                 .build();
 
         this.dynamoDB.putItem(putItemRequest);
-
-        return;
     }
 }

@@ -11,7 +11,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@eventcatalog/core": "2.25.1",
-    "@eventcatalog/generator-asyncapi": "3.0.4"
+    "@eventcatalog/core": "^2.26.1",
+    "@eventcatalog/generator-asyncapi": "3.0.4",
+    "@eventcatalog/generator-openapi": "latest"
   }
 }

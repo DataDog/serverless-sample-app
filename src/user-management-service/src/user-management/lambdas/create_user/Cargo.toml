@@ -8,8 +8,8 @@ observability = {path = "../../../observability"}
 shared = { path = "../../core" }
 lambda_http = "0.14"
 aws-config = { version = "1.5", features = ["behavior-version-latest"] }
-aws-sdk-dynamodb = "1.62"
-aws-sdk-sns = "1.60"
+aws-sdk-dynamodb = "1.66"
+aws-sdk-eventbridge = "1.63"
 
 serde_json = {workspace = true}
 tokio = {workspace = true}

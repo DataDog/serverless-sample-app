@@ -30,7 +30,7 @@ public record OrdersApiProps(
 public class OrdersApi : Construct
 {
     public ITopic OrderCreatedTopic { get; private set; }
-    public ITable OrdersTable { get; private set; }
+    public Table OrdersTable { get; private set; }
     public IStateMachine OrdersWorkflow { get; private set; }
 
     public OrdersApi(Construct scope, string id, OrdersApiProps props) : base(scope, id)
@@ -49,7 +49,14 @@ public class OrdersApi : Construct
             BillingMode = BillingMode.PAY_PER_REQUEST,
             TableName = $"{props.SharedProps.ServiceName}-OrderTable-{props.SharedProps.Env}",
             TableClass = TableClass.STANDARD,
-            RemovalPolicy = RemovalPolicy.DESTROY
+            RemovalPolicy = RemovalPolicy.DESTROY,
+        });
+        OrdersTable.AddGlobalSecondaryIndex(new GlobalSecondaryIndexProps()
+        {
+            IndexName = "GSI1",
+            PartitionKey = new Attribute() { Name = "GSI1PK", Type = AttributeType.STRING },
+            SortKey = new Attribute() { Name = "GSI1SK", Type = AttributeType.STRING },
+            ProjectionType = ProjectionType.ALL
         });
 
         OrderCreatedTopic = new Topic(this, "OrderCreatedTopic", new TopicProps()

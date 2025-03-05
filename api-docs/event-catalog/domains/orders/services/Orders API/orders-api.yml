@@ -1,198 +1,150 @@
-asyncapi: 3.0.0
+openapi: 3.0.3
 info:
   title: Order API
-  description: The order service API
   version: 1.0.0
-
-operations:
-  sendOrderCreated:
-    action: send
-    channel:
-      $ref: '#/channels/orderCreated'
-    messages:
-      - $ref: '#/channels/orderCreated/messages/orderCreatedV1'
-
-  sendOrderConfirmed:
-    action: send
-    channel:
-      $ref: '#/channels/orderConfirmed'
-    messages:
-      - $ref: '#/channels/orderConfirmed/messages/orderConfirmedV1'
-      
-  sendOrderCompleted:
-    action: send
-    channel:
-      $ref: '#/channels/orderCompleted'
-    messages:
-      - $ref: '#/channels/orderCompleted/messages/orderCompletedV1'
-
-  receiveCreateOrder:
-    action: receive
-    channel:
-      $ref: '#/channels/createOrder'
-    messages:
-      - $ref: '#/channels/createOrder/messages/createOrder'
-
-  receiveCompleteOrder:
-    action: receive
-    channel:
-      $ref: '#/channels/completeOrder'
-    messages:
-      - $ref: '#/channels/completeOrder/messages/completeOrder'
-
-  receiveGetOrderDetails:
-    action: receive
-    channel:
-      $ref: '#/channels/getOrderDetails'
-    messages:
-      - $ref: '#/channels/getOrderDetails/messages/getOrderDetails'
-
-  receiveGetUserOrders:
-    action: receive
-    channel:
-      $ref: '#/channels/getUserOrders'
-    messages:
-      - $ref: '#/channels/getUserOrders/messages/getUserOrders'
-
-channels:
-  orderCreated:
-    address: orders.orderCreated.V1
-    messages:
-      orderCreatedV1:
-        $ref: '#/components/messages/orderCreatedV1'
-  orderConfirmed:
-    address: orders.orderConfirmed.V1
-    messages:
-      orderConfirmedV1:
-        $ref: '#/components/messages/orderConfirmedV1'
-  orderCompleted:
-    address: orders.orderCompleted.V1
-    messages:
-      orderCompletedV1:
-        $ref: '#/components/messages/orderCompletedV1'
-  createOrder:
-    address: POST /orders
-    messages:
-      createOrder:
-        $ref: '#/components/messages/createOrder'
-  completeOrder:
-    address: POST /orders/{orderNumber}/complete
-    messages:
-      completeOrder:
-        $ref: '#/components/messages/completeOrder'
-  getOrderDetails:
-    address: GET /orders/{orderNumber}
-    messages:
-      getOrderDetails:
-        $ref: '#/components/messages/getOrderDetails'
-  getUserOrders:
-    address: GET /orders
-    messages:
-      getUserOrders:
-        $ref: '#/components/messages/getUserOrders'
-
+paths:
+  /orders/confirmed:
+    get:
+      summary: Get confirmed orders
+      description: Get all orders that are currently in status confirmed
+      operationId: getConfirmedOrders
+      x-eventcatalog-message-type: query
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+  /orders:
+    post:
+      summary: Create an order
+      description: Create a new order
+      operationId: createOrder
+      x-eventcatalog-message-type: command
+      requestBody:
+        description: Create a brand new order for the currently logged in user
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderCommand'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+    get:
+      summary: Get user orders
+      description: Get all orders for the currently logged in user
+      operationId: getUserOrders
+      x-eventcatalog-message-type: query
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+  /orders/{orderId}:
+    get:
+      summary: Get order details
+      description: Get details about the order
+      operationId: getOrderDetails
+      x-eventcatalog-message-type: query
+      parameters:
+        - name: orderId
+          in: path
+          description: ID of the product to retrieve
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+  /orders/{orderId}/complete:
+    post:
+      summary: Complete an order
+      description: Marks an order as completed
+      operationId: completeOrder
+      x-eventcatalog-message-type: command
+      requestBody:
+        description: Complete the order
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteOrderCommand'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
 components:
-  messages:
-    orderCreatedV1:
-      description: 'Event received when an order is created'
-      x-eventcatalog-message-type: event
-      x-eventcatalog-role: provider
-      payload:
-        type: object
-        properties:
-          orderNumber:
+  schemas:
+    Order:
+      type: object
+      properties:
+        orderId:
+          type: string
+        orderDate:
+          type: string
+        products:
+          type: array
+          items:
             type: string
-            description: The order number
-          userId:
+          description: Array of product IDs
+          example: ["prod-123", "prod-456"]
+        status:
+          type: integer
+          format: int64
+          example: 1
+    CreateOrderCommand:
+      type: object
+      properties:
+        products:
+          type: array
+          items:
             type: string
-            description: The users id
-          products:
-            type: array
-            description: The products on the order
-            items:
-              type: string
-
-    orderConfirmedV1:
-      description: 'Event received when an order is confirmed'
-      x-eventcatalog-message-type: event
-      x-eventcatalog-role: provider
-      payload:
-        type: object
-        properties:
-          orderNumber:
-            type: string
-            description: The order number
-          userId:
-            type: string
-            description: The users id
-
-    orderCompletedV1:
-      description: 'Event received when an order is confirmed'
-      x-eventcatalog-message-type: event
-      x-eventcatalog-role: provider
-      payload:
-        type: object
-        properties:
-          orderNumber:
-            type: string
-            description: The order number
-          userId:
-            type: string
-            description: The users id
-
+          description: Array of product IDs
+          example: ["prod-123", "prod-456"]
+    CompleteOrderCommand:
+      type: object
+      properties:
+        orderId:
+          type: string
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        type:
+          type: string
+        message:
+          type: string
+  requestBodies:
     createOrder:
-      description: 'A user submits a request to create an order'
-      x-eventcatalog-message-type: command
-      tags:
-        - name: 'CreateOrder'
-          description: 'Create Order command'
-      payload:
-        type: object
-        properties:
-          products:
-            type: array
-            description: The products on the order
-            items:
-              type: string
-
+      description: The products to add to the new order
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateOrderCommand'
     completeOrder:
-      description: 'Mark the order as completed'
-      x-eventcatalog-message-type: command
-      tags:
-        - name: 'CompleteOrder'
-          description: 'Complete Order command'
-      payload:
-        type: object
-        properties:
-          orderNumber:
-            type: string
-            description: The order number to mark as completed
-
-    getOrderDetails:
-      description: 'A user requests details about an order'
-      x-eventcatalog-message-type: query
-      tags:
-        - name: 'GetOrderDetails'
-          description: 'Get order details query'
-      payload:
-        type: object
-        properties:
-          userId:
-            type: string
-            description: The user who placed the order
-          orderNumber:
-            type: string
-            description: The order number ot retrieve details for
-
-    getUserOrders:
-      description: 'Get all orders for a specific user'
-      x-eventcatalog-message-type: query
-      tags:
-        - name: 'GetUserOrders'
-          description: 'Get all a users orders'
-      payload:
-        type: object
-        properties:
-          userId:
-            type: string
-            description: The user ID to retreive the orders for
+      description: Completing an order
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CompleteOrderCommand'

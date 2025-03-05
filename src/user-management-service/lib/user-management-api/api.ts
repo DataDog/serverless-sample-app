@@ -21,11 +21,13 @@ import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
 import {IStringParameter} from "aws-cdk-lib/aws-ssm";
 import {SnsTopic} from "aws-cdk-lib/aws-events-targets";
 import {ITopic, Topic} from "aws-cdk-lib/aws-sns";
+import {IEventBus} from "aws-cdk-lib/aws-events";
 
 export interface UserManagementApiProps {
   sharedProps: SharedProps;
   ddApiKeySecret: ISecret;
-  jwtSecretKeyParameter: IStringParameter
+  jwtSecretKeyParameter: IStringParameter;
+  sharedEventBus: IEventBus
 }
 
 export class UserManagementApi extends Construct {
@@ -37,10 +39,6 @@ export class UserManagementApi extends Construct {
 
   constructor(scope: Construct, id: string, props: UserManagementApiProps) {
     super(scope, id);
-    
-    const userCreatedTopic = new Topic(this, "UserCreatedTopic", {
-        topicName: `${props.sharedProps.serviceName}-UserCreated-${props.sharedProps.environment}`
-    });
 
     this._table = new Table(this, "UserManagementTable", {
       tableName: `${props.sharedProps.serviceName}-Users-${props.sharedProps.environment}`,
@@ -55,7 +53,7 @@ export class UserManagementApi extends Construct {
 
     const registerUserIntegration = this.buildRegisterUserFunction(
       props.sharedProps,
-        userCreatedTopic
+        props.sharedEventBus
     );
     const loginIntegration = this.buildLoginFunction(
       props
@@ -83,7 +81,7 @@ export class UserManagementApi extends Construct {
     loginResource.addMethod("POST", loginIntegration);
   }
 
-  buildRegisterUserFunction(props: SharedProps, userCreatedTopic: ITopic): LambdaIntegration {
+  buildRegisterUserFunction(props: SharedProps, sharedEventBus: IEventBus): LambdaIntegration {
     const lambdaFunction = new InstrumentedLambdaFunction(
       this,
       "RegisterUserFunction",
@@ -93,12 +91,12 @@ export class UserManagementApi extends Construct {
         handler: "bootstrap",
         environment: {
           TABLE_NAME: this._table.tableName, 
-            USER_CREATED_TOPIC_ARN: userCreatedTopic.topicArn
+            EVENT_BUS_NAME: sharedEventBus.eventBusName
         },
         manifestPath: "./src/user-management/lambdas/create_user/Cargo.toml"
       }
     );
-    userCreatedTopic.grantPublish(lambdaFunction.function);
+    sharedEventBus.grantPutEventsTo(lambdaFunction.function);
     const lambdaIntegration = new LambdaIntegration(
         lambdaFunction.function
     );

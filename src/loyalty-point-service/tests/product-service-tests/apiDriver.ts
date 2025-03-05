@@ -1,6 +1,6 @@
 import axios from "axios";
-import { HandlerResponse } from "../../src/product-api/core/handlerResponse";
-import { ProductDTO } from "../../src/product-api/core/productDto";
+import { HandlerResponse } from "../../src/loyalty-api/core/handlerResponse";
+import { ProductDTO } from "../../src/loyalty-api/core/loyaltyPointsDTO";
 
 export class ApiDriver {
   apiEndpoint: string;

@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "properties": {
+    "productId": {
+      "type": "string"
+    },
+    "stockLevel": {
+      "type": "integer",
+      "format": "int64",
+      "example": 100000
+    }
+  }
+}

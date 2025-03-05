@@ -1,0 +1,15 @@
+{
+    "type": "object",
+    "properties": {
+        "newPointsTotal": {
+            "type": "number",
+            "description": "The new points total",
+            "x-parser-schema-id": "<anonymous-schema-2>"
+        },
+        "userId": {
+            "type": "string",
+            "x-parser-schema-id": "<anonymous-schema-3>"
+        }
+    },
+    "x-parser-schema-id": "<anonymous-schema-1>"
+}

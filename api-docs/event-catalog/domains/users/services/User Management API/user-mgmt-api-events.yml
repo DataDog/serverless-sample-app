@@ -1,0 +1,33 @@
+asyncapi: 3.0.0
+info:
+  title: User Management API
+  description: The user management API
+  version: 1.0.0
+
+operations:
+  sendUserRegistered:
+    action: send
+    channel:
+      $ref: '#/channels/userRegistered'
+    messages:
+      - $ref: '#/channels/userRegistered/messages/userRegisteredV1'
+
+channels:
+  userRegistered:
+    address: users.userRegistered.v1
+    messages:
+      userRegisteredV1:
+        $ref: '#/components/messages/userRegisteredV1'
+
+components:
+  messages:
+    userRegisteredV1:
+      description: 'Event published when a new user is registered'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: provider
+      payload:
+        type: object
+        properties:
+          userId:
+            type: string
+            description: The users ID

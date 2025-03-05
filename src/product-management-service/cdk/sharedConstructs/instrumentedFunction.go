@@ -37,6 +37,18 @@ func NewInstrumentedFunction(scope constructs.Construct, id string, props *Instr
 	defaultEnvironmentVariables["ENV"] = jsii.String(props.SharedProps.Env)
 	defaultEnvironmentVariables["DD_FLUSH_TO_LOG"] = jsii.String("true")
 	defaultEnvironmentVariables["DD_TRACE_ENABLED"] = jsii.String("true")
+	defaultEnvironmentVariables["DD_APM_REPLACE_TAGS"] = jsii.String(`[
+      {
+        "name": "function.request.headers.Authorization",
+        "pattern": "(?s).*",
+        "repl": "****"
+      },
+	  {
+        "name": "function.request.multiValueHeaders.Authorization",
+        "pattern": "(?s).*",
+        "repl": "****"
+      }
+]`)
 
 	for k, v := range props.EnvironmentVariables {
 		defaultEnvironmentVariables[k] = v

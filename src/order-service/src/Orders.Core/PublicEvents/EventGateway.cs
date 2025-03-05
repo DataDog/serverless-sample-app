@@ -32,6 +32,7 @@ public class EventGateway(IPublicEventPublisher publisher) : IEventGateway
         var v1OrderCompletedEvent = new OrderCompletedEventV1()
         {
             OrderNumber = order.OrderNumber,
+            UserId = order.UserId,
         };
         
         await publisher.Publish(v1OrderCompletedEvent);

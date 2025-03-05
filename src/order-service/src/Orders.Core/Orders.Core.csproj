@@ -14,6 +14,8 @@
         <PackageReference Include="AWSSDK.EventBridge" Version="3.7.402.46" />
         <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="3.7.403.49" />
         <PackageReference Include="AWSSDK.StepFunctions" Version="3.7.403.47" />
+        <PackageReference Include="CloudNative.CloudEvents" Version="2.8.0" />
+        <PackageReference Include="CloudNative.CloudEvents.SystemTextJson" Version="2.8.0" />
         <PackageReference Include="FluentValidation" Version="11.11.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.2" />
         <PackageReference Include="Datadog.Trace" Version="3.11.1" />

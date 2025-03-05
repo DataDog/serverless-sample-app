@@ -40,6 +40,13 @@ operations:
     messages:
       - $ref: '#/channels/orderCreated/messages/orderCreatedV1'
 
+  receiveOrderCompleted:
+    action: receive
+    channel:
+      $ref: '#/channels/orderCompleted'
+    messages:
+      - $ref: '#/channels/orderCompleted/messages/orderCompletedV1'
+
   receiveProductCreated:
     action: receive
     channel:
@@ -54,7 +61,7 @@ operations:
     messages:
       - $ref: '#/channels/productUpdated/messages/productUpdatedV1'
 
-  receiveProducDeleted:
+  receiveProductDeleted:
     action: receive
     channel:
       $ref: '#/channels/productDeleted'
@@ -88,6 +95,12 @@ channels:
     messages:
       orderCreatedV1:
         $ref: '#/components/messages/orderCreatedV1'
+
+  orderCompleted:
+    address: orders.orderCompleted.V1
+    messages:
+      orderCompletedV1:
+        $ref: '#/components/messages/orderCompletedV1'
 
   productCreated:
     address: product.productCreated.v1
@@ -177,6 +190,17 @@ components:
           conversationId:
             type: string
             description: The unique conversation identifier
+
+    orderCompletedV1:
+      description: 'Event received when an order is completed'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: client
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number
 
     productCreatedV1:
       description: 'Event received when a new product is created'

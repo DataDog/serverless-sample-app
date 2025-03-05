@@ -102,6 +102,21 @@ data "aws_iam_policy_document" "inventory_product_created_queue_policy" {
   }
 }
 
+data "aws_iam_policy_document" "inventory_order_completed_queue_policy" {
+  statement {
+    sid    = "AllowEBPost"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com"]
+    }
+
+    actions   = ["sqs:SendMessage"]
+    resources = [aws_sqs_queue.order_completed_queue.arn]
+  }
+}
+
 data "aws_iam_policy_document" "sqs_receive" {
   statement {
     actions = ["sqs:ReceiveMessage",

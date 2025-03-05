@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "productId": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "price": {
+      "type": "integer",
+      "format": "int64",
+      "example": 198772
+    },
+    "stockLevel": {
+      "type": "integer",
+      "format": "int64",
+      "example": 198772
+    }
+  },
+  "isSchema": true
+}

@@ -83,6 +83,22 @@ public class EventPublisherImpl implements EventPublisher {
     }
 
     @Override
+    public void publishProductOutOfStockEvent(ProductOutOfStockEventV1 evt) {
+        final Span span = GlobalTracer.get().activeSpan();
+
+        try {
+            String evtData = mapper.writeValueAsString(new EventWrapper<ProductOutOfStockEventV1>(evt));
+
+            this.publish("inventory.outOfStock.v1", evtData);
+        }
+        catch (JsonProcessingException error){
+            logger.error("An exception occurred!", error);
+            span.setTag(Tags.ERROR, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, error));
+        }
+    }
+
+    @Override
     public void publishStockReservationFailedEvent(StockReservationFailedEventV1 evt, String conversationId) {
         final Span span = GlobalTracer.get().activeSpan();
 

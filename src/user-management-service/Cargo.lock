@@ -186,9 +186,9 @@ dependencies = [
 
 [[package]]
 name = "aws-sdk-dynamodb"
-version = "1.65.0"
+version = "1.66.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "873144cfb097fc75555f2b2728fa4d5f705a17a4613a0f017baff2f7cfea2b09"
+checksum = "5296daf754d333f51798bff599876c3849394ec3dabe8d1d61cbacb961fdde37"
 dependencies = [
  "aws-credential-types",
  "aws-runtime",
@@ -209,9 +209,9 @@ dependencies = [
 
 [[package]]
 name = "aws-sdk-eventbridge"
-version = "1.62.0"
+version = "1.63.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9c14b07cee58e100392b1739aeb7f2cf08cbf895ea0937efef871e09aacea22"
+checksum = "e2bbcc84e87c5e6e304f599a4dabc9d8b1c1de0e99cb1163bcfc5af6f5de813e"
 dependencies = [
  "aws-credential-types",
  "aws-runtime",
@@ -223,29 +223,6 @@ dependencies = [
  "aws-smithy-types",
  "aws-types",
  "bytes",
- "http 0.2.12",
- "once_cell",
- "regex-lite",
- "tracing",
-]
-
-[[package]]
-name = "aws-sdk-sns"
-version = "1.60.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "448859b7d0e92e750470adf6bb40e2e0c9619dcbcd94d3896252d71721f37f3f"
-dependencies = [
- "aws-credential-types",
- "aws-runtime",
- "aws-smithy-async",
- "aws-smithy-http",
- "aws-smithy-json 0.61.2",
- "aws-smithy-query",
- "aws-smithy-runtime",
- "aws-smithy-runtime-api",
- "aws-smithy-types",
- "aws-smithy-xml",
- "aws-types",
  "http 0.2.12",
  "once_cell",
  "regex-lite",
@@ -734,7 +711,7 @@ version = "0.1.0"
 dependencies = [
  "aws-config",
  "aws-sdk-dynamodb",
- "aws-sdk-sns",
+ "aws-sdk-eventbridge",
  "lambda_http",
  "observability",
  "opentelemetry",
@@ -2578,7 +2555,7 @@ dependencies = [
  "argon2",
  "async-trait",
  "aws-sdk-dynamodb",
- "aws-sdk-sns",
+ "aws-sdk-eventbridge",
  "chrono",
  "jsonwebtoken",
  "lambda_http",

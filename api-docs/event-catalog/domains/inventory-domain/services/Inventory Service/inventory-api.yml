@@ -1,0 +1,86 @@
+openapi: 3.0.3
+info:
+  title: Inventory Service
+  version: 1.0.0
+paths:
+  /inventory:
+    put:
+      summary: Update a products stock level
+      description: Used to update the current stock level of a product
+      operationId: updateInventory
+      x-eventcatalog-message-type: command
+      requestBody:
+        description: Update an existent pet in the store
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductStockCommand'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+        '404':
+          description: Product not found
+  /inventory/{productId}:
+    get:
+      summary: Get the stock level for a product
+      description: Returns the stock information for an existing product
+      operationId: getStockByProductId
+      x-eventcatalog-message-type: query
+      parameters:
+        - name: productId
+          in: path
+          description: ID of product to return
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+        '404':
+          description: Product not found
+components:
+  schemas:
+    InventoryItem:
+      type: object
+      properties:
+        productId:
+          type: string
+        currentStockLevel:
+          type: integer
+          format: int64
+          example: 198772
+    UpdateProductStockCommand:
+      type: object
+      properties:
+        productId:
+          type: string
+        stockLevel:
+          type: integer
+          format: int64
+          example: 100000
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        type:
+          type: string
+        message:
+          type: string
+  requestBodies:
+    updateProductStock:
+      description: The product to update and it's new stock level
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateProductStockCommand'

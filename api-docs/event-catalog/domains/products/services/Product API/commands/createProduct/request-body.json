@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "price": {
+      "type": "integer",
+      "format": "int64",
+      "example": 198772
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "properties": {
+    "email_address": {
+      "type": "string"
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    }
+  },
+  "isSchema": true
+}

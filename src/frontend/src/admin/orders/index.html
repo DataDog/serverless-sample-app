@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <div id="defaultHead"></div>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Serverless eCommerce</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.6/css/pico.min.css"
+    />
+    <link rel="stylesheet" href="/style.css" />
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://www.datadoghq-browser-agent.com/eu1/v5/datadog-rum.js"
+      type="text/javascript"
+    ></script>
+    <script type="module" src="/config.js"></script>
+    <script type="module" src="/app.js"></script>
+    <script type="module" src="/admin/admin.js"></script>
+    <script type="module" src="page.js"></script>
+  </head>
+  <body>
+    <div id="header"></div>
+    <main class="container">
+      <div id="orders">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Order Number</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div id="loading"></div>
+    </main>
+    <div id="footer"></div>
+  </body>
+</html>

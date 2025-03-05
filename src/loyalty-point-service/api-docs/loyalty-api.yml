@@ -1,0 +1,67 @@
+openapi: 3.0.3
+info:
+  title: Loyalty Service
+  version: 1.0.0
+paths:
+  /loyalty:
+    get:
+      summary: Get loyalty points
+      description: Get the authenticated users current loyalty point balance
+      operationId: getPoints
+      x-eventcatalog-message-type: query
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoyaltyPoints'
+        '404':
+          description: Account not found
+    post:
+      summary: Spend points
+      description: Spends a set amount of points from the authenticated users account
+      operationId: spendPoints
+      x-eventcatalog-message-type: command
+      requestBody:
+        description: Spend points
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpendPointsCommand'
+        required: true
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoyaltyPoints'
+        '404':
+          description: Account Not Found
+components:
+  schemas:
+    LoyaltyPoints:
+      type: object
+      properties:
+        points:
+          type: integer
+          format: int64
+          example: 198
+    SpendPointsCommand:
+      type: object
+      properties:
+        points:
+          type: integer
+          format: int64
+          example: 198
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        type:
+          type: string
+        message:
+          type: string

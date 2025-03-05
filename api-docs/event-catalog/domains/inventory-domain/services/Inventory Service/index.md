@@ -1,9 +1,16 @@
 ---
 id: Inventory Service
-name: Inventory Service
 version: 1.0.0
-summary: The inventory service
+name: Inventory Service
+summary: ''
+schemaPath: inventory-api.yml
+specifications:
+  openapiPath: inventory-api.yml
+  asyncapiPath: inventory-service.yml
 badges: []
+owners:
+  - inventory-service
+setMessageOwnersToServiceOwners: true
 sends:
   - id: inventorystockreservedv1
     version: 1.0.0
@@ -22,11 +29,12 @@ receives:
     version: 1.0.0
   - id: productdeletedv1
     version: 1.0.0
-schemaPath: inventory-service.yml
-specifications:
-  asyncapiPath: inventory-service.yml
-owners:
-  - inventory-service
+  - id: updateInventory
+    version: 1.0.0
+  - id: getStockByProductId
+    version: 1.0.0
+  - id: ordercompletedv1
+    version: 1.0.0
 ---
 The inventory service  
 

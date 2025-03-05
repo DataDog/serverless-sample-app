@@ -1,30 +1,32 @@
 ---
 id: Orders API
-name: Order API
 version: 1.0.0
-summary: The order service API
+name: Order API
+summary: ''
+schemaPath: orders-api.yml
+specifications:
+  openapiPath: orders-api.yml
+  asyncapiPath: orders-api-events.yml
 badges: []
+owners:
+  - order-management
+setMessageOwnersToServiceOwners: true
 sends:
   - id: ordercreatedv1
-    version: 1.0.0
-  - id: orderconfirmedv1
     version: 1.0.0
   - id: ordercompletedv1
     version: 1.0.0
 receives:
-  - id: createorder
+  - id: createOrder
     version: 1.0.0
-  - id: completeorder
+  - id: getUserOrders
     version: 1.0.0
-  - id: getorderdetails
+  - id: getOrderDetails
     version: 1.0.0
-  - id: getuserorders
+  - id: completeOrder
     version: 1.0.0
-schemaPath: orders-api.yml
-specifications:
-  asyncapiPath: orders-api.yml
-owners:
-  - order-management
+  - id: getConfirmedOrders
+    version: 1.0.0
 ---
 The order service API  
 

@@ -8,7 +8,7 @@ use opentelemetry::global::ObjectSafeSpan;
 use shared::response::{empty_response, json_response};
 
 use observability::{observability, trace_request, TracedMessage};
-use shared::adapters::{DynamoDbRepository, SnsEventPublisher};
+use shared::adapters::{DynamoDbRepository, EventBridgeEventPublisher};
 use shared::core::{EventPublisher, Repository};
 use shared::ports::CreateUserCommand;
 use std::env;
@@ -52,8 +52,11 @@ async fn main() -> Result<(), Error> {
     let repository: DynamoDbRepository =
         DynamoDbRepository::new(dynamodb_client, table_name.clone());
 
-    let sns_client = aws_sdk_sns::Client::new(&config);
-    let event_publisher = SnsEventPublisher::new(sns_client);
+    let event_bus_name = env::var("EVENT_BUS_NAME").expect("EVENT_BUS_NAME is not set");
+    let env = env::var("ENV").expect("ENV is not set");
+    
+    let sns_client = aws_sdk_eventbridge::Client::new(&config);
+    let event_publisher = EventBridgeEventPublisher::new(sns_client, event_bus_name, env);
 
     // Seed default admin user
     seed_default_user(&repository, &event_publisher).await;

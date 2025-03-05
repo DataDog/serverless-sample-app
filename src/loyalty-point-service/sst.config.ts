@@ -1,5 +1,5 @@
 import { App } from "sst/constructs";
-import { ProductApiStack } from "./lib/product-api/product-api-stack";
+import { ProductApiStack } from "./lib/loyalty-api/loyaltyApiStack";
 import { ProductPublicEventPublisherStack } from "./lib/product-public-event-publisher/product-public-event-publisher-stack";
 import { SharedResourcesStack } from "./lib/shared-resources/shared-resources-stack";
 import { ProductPricingStack } from "./lib/product-pricing/product-pricing-stack";

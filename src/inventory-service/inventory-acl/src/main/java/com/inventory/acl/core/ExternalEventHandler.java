@@ -6,6 +6,7 @@
 
 package com.inventory.acl.core;
 
+import com.inventory.acl.core.events.external.OrderCompletedEventV1;
 import com.inventory.acl.core.events.external.OrderCreatedEventV1;
 import com.inventory.core.*;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -27,5 +28,9 @@ public class ExternalEventHandler {
 
     public boolean handleOrderCreatedV1Event(OrderCreatedEventV1 evt, String conversationId) {
         return (this.itemService.reserveStockForOrder(evt.getOrderNumber(), evt.getProducts(), conversationId)).isSuccess();
+    }
+
+    public boolean handleOrderCompletedV1Event(OrderCompletedEventV1 evt) {
+        return (this.itemService.orderDispatched(evt.getOrderNumber())).isSuccess();
     }
 }

@@ -5,6 +5,13 @@ info:
   version: 1.0.0
 
 operations:
+  sendOrderConfirmed:
+    action: send
+    channel:
+      $ref: '#/channels/orderConfirmed'
+    messages:
+      - $ref: '#/channels/orderConfirmed/messages/orderConfirmedV1'
+
   receiveStockReserved:
     action: receive
     channel:
@@ -27,6 +34,12 @@ operations:
       - $ref: '#/channels/confirmOrder/messages/confirmOrder'
 
 channels:
+  orderConfirmed:
+    address: orders.orderConfirmed.V1
+    messages:
+      orderConfirmedV1:
+        $ref: '#/components/messages/orderConfirmedV1'
+
   inventoryStockReserved:
     address: inventory.stockReserved.V1
     messages:
@@ -45,6 +58,20 @@ channels:
 
 components:
   messages:
+    orderConfirmedV1:
+      description: 'Event received when an order is confirmed'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: provider
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number
+          userId:
+            type: string
+            description: The users id
+
     stockReservedV1:
       name: Stock Reserved
       description: 'Event triggered when inventory is reserved for an order'

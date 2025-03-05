@@ -21,11 +21,13 @@ import java.util.List;
 @ApplicationScoped
 public class InventoryItemService {
     private final InventoryItemRepository repository;
+    private final OrderCache orderCache;
     private final EventPublisher eventPublisher;
     private final Logger logger = LoggerFactory.getLogger(InventoryItemService.class);
 
-    public InventoryItemService(InventoryItemRepository repository, EventPublisher eventPublisher) {
+    public InventoryItemService(InventoryItemRepository repository, OrderCache orderCache, EventPublisher eventPublisher) {
         this.repository = repository;
+        this.orderCache = orderCache;
         this.eventPublisher = eventPublisher;
     }
 
@@ -109,6 +111,8 @@ public class InventoryItemService {
                 stockAddedFor.add(inventoryItem);
             }
 
+            orderCache.store(orderNumber, (ArrayList<String>) products);
+
             if (isFailure) {
                 this.eventPublisher.publishStockReservationFailedEvent(new StockReservationFailedEventV1(orderNumber), conversationId);
             } else {
@@ -116,6 +120,35 @@ public class InventoryItemService {
                     this.repository.update(inventoryItem);
                 }
                 this.eventPublisher.publishStockReservedEvent(new StockReservedEventV1(orderNumber), conversationId);
+            }
+
+            return new HandlerResponse<>(true, List.of("OK"), true);
+        }
+        catch (Exception e){
+            logger.error("An exception occurred!", e);
+            span.setTag(Tags.ERROR, true);
+            span.setTag("error.message", e.getMessage());
+            return new HandlerResponse<>(false, List.of("Unknown error"), false);
+        }
+    }
+
+    public HandlerResponse<Boolean> orderDispatched(String orderNumber) {
+        final Span span = GlobalTracer.get().activeSpan();
+
+        try {
+            var products = orderCache.products(orderNumber);
+
+            span.setTag("order.number", orderNumber);
+
+            for (var productId : products) {
+                var inventoryItem = this.repository.withProductId(productId);
+
+                inventoryItem.stockDispatchedFor(orderNumber);
+                this.repository.update(inventoryItem);
+
+                if (inventoryItem.getAvailableStockLevel() <= 0) {
+                    this.eventPublisher.publishProductOutOfStockEvent(new ProductOutOfStockEventV1(productId));
+                }
             }
 
             return new HandlerResponse<>(true, List.of("OK"), true);

@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "properties": {
+    "orderId": {
+      "type": "string"
+    },
+    "orderDate": {
+      "type": "string"
+    },
+    "products": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of product IDs",
+      "example": [
+        "prod-123",
+        "prod-456"
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "format": "int64",
+      "example": 1
+    }
+  },
+  "isSchema": true
+}

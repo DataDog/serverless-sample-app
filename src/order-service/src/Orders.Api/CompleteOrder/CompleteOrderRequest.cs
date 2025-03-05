@@ -10,4 +10,7 @@ public record CompleteOrderRequest
 {
     [JsonPropertyName("orderId")]
     public string OrderId { get; set; }
+    
+    [JsonPropertyName("userId")]
+    public string UserId { get; set; }
 }

@@ -102,7 +102,7 @@ public record Order
     {
         if (OrderStatus != OrderStatus.Confirmed)
         {
-            return;
+            throw new OrderNotConfirmedException();
         }
         
         OrderStatus = OrderStatus.Completed;

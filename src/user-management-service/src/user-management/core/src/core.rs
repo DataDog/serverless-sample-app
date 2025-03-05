@@ -2,6 +2,8 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use thiserror::Error;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
 #[derive(Error, Debug)]
 pub enum RepositoryError {
@@ -136,14 +138,18 @@ impl User {
         details.password_hash.as_str()
     }
 
-    pub(crate) fn email_address(&self) -> &str {
+    pub(crate) fn email_address(&self) -> String {
         let details = match self {
             User::Standard(details) => details,
             User::Premium(details) => details,
             User::Admin(details) => details,
         };
-
-        &details.email_address.as_str()
+        
+        let mut hasher = DefaultHasher::new();
+        details.email_address.hash(&mut hasher);
+        let hash = hasher.finish().to_string();
+                
+        hash.clone()
     }
 
     pub(crate) fn user_type(&self) -> &str {
@@ -172,22 +178,15 @@ impl User {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserCreatedEvent {
     user_id: String,
 }
 
 impl From<User> for UserCreatedEvent {
     fn from(value: User) -> Self {
-        match value {
-            User::Standard(details) => UserCreatedEvent {
-                user_id: details.user_id,
-            },
-            User::Premium(details) => UserCreatedEvent {
-                user_id: details.user_id,
-            },
-            User::Admin(details) => UserCreatedEvent {
-                user_id: details.user_id,
-            },
+        UserCreatedEvent {
+            user_id: value.email_address().to_string(),
         }
     }
 }

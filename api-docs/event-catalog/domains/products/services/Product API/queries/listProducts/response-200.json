@@ -1,0 +1,43 @@
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "productId": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "price": {
+        "type": "integer",
+        "format": "int64",
+        "example": 10.99
+      },
+      "stockLevel": {
+        "type": "integer",
+        "format": "int64",
+        "example": 2
+      },
+      "pricingBrackets": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "quantity": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "price": {
+              "type": "integer",
+              "format": "int64",
+              "example": 10.99
+            }
+          }
+        }
+      }
+    }
+  },
+  "isSchema": true
+}

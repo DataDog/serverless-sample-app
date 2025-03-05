@@ -1,0 +1,75 @@
+asyncapi: 3.0.0
+info:
+  title: Product API
+  description: The product service
+  version: 1.0.0
+
+operations:
+  sendProductCreated:
+    action: send
+    channel:
+      $ref: '#/channels/productCreated'
+    messages:
+      - $ref: '#/channels/productCreated/messages/productCreatedV1'
+  sendProductUpdated:
+    action: send
+    channel:
+      $ref: '#/channels/productUpdated'
+    messages:
+      - $ref: '#/channels/productUpdated/messages/productUpdatedV1'
+  sendProductDeleted:
+    action: send
+    channel:
+      $ref: '#/channels/productDeleted'
+    messages:
+      - $ref: '#/channels/productDeleted/messages/productDeletedV1'
+
+channels:
+  productCreated:
+    address: product.productCreated.v1
+    messages:
+      productCreatedV1:
+        $ref: '#/components/messages/productCreatedV1'
+  productUpdated:
+    address: product.productUpdated.v1
+    messages:
+      productUpdatedV1:
+        $ref: '#/components/messages/productUpdatedV1'
+  productDeleted:
+    address: product.productDeleted.v1
+    messages:
+      productDeletedV1:
+        $ref: '#/components/messages/productDeletedV1'
+
+components:
+  messages:
+    productCreatedV1:
+      description: 'Event received when a new product is created'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: provider
+      payload:
+        type: object
+        properties:
+          productId:
+            type: string
+            description: The product ID
+    productUpdatedV1:
+      description: 'Event received when a product is updated'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: provider
+      payload:
+        type: object
+        properties:
+          productId:
+            type: string
+            description: The product ID
+    productDeletedV1:
+      description: 'Event received when a product is deleted'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: provider
+      payload:
+        type: object
+        properties:
+          productId:
+            type: string
+            description: The product ID

@@ -1,0 +1,87 @@
+asyncapi: 3.0.0
+info:
+  title: Loyalty Service
+  description: The loyalty service
+  version: 1.0.0
+
+operations:
+  sendLoyaltyPointsAdded:
+    action: send
+    channel:
+      $ref: '#/channels/loyaltyPointsAdded'
+    messages:
+      - $ref: '#/channels/loyaltyPointsAdded/messages/loyaltyPointsAddedV1'
+
+  receiveOrderCompleted:
+    action: receive
+    channel:
+      $ref: '#/channels/orderCompleted'
+    messages:
+      - $ref: '#/channels/orderCompleted/messages/orderCompletedV1'
+
+  receiveUserRegistered:
+    action: receive
+    channel:
+      $ref: '#/channels/userRegistered'
+    messages:
+      - $ref: '#/channels/userRegistered/messages/userRegisteredV1'
+
+channels:
+  loyaltyPointsAdded:
+    address: loyalty.pointsAdded.v1
+    messages:
+      loyaltyPointsAddedV1:
+        $ref: '#/components/messages/loyaltyPointsAddedV1'
+        
+  orderCompleted:
+    address: orders.orderCompleted.V1
+    messages:
+      orderCompletedV1:
+        $ref: '#/components/messages/orderCompletedV1'
+
+  userRegistered:
+    address: users.userRegistered.v1
+    messages:
+      userRegisteredV1:
+        $ref: '#/components/messages/userRegisteredV1'
+
+components:
+  messages:
+    loyaltyPointsAddedV1:
+      name: Loyalty points added
+      description: 'Event triggered when loyalty points are added to an account'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: provider
+      payload:
+        type: object
+        properties:
+          newPointsTotal:
+            type: number
+            description: The new points total
+          userId:
+            type: string
+
+    orderCompletedV1:
+      description: 'Event received when an order is confirmed'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: client
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number
+          userId:
+            type: string
+            description: The users id
+
+    userRegisteredV1:
+      description: 'Event published when a new user is registered'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: client
+      payload:
+        type: object
+        properties:
+          userId:
+            type: string
+            description: The users ID

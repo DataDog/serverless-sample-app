@@ -31,6 +31,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Orders.Core", "src\Orders.C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Orders.IntegrationTests", "src\Orders.IntegrationTests\Orders.IntegrationTests.csproj", "{5183B5AC-B6B0-4924-BCC2-BE48E2E76ABD}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "api-docs", "api-docs", "{27E8E656-09EF-4E99-86BE-E5F299F7FA63}"
+	ProjectSection(SolutionItems) = preProject
+		api-docs\orders-api.yml = api-docs\orders-api.yml
+		api-docs\orders-api-events.yml = api-docs\orders-api-events.yml
+		api-docs\orders-acl.yml = api-docs\orders-acl.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

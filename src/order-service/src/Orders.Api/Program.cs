@@ -1,7 +1,9 @@
 using Orders.Api;
 using Orders.Api.CompleteOrder;
+using Orders.Api.ConfirmedOrders;
 using Orders.Api.CreateOrder;
 using Orders.Api.GetOrderDetails;
+using Orders.Api.GetUserOrders;
 using Orders.Core;
 using Serilog;
 using Serilog.Formatting.Compact;
@@ -40,6 +42,8 @@ try
     app.UseAuthorization();
 
     app.MapGet("/health", () => Results.Ok("Healthy!"));
+    app.MapGet("/orders", GetUserOrdersHandler.Handle);
+    app.MapGet("/orders/confirmed", ConfirmedOrdersHandler.Handle);
     app.MapGet("/orders/{OrderId}", GetOrderDetailsHandler.Handle);
     app.MapPost("/orders", CreateOrderHandler.Handle);
     app.MapPost("/orders/{OrderId}/complete", CompleteOrderHandler.Handle);

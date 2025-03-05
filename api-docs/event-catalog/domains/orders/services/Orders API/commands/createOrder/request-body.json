@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "properties": {
+    "products": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of product IDs",
+      "example": [
+        "prod-123",
+        "prod-456"
+      ]
+    }
+  }
+}

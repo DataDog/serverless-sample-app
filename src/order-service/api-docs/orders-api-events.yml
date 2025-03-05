@@ -1,0 +1,67 @@
+asyncapi: 3.0.0
+info:
+  title: Order API
+  description: The order service API
+  version: 1.0.0
+
+operations:
+  sendOrderCreated:
+    action: send
+    channel:
+      $ref: '#/channels/orderCreated'
+    messages:
+      - $ref: '#/channels/orderCreated/messages/orderCreatedV1'
+      
+  sendOrderCompleted:
+    action: send
+    channel:
+      $ref: '#/channels/orderCompleted'
+    messages:
+      - $ref: '#/channels/orderCompleted/messages/orderCompletedV1'
+
+channels:
+  orderCreated:
+    address: orders.orderCreated.V1
+    messages:
+      orderCreatedV1:
+        $ref: '#/components/messages/orderCreatedV1'
+  orderCompleted:
+    address: orders.orderCompleted.V1
+    messages:
+      orderCompletedV1:
+        $ref: '#/components/messages/orderCompletedV1'
+
+components:
+  messages:
+    orderCreatedV1:
+      description: 'Event received when an order is created'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: provider
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number
+          userId:
+            type: string
+            description: The users id
+          products:
+            type: array
+            description: The products on the order
+            items:
+              type: string
+
+    orderCompletedV1:
+      description: 'Event received when an order is confirmed'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: provider
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number
+          userId:
+            type: string
+            description: The users id

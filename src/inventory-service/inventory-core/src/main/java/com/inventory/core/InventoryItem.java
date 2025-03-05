@@ -82,4 +82,13 @@ public class InventoryItem {
         this.reservedStockOrders.remove(orderId);
         this.reservedStockLevel = reservedStockLevel - 1.0;
     }
+
+    public void stockDispatchedFor(String orderId) {
+        if (!this.reservedStockOrders.contains(orderId)) {
+            return;
+        }
+        this.reservedStockOrders.remove(orderId);
+        this.reservedStockLevel = reservedStockLevel - 1.0;
+        this.currentStockLevel = this.currentStockLevel - 1.0;
+    }
 }

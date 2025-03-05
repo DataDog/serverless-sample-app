@@ -46,7 +46,7 @@ export class InstrumentedLambdaFunction extends Construct {
 
     this.function = new NodejsFunction(this, props.functionName, {
       runtime: Runtime.NODEJS_22_X,
-      functionName: `${id}-${props.sharedProps.environment}`,
+      functionName: `${props.sharedProps.serviceName}-${id}-${props.sharedProps.environment}`,
       code: code,
       handler: props.handler,
       memorySize: props.memorySize ?? 512,

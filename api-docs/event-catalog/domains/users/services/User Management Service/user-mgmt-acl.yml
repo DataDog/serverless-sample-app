@@ -1,0 +1,94 @@
+asyncapi: 3.0.0
+info:
+  title: User Management ACL
+  description: The user management service anti-corruption layer
+  version: 1.0.0
+
+operations:
+
+  receiveOrderCreated:
+    action: receive
+    channel:
+      $ref: '#/channels/orderCreated'
+    messages:
+      - $ref: '#/channels/orderCreated/messages/orderCreatedV1'
+
+  receiveOrderConfirmed:
+    action: receive
+    channel:
+      $ref: '#/channels/orderConfirmed'
+    messages:
+      - $ref: '#/channels/orderConfirmed/messages/orderConfirmedV1'
+
+  receiveOrderCompleted:
+    action: receive
+    channel:
+      $ref: '#/channels/orderCompleted'
+    messages:
+      - $ref: '#/channels/orderCompleted/messages/orderCompletedV1'
+
+channels:
+  orderCreated:
+    address: orders.orderCreated.V1
+    messages:
+      orderCreatedV1:
+        $ref: '#/components/messages/orderCreatedV1'
+  orderConfirmed:
+    address: orders.orderConfirmed.V1
+    messages:
+      orderConfirmedV1:
+        $ref: '#/components/messages/orderConfirmedV1'
+  orderCompleted:
+    address: orders.orderCompleted.V1
+    messages:
+      orderCompletedV1:
+        $ref: '#/components/messages/orderCompletedV1'
+
+components:
+  messages:
+    orderCreatedV1:
+      description: 'Event received when an order is created'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: client
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number
+          userId:
+            type: string
+            description: The users id
+          products:
+            type: array
+            description: The products on the order
+            items:
+              type: string
+
+    orderConfirmedV1:
+      description: 'Event received when an order is confirmed'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: client
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number
+          userId:
+            type: string
+            description: The users id
+
+    orderCompletedV1:
+      description: 'Event received when an order is confirmed'
+      x-eventcatalog-message-type: event
+      x-eventcatalog-role: client
+      payload:
+        type: object
+        properties:
+          orderNumber:
+            type: string
+            description: The order number
+          userId:
+            type: string
+            description: The users id

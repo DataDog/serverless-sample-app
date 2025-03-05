@@ -35,6 +35,8 @@ public static class ServiceExtensions
                 WithDecryption = true
             }).Result.Parameter.Value;   
         }
+
+        Console.WriteLine($"Using AWS access key: {secretKey}");
         
         services.AddAuthentication(options =>
         {

@@ -20,20 +20,24 @@ public class CompleteOrderHandler
     {
         try
         {
-            var userClaims = context.User.Claims.ExtractUserId();
+            var user = context.User.Claims.ExtractUserId();
 
-            var order = await orders.WithOrderId(userClaims.UserId, request.OrderId);
+            if (user.UserType != "ADMIN")
+            {
+                return Results.Unauthorized();
+            }
+            var existingOrder = await orders.WithOrderId(request.UserId, request.OrderId);
 
-            if (order == null)
+            if (existingOrder == null)
             {
                 return Results.NotFound();
             }
 
-            order.CompleteOrder();
-            await orders.Store(order);
-            await eventGateway.HandleOrderCompleted(order);
+            existingOrder.CompleteOrder();
+            await orders.Store(existingOrder);
+            await eventGateway.HandleOrderCompleted(existingOrder);
 
-            return Results.Ok(new OrderDTO(order));
+            return Results.Ok(new OrderDTO(existingOrder));
         }
         catch (OrderNotConfirmedException)
         {

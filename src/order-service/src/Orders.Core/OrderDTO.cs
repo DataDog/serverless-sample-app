@@ -14,7 +14,11 @@ public record OrderDTO
         OrderDate= order.OrderDate;
         Products = order.Products;
         OrderStatus = order.OrderStatus.ToString();
+        UserId = order.UserId;
     }
+    
+    [JsonPropertyName("userId")]
+    public string UserId { get; set; }
     
     [JsonPropertyName("orderId")]
     public string OrderId { get; set; }

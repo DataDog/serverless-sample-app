@@ -1,0 +1,98 @@
+openapi: 3.0.3
+info:
+  title: User Management API
+  version: 1.0.0
+paths:
+  /login:
+    post:
+      summary: Login
+      description: Login to the system
+      operationId: login
+      x-eventcatalog-message-type: command
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginCommand'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiToken'
+        '404':
+          description: User not found
+  /user:
+    post:
+      summary: Register a new user
+      description: Registers a new user in the system
+      operationId: register
+      x-eventcatalog-message-type: command
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUserCommand'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+components:
+  schemas:
+    LoginCommand:
+      type: object
+      properties:
+        email_address:
+          type: string
+        password:
+          type: string
+    RegisterUserCommand:
+      type: object
+      properties:
+        email_address:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        password:
+          type: string
+    User:
+      type: object
+      properties:
+        email_address:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+    CreateProductCommand:
+      type: object
+      properties:
+        name:
+          type: string
+        price:
+          type: integer
+          format: int64
+          example: 198772
+    UpdateProductCommand:
+      type: object
+      properties:
+        productId:
+          type: string
+        name:
+          type: string
+        price:
+          type: integer
+          format: int64
+          example: 198772
+    ApiToken:
+      type: object
+      properties:
+        token:
+          type: string

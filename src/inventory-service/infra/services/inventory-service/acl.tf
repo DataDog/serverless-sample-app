@@ -159,3 +159,81 @@ resource "aws_cloudwatch_event_target" "order_created_sqs_target" {
   arn            = aws_sqs_queue.order_created_queue.arn
   event_bus_name = data.aws_ssm_parameter.eb_name.value
 }
+
+resource "aws_sqs_queue" "order_completed_event_dlq" {
+  name = "InventoryOrdering-order-completed-dlq-${var.env}"
+}
+
+resource "aws_sqs_queue" "order_completed_queue" {
+  name                      = "InventoryOrdering-order-completed-${var.env}"
+  receive_wait_time_seconds = 10
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.order_completed_event_dlq.arn
+    maxReceiveCount     = 3
+  })
+}
+
+resource "aws_sqs_queue_policy" "allow_order_completed_eb_publish" {
+  queue_url = aws_sqs_queue.order_completed_queue.id
+  policy    = data.aws_iam_policy_document.inventory_order_completed_queue_policy.json
+}
+
+module "order_completed_function" {
+  service_name   = "InventoryOrdering"
+  package_name = "com.inventory.acl"
+  source         = "../../modules/lambda-function"
+  jar_file       = "../inventory-acl/target/function.zip"
+  function_name  = "InventoryOrderCompleted"
+  lambda_handler = "io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest"
+  routing_expression = "handleOrderCompleted"
+  environment_variables = {
+    TABLE_NAME : aws_dynamodb_table.inventory_api.name
+  }
+  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
+  env = var.env
+  app_version = var.app_version
+}
+
+resource "aws_lambda_event_source_mapping" "order_completed_esm" {
+  event_source_arn        = aws_sqs_queue.order_completed_queue.arn
+  function_name           = module.order_completed_function.function_arn
+  function_response_types = ["ReportBatchItemFailures"]
+}
+
+resource "aws_iam_role_policy_attachment" "inventory_order_completed_sqs_receive_policy" {
+  role       = module.order_completed_function.function_role_name
+  policy_arn = aws_iam_policy.sqs_receive_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "order_completed_function_acl_read" {
+  role       = module.order_completed_function.function_role_name
+  policy_arn = aws_iam_policy.dynamo_db_read.arn
+}
+
+resource "aws_iam_role_policy_attachment" "order_completed_function_acl_write" {
+  role       = module.order_completed_function.function_role_name
+  policy_arn = aws_iam_policy.dynamo_db_write.arn
+}
+
+resource "aws_cloudwatch_event_rule" "order_completed_event_rule" {
+  name           = "InventoryOrderCompletedRule"
+  event_bus_name = data.aws_ssm_parameter.eb_name.value
+  event_pattern  = <<EOF
+{
+  "detail-type": [
+    "orders.orderCompleted.v1"
+  ],
+  "source": [
+    "${var.env}.orders"
+  ]
+}
+EOF
+}
+
+resource "aws_cloudwatch_event_target" "order_completed_sqs_target" {
+  rule           = aws_cloudwatch_event_rule.order_completed_event_rule.name
+  target_id      = aws_sqs_queue.order_completed_queue.name
+  arn            = aws_sqs_queue.order_completed_queue.arn
+  event_bus_name = data.aws_ssm_parameter.eb_name.value
+}
