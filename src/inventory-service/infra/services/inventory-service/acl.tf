@@ -74,26 +74,11 @@ resource "aws_iam_role_policy_attachment" "inventory_acl_sns_publish" {
   policy_arn = aws_iam_policy.sns_publish.arn
 }
 
-resource "aws_cloudwatch_event_rule" "event_rule" {
-  name           = "InventoryAclRule"
-  event_bus_name = data.aws_ssm_parameter.eb_name.value
-  event_pattern  = <<EOF
-{
-  "detail-type": [
-    "product.productCreated.v1"
-  ],
-  "source": [
-    "${var.env}.products"
-  ]
-}
-EOF
-}
-
 resource "aws_cloudwatch_event_target" "sqs_target" {
   rule           = aws_cloudwatch_event_rule.event_rule.name
   target_id      = aws_sqs_queue.public_event_acl_queue.name
   arn            = aws_sqs_queue.public_event_acl_queue.arn
-  event_bus_name = data.aws_ssm_parameter.eb_name.value
+  event_bus_name = aws_cloudwatch_event_bus.inventory_service_bus.name
 }
 
 resource "aws_sqs_queue" "order_created_event_dlq" {
@@ -153,26 +138,11 @@ resource "aws_iam_role_policy_attachment" "order_created_function_acl_write" {
   policy_arn = aws_iam_policy.dynamo_db_write.arn
 }
 
-resource "aws_cloudwatch_event_rule" "order_created_event_rule" {
-  name           = "InventoryOrderCreatedRule"
-  event_bus_name = data.aws_ssm_parameter.eb_name.value
-  event_pattern  = <<EOF
-{
-  "detail-type": [
-    "orders.orderCreated.v1"
-  ],
-  "source": [
-    "${var.env}.orders"
-  ]
-}
-EOF
-}
-
 resource "aws_cloudwatch_event_target" "order_created_sqs_target" {
   rule           = aws_cloudwatch_event_rule.order_created_event_rule.name
   target_id      = aws_sqs_queue.order_created_queue.name
   arn            = aws_sqs_queue.order_created_queue.arn
-  event_bus_name = data.aws_ssm_parameter.eb_name.value
+  event_bus_name = aws_cloudwatch_event_bus.inventory_service_bus.name
 }
 
 resource "aws_sqs_queue" "order_completed_event_dlq" {
@@ -232,24 +202,9 @@ resource "aws_iam_role_policy_attachment" "order_completed_function_acl_write" {
   policy_arn = aws_iam_policy.dynamo_db_write.arn
 }
 
-resource "aws_cloudwatch_event_rule" "order_completed_event_rule" {
-  name           = "InventoryOrderCompletedRule"
-  event_bus_name = data.aws_ssm_parameter.eb_name.value
-  event_pattern  = <<EOF
-{
-  "detail-type": [
-    "orders.orderCompleted.v1"
-  ],
-  "source": [
-    "${var.env}.orders"
-  ]
-}
-EOF
-}
-
 resource "aws_cloudwatch_event_target" "order_completed_sqs_target" {
   rule           = aws_cloudwatch_event_rule.order_completed_event_rule.name
   target_id      = aws_sqs_queue.order_completed_queue.name
   arn            = aws_sqs_queue.order_completed_queue.arn
-  event_bus_name = data.aws_ssm_parameter.eb_name.value
+  event_bus_name = aws_cloudwatch_event_bus.inventory_service_bus.name
 }

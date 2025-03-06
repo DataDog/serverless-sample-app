@@ -43,10 +43,11 @@ public class ApiDriver {
                 .connectTimeout(Duration.ofSeconds(HTTP_TIMEOUT))
                 .build();
         this.objectMapper = objectMapper;
+        String serviceName = env == "dev" || env == "prod" ? "shared" : "InventoryService";
 
         this.apiEndpoint = getParameterValue(ssmClient, String.format("/%s/InventoryService/api-endpoint", env));
-        this.secretKey = getParameterValue(ssmClient, String.format("/%s/shared/secret-access-key", env));
-        this.busName = getParameterValue(ssmClient, String.format("/%s/shared/event-bus-name", env));
+        this.secretKey = getParameterValue(ssmClient, String.format("/%s/%s/secret-access-key", env, serviceName));
+        this.busName = getParameterValue(ssmClient, String.format("/%s/InventoryService/event-bus-name", env));
     }
 
     private String getParameterValue(SsmClient ssmClient, String paramName) {

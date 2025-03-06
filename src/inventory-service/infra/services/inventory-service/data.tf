@@ -29,23 +29,15 @@ data "aws_iam_policy_document" "dynamo_db_write" {
   }
 }
 
-data "aws_ssm_parameter" "eb_name" {
-  name = "/${var.env}/shared/event-bus-name"
-}
-
 data "aws_iam_policy_document" "eb_publish" {
   statement {
     actions   = ["events:PutEvents"]
-    resources = ["arn:aws:events:*:${data.aws_caller_identity.current.account_id}:event-bus/${data.aws_ssm_parameter.eb_name.value}"]
+    resources = [aws_cloudwatch_event_bus.inventory_service_bus.arn]
   }
   statement {
     actions   = ["events:ListEventBuses"]
     resources = ["*"]
   }
-}
-
-data "aws_ssm_parameter" "secret_access_key_param" {
-  name = "/${var.env}/shared/secret-access-key"
 }
 
 data "aws_iam_policy_document" "allow_jwt_secret_key_ssm_read" {
@@ -54,7 +46,9 @@ data "aws_iam_policy_document" "allow_jwt_secret_key_ssm_read" {
       "ssm:GetParameter",
       "ssm:GetParameterHistory",
       "ssm:GetParameters"]
-    resources = ["arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/shared/secret-access-key"]
+    resources = [
+        var.env == "dev" || var.env == "prod" ? "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/shared/secret-access-key" : "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/InventoryService/secret-access-key"
+    ]
   }
 }
 

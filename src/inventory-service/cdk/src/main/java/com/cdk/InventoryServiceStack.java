@@ -36,16 +36,11 @@ public class InventoryServiceStack  extends Stack {
         String version = System.getenv("VERSION") == null ? "dev" : System.getenv("VERSION");
 
         SharedProps sharedProps = new SharedProps(serviceName, env, version, ddApiKeySecret);
+        InventoryServiceProps serviceProps = new InventoryServiceProps(this, "InventoryServiceProps", sharedProps);
 
-        EventBus inventoryServiceEventBus = new EventBus(this, "InventoryServiceEventBus", EventBusProps.builder()
-                .eventBusName(String.format("%s-bus-%s", serviceName, env))
-                .build());
+        var api = new InventoryApiContainer(this, "InventoryApi", new InventoryApiContainerProps(sharedProps, serviceProps.getInventoryEventBus(), serviceProps.getJwtAccessKeyParameter()));
 
-        IStringParameter jwtAccessKeyParameterName = StringParameter.fromStringParameterName(this, "JwtAccessKeyParameter", String.format("/%s/shared/secret-access-key", env));
-
-        var api = new InventoryApiContainer(this, "InventoryApi", new InventoryApiContainerProps(sharedProps, inventoryServiceEventBus, jwtAccessKeyParameterName));
-
-        var acl = new InventoryAcl(this, "InventoryACL", new InventoryAclProps(sharedProps, inventoryServiceEventBus, api.getTable()));
+        var acl = new InventoryAcl(this, "InventoryACL", new InventoryAclProps(sharedProps, serviceProps.getInventoryEventBus(), api.getTable()));
 
         new InventoryOrderingService(this, "InventoryOrdering", new InventoryOrderingServiceProps(sharedProps, api.getTable(), acl.getNewProductAddedTopic()));
 
@@ -53,16 +48,14 @@ public class InventoryServiceStack  extends Stack {
         var integrationEnvironments = List.of("dev","prod");
         if (integrationEnvironments.contains(env)) {
             var publicEvents = List.of(
-                    new InventoryStockReservedEvent(this, "InventoryStockReservedEvent", sharedProps, inventoryServiceEventBus),
-                    new InventoryStockReservationFailedEvent(this, "InventoryStockReservationFailedEvent", sharedProps, inventoryServiceEventBus),
-                    new ProductOutOfStockEvent(this, "ProductOutOfStockEvent", sharedProps, inventoryServiceEventBus),
-                    new InventoryStockUpdatedEvent(this, "InventoryStockUpdatedEvent", sharedProps, inventoryServiceEventBus)
+                    new InventoryStockReservedEvent(this, "InventoryStockReservedEvent", sharedProps, serviceProps.getInventoryEventBus()),
+                    new InventoryStockReservationFailedEvent(this, "InventoryStockReservationFailedEvent", sharedProps, serviceProps.getInventoryEventBus()),
+                    new ProductOutOfStockEvent(this, "ProductOutOfStockEvent", sharedProps, serviceProps.getInventoryEventBus()),
+                    new InventoryStockUpdatedEvent(this, "InventoryStockUpdatedEvent", sharedProps, serviceProps.getInventoryEventBus())
             );
-            String eventBusName = StringParameter.valueForStringParameter(this, String.format("/%s/shared/event-bus-name", env));
-            IEventBus sharedBus = EventBus.fromEventBusName(this, "SharedEventBus", eventBusName);
 
             for (var event : publicEvents) {
-                event.addTarget(new software.amazon.awscdk.services.events.targets.EventBus(sharedBus));
+                event.addTarget(new software.amazon.awscdk.services.events.targets.EventBus(serviceProps.getSharedEventBus()));
             }
         }
     }

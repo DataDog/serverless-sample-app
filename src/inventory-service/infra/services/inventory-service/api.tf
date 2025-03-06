@@ -70,6 +70,14 @@ resource "aws_iam_role_policy_attachment" "inventory_api_put_events" {
   policy_arn = aws_iam_policy.eb_publish.arn
 }
 
+resource "aws_ssm_parameter" "inventory_service_access_key" {
+  count = var.env == "dev" || var.env == "prod" ? 0 : 1
+  name  = "/${var.env}/InventoryService/secret-access-key"
+  type  = "String"
+  value = "This is a sample secret key that should not be used in production`"
+}
+
+
 module "inventory_api_web_service" {
   source       = "../../modules/web-service"
   service_name = "InventoryApi"
@@ -83,7 +91,7 @@ module "inventory_api_web_service" {
     },
     {
       name  = "EVENT_BUS_NAME"
-      value = data.aws_ssm_parameter.eb_name.value
+      value = aws_cloudwatch_event_bus.inventory_service_bus.name
     },
     {
       name  = "TEAM"
@@ -103,7 +111,7 @@ module "inventory_api_web_service" {
     },
     {
       name  = "JWT_SECRET_PARAM_NAME"
-      value = "/${var.env}/shared/secret-access-key"
+      value = var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/InventoryService/secret-access-key"
     }
   ]
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
