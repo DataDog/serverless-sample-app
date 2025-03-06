@@ -98,6 +98,19 @@ functions:
       - sqs:
           arn:
             Fn::GetAtt: [InventoryOrderCreatedEventQueue, Arn]
+  handleOrderCompleted:
+    handler: oio.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest
+    environment:
+      TABLE_NAME: !Ref InventoryApiTable
+      DD_SERVICE_MAPPING: !Sub "lambda_sqs:${InventoryOrderCompletedEventQueue.QueueName}"
+      QUARKUS_LAMBDA_HANDLER: handleOrderCompleted
+    package:
+      artifact: ./inventory-acl/target/function.zip
+      individually: true
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [InventoryOrderCompletedEventQueue, Arn]
 
   startOrderWorkflow:
     handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
@@ -224,6 +237,52 @@ resources:
               Principal:
                 Service: "events.amazonaws.com"
               Resource: !GetAtt InventoryOrderCreatedEventQueue.Arn
+              Action: SQS:SendMessage
+
+    InventoryOrderCompletedEventDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: !Sub "InventoryOrderCompletedEventDLQ-${sls:stage}"
+
+    InventoryOrderCompletedEventQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: !Sub "InventoryOrderCompletedEventQueue-${sls:stage}"
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - "InventoryOrderCompletedEventDLQ"
+              - "Arn"
+          maxReceiveCount: 3
+
+    OrderCompletedEventRule:
+      Type: AWS::Events::Rule
+      Properties:
+        EventBusName: !Sub "${ssm:/${sls:stage}/shared/event-bus-name}"
+        Name: inventory-order-created
+        State: ENABLED
+        EventPattern:
+          source:
+            - !Sub "${sls:stage}.orders"
+          detail-type:
+            - "orders.orderCompleted.v1"
+        Targets:
+          - Id: OrderCompletedEventQueue
+            Arn: !GetAtt InventoryOrderCompletedEventQueue.Arn
+
+    EBToOrderCompletedQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref InventoryOrderCompletedEventQueue
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Sid: allow-eb-send-message-messages
+              Effect: Allow
+              Principal:
+                Service: "events.amazonaws.com"
+              Resource: !GetAtt InventoryOrderCompletedEventQueue.Arn
               Action: SQS:SendMessage
 
     InventoryOrderingServiceLogGroup: 

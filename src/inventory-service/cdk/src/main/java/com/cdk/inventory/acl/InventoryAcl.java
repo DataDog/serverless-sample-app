@@ -10,6 +10,9 @@ import com.cdk.constructs.InstrumentedFunction;
 import com.cdk.constructs.InstrumentedFunctionProps;
 import com.cdk.constructs.ResilientQueue;
 import com.cdk.constructs.ResilientQueueProps;
+import com.cdk.events.OrderCompletedEvent;
+import com.cdk.events.OrderCreatedEvent;
+import com.cdk.events.ProductCreatedEvent;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.services.connect.CfnQuickConnect;
@@ -66,13 +69,7 @@ public class InventoryAcl extends Construct {
                 .batchSize(10)
                 .build()));
 
-        Rule rule = new Rule(this, "InventoryProductCreatedRule", RuleProps.builder()
-                .eventBus(props.sharedEventBus())
-                .build());
-        rule.addEventPattern(EventPattern.builder()
-                        .detailType(List.of("product.productCreated.v1"))
-                        .source(List.of(String.format("%s.products", props.sharedProps().env())))
-                .build());
+        Rule rule = new ProductCreatedEvent(this, "InventoryProductCreatedRule", props.sharedProps(), props.sharedEventBus());
         rule.addTarget(new SqsQueue(queue.getQueue()));
 
         ResilientQueue orderCreatedQueue = new ResilientQueue(this, "OrderCreatedEventQueue", new ResilientQueueProps("InventoryOrderCreatedEventQueue", props.sharedProps()));
@@ -97,13 +94,7 @@ public class InventoryAcl extends Construct {
                 .build());
         props.inventoryTable().grantReadWriteData(orderCreatedFunction);
 
-        Rule orderCreatedRule = new Rule(this, "InventoryOrderCreatedRule", RuleProps.builder()
-                .eventBus(props.sharedEventBus())
-                .build());
-        orderCreatedRule.addEventPattern(EventPattern.builder()
-                .detailType(List.of("orders.orderCreated.v1"))
-                .source(List.of(String.format("%s.orders", props.sharedProps().env())))
-                .build());
+        Rule orderCreatedRule = new OrderCreatedEvent(this, "InventoryOrderCreatedRule", props.sharedProps(), props.sharedEventBus());
         orderCreatedRule.addTarget(new SqsQueue(orderCreatedQueue.getQueue()));
 
         ResilientQueue orderCompletedQueue = new ResilientQueue(this, "OrderCompletedEventQueue", new ResilientQueueProps("InventoryOrderCompletedEventQueue", props.sharedProps()));
@@ -128,13 +119,7 @@ public class InventoryAcl extends Construct {
                 .build());
         props.inventoryTable().grantReadWriteData(orderCompletedFunction);
 
-        Rule orderCompletedRule = new Rule(this, "InventoryOrderCompletedRule", RuleProps.builder()
-                .eventBus(props.sharedEventBus())
-                .build());
-        orderCompletedRule.addEventPattern(EventPattern.builder()
-                .detailType(List.of("orders.orderCompleted.v1"))
-                .source(List.of(String.format("%s.orders", props.sharedProps().env())))
-                .build());
+        Rule orderCompletedRule = new OrderCompletedEvent(this, "InventoryOrderCompletedRule", props.sharedProps(),props.sharedEventBus());
         orderCompletedRule.addTarget(new SqsQueue(orderCompletedQueue.getQueue()));
     }
 

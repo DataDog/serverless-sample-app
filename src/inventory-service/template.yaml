@@ -109,6 +109,36 @@ Resources:
             EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
     Metadata:
       SkipBuild: True
+
+  InventoryOrderCompletedPublicEventHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./inventory-acl/target/function.zip
+      Handler: io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest
+      FunctionName: !Sub ${ServiceName}-AclOrderCompleted-${Env}
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref InventoryApiTable
+          QUARKUS_LAMBDA_HANDLER: handleOrderCompleted
+          MAIN_CLASS: com.inventory.acl.FunctionConfiguration
+      Events:
+        IntegrationQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt InventoryOrderCompletedEventQueue.Arn
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InventoryApiTable
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+    Metadata:
+      SkipBuild: True
  
   NewProductAddedTopic:
     Type: AWS::SNS::Topic
@@ -205,6 +235,52 @@ Resources:
             Principal:
               Service: "events.amazonaws.com"
             Resource: !GetAtt InventoryOrderCreatedEventQueue.Arn
+            Action: SQS:SendMessage
+
+  InventoryOrderCompletedEventDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "InventoryOrderCompletedEventDLQ-${Env}"
+
+  InventoryOrderCompletedEventQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "InventoryOrderCompletedEventQueue-${Env}"
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - "InventoryOrderCompletedEventDLQ"
+            - "Arn"
+        maxReceiveCount: 3
+
+  OrderCompletedEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: inventory-order-completed
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.orders"
+        detail-type:
+          - "orders.orderCompleted.v1"
+      Targets:
+        - Id: OrderCreatedEventQueue
+          Arn: !GetAtt InventoryOrderCreatedEventQueue.Arn
+
+  EBToOrderCompletedQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref InventoryOrderCompletedEventQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: allow-eb-send-message-messages
+            Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Resource: !GetAtt InventoryOrderCompletedEventQueue.Arn
             Action: SQS:SendMessage
 
   InventoryOrderingWorkflow:
