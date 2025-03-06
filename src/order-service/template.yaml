@@ -164,6 +164,12 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
+                - states:SendTaskSuccess
+              Resource: !GetAtt OrderWorkflow.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
                 - events:DescribeEventBus
               Resource: !GetAtt OrdersServiceEventBus.Arn
         - EventBridgePutEventsPolicy:
@@ -193,6 +199,12 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - states:SendTaskFailure
+              Resource: !GetAtt OrderWorkflow.Arn
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow

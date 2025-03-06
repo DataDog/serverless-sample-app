@@ -94,7 +94,7 @@ module "orders_web_service" {
     {
       name  = "JWT_SECRET_PARAM_NAME"
       value = var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/OrdersService/secret-access-key"
-    }
+    },
     {
       name  = "TABLE_NAME"
       value = aws_dynamodb_table.orders_api.name
@@ -135,3 +135,4 @@ resource "aws_ssm_parameter" "api_endpoint" {
   type  = "String"
   value = "http://${aws_alb.application_load_balancer.dns_name}"
 }
+

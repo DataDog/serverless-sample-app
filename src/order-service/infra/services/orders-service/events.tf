@@ -24,6 +24,47 @@ data "aws_ssm_parameter" "shared_eb_arn" {
   name = "/${var.env}/shared/event-bus-arn"
 }
 
+data "aws_iam_policy_document" "shared_eb_publish" {
+  count = var.env == "dev" || var.env == "prod" ? 1 : 0
+  statement {
+    actions   = ["events:PutEvents"]
+    resources = [
+      aws_cloudwatch_event_bus.orders_service_bus.arn,
+      data.aws_ssm_parameter.shared_eb_arn[count.index].value
+    ]
+  }
+}
+
+resource "aws_iam_policy" "shared_eb_publish" {
+  count = var.env == "dev" || var.env == "prod" ? 1 : 0
+  name   = "TF_InventoryOrdering-shared-eb-publish-policy-${var.env}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.shared_eb_publish[count.index].json
+}
+
+resource "aws_iam_role" "shared_eb_publish_role" {
+  count = var.env == "dev" || var.env == "prod" ? 1 : 0
+  name = "TF_InventoryOrdering-shared-eb-publish-role-${var.env}"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "states.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "shared_eb_publish_role_attachment" {
+  count = var.env == "dev" || var.env == "prod" ? 1 : 0
+  role       = aws_iam_role.shared_eb_publish_role[count.index].id
+  policy_arn = aws_iam_policy.shared_eb_publish[count.index].arn
+}
+
 # Create events on orders service event bus
 resource "aws_cloudwatch_event_rule" "stock_reserved_rule" {
   name           = "OrdersInventoryStockReservedRule"
@@ -78,6 +119,7 @@ resource "aws_cloudwatch_event_target" "shared_bus_stock_reserved_target" {
   target_id      = aws_cloudwatch_event_bus.orders_service_bus.id
   arn            = aws_cloudwatch_event_bus.orders_service_bus.arn
   event_bus_name = data.aws_ssm_parameter.shared_eb_name[count.index].value
+  role_arn = aws_iam_role.shared_eb_publish_role[count.index].arn
 }
 
 resource "aws_cloudwatch_event_rule" "shared_bus_stock_reservation_failed_rule" {
@@ -102,6 +144,7 @@ resource "aws_cloudwatch_event_target" "shared_bus_order_created_target" {
   target_id      = aws_cloudwatch_event_bus.orders_service_bus.id
   arn            = aws_cloudwatch_event_bus.orders_service_bus.arn
   event_bus_name = data.aws_ssm_parameter.shared_eb_name[count.index].value
+  role_arn = aws_iam_role.shared_eb_publish_role[count.index].arn
 }
 
 
@@ -128,6 +171,7 @@ resource "aws_cloudwatch_event_target" "shared_bus_order_created_forwarding_targ
   target_id      = data.aws_ssm_parameter.shared_eb_name[count.index].value
   arn            = data.aws_ssm_parameter.shared_eb_arn[count.index].value
   event_bus_name = aws_cloudwatch_event_bus.orders_service_bus.id
+  role_arn = aws_iam_role.shared_eb_publish_role[count.index].arn
 }
 
 resource "aws_cloudwatch_event_rule" "shared_bus_order_confirmed_forwarding_rule" {
@@ -152,6 +196,7 @@ resource "aws_cloudwatch_event_target" "shared_bus_order_confirmed_forwarding_ta
   target_id      = data.aws_ssm_parameter.shared_eb_name[count.index].value
   arn            = data.aws_ssm_parameter.shared_eb_arn[count.index].value
   event_bus_name = aws_cloudwatch_event_bus.orders_service_bus.id
+  role_arn = aws_iam_role.shared_eb_publish_role[count.index].arn
 }
 
 resource "aws_cloudwatch_event_rule" "shared_bus_order_completed_forwarding_rule" {
@@ -176,4 +221,5 @@ resource "aws_cloudwatch_event_target" "shared_bus_order_completed_forwarding_ta
   target_id      = data.aws_ssm_parameter.shared_eb_name[count.index].value
   arn            = data.aws_ssm_parameter.shared_eb_arn[count.index].value
   event_bus_name = aws_cloudwatch_event_bus.orders_service_bus.id
+  role_arn = aws_iam_role.shared_eb_publish_role[count.index].arn
 }

@@ -39,7 +39,7 @@ resource "aws_iam_policy" "shared_eb_publish" {
   count = var.env == "dev" || var.env == "prod" ? 1 : 0
   name   = "TF_InventoryOrdering-shared-eb-publish-policy-${var.env}"
   path   = "/"
-  policy = data.aws_iam_policy_document.shared_eb_publish.json
+  policy = data.aws_iam_policy_document.shared_eb_publish[count.index].json
 }
 
 resource "aws_iam_role" "shared_eb_publish_role" {

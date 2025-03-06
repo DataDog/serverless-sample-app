@@ -22,3 +22,4 @@ integration-test:
 build:
 	dotnet tool install -g Amazon.Lambda.Tools;
 	dotnet lambda package -pl src/Orders.BackgroundWorkers/
+	dotnet lambda package -pl src/TestHarness/TestHarness.Lambda/

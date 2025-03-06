@@ -24,8 +24,26 @@ resource "aws_iam_policy" "eb_publish" {
   policy = data.aws_iam_policy_document.eb_publish.json
 }
 
+resource "aws_iam_policy" "step_functions_interactions" {
+  name   = "tf-orders-api-step-function-interactions-${var.env}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.step_function_interactions.json
+}
+
+resource "aws_iam_policy" "order_workflow_function_invoke" {
+  name   = "tf-orders-order_workflow_function_invoke-${var.env}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.order_workflow_lambda_invoke.json
+}
+
 resource "aws_iam_policy" "get_api_key_secret" {
   name   = "tf-orders-api-get-secret-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.retrieve_api_key_secret.json
+}
+
+resource "aws_iam_policy" "sqs_receive_policy" {
+  name   = "TF_OrdersService-sqs-policy-${var.env}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.sqs_receive.json
 }

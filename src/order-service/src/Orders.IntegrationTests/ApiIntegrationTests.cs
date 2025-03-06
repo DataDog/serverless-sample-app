@@ -8,10 +8,12 @@ namespace Orders.IntegrationTests;
 
 public class ApiIntegrationTests
 {
+    private readonly ITestOutputHelper _outputHelper;
     private readonly ApiDriver _apiDriver;
 
     public ApiIntegrationTests(ITestOutputHelper outputHelper)
     {
+        _outputHelper = outputHelper;
         var env = Environment.GetEnvironmentVariable("ENV");
         _apiDriver = new ApiDriver(outputHelper, env, new AmazonSimpleSystemsManagementClient());
     }
@@ -20,6 +22,8 @@ public class ApiIntegrationTests
     public async Task WhenUserIsValid_CanCreateOrder()
     {
         var createOrderResult = await _apiDriver.CreateOrderFor(new[] { "JAMES123" });
+        
+        _outputHelper.WriteLine("Create order response status code is " + createOrderResult.StatusCode);
         
         Assert.True(createOrderResult.IsSuccessStatusCode);
 
@@ -43,6 +47,8 @@ public class ApiIntegrationTests
     public async Task WhenOutOfStockEventReceived_OrderSetToNoStock()
     {
         var createOrderResult = await _apiDriver.CreateOrderFor(new[] { "JAMES123" });
+        
+        _outputHelper.WriteLine("Create order response status code is " + createOrderResult.StatusCode);
         
         Assert.True(createOrderResult.IsSuccessStatusCode);
 

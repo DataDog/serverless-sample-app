@@ -11,6 +11,13 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+data "aws_iam_policy_document" "step_function_interactions" {
+  statement {
+    actions   = ["states:StartExecution", "states:SendTaskSuccess", "states:SendTaskFailure"]
+    resources = ["*"]
+  }
+}
+
 data "aws_iam_policy_document" "dynamo_db_read" {
   statement {
     actions   = ["dynamodb:GetItem", "dynamodb:Scan", "dynamodb:Query", "dynamodb:BatchGetItem", "dynamodb:DescribeTable"]
@@ -37,10 +44,6 @@ data "aws_iam_policy_document" "eb_publish" {
     actions   = ["events:ListEventBuses"]
     resources = ["*"]
   }
-}
-
-data "aws_ssm_parameter" "secret_access_key_param" {
-  name = "/${var.env}/shared/secret-access-key"
 }
 
 data "aws_iam_policy_document" "allow_jwt_secret_key_ssm_read" {
@@ -84,6 +87,17 @@ data "aws_iam_policy_document" "sqs_receive" {
       "sqs:GetQueueAttributes"]
     resources = [
       aws_sqs_queue.stock_reserved_queue.arn,
+      aws_sqs_queue.stock_reservation_failed_queue.arn,
+    ]
+  }
+}
+
+data "aws_iam_policy_document" "order_workflow_lambda_invoke" {
+  statement {
+    actions = ["lambda:InvokeFunction"]
+    resources = [
+      module.no_stock_handler.function_arn,
+      module.confirm_order_handler.function_arn
     ]
   }
 }
