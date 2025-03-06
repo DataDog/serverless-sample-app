@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 observability = {path = "../../observability"}
 aws-sdk-eventbridge = "1.47"
-uuid = {version = "1.10.0", features = ["v4"]}
+uuid = {version = "1.15.1", features = ["v4"]}
 async-trait = "0.1"
 
 thiserror = {workspace = true}
