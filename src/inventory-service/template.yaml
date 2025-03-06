@@ -350,12 +350,12 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties: 
       RetentionInDays: 1
-      LogGroupName: !Sub "/aws/vendedlogs/states/InventoryOrderingServiceLogGroup-${Env}"
+      LogGroupName: !Sub "/aws/vendedlogs/states/${ServiceName}-InventoryOrderingServiceLogGroup-${Env}"
 
   InventoryOrderingService:
     Type: AWS::Serverless::StateMachine
     Properties:
-      Name: !Sub "${ServiceName}-OrderingWorkflow-${Env}"
+      Name: !Sub "${ServiceName}-InventoryOrderingServiceLogGroup-${Env}"
       DefinitionUri: cdk/src/main/java/com/cdk/inventory/ordering/workflows/workflow.setStock.asl.json
       DefinitionSubstitutions:
         TableName: !Ref InventoryApiTable
@@ -794,6 +794,31 @@ Resources:
             Options:
               enable-ecs-log-metadata: "true"
 
+
+  InventoryServiceEventBusToSharedEventBusRole:
+    Type: AWS::IAM::Role
+    Condition: IsIntegratedEnvironment
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: allow-eb-publish
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "events:PutEvents"
+                Resource: [!GetAtt InventoryServiceEventBus.Arn]
+
   SharedEventBusProductCreatedEventRule:
     Type: AWS::Events::Rule
     Condition: IsIntegratedEnvironment
@@ -809,6 +834,7 @@ Resources:
       Targets:
         - Id: ProductCreatedEventQueue
           Arn: !GetAtt InventoryServiceEventBus.Arn
+          RoleArn: !GetAtt InventoryServiceEventBusToSharedEventBusRole.Arn
 
   SharedEventBusOrderCreatedEventRule:
     Type: AWS::Events::Rule
@@ -825,6 +851,7 @@ Resources:
       Targets:
         - Id: OrderCreatedEventQueue
           Arn: !GetAtt InventoryServiceEventBus.Arn
+          RoleArn: !GetAtt InventoryServiceEventBusToSharedEventBusRole.Arn
 
   SharedEventBusOrderCompletedEventRule:
     Type: AWS::Events::Rule
@@ -841,6 +868,31 @@ Resources:
       Targets:
         - Id: InventoryEventBus
           Arn: !GetAtt InventoryServiceEventBus.Arn
+          RoleArn: !GetAtt InventoryServiceEventBusToSharedEventBusRole.Arn
+
+  InventoryServiceEventBusToSharedBusRole:
+    Type: AWS::IAM::Role
+    Condition: IsIntegratedEnvironment
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: allow-eb-publish
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "events:PutEvents"
+                Resource: "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
 
   SharedEventBusProductOutOfStockForwardingRule:
     Type: AWS::Events::Rule
@@ -857,6 +909,7 @@ Resources:
       Targets:
         - Id: SharedBus
           Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+          RoleArn: !GetAtt InventoryServiceEventBusToSharedBusRole.Arn
 
   SharedEventBusStockUpdatedForwardingRule:
     Type: AWS::Events::Rule
@@ -873,6 +926,7 @@ Resources:
       Targets:
         - Id: SharedBus
           Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+          RoleArn: !GetAtt InventoryServiceEventBusToSharedBusRole.Arn
 
   SharedEventBusStockReservedForwardingRule:
     Type: AWS::Events::Rule
@@ -889,6 +943,7 @@ Resources:
       Targets:
         - Id: SharedBus
           Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+          RoleArn: !GetAtt InventoryServiceEventBusToSharedBusRole.Arn
 
   SharedEventBusReservationFailedForwardingRule:
     Type: AWS::Events::Rule
@@ -905,6 +960,7 @@ Resources:
       Targets:
         - Id: SharedBus
           Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+          RoleArn: !GetAtt InventoryServiceEventBusToSharedBusRole.Arn
 
   InventoryApiEndpoint:
     Type: AWS::SSM::Parameter

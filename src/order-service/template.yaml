@@ -21,6 +21,14 @@ Transform:
       captureLambdaPayload: true
 Description: A sample SAM template for deploying Lambda functions.
 
+Conditions:
+  IsIntegratedEnvironment: !Or
+    - !Equals [ "dev", !Ref Env ]
+    - !Equals [ "prod", !Ref Env ]
+  IsNotIntegratedEnvironment: !And
+    - !Not [!Equals [!Ref Env, prod]]
+    - !Not [!Equals [!Ref Env, dev]]
+
 Parameters:
   ServiceName:
     Type: String
@@ -52,6 +60,84 @@ Globals:
       - x86_64
 
 Resources:
+  OrdersServiceEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub "${ServiceName}-Bus-${Env}"
+
+  OrdersBusNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/event-bus-name
+      Type: String
+      Value: !Ref OrdersServiceEventBus
+
+  OrdersBusArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/event-bus-arn
+      Type: String
+      Value: !GetAtt OrdersServiceEventBus.Arn
+
+  OrdersSecretAccessKeyParameter:
+    Type: AWS::SSM::Parameter
+    Condition: IsNotIntegratedEnvironment
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/secret-access-key
+      Type: String
+      Value: "This is a sample secret key that should not be used in production`"
+      
+  OrderWorkflowLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+      LogGroupName: !Sub "/aws/vendedlogs/states/${ServiceName}-OrderWorkflow-${Env}"
+
+  OrderWorkflow:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub "${ServiceName}-OrderWorkflow-${Env}"
+      DefinitionUri: cdk/workflows/orderProcessingWorkflow.asl.json
+      DefinitionSubstitutions:
+        EventBusName: !Ref OrdersServiceEventBus
+        TableName: !Ref OrdersTable
+        Env: !Ref Env
+        ConfirmOrderLambda: !GetAtt ConfirmOrderHandler.Arn
+        NoStockLambda: !GetAtt NoStockHandler.Arn
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "logs:CreateLogDelivery"
+                - "logs:CreateLogStream"
+                - "logs:GetLogDelivery"
+                - "logs:UpdateLogDelivery"
+                - "logs:DeleteLogDelivery"
+                - "logs:ListLogDeliveries"
+                - "logs:PutLogEvents"
+                - "logs:PutResourcePolicy"
+                - "logs:DescribeResourcePolicies"
+                - "logs:DescribeLogGroups"
+              Resource: "*"
+        - DynamoDBCrudPolicy:
+            TableName: !Ref OrdersTable
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref OrdersServiceEventBus
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ConfirmOrderHandler
+        - LambdaInvokePolicy:
+            FunctionName: !Ref NoStockHandler
+      Logging:
+        IncludeExecutionData: true
+        Level: ALL
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt OrderWorkflowLogGroup.Arn
+      Tags:
+        DD_ENHANCED_METRICS: "true"
+        DD_TRACE_ENABLED: "true"
+      
   HandleInventoryStockReserved:
     Type: AWS::Serverless::Function
     Properties:
@@ -60,7 +146,7 @@ Resources:
       FunctionName: !Sub ${ServiceName}-StockReservationSuccessACL-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+          EVENT_BUS_NAME: !Ref OrdersServiceEventBus
           TABLE_NAME: !Ref OrdersTable
       Events:
         StockReservedQueue:
@@ -79,9 +165,9 @@ Resources:
             - Effect: Allow
               Action:
                 - events:DescribeEventBus
-              Resource: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+              Resource: !GetAtt OrdersServiceEventBus.Arn
         - EventBridgePutEventsPolicy:
-            EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            EventBusName: !Ref OrdersServiceEventBus
         - DynamoDBCrudPolicy:
             TableName: !Ref OrdersTable
 
@@ -93,13 +179,13 @@ Resources:
       FunctionName: !Sub ${ServiceName}-StockReservationFailedACL-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+          EVENT_BUS_NAME: !Ref OrdersServiceEventBus
           TABLE_NAME: !Ref OrdersTable
       Events:
         StockReservationFailedQueue:
           Type: SQS
           Properties:
-            Queue: !GetAtt OrdersStockReservationFailedQueue.Arn
+            Queue: !GetAtt StockReservationFailedQueue.Arn
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -112,9 +198,66 @@ Resources:
             - Effect: Allow
               Action:
                 - events:DescribeEventBus
-              Resource: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+              Resource: !GetAtt OrdersServiceEventBus.Arn
         - EventBridgePutEventsPolicy:
-            EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            EventBusName: !Ref OrdersServiceEventBus
+        - DynamoDBCrudPolicy:
+            TableName: !Ref OrdersTable
+
+  ConfirmOrderHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/Orders.BackgroundWorkers
+      Handler: Orders.BackgroundWorkers::Orders.BackgroundWorkers.WorkflowHandlers_ReservationSuccess_Generated::ReservationSuccess
+      FunctionName: !Sub ${ServiceName}-ConfirmOrderHandler-${Env}
+      Environment:
+        Variables:
+          EVENT_BUS_NAME: !Ref OrdersServiceEventBus
+          TABLE_NAME: !Ref OrdersTable
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - events:DescribeEventBus
+              Resource: !GetAtt OrdersServiceEventBus.Arn
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref OrdersServiceEventBus
+        - DynamoDBCrudPolicy:
+            TableName: !Ref OrdersTable
+            
+
+  NoStockHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/Orders.BackgroundWorkers
+      Handler: Orders.BackgroundWorkers::Orders.BackgroundWorkers.WorkflowHandlers_ReservationFailed_Generated::ReservationFailed
+      FunctionName: !Sub ${ServiceName}-NoStockHandler-${Env}
+      Environment:
+        Variables:
+          EVENT_BUS_NAME: !Ref OrdersServiceEventBus
+          TABLE_NAME: !Ref OrdersTable
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - events:DescribeEventBus
+              Resource: !GetAtt OrdersServiceEventBus.Arn
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref OrdersServiceEventBus
         - DynamoDBCrudPolicy:
             TableName: !Ref OrdersTable
 
@@ -137,7 +280,7 @@ Resources:
   StockReservedEventRule:
     Type: AWS::Events::Rule
     Properties:
-      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventBusName: !Ref OrdersServiceEventBus
       Name: orders-stock-reserved
       State: ENABLED
       EventPattern:
@@ -183,7 +326,7 @@ Resources:
   StockReservationFailedEventRule:
     Type: AWS::Events::Rule
     Properties:
-      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventBusName: !Ref OrdersServiceEventBus
       Name: orders-stock-reservation-failed
       State: ENABLED
       EventPattern:
@@ -237,9 +380,6 @@ Resources:
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
-          ProvisionedThroughput:
-            ReadCapacityUnits: 5
-            WriteCapacityUnits: 5
 
   VPC:
     Type: AWS::EC2::VPC
@@ -499,7 +639,7 @@ Resources:
                 Action:
                   - "events:PutEvents"
                   - "events:DescribeEventBus"
-                Resource: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+                Resource: !GetAtt OrdersServiceEventBus.Arn
         - PolicyName: allow-secrets-retrieve
           PolicyDocument:
             Version: 2012-10-17
@@ -518,18 +658,18 @@ Resources:
                   - "ssm:GetParameter"
                   - "ssm:GetParameterHistory"
                   - "ssm:GetParameters"
-                Resource: !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
-        - PolicyName: allow-product-api-endpoint-retrieve
+                Resource: !If
+                  - IsIntegratedEnvironment
+                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+        - PolicyName: allow-start-workflow
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
-                  - "ssm:DescribeParameters"
-                  - "ssm:GetParameter"
-                  - "ssm:GetParameterHistory"
-                  - "ssm:GetParameters"
-                Resource: !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/ProductManagementService/api-endpoint"
+                  - "states:StartExecution"
+                Resource: !GetAtt OrderWorkflow.Arn
 
   ECSTaskDef:
     Type: AWS::ECS::TaskDefinition
@@ -554,10 +694,16 @@ Resources:
               Value: !Ref OrdersTable
             -
               Name: EVENT_BUS_NAME
-              Value: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              Value: !Ref OrdersServiceEventBus
+            -
+              Name: ORDER_WORKFLOW_ARN
+              Value: !GetAtt OrderWorkflow.Arn
             -
               Name: JWT_SECRET_PARAM_NAME
-              Value: !Sub "/${Env}/shared/secret-access-key"
+              Value: !If
+                - IsIntegratedEnvironment
+                - !Sub /${Env}/shared/secret-access-key
+                - !Sub /${Env}/${ServiceName}/secret-access-key
             -
               Name: PRODUCT_API_ENDPOINT_PARAMETER
               Value: !Sub "/${Env}/ProductManagementService/api-endpoint"
@@ -644,9 +790,244 @@ Resources:
             Options:
               enable-ecs-log-metadata: "true"
 
+  SharedEventBusToOrdersServiceEventBusRole:
+    Type: AWS::IAM::Role
+    Condition: IsIntegratedEnvironment
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: allow-eb-publish
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "events:PutEvents"
+                Resource: [!GetAtt OrdersServiceEventBus.Arn]
+
+  SharedEventBusStockReservedEventRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: shared-orders-stock-reserved
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.inventory"
+        detail-type:
+          - "inventory.stockReserved.v1"
+      Targets:
+        - Id: OrdersServiceEventBus
+          Arn: !GetAtt OrdersServiceEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToOrdersServiceEventBusRole.Arn
+          
+  SharedEventBusStockReservationFailedEventRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: shared-orders-stock-reservation-failed
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.inventory"
+        detail-type:
+          - "inventory.stockReservationFailed.v1"
+      Targets:
+        - Id: OrdersServiceEventBus
+          Arn: !GetAtt OrdersServiceEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToOrdersServiceEventBusRole.Arn
+
+  OrdersServiceEventBusToSharedBusRole:
+    Type: AWS::IAM::Role
+    Condition: IsIntegratedEnvironment
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: allow-eb-publish
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "events:PutEvents"
+                Resource: "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+
+  SharedEventBusOrderCreatedForwardingRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      EventBusName: !Ref OrdersServiceEventBus
+      Name: order-created-forwarding-rule
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.orders"
+        detail-type:
+          - "orders.orderCreated.v1"
+      Targets:
+        - Id: SharedBus
+          Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+          RoleArn: OrdersServiceEventBusToSharedBusRole
+
+  SharedEventBusOrderConfirmedForwardingRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      EventBusName: !Ref OrdersServiceEventBus
+      Name: order-confirmed-forwarding-rule
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.orders"
+        detail-type:
+          - "orders.orderConfirmed.v1"
+      Targets:
+        - Id: SharedBus
+          Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+          RoleArn: OrdersServiceEventBusToSharedBusRole
+
+  SharedEventBusOrderCompletedForwardingRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      EventBusName: !Ref OrdersServiceEventBus
+      Name: order-completed-forwarding-rule
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.orders"
+        detail-type:
+          - "orders.orderCompleted.v1"
+      Targets:
+        - Id: SharedBus
+          Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+          RoleArn: OrdersServiceEventBusToSharedBusRole
+
   OrderApiEndpoint:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub /${Env}/${ServiceName}/api-endpoint
       Type: String
-      Value: !Sub "http://${ECSALB.DNSName}"
+      Value: !Sub "http://${ECSALB.DNSName}" 
+      
+  ### Deploy Test Harness
+  TestHarnessTable:
+    Type: AWS::DynamoDB::Table
+    Condition: IsNotIntegratedEnvironment
+    Properties:
+      TableName: !Sub ${ServiceName}-EventTestHarness-${Env}
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+          
+  EventTestHarnessAPI:
+    Type: AWS::Serverless::Function
+    Condition: IsNotIntegratedEnvironment
+    Properties:
+      CodeUri: ./src/TestHarness/TestHarness.Lambda
+      Handler: TestHarness.Lambda::TestHarness.Lambda.ApiFunctions_GetReceivedEvents_Generated::GetReceivedEvents
+      FunctionName: !Sub ${ServiceName}-TestHarnessGetEvents-${Env}
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TestHarnessTable
+          KEY_PROPERTY_NAME: "orderNumber"
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: "/events/{eventId}"
+            Method: "GET"
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TestHarnessTable 
+  EventBridgeEventTestHarness:
+    Type: AWS::Serverless::Function
+    Condition: IsNotIntegratedEnvironment
+    Properties:
+      CodeUri: ./src/TestHarness/TestHarness.Lambda
+      Handler: TestHarness.Lambda::TestHarness.Lambda.HandlerFunctions_HandleEventBridge_Generated::HandleEventBridge
+      FunctionName: !Sub ${ServiceName}-TestHarnessEventBridge-${Env}
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TestHarnessTable
+          KEY_PROPERTY_NAME: "orderNumber"
+      Events:
+        OrderCreated:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref OrdersServiceEventBus
+            Pattern:
+              source:
+                - !Sub "${Env}.orders"
+              detail-type:
+                - "orders.orderCreated.v1"
+        OrderConfirmed:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref OrdersServiceEventBus
+            Pattern:
+              source:
+                - !Sub "${Env}.orders"
+              detail-type:
+                - "orders.orderConfirmed.v1"
+        OrderCompleted:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref OrdersServiceEventBus
+            Pattern:
+              source:
+                - !Sub "${Env}.orders"
+              detail-type:
+                - "orders.orderCompleted.v1"
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TestHarnessTable
+  TestHarnessApiEndpoint:
+    Type: AWS::SSM::Parameter
+    Condition: IsNotIntegratedEnvironment
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}_TestHarness/api-endpoint
+      Type: String
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+
+  

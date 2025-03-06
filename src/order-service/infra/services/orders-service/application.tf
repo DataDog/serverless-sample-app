@@ -77,6 +77,13 @@ resource "aws_iam_role_policy_attachment" "orders_put_events" {
   policy_arn = aws_iam_policy.eb_publish.arn
 }
 
+resource "aws_ssm_parameter" "orders_service_access_key" {
+  count = var.env == "dev" || var.env == "prod" ? 0 : 1
+  name  = "/${var.env}/OrdersService/secret-access-key"
+  type  = "String"
+  value = "This is a sample secret key that should not be used in production`"
+}
+
 module "orders_web_service" {
   source       = "../../modules/web-service"
   service_name = "OrdersApi"
@@ -86,23 +93,15 @@ module "orders_web_service" {
   environment_variables = [
     {
       name  = "JWT_SECRET_PARAM_NAME"
-      value = "/${var.env}/shared/secret-access-key"
-    },
-    {
-      name  = "JWT_SECRET_PARAM_NAME"
-      value = "/${var.env}/ProductManagementService/api-endpoint"
-    },
-    {
-      name  = "TABLE_NAME"
-      value = aws_dynamodb_table.orders_api.name
-    },
+      value = var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/OrdersService/secret-access-key"
+    }
     {
       name  = "TABLE_NAME"
       value = aws_dynamodb_table.orders_api.name
     },
     {
       name  = "EVENT_BUS_NAME"
-      value = data.aws_ssm_parameter.eb_name.value
+      value = aws_cloudwatch_event_bus.orders_service_bus.name
     },
     {
       name  = "TEAM"

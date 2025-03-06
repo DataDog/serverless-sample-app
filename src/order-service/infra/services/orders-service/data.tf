@@ -28,15 +28,10 @@ data "aws_iam_policy_document" "dynamo_db_write" {
     resources = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.orders_api.name}", "arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.orders_api.name}/*"]
   }
 }
-
-data "aws_ssm_parameter" "eb_name" {
-  name = "/${var.env}/shared/event-bus-name"
-}
-
 data "aws_iam_policy_document" "eb_publish" {
   statement {
     actions   = ["events:PutEvents"]
-    resources = ["arn:aws:events:*:${data.aws_caller_identity.current.account_id}:event-bus/${data.aws_ssm_parameter.eb_name.value}"]
+    resources = [aws_cloudwatch_event_bus.orders_service_bus.arn]
   }
   statement {
     actions   = ["events:ListEventBuses"]
@@ -54,7 +49,9 @@ data "aws_iam_policy_document" "allow_jwt_secret_key_ssm_read" {
       "ssm:GetParameter",
       "ssm:GetParameterHistory",
       "ssm:GetParameters"]
-    resources = ["arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/shared/secret-access-key"]
+    resources = [
+        var.env == "dev" || var.env == "prod" ? "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/shared/secret-access-key" : "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/OrdersService/secret-access-key"
+    ]
   }
 }
 
@@ -62,6 +59,32 @@ data "aws_iam_policy_document" "retrieve_api_key_secret" {
   statement {
     actions   = ["secretsmanager:GetSecretValue"]
     resources = [var.dd_api_key_secret_arn]
+  }
+}
+
+data "aws_iam_policy_document" "eb_queue_policy" {
+  statement {
+    sid    = "AllowEBPost"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com"]
+    }
+
+    actions   = ["sqs:SendMessage"]
+    resources = [aws_sqs_queue.stock_reserved_queue.arn]
+  }
+}
+
+data "aws_iam_policy_document" "sqs_receive" {
+  statement {
+    actions = ["sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes"]
+    resources = [
+      aws_sqs_queue.stock_reserved_queue.arn,
+    ]
   }
 }
 

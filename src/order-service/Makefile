@@ -18,11 +18,7 @@ cdk-destroy:
 
 integration-test:
 	cd src/Orders.IntegrationTests;dotnet test
-	
 
-aws cloudformation create-stack \
-  --stack-name datadog-serverless-macro \
-  --template-url https://datadog-cloudformation-template.s3.amazonaws.com/aws/serverless-macro/latest.yml \
-  --capabilities CAPABILITY_AUTO_EXPAND CAPABILITY_IAM \
-  --tags DD_PRESERVE_STACK=true \
-  --region us-east-1
+build:
+	dotnet tool install -g Amazon.Lambda.Tools;
+	dotnet lambda package -pl src/Orders.BackgroundWorkers/
