@@ -882,7 +882,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - "events:PutEvents"
-                Resource: "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+                Resource: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
 
   SharedEventBusOrderCreatedForwardingRule:
     Type: AWS::Events::Rule
