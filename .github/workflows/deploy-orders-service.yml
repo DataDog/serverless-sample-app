@@ -50,6 +50,7 @@ jobs:
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
           cd src/order-service
+          make build
           make tf-apply
       # - name: Integration test dev
       #   shell: bash
