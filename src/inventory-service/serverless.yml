@@ -259,7 +259,7 @@ resources:
       Type: AWS::Events::Rule
       Properties:
         EventBusName: !Sub "${ssm:/${sls:stage}/shared/event-bus-name}"
-        Name: inventory-order-created
+        Name: inventory-order-completed
         State: ENABLED
         EventPattern:
           source:
