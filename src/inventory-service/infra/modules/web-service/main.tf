@@ -19,8 +19,12 @@ resource "aws_ecs_task_definition" "main" {
         {
           containerPort = 8080
           hostPort      = 8080
+          appProtocol  = "http"
+          protocol = "tcp"
+          name: "inventory-api"
         }
       ]
+      essential = true
       environment = var.environment_variables
       secrets = [
         {

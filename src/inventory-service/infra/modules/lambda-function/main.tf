@@ -5,6 +5,12 @@
 // Copyright 2024 Datadog, Inc.
 //
 
+resource "aws_s3_object" "object" {
+  bucket = var.s3_bucket_name
+  key    = basename(var.jar_file)
+  source = var.jar_file
+  etag = filemd5(var.jar_file)
+}
 
 resource "aws_iam_role" "lambda_function_role" {
   name = "TF-${var.service_name}-${var.function_name}-${var.env}-lambda-role"
@@ -78,7 +84,9 @@ module "aws_lambda_function" {
   source  = "DataDog/lambda-datadog/aws"
   version = "2.0.0"
 
-  filename                 = var.jar_file
+  s3_bucket = var.s3_bucket_name
+  s3_key = aws_s3_object.object.key
+  s3_object_version = aws_s3_object.object.version_id
   function_name            = "TF-${var.service_name}-${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = var.lambda_handler
@@ -103,7 +111,7 @@ module "aws_lambda_function" {
     "DD_IAST_ENABLED": "true"
     "DD_LOGS_INJECTION" : "true"
     "spring_cloud_function_definition" : var.routing_expression
-    "QUARKUS_LAMBDA_HANDLERQUARKUS_LAMBDA_HANDLER": var.routing_expression}),
+    "QUARKUS_LAMBDA_HANDLER": var.routing_expression}),
     var.environment_variables
   )
 

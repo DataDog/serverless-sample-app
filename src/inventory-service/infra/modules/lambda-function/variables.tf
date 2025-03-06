@@ -78,3 +78,8 @@ variable "dd_site" {
   default = "The Datadog site to use"
   type = string
 }
+
+variable "s3_bucket_name" {
+    description = "The name of the S3 bucket to upload Lambda code into"
+    type        = string
+}

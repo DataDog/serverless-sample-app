@@ -122,7 +122,11 @@ data "aws_iam_policy_document" "sqs_receive" {
     actions = ["sqs:ReceiveMessage",
       "sqs:DeleteMessage",
     "sqs:GetQueueAttributes"]
-    resources = ["arn:aws:sqs:*:${data.aws_caller_identity.current.account_id}:${aws_sqs_queue.public_event_acl_queue.name}", "arn:aws:sqs:*:${data.aws_caller_identity.current.account_id}:${aws_sqs_queue.order_created_queue.name}"]
+    resources = [
+      "arn:aws:sqs:*:${data.aws_caller_identity.current.account_id}:${aws_sqs_queue.public_event_acl_queue.name}",
+      "arn:aws:sqs:*:${data.aws_caller_identity.current.account_id}:${aws_sqs_queue.order_created_queue.name}",
+      "arn:aws:sqs:*:${data.aws_caller_identity.current.account_id}:${aws_sqs_queue.order_completed_queue.name}"
+    ]
   }
 }
 

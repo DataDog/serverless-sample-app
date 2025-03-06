@@ -52,6 +52,11 @@ Globals:
       - x86_64
 
 Resources:
+  InventoryServiceEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub "MyCustomEventBus"
+
   InventoryProductCreatedPublicEventHandler:
     Type: AWS::Serverless::Function
     Properties:

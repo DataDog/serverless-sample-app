@@ -5,6 +5,19 @@
 // Copyright 2024 Datadog, Inc.
 //
 
+resource "random_id" "random_string" {
+  byte_length = 8
+}
+
+resource "aws_s3_bucket" "lambda_code_storage_bucket" {
+  bucket = "inventory-service-${var.env}-lambda-code-${random_id.random_string.hex}"
+
+  tags = {
+    Name        = "My bucket"
+    Environment = "Dev"
+  }
+}
+
 resource "aws_sqs_queue" "public_event_acl_dlq" {
   name = "InventoryOrdering-acl-dlq-${var.env}"
 }
@@ -42,6 +55,7 @@ module "inventory_acl_function" {
   dd_site = var.dd_site
   env = var.env
   app_version = var.app_version
+  s3_bucket_name = aws_s3_bucket.lambda_code_storage_bucket.id
 }
 
 resource "aws_lambda_event_source_mapping" "public_event_publisher" {
@@ -115,6 +129,7 @@ module "order_created_function" {
   dd_site = var.dd_site
   env = var.env
   app_version = var.app_version
+  s3_bucket_name = aws_s3_bucket.lambda_code_storage_bucket.id
 }
 
 resource "aws_lambda_event_source_mapping" "order_created_esm" {
@@ -193,6 +208,7 @@ module "order_completed_function" {
   dd_site = var.dd_site
   env = var.env
   app_version = var.app_version
+  s3_bucket_name = aws_s3_bucket.lambda_code_storage_bucket.id
 }
 
 resource "aws_lambda_event_source_mapping" "order_completed_esm" {

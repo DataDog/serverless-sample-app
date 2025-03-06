@@ -71,6 +71,7 @@ public class ApiDriver {
 
         System.out.println(String.format("First attempt to get stock level for product: %s", id));
         var httpResult = this.httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(httpResult.body());
         ApiResponse<ProductDTO> stockLevelResponse = null;
 
         TypeReference<ApiResponse<ProductDTO>> typeRef = new TypeReference<ApiResponse<ProductDTO>>(){};
@@ -89,11 +90,11 @@ public class ApiDriver {
             Thread.sleep(SLEEP_TIME_BETWEEN_RETRIES);
 
             httpResult = this.httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println(httpResult.body());
             stockLevelResponse = objectMapper.readValue(httpResult.body(), typeRef);
+            System.out.println(String.format("Response received for product: %s", httpResult.statusCode()));
 
             if (stockLevelResponse.getData() != null){
-                System.out.println(String.format("Response received for product: %s", httpResult.statusCode()));
-
                 success = true;
             }
 

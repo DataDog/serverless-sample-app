@@ -52,22 +52,21 @@ Globals:
       - x86_64
 
 Resources:
-  OrderCreatedEventGatewayHandler:
+  HandleInventoryStockReserved:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/Orders.BackgroundWorkers
-      Handler: Orders.BackgroundWorkers::Orders.BackgroundWorkers.Functions_HandleOrderCreated_Generated::HandleOrderCreated
-      FunctionName: !Sub ${ServiceName}-OrderCreatedEventGateway-${Env}
+      Handler: Orders.BackgroundWorkers::Orders.BackgroundWorkers.Functions_HandleStockReserved_Generated::HandleStockReserved
+      FunctionName: !Sub ${ServiceName}-StockReservationSuccessACL-${Env}
       Environment:
         Variables:
           EVENT_BUS_NAME: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
           TABLE_NAME: !Ref OrdersTable
-          PRODUCT_API_ENDPOINT_PARAMETER: !Sub "/${Env}/ProductManagementService/api-endpoint"
       Events:
-        OrderCreatedTopic:
-          Type: SNS
+        StockReservedQueue:
+          Type: SQS
           Properties:
-            Topic: !GetAtt OrderCreatedTopic.TopicArn
+            Queue: !GetAtt OrdersStockReservedQueue.Arn
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -85,14 +84,131 @@ Resources:
             EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
         - DynamoDBCrudPolicy:
             TableName: !Ref OrdersTable
-        - SSMParameterReadPolicy:
-            ParameterName: !Sub "/${Env}/ProductManagementService/api-endpoint"
-  
-  OrderCreatedTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: !Sub "${ServiceName}-OrderCreated-${Env}"
 
+  HandleInventoryStockReservationFailed:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/Orders.BackgroundWorkers
+      Handler: Orders.BackgroundWorkers::Orders.BackgroundWorkers.Functions_HandleReservationFailed_Generated::HandleReservationFailed
+      FunctionName: !Sub ${ServiceName}-StockReservationFailedACL-${Env}
+      Environment:
+        Variables:
+          EVENT_BUS_NAME: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+          TABLE_NAME: !Ref OrdersTable
+      Events:
+        StockReservationFailedQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt OrdersStockReservationFailedQueue.Arn
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - events:DescribeEventBus
+              Resource: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+        - DynamoDBCrudPolicy:
+            TableName: !Ref OrdersTable
+
+  OrdersStockReservedDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "OrdersStockReservedDLQ-${Env}"
+
+  OrdersStockReservedQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "OrdersStockReservedQueue-${Env}"
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - "OrdersStockReservedDLQ"
+            - "Arn"
+        maxReceiveCount: 3
+
+  StockReservedEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: orders-stock-reserved
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.inventory"
+        detail-type:
+          - "inventory.stockReserved.v1"
+      Targets:
+        - Id: OrdersStockReservedQueue
+          Arn: !GetAtt OrdersStockReservedQueue.Arn
+
+  EBToStockReservedQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref OrdersStockReservedQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: allow-eb-send-message-messages
+            Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Resource: !GetAtt OrdersStockReservedQueue.Arn
+            Action: SQS:SendMessage
+
+  StockReservationFailedDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "OrdersStockReservationFailedDLQ-${Env}"
+
+  StockReservationFailedQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "OrdersStockReservationFailed-${Env}"
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - "StockReservationFailedDLQ"
+            - "Arn"
+        maxReceiveCount: 3
+
+  StockReservationFailedEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: orders-stock-reservation-failed
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.inventory"
+        detail-type:
+          - "inventory.stockReservationFailed.v1"
+      Targets:
+        - Id: StockReservationFailedQueue
+          Arn: !GetAtt StockReservationFailedQueue.Arn
+
+  EBToStockReservationFailedQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref StockReservationFailedQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: allow-eb-send-message-messages
+            Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Resource: !GetAtt StockReservationFailedQueue.Arn
+            Action: SQS:SendMessage
   OrdersTable:
     Type: AWS::DynamoDB::Table
     Properties:

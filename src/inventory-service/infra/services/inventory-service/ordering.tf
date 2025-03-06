@@ -20,6 +20,7 @@ module "inventory_ordering_service" {
   dd_site = var.dd_site
   env = var.env
   app_version = var.app_version
+  s3_bucket_name = aws_s3_bucket.lambda_code_storage_bucket.id
 }
 
 resource "aws_iam_role_policy_attachment" "product_created_handler_sqs_receive_permission" {
