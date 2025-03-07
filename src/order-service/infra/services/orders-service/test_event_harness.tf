@@ -119,10 +119,10 @@ module "event_harness_lambda_api" {
 resource "aws_api_gateway_deployment" "event_harness_api_deployment" {
   count = var.env == "prod" ? 0 : 1
   rest_api_id = module.event_harness_api_gateway[count.index].api_id
-  depends_on = [module.event_harness_api_lambda]
+  depends_on = [module.event_harness_lambda_api]
   triggers = {
     redeployment = sha1(jsonencode([
-      module.event_harness_api_lambda
+      module.event_harness_api_lambda,
     ]))
   }
   variables = {
