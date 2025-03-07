@@ -8,6 +8,7 @@
 # Deploying multiple independent services from a single TF file is not recommended, this is for demonstration purposes only
 
 module "shared" {
-  source = "./services/shared"
-  env    = var.env
+  source     = "./services/shared"
+  env        = var.env
+  dd_api_key = var.dd_api_key
 }

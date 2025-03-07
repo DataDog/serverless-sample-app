@@ -31,3 +31,8 @@ variable "region" {
   type = string
   description = "The AWS region to deploy to"
 }
+
+variable "dd_api_key" {
+  type = string
+  description = "Datadog API key"
+}
