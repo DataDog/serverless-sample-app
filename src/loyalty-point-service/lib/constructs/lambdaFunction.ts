@@ -46,7 +46,7 @@ export class InstrumentedLambdaFunction extends Construct {
 
     this.function = new NodejsFunction(this, props.functionName, {
       runtime: Runtime.NODEJS_22_X,
-      functionName: `${props.sharedProps.serviceName}-${id}-${props.sharedProps.environment}`,
+      functionName: `CDK-${props.sharedProps.serviceName}-${id}-${props.sharedProps.environment}`,
       code: code,
       handler: props.handler,
       memorySize: props.memorySize ?? 512,
@@ -63,7 +63,18 @@ export class InstrumentedLambdaFunction extends Construct {
         BUILD_ID: props.sharedProps.version,
         TEAM: props.sharedProps.team,
         DOMAIN: props.sharedProps.domain,
-        DD_DATA_STREAMS_ENABLED: "true",
+        DD_APM_REPLACE_TAGS: `[
+      {
+        "name": "function.request.headers.Authorization",
+        "pattern": "(?s).*",
+        "repl": "****"
+      },
+	  {
+        "name": "function.request.multiValueHeaders.Authorization",
+        "pattern": "(?s).*",
+        "repl": "****"
+      }
+]`,
         ...props.environment,
       },
       bundling: {

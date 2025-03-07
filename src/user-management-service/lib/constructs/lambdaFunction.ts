@@ -12,40 +12,60 @@ import { Duration, Tags } from "aws-cdk-lib";
 import { Alias } from "aws-cdk-lib/aws-kms";
 import { SharedProps } from "./sharedFunctionProps";
 import path = require("path");
-import {RustFunction} from "cargo-lambda-cdk";
+import { RustFunction } from "cargo-lambda-cdk";
 
 export class InstrumentedLambdaFunctionProps {
-    sharedProps: SharedProps;
-    handler: string;
-    manifestPath: string;
-    functionName: string;
-    environment: {[key: string]: string}
+  sharedProps: SharedProps;
+  handler: string;
+  manifestPath: string;
+  functionName: string;
+  environment: { [key: string]: string };
 }
 
 export class InstrumentedLambdaFunction extends Construct {
-    function: RustFunction;
+  function: RustFunction;
 
-    constructor(scope: Construct, id: string, props: InstrumentedLambdaFunctionProps) {
-        super(scope, id);
+  constructor(
+    scope: Construct,
+    id: string,
+    props: InstrumentedLambdaFunctionProps
+  ) {
+    super(scope, id);
 
-        this.function = new RustFunction(this, props.functionName, {
-            functionName: `CDK-${props.sharedProps.serviceName}-${id}-${props.sharedProps.environment}`,
-            manifestPath: props.manifestPath,
-            memorySize: 256,
-            environment: {
-                ENV: props.sharedProps.environment,
-                RUST_LOG: "info",
-                ...props.environment
-            }
-        });
+    this.function = new RustFunction(this, props.functionName, {
+      functionName: `CDK-${props.sharedProps.serviceName}-${id}-${props.sharedProps.environment}`,
+      manifestPath: props.manifestPath,
+      memorySize: 256,
+      environment: {
+        DEPLOYED_AT: new Date().toISOString(),
+        BUILD_ID: props.sharedProps.version,
+        TEAM: props.sharedProps.team,
+        DOMAIN: props.sharedProps.domain,
+        ENV: props.sharedProps.environment,
+        RUST_LOG: "info",
+        DD_APM_REPLACE_TAGS: `[
+                    {
+                      "name": "function.request.headers.Authorization",
+                      "pattern": "(?s).*",
+                      "repl": "****"
+                    },
+                    {
+                      "name": "function.request.multiValueHeaders.Authorization",
+                      "pattern": "(?s).*",
+                      "repl": "****"
+                    }
+                ]`,
+        ...props.environment,
+      },
+    });
 
-        const kmsAlias = Alias.fromAliasName(this, "SSMAlias", "aws/ssm");
-        kmsAlias.grantDecrypt(this.function);
+    const kmsAlias = Alias.fromAliasName(this, "SSMAlias", "aws/ssm");
+    kmsAlias.grantDecrypt(this.function);
 
-        Tags.of(this.function).add("service", props.sharedProps.serviceName);
-        Tags.of(this.function).add("env", props.sharedProps.environment);
-        Tags.of(this.function).add("version", props.sharedProps.version);
+    Tags.of(this.function).add("service", props.sharedProps.serviceName);
+    Tags.of(this.function).add("env", props.sharedProps.environment);
+    Tags.of(this.function).add("version", props.sharedProps.version);
 
-        props.sharedProps.datadogConfiguration.addLambdaFunctions([this.function]);
-    }
+    props.sharedProps.datadogConfiguration.addLambdaFunctions([this.function]);
+  }
 }
