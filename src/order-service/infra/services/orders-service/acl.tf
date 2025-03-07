@@ -103,7 +103,7 @@ module "handle_inventory_stock_reservation_failed_function" {
   function_name  = "HandleStockReservationFailed"
   lambda_handler = "Orders.BackgroundWorkers::Orders.BackgroundWorkers.Functions_HandleReservationFailed_Generated::HandleReservationFailed"
   environment_variables = {
-    EVENT_BUS_NAME : var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name.value : aws_cloudwatch_event_bus.orders_service_bus.name
+    EVENT_BUS_NAME : var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.orders_service_bus.name
     TABLE_NAME : aws_dynamodb_table.orders_api.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
@@ -157,7 +157,7 @@ module "confirm_order_handler" {
   function_name  = "ConfirmOrders"
   lambda_handler = "Orders.BackgroundWorkers::Orders.BackgroundWorkers.WorkflowHandlers_ReservationSuccess_Generated::ReservationSuccess"
   environment_variables = {
-    EVENT_BUS_NAME : var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name.value : aws_cloudwatch_event_bus.orders_service_bus.name
+    EVENT_BUS_NAME : var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.orders_service_bus.name
     TABLE_NAME : aws_dynamodb_table.orders_api.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
@@ -193,7 +193,7 @@ module "no_stock_handler" {
   function_name  = "NoStock"
   lambda_handler = "Orders.BackgroundWorkers::Orders.BackgroundWorkers.WorkflowHandlers_ReservationFailed_Generated::ReservationFailed"
   environment_variables = {
-    EVENT_BUS_NAME : var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name.value : aws_cloudwatch_event_bus.orders_service_bus.name
+    EVENT_BUS_NAME : var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.orders_service_bus.name
     TABLE_NAME : aws_dynamodb_table.orders_api.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn

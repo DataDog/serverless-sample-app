@@ -39,7 +39,7 @@ data "aws_iam_policy_document" "eb_publish" {
   statement {
     actions   = ["events:PutEvents", "events:DescribeEventBus"]
     resources = [
-        var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_arn.value : aws_cloudwatch_event_bus.orders_service_bus.arn
+        var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_arn[0].value : aws_cloudwatch_event_bus.orders_service_bus.arn
     ]
   }
 }
