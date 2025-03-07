@@ -899,7 +899,7 @@ Resources:
       Targets:
         - Id: SharedBus
           Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
-          RoleArn: OrdersServiceEventBusToSharedBusRole
+          RoleArn: !GetAtt OrdersServiceEventBusToSharedBusRole.Arn
 
   SharedEventBusOrderConfirmedForwardingRule:
     Type: AWS::Events::Rule
@@ -916,7 +916,7 @@ Resources:
       Targets:
         - Id: SharedBus
           Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
-          RoleArn: OrdersServiceEventBusToSharedBusRole
+          RoleArn: !GetAtt OrdersServiceEventBusToSharedBusRole.Arn
 
   SharedEventBusOrderCompletedForwardingRule:
     Type: AWS::Events::Rule
@@ -933,7 +933,7 @@ Resources:
       Targets:
         - Id: SharedBus
           Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
-          RoleArn: OrdersServiceEventBusToSharedBusRole
+          RoleArn: !GetAtt OrdersServiceEventBusToSharedBusRole.Arn
 
   OrderApiEndpoint:
     Type: AWS::SSM::Parameter
