@@ -50,6 +50,14 @@ public class InventoryServiceProps extends Construct {
         return inventoryEventBus;
     }
 
+    public IEventBus getPublisherEventBus() {
+        if (sharedEventBus == null) {
+            return inventoryEventBus;
+        } else {
+            return sharedEventBus;
+        }
+    }
+
     public IEventBus getSharedEventBus() {
         return sharedEventBus;
     }

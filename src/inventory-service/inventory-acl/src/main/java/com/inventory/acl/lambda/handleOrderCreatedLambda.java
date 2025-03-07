@@ -68,6 +68,7 @@ public class handleOrderCreatedLambda implements RequestHandler<SQSEvent, SQSBat
             }
             finally {
                 processSpan.finish();
+                span.finish();
             }
         }
 

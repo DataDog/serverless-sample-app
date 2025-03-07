@@ -18,41 +18,41 @@ namespace Orders.IntegrationTests;
 public class ApiDriver
 {
     private readonly ITestOutputHelper _testOutputHelper;
-    private string env;
-    private string testHarnessApiEndpoint;
-    private string apiEndpoint;
-    private string secretKey;
-    private string eventBusName;
+    private readonly string _env;
+    private readonly string _testHarnessApiEndpoint;
+    private readonly string _apiEndpoint;
+    private readonly string _secretKey;
+    private readonly string _eventBusName;
     private HttpClient _httpClient;
     private AmazonEventBridgeClient _eventBridgeClient;
     
     public ApiDriver(ITestOutputHelper testOutputHelper, string env, AmazonSimpleSystemsManagementClient ssmClient)
     {
         _testOutputHelper = testOutputHelper;
-        this.env = env;
+        this._env = env;
         _httpClient = new HttpClient();
         _eventBridgeClient = new AmazonEventBridgeClient();
         string serviceName = env == "dev" || env == "prod" ? "shared" : "OrdersService";
         
-        apiEndpoint = ssmClient.GetParameterAsync(new GetParameterRequest
+        _apiEndpoint = ssmClient.GetParameterAsync(new GetParameterRequest
         {
             Name = $"/{env}/OrdersService/api-endpoint",
             WithDecryption = true
         }).GetAwaiter().GetResult().Parameter.Value;
         
-        testHarnessApiEndpoint = ssmClient.GetParameterAsync(new GetParameterRequest
+        _testHarnessApiEndpoint = ssmClient.GetParameterAsync(new GetParameterRequest
         {
             Name = $"/{env}/OrdersService_TestHarness/api-endpoint",
             WithDecryption = true
         }).GetAwaiter().GetResult().Parameter.Value;
         
-        secretKey = ssmClient.GetParameterAsync(new GetParameterRequest
+        _secretKey = ssmClient.GetParameterAsync(new GetParameterRequest
         {
             Name = $"/{env}/{serviceName}/secret-access-key",
             WithDecryption = true
         }).GetAwaiter().GetResult().Parameter.Value;
         
-        eventBusName = ssmClient.GetParameterAsync(new GetParameterRequest
+        _eventBusName = ssmClient.GetParameterAsync(new GetParameterRequest
         {
             Name = $"/{env}/{serviceName}/event-bus-name",
             WithDecryption = true
@@ -61,12 +61,12 @@ public class ApiDriver
     
     public async Task<HttpResponseMessage> CreateOrderFor(string[] products)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, $"{apiEndpoint}/orders")
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiEndpoint}/orders")
         {
             Content = new StringContent(JsonSerializer.Serialize(new { products }), Encoding.UTF8, "application/json")
         };
 
-        var jwt = generateJwt();
+        var jwt = GenerateJwt();
 
         request.Headers.Add("Authorization", "Bearer " + jwt);
         
@@ -75,9 +75,9 @@ public class ApiDriver
     
     public async Task<HttpResponseMessage> GetOrderDetailsFor(string orderId)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{apiEndpoint}/orders/{orderId}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiEndpoint}/orders/{orderId}");
 
-        var jwt = generateJwt();
+        var jwt = GenerateJwt();
 
         request.Headers.Add("Authorization", "Bearer " + jwt);
         
@@ -86,7 +86,7 @@ public class ApiDriver
 
     public async Task StockReservationSuccessfulFor(string orderId)
     {
-        var testEventApiEndpoint = $"{testHarnessApiEndpoint}/events/{orderId}";
+        var testEventApiEndpoint = $"{_testHarnessApiEndpoint}/events/{orderId}";
         _testOutputHelper.WriteLine($"Test harness endpoint is: {testEventApiEndpoint}");
         
         await Task.Delay(TimeSpan.FromSeconds(10));
@@ -107,17 +107,21 @@ public class ApiDriver
 
         var stockReservedEvent = events.FirstOrDefault();
 
+        var putRequestEntry = new PutEventsRequestEntry()
+        {
+            EventBusName = _eventBusName,
+            Source = $"{this._env}.inventory",
+            DetailType = "inventory.stockReserved.v1",
+            Detail = "{\"conversationId\":\"" + stockReservedEvent.ConversationId + "\"}"
+        };
+        
+        _testOutputHelper.WriteLine($"Sending event: {JsonSerializer.Serialize(putRequestEntry)}");
+
         await _eventBridgeClient.PutEventsAsync(new PutEventsRequest()
         {
             Entries = new List<PutEventsRequestEntry>(1)
             {
-                new()
-                {
-                    EventBusName = eventBusName,
-                    Source = $"{this.env}.inventory",
-                    DetailType = "inventory.stockReserved.v1",
-                    Detail = "{\"conversationId\":\"" + stockReservedEvent.ConversationId + "\"}"
-                }
+                putRequestEntry
             }
         });
 
@@ -126,7 +130,7 @@ public class ApiDriver
     
     public async Task StockReservationFailedFor(string orderId)
     {
-        var testEventApiEndpoint = $"{testHarnessApiEndpoint}/events/{orderId}";
+        var testEventApiEndpoint = $"{_testHarnessApiEndpoint}/events/{orderId}";
         _testOutputHelper.WriteLine($"Test harness endpoint is: {testEventApiEndpoint}");
         
         await Task.Delay(TimeSpan.FromSeconds(10));
@@ -145,19 +149,23 @@ public class ApiDriver
             throw new Exception($"No events received for order {orderId}");
         }
 
-        var stockReservedEvent = events.FirstOrDefault();
+        var reservationFailedEvent = events.FirstOrDefault();
+        
+        var putRequestEntry = new PutEventsRequestEntry()
+        {
+            EventBusName = _eventBusName,
+            Source = $"{this._env}.inventory",
+            DetailType = "inventory.stockReservationFailed.v1",
+            Detail = "{\"conversationId\":\"" + reservationFailedEvent.ConversationId + "\"}"
+        };
+        
+        _testOutputHelper.WriteLine($"Sending event: {JsonSerializer.Serialize(putRequestEntry)}");
 
         await _eventBridgeClient.PutEventsAsync(new PutEventsRequest()
         {
             Entries = new List<PutEventsRequestEntry>(1)
             {
-                new()
-                {
-                    EventBusName = eventBusName,
-                    Source = $"{this.env}.inventory",
-                    DetailType = "inventory.stockReservationFailed.v1",
-                    Detail = "{\"conversationId\":\"" + stockReservedEvent.ConversationId + "\"}"
-                }
+                putRequestEntry
             }
         });
 
@@ -166,7 +174,7 @@ public class ApiDriver
 
     public async Task<bool> VerifyOrderConfirmedEventPublishedFor(string orderId)
     {
-        var testEventApiEndpoint = $"{testHarnessApiEndpoint}/events/{orderId}";
+        var testEventApiEndpoint = $"{_testHarnessApiEndpoint}/events/{orderId}";
         _testOutputHelper.WriteLine($"Test harness endpoint is: {testEventApiEndpoint}");
         
         await Task.Delay(TimeSpan.FromSeconds(10));
@@ -188,10 +196,10 @@ public class ApiDriver
         return orderConfirmedEvent != null;
     }
     
-    private string generateJwt()
+    private string GenerateJwt()
     {
         var accountId = "test-user";
-        var signingCredentials = new SigningCredentials(new SymmetricSecurityKey (Encoding.UTF8.GetBytes(secretKey)), SecurityAlgorithms.HmacSha256);
+        var signingCredentials = new SigningCredentials(new SymmetricSecurityKey (Encoding.UTF8.GetBytes(_secretKey)), SecurityAlgorithms.HmacSha256);
         JwtSecurityTokenHandler jwtSecurityTokenHandler = new();
             
         var userClaims = new[]
@@ -209,8 +217,6 @@ public class ApiDriver
                 signingCredentials: signingCredentials
             )
         );
-        
-        _testOutputHelper.WriteLine($"Generated JWT: {userToken}");
 
         return userToken;
     }

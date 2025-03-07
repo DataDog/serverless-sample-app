@@ -30,6 +30,7 @@ export function login() {
 
       const claims = parseJwt(response.data.token);
       localStorage.setItem("userType", claims.user_type);
+      localStorage.setItem("userId", claims.sub);
 
       window.location.href = "/";
     } else {

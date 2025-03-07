@@ -25,9 +25,12 @@ window.DD_RUM &&
 loadComponent("header", "/header.html", () => {
   let jwt = localStorage.getItem("jwt");
 
+  let profileElemt = document.getElementById("profile");
+
   if (!jwt) {
     let logoutElement = document.getElementById("logout");
     logoutElement.style.display = "none";
+    profileElemt.style.display = "none";
   } else {
     let loginElement = document.getElementById("login");
     loginElement.style.display = "none";

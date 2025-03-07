@@ -14,7 +14,7 @@ data "aws_availability_zones" "available" {
 data "aws_iam_policy_document" "step_function_interactions" {
   statement {
     actions   = ["states:StartExecution", "states:SendTaskSuccess", "states:SendTaskFailure"]
-    resources = ["*"]
+    resources = [aws_sfn_state_machine.order_workflow_state_machine.arn]
   }
 }
 
@@ -37,12 +37,10 @@ data "aws_iam_policy_document" "dynamo_db_write" {
 }
 data "aws_iam_policy_document" "eb_publish" {
   statement {
-    actions   = ["events:PutEvents"]
-    resources = [aws_cloudwatch_event_bus.orders_service_bus.arn]
-  }
-  statement {
-    actions   = ["events:ListEventBuses"]
-    resources = ["*"]
+    actions   = ["events:PutEvents", "events:DescribeEventBus"]
+    resources = [
+        var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_arn.value : aws_cloudwatch_event_bus.orders_service_bus.arn
+    ]
   }
 }
 
@@ -76,7 +74,7 @@ data "aws_iam_policy_document" "eb_queue_policy" {
     }
 
     actions   = ["sqs:SendMessage"]
-    resources = [aws_sqs_queue.stock_reserved_queue.arn]
+    resources = [aws_sqs_queue.stock_reserved_queue.arn, aws_sqs_queue.stock_reservation_failed_queue.arn]
   }
 }
 

@@ -50,6 +50,7 @@ module "inventory_acl_function" {
   routing_expression = "handleProductCreated"
   environment_variables = {
     PRODUCT_ADDED_TOPIC_ARN : aws_sns_topic.java_inventory_new_product_added.arn
+    EVENT_BUS_NAME: var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.inventory_service_bus.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
@@ -109,6 +110,7 @@ module "order_created_function" {
   routing_expression = "handleOrderCreated"
   environment_variables = {
     TABLE_NAME : aws_dynamodb_table.inventory_api.name
+    EVENT_BUS_NAME: var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.inventory_service_bus.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
@@ -136,6 +138,11 @@ resource "aws_iam_role_policy_attachment" "order_created_function_acl_read" {
 resource "aws_iam_role_policy_attachment" "order_created_function_acl_write" {
   role       = module.order_created_function.function_role_name
   policy_arn = aws_iam_policy.dynamo_db_write.arn
+}
+
+resource "aws_iam_role_policy_attachment" "order_created_function_eb_publish" {
+  role       = module.order_created_function.function_role_name
+  policy_arn = aws_iam_policy.eb_publish.arn
 }
 
 resource "aws_cloudwatch_event_target" "order_created_sqs_target" {
@@ -173,6 +180,7 @@ module "order_completed_function" {
   routing_expression = "handleOrderCompleted"
   environment_variables = {
     TABLE_NAME : aws_dynamodb_table.inventory_api.name
+    EVENT_BUS_NAME: var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.inventory_service_bus.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
@@ -200,6 +208,11 @@ resource "aws_iam_role_policy_attachment" "order_completed_function_acl_read" {
 resource "aws_iam_role_policy_attachment" "order_completed_function_acl_write" {
   role       = module.order_completed_function.function_role_name
   policy_arn = aws_iam_policy.dynamo_db_write.arn
+}
+
+resource "aws_iam_role_policy_attachment" "order_completed_function_eb_publish" {
+  role       = module.order_completed_function.function_role_name
+  policy_arn = aws_iam_policy.eb_publish.arn
 }
 
 resource "aws_cloudwatch_event_target" "order_completed_sqs_target" {

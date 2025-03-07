@@ -110,7 +110,7 @@ module "event_harness_lambda_api" {
   api_arn       = module.event_harness_api_gateway[count.index].api_arn
   function_arn  = module.event_harness_api_lambda[count.index].function_invoke_arn
   function_name = module.event_harness_api_lambda[count.index].function_name
-  http_method   = "PUT"
+  http_method   = "GET"
   api_resource_id   = module.event_id_resource[count.index].id
   api_resource_path = module.event_id_resource[count.index].path_part
   env = var.env
@@ -155,6 +155,18 @@ module "event_harness_event_bridge_lambda" {
   dd_site = var.dd_site
   env = var.env
   app_version = var.app_version
+}
+
+resource "aws_iam_role_policy_attachment" "event_harness_eb_lambda_dynamo_db_read" {
+  count = var.env == "prod" ? 0 : 1
+  role       = module.event_harness_event_bridge_lambda[count.index].function_role_name
+  policy_arn = aws_iam_policy.test_harness_dynamo_db_read[count.index].arn
+}
+
+resource "aws_iam_role_policy_attachment" "event_harness_eb_lambda_dynamo_db_write" {
+  count = var.env == "prod" ? 0 : 1
+  role       = module.event_harness_event_bridge_lambda[count.index].function_role_name
+  policy_arn = aws_iam_policy.test_harness_dynamo_db_write[count.index].arn
 }
 
 resource "aws_cloudwatch_event_rule" "order_created_event_harness_rule" {

@@ -11,6 +11,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"product-acl/internal/adapters"
 	"product-acl/internal/core"
 
@@ -26,20 +27,22 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
+var (
+	awsCfg = func() aws.Config {
+		awsCfg, _ := awscfg.LoadDefaultConfig(context.TODO())
+		awstrace.AppendMiddleware(&awsCfg)
+		return awsCfg
+	}()
+	snsClient       = sns.NewFromConfig(awsCfg)
+	eventTranslator = *core.NewProductEventTranslator(adapters.NewSnsEventPublisher(*snsClient))
+)
+
 type TracedMessage[T any] struct {
 	Data    T                     `json:"data"`
 	Datadog tracer.TextMapCarrier `json:"_datadog"`
 }
 
-type LambdaHandler struct {
-	commandHandler core.ProductEventTranslator
-}
-
-func NewLambdaHandler(commandHandler core.ProductEventTranslator) *LambdaHandler {
-	return &LambdaHandler{commandHandler: commandHandler}
-}
-
-func (lh *LambdaHandler) Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventResponse, error) {
+func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventResponse, error) {
 
 	failures := []events.SQSBatchItemFailure{}
 
@@ -65,7 +68,7 @@ func (lh *LambdaHandler) Handle(ctx context.Context, request events.SQSEvent) (e
 		}
 
 		spanLinks := []ddtrace.SpanLink{}
-		
+
 		if sctx != nil {
 			spanLinks = []ddtrace.SpanLink{
 				{
@@ -78,7 +81,7 @@ func (lh *LambdaHandler) Handle(ctx context.Context, request events.SQSEvent) (e
 		span, context := tracer.StartSpanFromContext(ctx, "process.message", tracer.WithSpanLinks(spanLinks))
 		defer span.Finish()
 
-		_, err = lh.commandHandler.HandleCreated(context, evt.Data)
+		_, err = eventTranslator.HandleCreated(context, evt.Data)
 
 		if err != nil {
 			println(err.Error())
@@ -94,11 +97,5 @@ func (lh *LambdaHandler) Handle(ctx context.Context, request events.SQSEvent) (e
 }
 
 func main() {
-	awsCfg, _ := awscfg.LoadDefaultConfig(context.Background())
-	awstrace.AppendMiddleware(&awsCfg)
-	snsClient := sns.NewFromConfig(awsCfg)
-
-	handler := NewLambdaHandler(*core.NewProductEventTranslator(adapters.NewSnsEventPublisher(*snsClient)))
-
-	lambda.Start(ddlambda.WrapFunction(handler.Handle, nil))
+	lambda.Start(ddlambda.WrapFunction(Handle, nil))
 }

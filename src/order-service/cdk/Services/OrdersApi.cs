@@ -38,7 +38,7 @@ public class OrdersApi : Construct
         var describeBusPolicyStatement = new PolicyStatement(new PolicyStatementProps()
         {
             Effect = Effect.ALLOW,
-            Resources = new[] { props.ServiceProps.OrdersEventBus.EventBus.EventBusArn },
+            Resources = new[] { props.ServiceProps.PublisherBus.EventBusArn },
             Actions = new[] { "events:DescribeEventBus" }
         });
 
@@ -79,7 +79,7 @@ public class OrdersApi : Construct
     {
         var environmentVariables = new Dictionary<string, string>(2)
         {
-            { "EVENT_BUS_NAME", props.ServiceProps.OrdersEventBus.EventBus.EventBusName },
+            { "EVENT_BUS_NAME", props.ServiceProps.PublisherBus.EventBusName },
             { "TABLE_NAME", OrdersTable.TableName }
         };
 
@@ -104,7 +104,7 @@ public class OrdersApi : Construct
             DefinitionBody = DefinitionBody.FromFile(workflowFilePath),
             DefinitionSubstitutions = new Dictionary<string, string>(1)
             {
-                { "EventBusName", props.ServiceProps.OrdersEventBus.EventBus.EventBusName },
+                { "EventBusName", props.ServiceProps.PublisherBus.EventBusName },
                 { "TableName", OrdersTable.TableName },
                 { "Env", props.SharedProps.Env },
                 { "ConfirmOrderLambda", confirmOrderHandler.FunctionArn },
@@ -117,7 +117,7 @@ public class OrdersApi : Construct
                 Level = LogLevel.ALL
             }
         });
-        props.ServiceProps.OrdersEventBus.EventBus.GrantPutEventsTo(OrdersWorkflow);
+        props.ServiceProps.PublisherBus.GrantPutEventsTo(OrdersWorkflow);
         OrdersTable.GrantWriteData(OrdersWorkflow);
         confirmOrderHandler.GrantInvoke(OrdersWorkflow);
         noStockHandler.GrantInvoke(OrdersWorkflow);
@@ -132,7 +132,7 @@ public class OrdersApi : Construct
                 environmentVariables, props.SharedProps.DDApiKeySecret));
 
         OrdersTable.GrantReadWriteData(function.Function);
-        props.ServiceProps.OrdersEventBus.EventBus.GrantPutEventsTo(function.Function);
+        props.ServiceProps.PublisherBus.GrantPutEventsTo(function.Function);
         
         return function.Function;
     }
@@ -202,7 +202,7 @@ public class OrdersApi : Construct
                         { "JWT_SECRET_PARAM_NAME", props.ServiceProps.JwtSecretAccessKey.ParameterName },
                         { "ORDER_WORKFLOW_ARN", OrdersWorkflow.StateMachineArn },
                         { "TABLE_NAME", OrdersTable.TableName },
-                        { "EVENT_BUS_NAME", props.ServiceProps.OrdersEventBus.EventBus.EventBusName },
+                        { "EVENT_BUS_NAME", props.ServiceProps.PublisherBus.EventBusName },
                         { "TEAM", "orders" },
                         { "DOMAIN", "orders" },
                         { "ENV", props.SharedProps.Env },
@@ -257,7 +257,7 @@ public class OrdersApi : Construct
 
         props.ServiceProps.JwtSecretAccessKey.GrantRead(taskRole);
         OrdersTable.GrantReadWriteData(taskRole);
-        props.ServiceProps.OrdersEventBus.EventBus.GrantPutEventsTo(taskRole);
+        props.ServiceProps.PublisherBus.GrantPutEventsTo(taskRole);
         OrderCreatedTopic.GrantPublish(taskRole);
         OrdersWorkflow.GrantStartExecution(taskRole);
 

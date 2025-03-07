@@ -2,6 +2,7 @@ import config from "./config.js";
 
 let activeProduct = "";
 let orderItems = [];
+let orderItemsIDS = [];
 let jwt = "";
 
 $(document).ready(function () {
@@ -61,12 +62,13 @@ function createOrder() {
   xhr.setRequestHeader("Authorization", `Bearer ${jwt}`);
   xhr.send(
     JSON.stringify({
-      products: orderItems,
+      products: orderItemsIDS,
     })
   );
   xhr.onload = () => {
     if (xhr.readyState == 4 && xhr.status == 200) {
       orderItems = [];
+      orderItemsIDS = [];
       updateOrderDisplay();
       alert("Order created successfully");
       window.location.href = "/";
@@ -76,8 +78,9 @@ function createOrder() {
   };
 }
 
-function addToOrder(productId) {
-  orderItems.push(productId);
+function addToOrder(name, productId) {
+  orderItems.push({ productId: productId, name: name });
+  orderItemsIDS.push(productId);
 
   updateOrderDisplay();
 }
@@ -100,7 +103,7 @@ function updateOrderDisplay() {
     orderItems.forEach((item, index) => {
       const listItem = document.createElement("li");
       listItem.innerHTML = `
-        ${item}
+        ${item.name}
         <button class="outline" onclick="removeFromOrder(${index})">Remove</button>
       `;
       orderList.appendChild(listItem);
@@ -117,6 +120,7 @@ function updateOrderDisplay() {
 
 function removeFromOrder(index) {
   orderItems.splice(index, 1);
+  orderItemsIDS.splice(index, 1);
   updateOrderDisplay();
 }
 
@@ -143,8 +147,14 @@ function refreshData() {
           <p class="price">$${product.price}</p>
           <p class="stock">${product.stockLevel} in stock</p>
           <footer>
-            <button class="view-details" onclick="viewProductDetails('${product.productId}', this)">View Details</button>
-            ${product.stockLevel > 0 ? `<button class="add-to-cart" onclick="addToOrder('${product.productId}')">Add to Order</button>` : ""}
+            <button class="view-details" onclick="viewProductDetails('${
+              product.productId
+            }', this)">View Details</button>
+            ${
+              product.stockLevel > 0
+                ? `<button class="add-to-cart" onclick="addToOrder('${product.name}', '${product.productId}')">Add to Order</button>`
+                : ""
+            }
           </footer>
         `;
 

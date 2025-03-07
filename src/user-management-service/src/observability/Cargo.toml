@@ -18,3 +18,4 @@ opentelemetry-stdout = {workspace = true}
 opentelemetry-semantic-conventions = {workspace = true}
 tracing-opentelemetry = {workspace = true}
 serde = { version = "1.0.217", features = ["derive"] }
+uuid = { version = "1.15.1", features = ["v4"] }

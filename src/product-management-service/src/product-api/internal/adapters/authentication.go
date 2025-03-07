@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"os"
 	"strings"
@@ -21,6 +21,7 @@ type Claims struct {
 	UserType string `json:"user_type"`
 	Exp      int    `json:"exp"`
 	Iat      int    `json:"iat"`
+	jwt.RegisteredClaims
 }
 
 func (c Claims) Valid() error {

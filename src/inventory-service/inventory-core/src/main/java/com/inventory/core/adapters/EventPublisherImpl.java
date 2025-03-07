@@ -55,7 +55,7 @@ public class EventPublisherImpl implements EventPublisher {
         final Span span = GlobalTracer.get().activeSpan();
 
         try {
-            String evtData = mapper.writeValueAsString(new EventWrapper<InventoryStockUpdatedEvent>(evt));
+            String evtData = mapper.writeValueAsString(new EventWrapper<InventoryStockUpdatedEvent>("inventory.stockUpdated.v1", evt));
 
             this.publish("inventory.stockUpdated.v1", evtData);
         }
@@ -71,7 +71,7 @@ public class EventPublisherImpl implements EventPublisher {
         final Span span = GlobalTracer.get().activeSpan();
 
         try {
-            String evtData = mapper.writeValueAsString(new EventWrapper<StockReservedEventV1>(evt, conversationId));
+            String evtData = mapper.writeValueAsString(new EventWrapper<StockReservedEventV1>("inventory.stockReserved.v1", evt, conversationId));
 
             this.publish("inventory.stockReserved.v1", evtData);
         }
@@ -87,7 +87,7 @@ public class EventPublisherImpl implements EventPublisher {
         final Span span = GlobalTracer.get().activeSpan();
 
         try {
-            String evtData = mapper.writeValueAsString(new EventWrapper<ProductOutOfStockEventV1>(evt));
+            String evtData = mapper.writeValueAsString(new EventWrapper<ProductOutOfStockEventV1>("inventory.outOfStock.v1", evt));
 
             this.publish("inventory.outOfStock.v1", evtData);
         }
@@ -103,7 +103,7 @@ public class EventPublisherImpl implements EventPublisher {
         final Span span = GlobalTracer.get().activeSpan();
 
         try {
-            String evtData = mapper.writeValueAsString(new EventWrapper<StockReservationFailedEventV1>(evt, conversationId));
+            String evtData = mapper.writeValueAsString(new EventWrapper<StockReservationFailedEventV1>("inventory.stockReservationFailed.v1", evt, conversationId));
 
             this.publish("inventory.stockReservationFailed.v1", evtData);
         }

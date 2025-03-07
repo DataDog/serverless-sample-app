@@ -9,11 +9,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.405.31" />
-        <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.400.104" />
-        <PackageReference Include="AWSSDK.EventBridge" Version="3.7.402.46" />
-        <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="3.7.403.49" />
-        <PackageReference Include="AWSSDK.StepFunctions" Version="3.7.403.47" />
+        <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.405.36" />
+        <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.400.109" />
+        <PackageReference Include="AWSSDK.EventBridge" Version="3.7.402.51" />
+        <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="3.7.403.54" />
+        <PackageReference Include="AWSSDK.StepFunctions" Version="3.7.403.52" />
         <PackageReference Include="CloudNative.CloudEvents" Version="2.8.0" />
         <PackageReference Include="CloudNative.CloudEvents.SystemTextJson" Version="2.8.0" />
         <PackageReference Include="FluentValidation" Version="11.11.0" />

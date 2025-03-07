@@ -22,6 +22,7 @@ use tracing_subscriber::{layer::SubscriberExt, Registry};
 mod utils;
 
 pub use utils::parse_name_from_arn;
+use uuid::{uuid, Uuid};
 
 pub fn observability() -> impl Subscriber + Send + Sync {
     let tracer = new_pipeline()
@@ -92,10 +93,23 @@ pub fn trace_request(event: &Request) -> BoxedSpan {
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct TracedMessage {
-    trace_id: String,
-    span_id: String,
+pub struct CloudEvent {
+    #[serde(rename = "specversion")]
+    spec_version: Option<String>,
+    #[serde(rename = "source")]
+    source: Option<String>,
+    #[serde(rename = "id")]
+    id: Option<String>,
+    #[serde(rename = "type")]
+    pub message_type: Option<String>,
+    #[serde(rename = "traceparent")]
+    trace_parent: Option<String>,
+    #[serde(rename = "data")]
     pub data: String,
+    #[serde(skip_serializing, skip_deserializing)]
+    trace_id: String,
+    #[serde(skip_serializing, skip_deserializing)]
+    span_id: String,
     publish_time: String,
     #[serde(skip_serializing, skip_deserializing)]
     span_ctx: Option<SpanContext>,
@@ -103,12 +117,10 @@ pub struct TracedMessage {
     ctx: Option<Context>,
     #[serde(skip_serializing, skip_deserializing)]
     inflight_ctx: Option<Context>,
-    #[serde(skip_serializing, skip_deserializing)]
-    pub message_type: Option<String>,
 }
 
-impl TracedMessage {
-    pub fn new<T>(message: T) -> Self
+impl CloudEvent {
+    pub fn new<T>(message: T, message_type: String) -> Self
     where
         T: Serialize,
     {
@@ -122,41 +134,49 @@ impl TracedMessage {
         let since_the_epoch = start
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards");
-
+        let env = env::var("ENV").unwrap_or("dev".to_string());
         // Check if the span context is valid
         if span_context.is_valid() {
             // Retrieve traceId and spanId
             let trace_id = span_context.trace_id().to_string().clone();
             let span_id = span_context.span_id().to_string().clone();
-            Self {
-                trace_id,
-                span_id,
+            Self {  
+                spec_version: Some("1.0".to_string()),
+                source: Some(format!("{}.users", env)),
+                trace_parent: Some(format!("00-{}-{}-01", &trace_id, &span_id)),
+                message_type: Some(message_type),
                 data: serde_json::to_string(&message).unwrap(),
                 publish_time: since_the_epoch.as_millis().to_string(),
+                id: Some(Uuid::new_v4().to_string()),
+                trace_id,
+                span_id,
                 ctx: None,
                 inflight_ctx: None,
                 span_ctx: None,
-                message_type: None,
             }
         } else {
             // No valid span context found
             Self {
-                trace_id: "".to_string(),
-                span_id: "".to_string(),
+                spec_version: Some("1.0".to_string()),
+                source: Some(format!("{}.users", env)),
+                message_type: Some(message_type),
                 data: serde_json::to_string(&message).unwrap(),
                 publish_time: since_the_epoch.as_millis().to_string(),
+                id: Some(Uuid::new_v4().to_string()),
+                trace_parent: None,
+                trace_id: "".to_string(),
+                span_id: "".to_string(),
                 ctx: None,
                 inflight_ctx: None,
                 span_ctx: None,
-                message_type: None,
             }
         }
     }
 }
 
-impl From<&SnsRecord> for TracedMessage {
+impl From<&SnsRecord> for CloudEvent {
     fn from(value: &SnsRecord) -> Self {
-        let mut traced_message: TracedMessage =
+        let mut traced_message: CloudEvent =
             serde_json::from_str(value.sns.message.as_str()).unwrap();
 
         traced_message.generate_span_context();
@@ -167,9 +187,9 @@ impl From<&SnsRecord> for TracedMessage {
     }
 }
 
-impl From<SnsMessage> for TracedMessage {
+impl From<SnsMessage> for CloudEvent {
     fn from(value: SnsMessage) -> Self {
-        let mut traced_message: TracedMessage =
+        let mut traced_message: CloudEvent =
             serde_json::from_str(value.message.as_str()).unwrap();
 
         traced_message.generate_span_context();
@@ -178,9 +198,9 @@ impl From<SnsMessage> for TracedMessage {
     }
 }
 
-impl From<SnsRecord> for TracedMessage {
+impl From<SnsRecord> for CloudEvent {
     fn from(value: SnsRecord) -> Self {
-        let mut traced_message: TracedMessage =
+        let mut traced_message: CloudEvent =
             serde_json::from_str(value.sns.message.as_str()).unwrap();
 
         traced_message.generate_span_context();
@@ -191,9 +211,9 @@ impl From<SnsRecord> for TracedMessage {
     }
 }
 
-impl From<CloudWatchEvent> for TracedMessage {
+impl From<CloudWatchEvent> for CloudEvent {
     fn from(value: CloudWatchEvent) -> Self {
-        let mut traced_message: TracedMessage =
+        let mut traced_message: CloudEvent =
             serde_json::from_value(value.detail.clone().unwrap()).unwrap();
 
         traced_message.generate_span_context();
@@ -204,7 +224,7 @@ impl From<CloudWatchEvent> for TracedMessage {
     }
 }
 
-impl From<&SqsMessage> for TracedMessage {
+impl From<&SqsMessage> for CloudEvent {
     fn from(value: &SqsMessage) -> Self {
         let sent_timestamp = value.attributes.get_key_value("SentTimestamp");
 
@@ -219,7 +239,7 @@ impl From<&SqsMessage> for TracedMessage {
             None => SystemTime::now(),
         };
 
-        let traced_message = TracedMessage::check_body_for_upstream_message(value, timestamp);
+        let traced_message = CloudEvent::check_body_for_upstream_message(value, timestamp);
 
         let traced_message = match traced_message {
             Some(mut message) => {
@@ -228,7 +248,7 @@ impl From<&SqsMessage> for TracedMessage {
                 message
             }
             None => {
-                let mut traced_message: TracedMessage =
+                let mut traced_message: CloudEvent =
                     serde_json::from_str(value.clone().body.unwrap().as_str()).unwrap();
 
                 traced_message.generate_span_context();
@@ -243,7 +263,7 @@ impl From<&SqsMessage> for TracedMessage {
     }
 }
 
-impl TryFrom<&HeaderMap> for TracedMessage {
+impl TryFrom<&HeaderMap> for CloudEvent {
     type Error = &'static str;
 
     fn try_from(value: &HeaderMap) -> Result<Self, Self::Error> {
@@ -267,7 +287,9 @@ impl TryFrom<&HeaderMap> for TracedMessage {
                     TraceState::NONE,
                 );
 
-                let mut traced_message = TracedMessage {
+                let mut traced_message = CloudEvent {
+                    spec_version: None,
+                    source: None,
                     trace_id: parts[1].to_string(),
                     span_id: parts[2].to_string(),
                     data: "".to_string(),
@@ -276,6 +298,8 @@ impl TryFrom<&HeaderMap> for TracedMessage {
                     span_ctx: None,
                     inflight_ctx: None,
                     message_type: None,
+                    id: None,
+                    trace_parent: None,
                 };
 
                 traced_message
@@ -288,7 +312,7 @@ impl TryFrom<&HeaderMap> for TracedMessage {
     }
 }
 
-impl TracedMessage {
+impl CloudEvent {
     fn generate_span_context(&mut self) {
         let trace_id = TraceId::from_hex(&self.trace_id.as_str());
 
@@ -570,7 +594,7 @@ impl TracedMessage {
             let sns_message: SnsMessage =
                 serde_json::from_str(&record.body.clone().unwrap()).unwrap();
 
-            let mut traced_message: TracedMessage = sns_message.clone().into();
+            let mut traced_message: CloudEvent = sns_message.clone().into();
 
             traced_message
                 .generate_inflight_span_for_sns_message(&sns_message, Some(sqs_start_time));
@@ -583,7 +607,7 @@ impl TracedMessage {
             let sns_message: CloudWatchEvent =
                 serde_json::from_str(&record.body.clone().unwrap()).unwrap();
 
-            let mut traced_message: TracedMessage = sns_message.clone().into();
+            let mut traced_message: CloudEvent = sns_message.clone().into();
 
             traced_message.message_type = Some(
                 sns_message
@@ -647,7 +671,7 @@ mod tests {
         };
 
         let message =
-            TracedMessage::check_body_for_upstream_message(&sqs_message, SystemTime::now());
+            CloudEvent::check_body_for_upstream_message(&sqs_message, SystemTime::now());
 
         assert!(message.is_some());
     }
@@ -685,7 +709,7 @@ mod tests {
         };
 
         let message =
-            TracedMessage::check_body_for_upstream_message(&sqs_message, SystemTime::now());
+            CloudEvent::check_body_for_upstream_message(&sqs_message, SystemTime::now());
 
         assert!(message.is_some());
     }
@@ -713,7 +737,7 @@ mod tests {
         };
 
         let message =
-            TracedMessage::check_body_for_upstream_message(&sqs_message, SystemTime::now());
+            CloudEvent::check_body_for_upstream_message(&sqs_message, SystemTime::now());
 
         assert!(message.is_none());
     }

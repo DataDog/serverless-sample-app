@@ -32,7 +32,9 @@ data "aws_iam_policy_document" "dynamo_db_write" {
 data "aws_iam_policy_document" "eb_publish" {
   statement {
     actions   = ["events:PutEvents"]
-    resources = [aws_cloudwatch_event_bus.inventory_service_bus.arn]
+    resources = [
+        var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_arn[0].value : aws_cloudwatch_event_bus.inventory_service_bus.arn
+    ]
   }
   statement {
     actions   = ["events:ListEventBuses"]

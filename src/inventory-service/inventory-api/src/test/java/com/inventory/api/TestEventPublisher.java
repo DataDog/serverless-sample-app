@@ -16,62 +16,26 @@ public class TestEventPublisher implements EventPublisher {
 
     @Override
     public void publishNewProductAddedEvent(NewProductAddedEvent evt) {
-        try {
-            var evtWrapper = new EventWrapper<NewProductAddedEvent>(evt);
-            String evtData = mapper.writeValueAsString(evtWrapper);
-
-            String lowered = evt.toString();
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        return;
     }
 
     @Override
     public void publishInventoryStockUpdatedEvent(InventoryStockUpdatedEvent evt) {
-        try {
-            var evtWrapper = new EventWrapper<InventoryStockUpdatedEvent>(evt);
-            String evtData = mapper.writeValueAsString(evtWrapper);
-
-            String lowered = evt.toString();
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        return;
     }
 
     @Override
     public void publishStockReservedEvent(StockReservedEventV1 evt, String conversationId) {
-        try {
-            var evtWrapper = new EventWrapper<StockReservedEventV1>(evt, conversationId);
-            String evtData = mapper.writeValueAsString(evtWrapper);
-
-            String lowered = evt.toString();
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        return;
     }
 
     @Override
     public void publishProductOutOfStockEvent(ProductOutOfStockEventV1 evt) {
-        try {
-            var evtWrapper = new EventWrapper<ProductOutOfStockEventV1>(evt);
-            String evtData = mapper.writeValueAsString(evtWrapper);
-
-            String lowered = evt.toString();
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-
+        return;
     }
 
     @Override
     public void publishStockReservationFailedEvent(StockReservationFailedEventV1 evt, String conversationId) {
-        try {
-            var evtWrapper = new EventWrapper<StockReservationFailedEventV1>(evt, conversationId);
-            String evtData = mapper.writeValueAsString(evtWrapper);
-
-            String lowered = evt.toString();
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        return;
     }
 }

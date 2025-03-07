@@ -91,7 +91,7 @@ module "inventory_api_web_service" {
     },
     {
       name  = "EVENT_BUS_NAME"
-      value = aws_cloudwatch_event_bus.inventory_service_bus.name
+      value = var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.inventory_service_bus.name
     },
     {
       name  = "TEAM"

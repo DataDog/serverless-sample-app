@@ -1,5 +1,5 @@
 use aws_config::BehaviorVersion;
-use observability::TracedMessage;
+use observability::CloudEvent;
 use reqwest::redirect::Policy;
 use serde_json::json;
 use serde::{Deserialize, Serialize};
@@ -211,7 +211,7 @@ impl ApiDriver {
     }
 
     pub async fn publish_order_completed_event(&self, email: &str) {
-        let payload = TracedMessage::new(UserCreatedEvent {
+        let payload = CloudEvent::new(UserCreatedEvent {
             email_address: email.to_string(),
         });
         let payload_string = serde_json::to_string(&payload).expect("Error serde");

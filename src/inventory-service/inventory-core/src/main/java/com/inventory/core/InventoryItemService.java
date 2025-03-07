@@ -107,7 +107,10 @@ public class InventoryItemService {
                     break;
                 }
 
+                var previousStockLevel = inventoryItem.getCurrentStockLevel();
                 inventoryItem.reserveStockFor(orderNumber);
+                this.repository.update(inventoryItem);
+                this.eventPublisher.publishInventoryStockUpdatedEvent(new InventoryStockUpdatedEvent(productId, previousStockLevel, inventoryItem.getCurrentStockLevel()));
                 stockAddedFor.add(inventoryItem);
             }
 
@@ -143,8 +146,11 @@ public class InventoryItemService {
             for (var productId : products) {
                 var inventoryItem = this.repository.withProductId(productId);
 
+                var previousStockLevel = inventoryItem.getCurrentStockLevel();
+
                 inventoryItem.stockDispatchedFor(orderNumber);
                 this.repository.update(inventoryItem);
+                this.eventPublisher.publishInventoryStockUpdatedEvent(new InventoryStockUpdatedEvent(inventoryItem.getProductId(), previousStockLevel, inventoryItem.getCurrentStockLevel()));
 
                 if (inventoryItem.getAvailableStockLevel() <= 0) {
                     this.eventPublisher.publishProductOutOfStockEvent(new ProductOutOfStockEventV1(productId));

@@ -49,7 +49,7 @@ public class InventoryAcl extends Construct {
         ResilientQueue queue = new ResilientQueue(this, "ProductCreatedEventQueue", new ResilientQueueProps("InventoryProductCreatedEventQueue", props.sharedProps()));
 
         HashMap<String, String> productCreatedFunctionEnvVars = new HashMap<>(2);
-        productCreatedFunctionEnvVars.put("EVENT_BUS_NAME", props.sharedEventBus().getEventBusName());
+        productCreatedFunctionEnvVars.put("EVENT_BUS_NAME", props.publisherBus().getEventBusName());
         productCreatedFunctionEnvVars.put("PRODUCT_ADDED_TOPIC_ARN", newProductAddedTopic.getTopicArn());
 
         String compiledJarFilePath = "../inventory-acl/target/function.zip";
@@ -69,13 +69,13 @@ public class InventoryAcl extends Construct {
                 .batchSize(10)
                 .build()));
 
-        Rule rule = new ProductCreatedEvent(this, "InventoryProductCreatedRule", props.sharedProps(), props.sharedEventBus());
+        Rule rule = new ProductCreatedEvent(this, "InventoryProductCreatedRule", props.sharedProps(), props.subscriberBus());
         rule.addTarget(new SqsQueue(queue.getQueue()));
 
         ResilientQueue orderCreatedQueue = new ResilientQueue(this, "OrderCreatedEventQueue", new ResilientQueueProps("InventoryOrderCreatedEventQueue", props.sharedProps()));
 
         HashMap<String, String> orderCreatedFunctionEnvVars = new HashMap<>(2);
-        orderCreatedFunctionEnvVars.put("EVENT_BUS_NAME", props.sharedEventBus().getEventBusName());
+        orderCreatedFunctionEnvVars.put("EVENT_BUS_NAME", props.publisherBus().getEventBusName());
         orderCreatedFunctionEnvVars.put("TABLE_NAME", props.inventoryTable().getTableName());
 
         IFunction orderCreatedFunction = new InstrumentedFunction(this, "OrderCreatedACLFunction",
@@ -86,7 +86,7 @@ public class InventoryAcl extends Construct {
                 .maxBatchingWindow(Duration.seconds(10))
                 .batchSize(10)
                 .build()));
-        props.sharedEventBus().grantPutEventsTo(orderCreatedFunction);
+        props.publisherBus().grantPutEventsTo(orderCreatedFunction);
         orderCreatedFunction.addToRolePolicy(PolicyStatement.Builder.create()
                 .effect(Effect.ALLOW)
                 .resources(List.of("*"))
@@ -94,13 +94,13 @@ public class InventoryAcl extends Construct {
                 .build());
         props.inventoryTable().grantReadWriteData(orderCreatedFunction);
 
-        Rule orderCreatedRule = new OrderCreatedEvent(this, "InventoryOrderCreatedRule", props.sharedProps(), props.sharedEventBus());
+        Rule orderCreatedRule = new OrderCreatedEvent(this, "InventoryOrderCreatedRule", props.sharedProps(), props.subscriberBus());
         orderCreatedRule.addTarget(new SqsQueue(orderCreatedQueue.getQueue()));
 
         ResilientQueue orderCompletedQueue = new ResilientQueue(this, "OrderCompletedEventQueue", new ResilientQueueProps("InventoryOrderCompletedEventQueue", props.sharedProps()));
 
         HashMap<String, String> orderCompletedFunctionEnvVars = new HashMap<>(2);
-        orderCompletedFunctionEnvVars.put("EVENT_BUS_NAME", props.sharedEventBus().getEventBusName());
+        orderCompletedFunctionEnvVars.put("EVENT_BUS_NAME", props.publisherBus().getEventBusName());
         orderCompletedFunctionEnvVars.put("TABLE_NAME", props.inventoryTable().getTableName());
 
         IFunction orderCompletedFunction = new InstrumentedFunction(this, "OrderCompletedACLFunction",
@@ -111,15 +111,15 @@ public class InventoryAcl extends Construct {
                 .maxBatchingWindow(Duration.seconds(10))
                 .batchSize(10)
                 .build()));
-        props.sharedEventBus().grantPutEventsTo(orderCompletedFunction);
-        orderCreatedFunction.addToRolePolicy(PolicyStatement.Builder.create()
+        props.publisherBus().grantPutEventsTo(orderCompletedFunction);
+        orderCompletedFunction.addToRolePolicy(PolicyStatement.Builder.create()
                 .effect(Effect.ALLOW)
                 .resources(List.of("*"))
                 .actions(List.of("events:ListEventBuses"))
                 .build());
         props.inventoryTable().grantReadWriteData(orderCompletedFunction);
 
-        Rule orderCompletedRule = new OrderCompletedEvent(this, "InventoryOrderCompletedRule", props.sharedProps(),props.sharedEventBus());
+        Rule orderCompletedRule = new OrderCompletedEvent(this, "InventoryOrderCompletedRule", props.sharedProps(),props.subscriberBus());
         orderCompletedRule.addTarget(new SqsQueue(orderCompletedQueue.getQueue()));
     }
 

@@ -31,11 +31,11 @@ func NewEventBridgeEventPublisher(client eventbridge.Client) *EventBridgeEventPu
 }
 
 func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Context, evt core.PublicProductCreatedEventV1) {
-	tracedMessage := observability.NewTracedMessage(ctx, evt)
+	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated.v1", evt)
 
-	evtData, _ := json.Marshal(tracedMessage)
+	evtData, _ := json.Marshal(cloudEvent)
 	message := string(evtData)
-	detailType := "product.productCreated.v1"
+	detailType := cloudEvent.Type
 	busName := os.Getenv("EVENT_BUS_NAME")
 	source := fmt.Sprintf("%s.products", os.Getenv("ENV"))
 
@@ -60,11 +60,11 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 }
 
 func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Context, evt core.PublicProductUpdatedEventV1) {
-	tracedMessage := observability.NewTracedMessage(ctx, evt)
+	cloudEvent := observability.NewCloudEvent(ctx, "product.productUpdated.v1", evt)
 
-	evtData, _ := json.Marshal(tracedMessage)
+	evtData, _ := json.Marshal(cloudEvent)
 	message := string(evtData)
-	detailType := "product.productUpdated.v1"
+	detailType := cloudEvent.Type
 	busName := os.Getenv("EVENT_BUS_NAME")
 	source := fmt.Sprintf("%s.products", os.Getenv("ENV"))
 
@@ -89,11 +89,11 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 }
 
 func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Context, evt core.PublicProductDeletedEventV1) {
-	tracedMessage := observability.NewTracedMessage(ctx, evt)
+	cloudEvent := observability.NewCloudEvent(ctx, "product.productDeleted.v1", evt)
 
-	evtData, _ := json.Marshal(tracedMessage)
+	evtData, _ := json.Marshal(cloudEvent)
 	message := string(evtData)
-	detailType := "product.productDeleted.v1"
+	detailType := cloudEvent.Type
 	busName := os.Getenv("EVENT_BUS_NAME")
 	source := fmt.Sprintf("%s.products", os.Getenv("ENV"))
 

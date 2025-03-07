@@ -20,7 +20,9 @@ public class OrdersServiceStack : Stack
 {
     internal OrdersServiceStack(Construct scope, string id, IStackProps props = null) : base(scope, id, props)
     {
-        var secret = Secret.FromSecretCompleteArn(this, "DatadogApiKeySecret", System.Environment.GetEnvironmentVariable("DD_API_KEY_SECRET_ARN") ?? throw new Exception("DD_API_KEY_SECRET_ARN environment variable is not set"));
+        var secret = Secret.FromSecretCompleteArn(this, "DatadogApiKeySecret",
+            System.Environment.GetEnvironmentVariable("DD_API_KEY_SECRET_ARN") ??
+            throw new Exception("DD_API_KEY_SECRET_ARN environment variable is not set"));
         var serviceName = "OrdersService";
         var env = System.Environment.GetEnvironmentVariable("ENV") ?? "dev";
         var version = System.Environment.GetEnvironmentVariable("VERSION") ?? "latest";
@@ -32,14 +34,7 @@ public class OrdersServiceStack : Stack
             new OrdersApiProps(sharedProps, orderServiceProps));
 
         var ordersWorker = new OrdersBackgroundWorker(this, "OrdersWorker",
-            new OrdersBackgroundWorkerProps(sharedProps, orderServiceProps, orderApi.OrdersTable, orderApi.OrdersWorkflow));
-
-        if (orderServiceProps.SharedEventBus.EventBus != null)
-        {
-            foreach (var rule in orderServiceProps.PublicEvents)
-            {
-                rule.AddTarget(new Amazon.CDK.AWS.Events.Targets.EventBus(orderServiceProps.SharedEventBus.EventBus));
-            }
-        }
+            new OrdersBackgroundWorkerProps(sharedProps, orderServiceProps, orderApi.OrdersTable,
+                orderApi.OrdersWorkflow));
     }
 }

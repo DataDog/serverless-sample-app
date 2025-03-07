@@ -21,15 +21,16 @@ public class Functions(IOrderWorkflow orderWorkflow)
 
         foreach (var record in evt.Records)
         {
-            var processingSpan = Tracer.Instance.StartActive("process", new SpanCreationSettings()
+            var processingSpan = Tracer.Instance.StartActive("process", new SpanCreationSettings
             {
-                Parent = activeSpan?.Context
+                Parent = activeSpan?.Context,
+
             });
             record.AddToTelemetry();
             
             try
             {
-                var evtData = JsonSerializer.Deserialize<EventBridgeMessageWrapper<EventWrapper<StockReservedEvent>>>(record.Body);
+                var evtData = JsonSerializer.Deserialize<EventBridgeMessageWrapper<EventWrapper<StockReservedEvent>>>(record.Body); ;
                 
                 if (evtData is null)
                     throw new ArgumentException("Event payload does not serialize to a `StockReservedEvent`");

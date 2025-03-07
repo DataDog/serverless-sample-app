@@ -42,6 +42,12 @@ resource "aws_iam_policy" "get_api_key_secret" {
   policy = data.aws_iam_policy_document.retrieve_api_key_secret.json
 }
 
+resource "aws_iam_policy" "get_jwt_ssm_parameter" {
+  name   = "tf-orders-api-get-jwt-param-${var.env}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.allow_jwt_secret_key_ssm_read.json
+}
+
 resource "aws_iam_policy" "sqs_receive_policy" {
   name   = "TF_OrdersService-sqs-policy-${var.env}"
   path   = "/"

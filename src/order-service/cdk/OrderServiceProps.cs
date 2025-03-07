@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025 Datadog, Inc.
 
+using System;
 using System.Collections.Generic;
 using Amazon.CDK.AWS.Events;
 using Amazon.CDK.AWS.SNS;
@@ -18,13 +19,13 @@ public record OrdersServiceEventBus(IEventBus EventBus);
 public class OrderServiceProps(
     SharedEventBus? SharedEventBus,
     OrdersServiceEventBus OrdersEventBus,
-    IStringParameter JwtSecretAccessKey,
-    List<Rule> PublicEvents)
+    IStringParameter JwtSecretAccessKey)
 {
     public SharedEventBus SharedEventBus { get; } = SharedEventBus;
     public OrdersServiceEventBus OrdersEventBus { get; } = OrdersEventBus;
     public IStringParameter JwtSecretAccessKey { get; } = JwtSecretAccessKey;
-    public List<Rule> PublicEvents { get; } = PublicEvents;
+    
+    public IEventBus PublisherBus => SharedEventBus == null ? OrdersEventBus.EventBus : SharedEventBus.EventBus;
 
     public static OrderServiceProps Create(Construct scope, SharedProps props)
     {
@@ -49,29 +50,6 @@ public class OrderServiceProps(
                 ParameterName = $"/{props.Env}/{props.ServiceName}/event-bus-arn",
                 StringValue = orderServiceEventBus.EventBusArn
             });
-        
-        var publicEvents = new List<Rule>()
-        {
-            new OrderCreatedEventRule(scope, "OrderCreatedRule", props, new RuleProps()
-            {
-                EventBus = orderServiceEventBus
-            }),
-            new OrderConfirmedEventRule(scope, "OrderConfirmedRule", props, new RuleProps()
-            {
-                EventBus = orderServiceEventBus
-            }),
-            new OrderCompletedEventRule(scope, "OrderCompletedRule", props, new RuleProps()
-            {
-                EventBus = orderServiceEventBus
-            }),
-        };
-
-        // Deploy the test harness in all non-production environments.
-        if (props.Env != "prod")
-        {
-            var testEventHarness = new TestEventHarness(scope, "OrdersTestEventHarness",
-                new TestEventHarnessProps(props, props.DDApiKeySecret, "orderNumber", new List<ITopic>(), publicEvents));
-        }
 
         if (!integratedEnvironments.Contains(props.Env))
         {
@@ -92,8 +70,33 @@ public class OrderServiceProps(
             sharedEventBus = EventBus.FromEventBusName(scope, "SharedEventBus", eventBusTopicArn.StringValue);
         }
 
-        return new OrderServiceProps(new SharedEventBus(sharedEventBus),
-            new OrdersServiceEventBus(orderServiceEventBus), jwtAccessKeyParameter, publicEvents);
+        var serviceProps = new OrderServiceProps(new SharedEventBus(sharedEventBus),
+            new OrdersServiceEventBus(orderServiceEventBus), jwtAccessKeyParameter);
+
+        // Deploy the test harness in all non-production environments.
+        if (props.Env != "prod")
+        {
+            var publicEvents = new List<Rule>()
+            {
+                new OrderCreatedEventRule(scope, "OrderCreatedRule", props, new RuleProps()
+                {
+                    EventBus = serviceProps.PublisherBus
+                }),
+                new OrderConfirmedEventRule(scope, "OrderConfirmedRule", props, new RuleProps()
+                {
+                    EventBus = serviceProps.PublisherBus
+                }),
+                new OrderCompletedEventRule(scope, "OrderCompletedRule", props, new RuleProps()
+                {
+                    EventBus = serviceProps.PublisherBus
+                }),
+            };
+            
+            var testEventHarness = new TestEventHarness(scope, "OrdersTestEventHarness",
+                new TestEventHarnessProps(props, props.DDApiKeySecret, "orderNumber", new List<ITopic>(), publicEvents));
+        }
+
+        return serviceProps;
     }
 }
 

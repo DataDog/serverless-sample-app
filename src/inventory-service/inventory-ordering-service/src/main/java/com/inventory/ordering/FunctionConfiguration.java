@@ -55,6 +55,8 @@ public class FunctionConfiguration {
                 logger.error("An exception occurred!", exception);
                 span.setTag(Tags.ERROR, true);
                 span.log(Collections.singletonMap(Fields.ERROR_OBJECT, exception));
+
+                span.finish();
             }
 
             return "OK";

@@ -9,7 +9,7 @@
 
     <ItemGroup>
         <PackageReference Include="Amazon.Lambda.CloudWatchEvents" Version="4.4.0" />
-        <PackageReference Include="AWSSDK.EventBridge" Version="3.7.402.46" />
+        <PackageReference Include="AWSSDK.EventBridge" Version="3.7.402.51" />
         <PackageReference Include="coverlet.collector" Version="6.0.4">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -21,7 +21,7 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="3.7.403.49" />
+        <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="3.7.403.54" />
     </ItemGroup>
 
     <ItemGroup>

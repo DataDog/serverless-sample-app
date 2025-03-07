@@ -135,6 +135,10 @@ Resources:
           TABLE_NAME: !Ref InventoryApiTable
           QUARKUS_LAMBDA_HANDLER: handleOrderCreated
           MAIN_CLASS: com.inventory.acl.FunctionConfiguration
+          EVENT_BUS_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Ref InventoryServiceEventBus
       Events:
         IntegrationQueue:
           Type: SQS
@@ -159,7 +163,10 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref InventoryApiTable
         - EventBridgePutEventsPolicy:
-            EventBusName: !Ref InventoryServiceEventBus
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref InventoryServiceEventBus
     Metadata:
       SkipBuild: True
 
@@ -174,6 +181,10 @@ Resources:
           TABLE_NAME: !Ref InventoryApiTable
           QUARKUS_LAMBDA_HANDLER: handleOrderCompleted
           MAIN_CLASS: com.inventory.acl.FunctionConfiguration
+          EVENT_BUS_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Ref InventoryServiceEventBus
       Events:
         IntegrationQueue:
           Type: SQS
@@ -198,7 +209,10 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref InventoryApiTable
         - EventBridgePutEventsPolicy:
-            EventBusName: !Ref InventoryServiceEventBus
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref InventoryServiceEventBus
     Metadata:
       SkipBuild: True
  
@@ -731,7 +745,10 @@ Resources:
               Value: !Ref InventoryApiTable
             -
               Name: EVENT_BUS_NAME
-              Value: !Ref InventoryServiceEventBus
+              Value: !If
+                - IsIntegratedEnvironment
+                - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+                - !Ref InventoryServiceEventBus
             -
               Name: JWT_SECRET_PARAM_NAME
               Value: !If
@@ -896,98 +913,6 @@ Resources:
         - Id: InventoryEventBus
           Arn: !GetAtt InventoryServiceEventBus.Arn
           RoleArn: !GetAtt InventoryServiceEventBusToSharedEventBusRole.Arn
-
-  InventoryServiceEventBusToSharedBusRole:
-    Type: AWS::IAM::Role
-    Condition: IsIntegratedEnvironment
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - events.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      Path: /
-      Policies:
-        - PolicyName: allow-eb-publish
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "events:PutEvents"
-                Resource: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
-
-  SharedEventBusProductOutOfStockForwardingRule:
-    Type: AWS::Events::Rule
-    Condition: IsIntegratedEnvironment
-    Properties:
-      EventBusName: !Ref InventoryServiceEventBus
-      Name: out-of-stock-forwarding-rule
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.inventory"
-        detail-type:
-          - "inventory.outOfStock.v1"
-      Targets:
-        - Id: SharedBus
-          Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
-          RoleArn: !GetAtt InventoryServiceEventBusToSharedBusRole.Arn
-
-  SharedEventBusStockUpdatedForwardingRule:
-    Type: AWS::Events::Rule
-    Condition: IsIntegratedEnvironment
-    Properties:
-      EventBusName: !Ref InventoryServiceEventBus
-      Name: stock-updated-forwarding-rule
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.inventory"
-        detail-type:
-          - "inventory.stockUpdated.v1"
-      Targets:
-        - Id: SharedBus
-          Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
-          RoleArn: !GetAtt InventoryServiceEventBusToSharedBusRole.Arn
-
-  SharedEventBusStockReservedForwardingRule:
-    Type: AWS::Events::Rule
-    Condition: IsIntegratedEnvironment
-    Properties:
-      EventBusName: !Ref InventoryServiceEventBus
-      Name: stock-reserved-forwarding-rule
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.inventory"
-        detail-type:
-          - "inventory.stockReserved.v1"
-      Targets:
-        - Id: SharedBus
-          Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
-          RoleArn: !GetAtt InventoryServiceEventBusToSharedBusRole.Arn
-
-  SharedEventBusReservationFailedForwardingRule:
-    Type: AWS::Events::Rule
-    Condition: IsIntegratedEnvironment
-    Properties:
-      EventBusName: !Ref InventoryServiceEventBus
-      Name: stock-reservation-failed-forwarding-rule
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.inventory"
-        detail-type:
-          - "inventory.stockReservationFailed.v1"
-      Targets:
-        - Id: SharedBus
-          Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
-          RoleArn: !GetAtt InventoryServiceEventBusToSharedBusRole.Arn
 
   InventoryApiEndpoint:
     Type: AWS::SSM::Parameter

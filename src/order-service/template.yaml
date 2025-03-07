@@ -100,7 +100,10 @@ Resources:
       Name: !Sub "${ServiceName}-OrderWorkflow-${Env}"
       DefinitionUri: cdk/workflows/orderProcessingWorkflow.asl.json
       DefinitionSubstitutions:
-        EventBusName: !Ref OrdersServiceEventBus
+        EventBusName: !If
+          - IsIntegratedEnvironment
+          - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+          - !Ref OrdersServiceEventBus
         TableName: !Ref OrdersTable
         Env: !Ref Env
         ConfirmOrderLambda: !GetAtt ConfirmOrderHandler.Arn
@@ -124,7 +127,10 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref OrdersTable
         - EventBridgePutEventsPolicy:
-            EventBusName: !Ref OrdersServiceEventBus
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref OrdersServiceEventBus
         - LambdaInvokePolicy:
             FunctionName: !Ref ConfirmOrderHandler
         - LambdaInvokePolicy:
@@ -147,7 +153,10 @@ Resources:
       FunctionName: !Sub ${ServiceName}-StockReservationSuccessACL-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: !Ref OrdersServiceEventBus
+          EventBusName: !If
+            - IsIntegratedEnvironment
+            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Ref OrdersServiceEventBus
           TABLE_NAME: !Ref OrdersTable
       Events:
         StockReservedQueue:
@@ -183,7 +192,10 @@ Resources:
                 - events:DescribeEventBus
               Resource: !GetAtt OrdersServiceEventBus.Arn
         - EventBridgePutEventsPolicy:
-            EventBusName: !Ref OrdersServiceEventBus
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref OrdersServiceEventBus
         - DynamoDBCrudPolicy:
             TableName: !Ref OrdersTable
 
@@ -195,7 +207,10 @@ Resources:
       FunctionName: !Sub ${ServiceName}-StockReservationFailedACL-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: !Ref OrdersServiceEventBus
+          EVENT_BUS_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Ref OrdersServiceEventBus
           TABLE_NAME: !Ref OrdersTable
       Events:
         StockReservationFailedQueue:
@@ -229,9 +244,15 @@ Resources:
             - Effect: Allow
               Action:
                 - events:DescribeEventBus
-              Resource: !GetAtt OrdersServiceEventBus.Arn
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+                - !GetAtt OrdersServiceEventBus.Arn
         - EventBridgePutEventsPolicy:
-            EventBusName: !Ref OrdersServiceEventBus
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref OrdersServiceEventBus
         - DynamoDBCrudPolicy:
             TableName: !Ref OrdersTable
 
@@ -243,7 +264,10 @@ Resources:
       FunctionName: !Sub ${ServiceName}-ConfirmOrderHandler-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: !Ref OrdersServiceEventBus
+          EVENT_BUS_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Ref OrdersServiceEventBus
           TABLE_NAME: !Ref OrdersTable
       Policies:
         - Version: "2012-10-17"
@@ -268,7 +292,10 @@ Resources:
                 - events:DescribeEventBus
               Resource: !GetAtt OrdersServiceEventBus.Arn
         - EventBridgePutEventsPolicy:
-            EventBusName: !Ref OrdersServiceEventBus
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref OrdersServiceEventBus
         - DynamoDBCrudPolicy:
             TableName: !Ref OrdersTable
             
@@ -281,7 +308,10 @@ Resources:
       FunctionName: !Sub ${ServiceName}-NoStockHandler-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: !Ref OrdersServiceEventBus
+          EVENT_BUS_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Ref OrdersServiceEventBus
           TABLE_NAME: !Ref OrdersTable
       Policies:
         - Version: "2012-10-17"
@@ -306,7 +336,10 @@ Resources:
                 - events:DescribeEventBus
               Resource: !GetAtt OrdersServiceEventBus.Arn
         - EventBridgePutEventsPolicy:
-            EventBusName: !Ref OrdersServiceEventBus
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref OrdersServiceEventBus
         - DynamoDBCrudPolicy:
             TableName: !Ref OrdersTable
 
@@ -688,7 +721,10 @@ Resources:
                 Action:
                   - "events:PutEvents"
                   - "events:DescribeEventBus"
-                Resource: !GetAtt OrdersServiceEventBus.Arn
+                Resource: !If
+                  - IsIntegratedEnvironment
+                  - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+                  - !GetAtt OrdersServiceEventBus.Arn
         - PolicyName: allow-secrets-retrieve
           PolicyDocument:
             Version: 2012-10-17
@@ -743,7 +779,10 @@ Resources:
               Value: !Ref OrdersTable
             -
               Name: EVENT_BUS_NAME
-              Value: !Ref OrdersServiceEventBus
+              Value: !If
+                - IsIntegratedEnvironment
+                - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+                - !Ref OrdersServiceEventBus
             -
               Name: ORDER_WORKFLOW_ARN
               Value: !GetAtt OrderWorkflow.Arn
@@ -894,81 +933,6 @@ Resources:
           Arn: !GetAtt OrdersServiceEventBus.Arn
           RoleArn: !GetAtt SharedEventBusToOrdersServiceEventBusRole.Arn
 
-  OrdersServiceEventBusToSharedBusRole:
-    Type: AWS::IAM::Role
-    Condition: IsIntegratedEnvironment
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - events.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      Path: /
-      Policies:
-        - PolicyName: allow-eb-publish
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "events:PutEvents"
-                Resource: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
-
-  SharedEventBusOrderCreatedForwardingRule:
-    Type: AWS::Events::Rule
-    Condition: IsIntegratedEnvironment
-    Properties:
-      EventBusName: !Ref OrdersServiceEventBus
-      Name: order-created-forwarding-rule
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.orders"
-        detail-type:
-          - "orders.orderCreated.v1"
-      Targets:
-        - Id: SharedBus
-          Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
-          RoleArn: !GetAtt OrdersServiceEventBusToSharedBusRole.Arn
-
-  SharedEventBusOrderConfirmedForwardingRule:
-    Type: AWS::Events::Rule
-    Condition: IsIntegratedEnvironment
-    Properties:
-      EventBusName: !Ref OrdersServiceEventBus
-      Name: order-confirmed-forwarding-rule
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.orders"
-        detail-type:
-          - "orders.orderConfirmed.v1"
-      Targets:
-        - Id: SharedBus
-          Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
-          RoleArn: !GetAtt OrdersServiceEventBusToSharedBusRole.Arn
-
-  SharedEventBusOrderCompletedForwardingRule:
-    Type: AWS::Events::Rule
-    Condition: IsIntegratedEnvironment
-    Properties:
-      EventBusName: !Ref OrdersServiceEventBus
-      Name: order-completed-forwarding-rule
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.orders"
-        detail-type:
-          - "orders.orderCompleted.v1"
-      Targets:
-        - Id: SharedBus
-          Arn: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
-          RoleArn: !GetAtt OrdersServiceEventBusToSharedBusRole.Arn
-
   OrderApiEndpoint:
     Type: AWS::SSM::Parameter
     Properties:
@@ -1019,7 +983,8 @@ Resources:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
         - DynamoDBCrudPolicy:
-            TableName: !Ref TestHarnessTable 
+            TableName: !Ref TestHarnessTable
+
   EventBridgeEventTestHarness:
     Type: AWS::Serverless::Function
     Condition: IsNonProdEnvironment
@@ -1068,6 +1033,7 @@ Resources:
               Resource: !Ref DDApiKeySecretArn
         - DynamoDBCrudPolicy:
             TableName: !Ref TestHarnessTable
+  
   TestHarnessApiEndpoint:
     Type: AWS::SSM::Parameter
     Condition: IsNonProdEnvironment

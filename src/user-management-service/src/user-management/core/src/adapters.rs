@@ -6,7 +6,7 @@ use aws_sdk_dynamodb::error::SdkError;
 use aws_sdk_dynamodb::operation::put_item::PutItemError;
 use aws_sdk_dynamodb::types::AttributeValue;
 use aws_sdk_dynamodb::Client;
-use observability::TracedMessage;
+use observability::CloudEvent;
 use tracing::{instrument, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use crate::utils::StringHasher;
@@ -144,13 +144,13 @@ impl Repository for DynamoDbRepository {
             format!("DynamoDB.GetItem {}", &self.table_name),
         );
         
-        let hashed_email_address = StringHasher::hash_string(email_address.to_string());
+        let search_address = StringHasher::hash_string(email_address.to_string());
 
         let res = self
             .client
             .get_item()
             .table_name(&self.table_name)
-            .key(PARTITION_KEY, AttributeValue::S(hashed_email_address))
+            .key(PARTITION_KEY, AttributeValue::S(search_address))
             .send()
             .await;
 
@@ -252,7 +252,7 @@ impl EventPublisher for EventBridgeEventPublisher {
         &self,
         user_created_event: UserCreatedEvent,
     ) -> Result<(), ()> {
-        let payload = TracedMessage::new(user_created_event);
+        let payload = CloudEvent::new(user_created_event, "users.userCreated.v1".to_string());
         let payload_string = serde_json::to_string(&payload).expect("Error serde");
 
         let request = aws_sdk_eventbridge::types::builders::PutEventsRequestEntryBuilder::default()

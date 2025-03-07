@@ -18,12 +18,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"go.opentelemetry.io/otel/propagation"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
-)
 
-type TracedMessage[T any] struct {
-	Data    T                      `json:"data"`
-	Datadog propagation.MapCarrier `json:"_datadog"`
-}
+	observability "github.com/datadog/serverless-sample-observability"
+)
 
 type SnsEventPublisher struct {
 	client    sns.Client
@@ -41,12 +38,9 @@ func (publisher SnsEventPublisher) PublishProductCreated(ctx context.Context, ev
 	carrier := propagation.MapCarrier{}
 	tracer.Inject(span.Context(), carrier)
 
-	tracedMessage := TracedMessage[core.ProductCreatedEvent]{
-		Data:    evt,
-		Datadog: carrier,
-	}
+	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated", evt)
 
-	tracedMessageData, _ := json.Marshal(tracedMessage)
+	tracedMessageData, _ := json.Marshal(cloudEvent)
 
 	fmt.Println(string(tracedMessageData))
 
@@ -74,12 +68,9 @@ func (publisher SnsEventPublisher) PublishProductUpdated(ctx context.Context, ev
 	carrier := propagation.MapCarrier{}
 	tracer.Inject(span.Context(), carrier)
 
-	tracedMessage := TracedMessage[core.ProductUpdatedEvent]{
-		Data:    evt,
-		Datadog: carrier,
-	}
+	cloudEvent := observability.NewCloudEvent(ctx, "product.productUpdated", evt)
 
-	tracedMessageData, _ := json.Marshal(tracedMessage)
+	tracedMessageData, _ := json.Marshal(cloudEvent)
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRODUCT_UPDATED_TOPIC_ARN")
 
@@ -103,12 +94,9 @@ func (publisher SnsEventPublisher) PublishProductDeleted(ctx context.Context, ev
 	carrier := propagation.MapCarrier{}
 	tracer.Inject(span.Context(), carrier)
 
-	tracedMessage := TracedMessage[core.ProductDeletedEvent]{
-		Data:    evt,
-		Datadog: carrier,
-	}
+	cloudEvent := observability.NewCloudEvent(ctx, "product.productDeleted", evt)
 
-	tracedMessageData, _ := json.Marshal(tracedMessage)
+	tracedMessageData, _ := json.Marshal(cloudEvent)
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRODUCT_DELETED_TOPIC_ARN")
 

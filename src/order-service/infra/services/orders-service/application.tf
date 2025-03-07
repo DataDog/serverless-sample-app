@@ -63,9 +63,14 @@ resource "aws_iam_role_policy_attachment" "orders_db__writeaccess" {
   policy_arn = aws_iam_policy.dynamo_db_write.arn
 }
 
+resource "aws_iam_role_policy_attachment" "orders_api_start_workflow" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.step_functions_interactions.arn
+}
+
 resource "aws_iam_role_policy_attachment" "orders_read_ssm_jwt" {
   role       = aws_iam_role.ecs_task_role.name
-  policy_arn = aws_iam_policy.get_api_key_secret.arn
+  policy_arn = aws_iam_policy.get_jwt_ssm_parameter.arn
 }
 
 resource "aws_iam_role_policy_attachment" "orders_read_ssm_product_api_endpoint" {
@@ -101,7 +106,11 @@ module "orders_web_service" {
     },
     {
       name  = "EVENT_BUS_NAME"
-      value = aws_cloudwatch_event_bus.orders_service_bus.name
+      value = var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name : aws_cloudwatch_event_bus.orders_service_bus.name
+    },
+    {
+      name  = "ORDER_WORKFLOW_ARN"
+      value = aws_sfn_state_machine.order_workflow_state_machine.arn
     },
     {
       name  = "TEAM"

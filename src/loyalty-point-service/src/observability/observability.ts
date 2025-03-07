@@ -1,6 +1,6 @@
 import { Logger } from "@aws-lambda-powertools/logger";
 import { CloudEvent } from "cloudevents";
-import { Span, tracer } from "dd-trace";
+import { Span, SpanContext, tracer } from "dd-trace";
 import * as os from "os";
 
 const textEncoder = new TextEncoder();
@@ -55,6 +55,12 @@ export function startProcessSpanWithSemanticConventions(
         "messaging.message.age": Date.now() - Date.parse(evt.time),
       });
     }
+
+    if (evt.traceparent !== undefined && evt.traceparent !== undefined) {
+      const manualContext = new ManualContext(evt.traceparent!.toString());
+
+      messageProcessingSpan.addLink(manualContext);
+    }
   } catch (e) {
     logger.error(JSON.stringify(e));
   }
@@ -107,4 +113,27 @@ export function addDefaultServiceTagsTo(span: Span | undefined | null) {
     "build.id": process.env.BUILD_ID,
     "build.deployed_at": process.env.DEPLOYED_AT,
   });
+}
+
+class ManualContext implements SpanContext {
+  private traceId: string;
+  private spanId: string;
+  private traceParent: string;
+
+  constructor(traceParent: string) {
+    this.traceParent = traceParent;
+    const splitParent = traceParent.split("-");
+    this.traceId = splitParent[1];
+    this.spanId = splitParent[2];
+  }
+
+  toTraceId(): string {
+    return this.traceId;
+  }
+  toSpanId(): string {
+    return this.spanId;
+  }
+  toTraceparent(): string {
+    return this.traceParent;
+  }
 }

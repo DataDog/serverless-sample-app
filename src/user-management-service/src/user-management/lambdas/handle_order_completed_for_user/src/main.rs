@@ -1,6 +1,6 @@
 use aws_lambda_events::sqs::SqsEvent;
 use lambda_runtime::{run, service_fn, Error, LambdaEvent};
-use observability::{observability, TracedMessage};
+use observability::{observability, CloudEvent};
 use serde::{Deserialize, Serialize};
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
@@ -22,7 +22,7 @@ async fn function_handler<TRepository: Repository>(
     tracing::info!("Received event: {:?}", event);
 
     for sqs_message in &event.payload.records {
-        let traced_message: TracedMessage = sqs_message.into();
+        let traced_message: CloudEvent = sqs_message.into();
 
         let order_completed_event: OrderCompleted =
             serde_json::from_str(&traced_message.data).unwrap();
