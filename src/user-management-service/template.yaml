@@ -59,6 +59,7 @@ Resources:
       Environment:
         Variables:
           USER_CREATED_TOPIC_ARN: !Ref UserCreatedTopic
+          EVENT_BUS_NAME: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
       Events:
         GetProduct:
           Type: Api
@@ -90,6 +91,8 @@ Resources:
               Resource: arn:aws:logs:*:*:*
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt UserCreatedTopic.TopicName
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
     Metadata:
       BuildMethod: rust-cargolambda
       Binary: create-user

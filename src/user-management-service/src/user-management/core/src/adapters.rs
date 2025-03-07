@@ -9,6 +9,7 @@ use aws_sdk_dynamodb::Client;
 use observability::TracedMessage;
 use tracing::{instrument, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
+use crate::utils::StringHasher;
 
 pub struct DynamoDbRepository {
     client: Client,
@@ -54,7 +55,7 @@ impl DynamoDbRepository {
             .table_name(&self.table_name)
             .item(
                 PARTITION_KEY,
-                AttributeValue::S(details.email_address.clone()),
+                AttributeValue::S(user.email_address()),
             )
             .item(
                 FIRST_NAME_KEY,
@@ -142,12 +143,14 @@ impl Repository for DynamoDbRepository {
             "resource.name",
             format!("DynamoDB.GetItem {}", &self.table_name),
         );
+        
+        let hashed_email_address = StringHasher::hash_string(email_address.to_string());
 
         let res = self
             .client
             .get_item()
             .table_name(&self.table_name)
-            .key(PARTITION_KEY, AttributeValue::S(email_address.to_string()))
+            .key(PARTITION_KEY, AttributeValue::S(hashed_email_address))
             .send()
             .await;
 

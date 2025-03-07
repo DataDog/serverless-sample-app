@@ -47,6 +47,7 @@ module "register_user_function" {
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.user_management_table.name
     "USER_CREATED_TOPIC_ARN" : aws_sns_topic.user_created.arn
+    "EVENT_BUS_NAME": data.aws_ssm_parameter.eb_name.value
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -67,6 +68,11 @@ resource "aws_iam_role_policy_attachment" "register_user_function_dynamo_db_writ
 resource "aws_iam_role_policy_attachment" "register_user_function_sns_publish" {
   role       = module.register_user_function.function_role_name
   policy_arn = aws_iam_policy.sns_publish_create.arn
+}
+
+resource "aws_iam_role_policy_attachment" "register_user_function_eb_publish" {
+  role       = module.register_user_function.function_role_name
+  policy_arn = aws_iam_policy.eb_publish.arn
 }
 
 module "register_user_function_api" {
@@ -107,7 +113,6 @@ resource "aws_iam_role_policy_attachment" "login_function_jwt_param_read" {
   role       = module.login_function.function_role_name
   policy_arn = aws_iam_policy.allow_jwt_secret_access.arn
 }
-
 
 module "login_function_api" {
   source            = "../../modules/api-gateway-lambda-integration"

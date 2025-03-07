@@ -2,8 +2,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use thiserror::Error;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use crate::utils::StringHasher;
 
 #[derive(Error, Debug)]
 pub enum RepositoryError {
@@ -145,11 +144,9 @@ impl User {
             User::Admin(details) => details,
         };
         
-        let mut hasher = DefaultHasher::new();
-        details.email_address.hash(&mut hasher);
-        let hash = hasher.finish().to_string();
-                
-        hash.clone()
+        let hashed_email_address = StringHasher::hash_string(details.email_address.clone());
+
+        hashed_email_address
     }
 
     pub(crate) fn user_type(&self) -> &str {

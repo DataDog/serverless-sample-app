@@ -61,6 +61,11 @@ provider:
             - sns:Publish
           Resource:
             - !Ref UserCreatedTopic
+        - Effect: Allow
+          Action:
+            - events:PutEvents
+          Resource:
+            - !Sub "{{resolve:ssm:/${sls:stage}/shared/event-bus-arn:1}}"
 
 functions:
   register_user:
@@ -70,6 +75,7 @@ functions:
       individually: true
     environment:
       USER_CREATED_TOPIC_ARN: !Ref UserCreatedTopic
+      EVENT_BUS_NAME: !Sub "{{resolve:ssm:/${sls:stage}/shared/event-bus-name:1}}"
     events:
       - httpApi:
           path: /user

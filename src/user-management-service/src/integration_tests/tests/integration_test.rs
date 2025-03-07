@@ -58,6 +58,11 @@ async fn when_user_registers_then_should_be_able_to_login() {
 
     assert_eq!(register_response.status(), 200);
 
+    let user_response: ApiResponse<UserDTO> = register_response
+        .json()
+        .await
+        .expect("Get user details response body should serialize to UserDTO");
+
     let login_response = api_driver
         .login_user(email_under_test, password_under_test)
         .await;
@@ -76,7 +81,7 @@ async fn when_user_registers_then_should_be_able_to_login() {
     sleep(Duration::from_secs(2)).await;
 
     let user_details_response = api_driver
-        .get_user_details(email_under_test, &login_data.data.token)
+        .get_user_details(&user_response.data.email_address, &login_data.data.token)
         .await;
 
     assert_eq!(user_details_response.status(), 200);

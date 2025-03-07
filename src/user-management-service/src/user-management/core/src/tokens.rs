@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::User;
 use crate::ports::ApplicationError;
+use crate::utils::StringHasher;
 
 pub struct TokenGenerator {
     secret: String,
@@ -60,7 +61,8 @@ impl TokenGenerator {
         token: &str,
         email_address: &str,
     ) -> Result<Claims, ApplicationError> {
-        tracing::info!("Validating {} against {}", token, email_address);
+        let hashed_email_address = StringHasher::hash_string(email_address.to_string());
+        tracing::info!("Validating {} against {}", token, hashed_email_address);
 
         let token = if token.contains("Bearer ") {
             let token = token.replace("Bearer ", "");
@@ -78,7 +80,7 @@ impl TokenGenerator {
         .map_err(|_e| ApplicationError::InvalidToken())?;
 
         claim
-            .is_for_user(email_address)
+            .is_for_user(&hashed_email_address)
             .map_err(|_e| ApplicationError::InvalidToken())?;
 
         Ok(claim)

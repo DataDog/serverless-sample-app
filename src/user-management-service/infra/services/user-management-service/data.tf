@@ -12,8 +12,19 @@ data "aws_ssm_parameter" "eb_name" {
   name = "/${var.env}/shared/event-bus-name"
 }
 
+data "aws_ssm_parameter" "eb_arn" {
+  name = "/${var.env}/shared/event-bus-arn"
+}
+
 data "aws_ssm_parameter" "secret_access_key_param" {
   name = "/${var.env}/shared/secret-access-key"
+}
+
+data "aws_iam_policy_document" "allow_eb_put_events" {
+  statement {
+    actions   = ["events:PutEvents"]
+    resources = [data.aws_ssm_parameter.eb_arn.value]
+  }
 }
 
 data "aws_iam_policy_document" "dynamo_db_read" {
