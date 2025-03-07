@@ -37,14 +37,14 @@ data "aws_iam_policy_document" "shared_eb_publish" {
 
 resource "aws_iam_policy" "shared_eb_publish" {
   count = var.env == "dev" || var.env == "prod" ? 1 : 0
-  name   = "TF_InventoryOrdering-shared-eb-publish-policy-${var.env}"
+  name   = "TF_OrderService-shared-eb-publish-policy-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.shared_eb_publish[count.index].json
 }
 
 resource "aws_iam_role" "shared_eb_publish_role" {
   count = var.env == "dev" || var.env == "prod" ? 1 : 0
-  name = "TF_InventoryOrdering-shared-eb-publish-role-${var.env}"
+  name = "TF_OrderService-shared-eb-publish-role-${var.env}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
