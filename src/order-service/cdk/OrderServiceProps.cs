@@ -66,11 +66,15 @@ public class OrderServiceProps(
             }),
         };
 
-        if (!integratedEnvironments.Contains(props.Env))
+        // Deploy the test harness in all non-production environments.
+        if (props.Env != "prod")
         {
             var testEventHarness = new TestEventHarness(scope, "OrdersTestEventHarness",
                 new TestEventHarnessProps(props, props.DDApiKeySecret, "orderNumber", new List<ITopic>(), publicEvents));
-            
+        }
+
+        if (!integratedEnvironments.Contains(props.Env))
+        {
             jwtAccessKeyParameter = new StringParameter(scope, "OrdersTestJwtAccessKeyParameter",
                 new StringParameterProps
                 {

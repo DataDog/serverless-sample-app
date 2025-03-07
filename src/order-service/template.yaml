@@ -22,6 +22,7 @@ Transform:
 Description: A sample SAM template for deploying Lambda functions.
 
 Conditions:
+  IsNonProdEnvironment: !Not [!Equals [!Ref Env, prod]]
   IsIntegratedEnvironment: !Or
     - !Equals [ "dev", !Ref Env ]
     - !Equals [ "prod", !Ref Env ]
@@ -978,7 +979,7 @@ Resources:
   ### Deploy Test Harness
   TestHarnessTable:
     Type: AWS::DynamoDB::Table
-    Condition: IsNotIntegratedEnvironment
+    Condition: IsNonProdEnvironment
     Properties:
       TableName: !Sub ${ServiceName}-EventTestHarness-${Env}
       AttributeDefinitions:
@@ -995,7 +996,7 @@ Resources:
           
   EventTestHarnessAPI:
     Type: AWS::Serverless::Function
-    Condition: IsNotIntegratedEnvironment
+    Condition: IsNonProdEnvironment
     Properties:
       CodeUri: ./src/TestHarness/TestHarness.Lambda
       Handler: TestHarness.Lambda::TestHarness.Lambda.ApiFunctions_GetReceivedEvents_Generated::GetReceivedEvents
@@ -1021,7 +1022,7 @@ Resources:
             TableName: !Ref TestHarnessTable 
   EventBridgeEventTestHarness:
     Type: AWS::Serverless::Function
-    Condition: IsNotIntegratedEnvironment
+    Condition: IsNonProdEnvironment
     Properties:
       CodeUri: ./src/TestHarness/TestHarness.Lambda
       Handler: TestHarness.Lambda::TestHarness.Lambda.HandlerFunctions_HandleEventBridge_Generated::HandleEventBridge
@@ -1069,7 +1070,7 @@ Resources:
             TableName: !Ref TestHarnessTable
   TestHarnessApiEndpoint:
     Type: AWS::SSM::Parameter
-    Condition: IsNotIntegratedEnvironment
+    Condition: IsNonProdEnvironment
     Properties:
       Name: !Sub /${Env}/${ServiceName}_TestHarness/api-endpoint
       Type: String
