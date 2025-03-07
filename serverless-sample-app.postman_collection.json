@@ -9,11 +9,21 @@
 		{
 			"name": "Product",
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{AdminBearerToken}}",
+							"type": "string"
+						}
+					]
+				},
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"name\": \"as890fhqa89fh\",\n    \"price\": 12.99\n}",
+					"raw": "{\n    \"name\": \"WIDGET1\",\n    \"price\": 130\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -35,11 +45,21 @@
 		{
 			"name": "Product",
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{AdminBearerToken}}",
+							"type": "string"
+						}
+					]
+				},
 				"method": "PUT",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"productId\": \"AS890FHQA89FH\",\n    \"name\": \"A bigger widget\",\n    \"price\": 12.00\n}",
+					"raw": "{\n    \"id\": \"{{ProductId}}\",\n    \"name\": \"fweiofnmwe\",\n    \"price\": 24\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -64,13 +84,37 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{ApiEndpoint}}/product/AS890FHQA89FH",
+					"raw": "{{ApiEndpoint}}/product/{{ProductId}}",
 					"host": [
 						"{{ApiEndpoint}}"
 					],
 					"path": [
 						"product",
-						"AS890FHQA89FH"
+						"{{ProductId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "My-ASM-Test-Header",
+						"value": "acunetix-product",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "{{ApiEndpoint}}/product",
+					"host": [
+						"{{ApiEndpoint}}"
+					],
+					"path": [
+						"product"
 					]
 				}
 			},
@@ -79,16 +123,431 @@
 		{
 			"name": "Delete",
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{AdminBearerToken}}",
+							"type": "string"
+						}
+					]
+				},
 				"method": "DELETE",
 				"header": [],
 				"url": {
-					"raw": "{{ApiEndpoint}}/product/AS890FHQA89FH",
+					"raw": "{{ApiEndpoint}}/product/{{ProductId}}",
 					"host": [
 						"{{ApiEndpoint}}"
 					],
 					"path": [
 						"product",
-						"AS890FHQA89FH"
+						"{{ProductId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Product Inventory",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{AdminBearerToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{InventoryApiEndpoint}}/inventory/{{ProductId}}",
+					"host": [
+						"{{InventoryApiEndpoint}}"
+					],
+					"path": [
+						"inventory",
+						"{{ProductId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Product Inventory",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{AdminBearerToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"productId\": \"{{ProductId}}\",\n    \"stockLevel\": 19\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{InventoryApiEndpoint}}/inventory",
+					"host": [
+						"{{InventoryApiEndpoint}}"
+					],
+					"path": [
+						"inventory"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "RegisterUser",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email_address\": \"{{UserId}}\",\n    \"first_name\" :\"James\",\n    \"last_name\": \"Eastham\",\n    \"password\": \"Test!23\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{UserManagementApiEndpoint}}/user",
+					"host": [
+						"{{UserManagementApiEndpoint}}"
+					],
+					"path": [
+						"user"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email_address\": \"{{UserId}}\",\n    \"password\": \"Test!23\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{UserManagementApiEndpoint}}/login",
+					"host": [
+						"{{UserManagementApiEndpoint}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "AdminLogin",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email_address\": \"{{AdminUserId}}\",\n    \"password\": \"{{AdminDefaultPassword}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{UserManagementApiEndpoint}}/login",
+					"host": [
+						"{{UserManagementApiEndpoint}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetUserDetails",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0MUB0ZXN0LmNvbSIsInVzZXJfdHlwZSI6IlNUQU5EQVJEIiwiZXhwIjoxNzM5ODg4NTIxLCJpYXQiOjE3Mzk4MDIxMjF9.Iq5756WzO5_LD1uEauWvEk3snpwxgiRM7GxCK0u9lX4",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{UserManagementApiEndpoint}}/user/{{UserId}}",
+					"host": [
+						"{{UserManagementApiEndpoint}}"
+					],
+					"path": [
+						"user",
+						"{{UserId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Order Details",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{UserBearerToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{OrderApiEndpoint}}/orders/{{OrderId}}",
+					"host": [
+						"{{OrderApiEndpoint}}"
+					],
+					"path": [
+						"orders",
+						"{{OrderId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "My Orders",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{UserBearerToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{OrderApiEndpoint}}/orders",
+					"host": [
+						"{{OrderApiEndpoint}}"
+					],
+					"path": [
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Order",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{UserBearerToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"products\":[\n        \"a8ee72ff-e2cf-49c1-8972-4c1792014ea3\",\n        \"47284d07-fe34-44e4-82bb-b456179b64db\"\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{OrderApiEndpoint}}/orders",
+					"host": [
+						"{{OrderApiEndpoint}}"
+					],
+					"path": [
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Complete Order",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{AdminBearerToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"orderId\": \"{{OrderId}}\",\n    \"userId\": \"16613887293977241079\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{OrderApiEndpoint}}/orders/{{OrderId}}/complete",
+					"host": [
+						"{{OrderApiEndpoint}}"
+					],
+					"path": [
+						"orders",
+						"{{OrderId}}",
+						"complete"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ConfirmedOrders",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{AdminBearerToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"orderId\": \"{{OrderId}}\",\n    \"userId\": \"16613887293977241079\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{OrderApiEndpoint}}/orders/confirmed",
+					"host": [
+						"{{OrderApiEndpoint}}"
+					],
+					"path": [
+						"orders",
+						"confirmed"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Loyalty Account",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{UserBearerToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{LoyaltyApiEndpoint}}/loyalty",
+					"host": [
+						"{{LoyaltyApiEndpoint}}"
+					],
+					"path": [
+						"loyalty"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Spend Points",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{UserBearerToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"points\": 10\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{LoyaltyApiEndpoint}}/loyalty",
+					"host": [
+						"{{LoyaltyApiEndpoint}}"
+					],
+					"path": [
+						"loyalty"
 					]
 				}
 			},
@@ -120,7 +579,62 @@
 	"variable": [
 		{
 			"key": "ApiEndpoint",
-			"value": "https://9tzmcfn1v5.execute-api.eu-west-1.amazonaws.com",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "InventoryApiEndpoint",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "ProductId",
+			"value": "1234",
+			"type": "string"
+		},
+		{
+			"key": "UserManagementApiEndpoint",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "UserId",
+			"value": "test@test.com",
+			"type": "string"
+		},
+		{
+			"key": "UserBearerToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "AdminBearerToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "AdminUserId",
+			"value": "admin@serverless-sample.com",
+			"type": "string"
+		},
+		{
+			"key": "AdminDefaultPassword",
+			"value": "Admin!23",
+			"type": "string"
+		},
+		{
+			"key": "OrderApiEndpoint",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "OrderId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "LoyaltyApiEndpoint",
+			"value": "",
 			"type": "string"
 		}
 	]
