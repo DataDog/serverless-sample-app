@@ -91,7 +91,7 @@ public class InstrumentedFunction extends Construct {
         }
 
         // The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
-        if (!System.getenv("ENABLE_CLOUDWATCH_LOGS").equals("Y")) {
+        if (System.getenv("ENABLE_CLOUDWATCH_LOGS") != "Y") {
             this.function.addToRolePolicy(new PolicyStatement(PolicyStatementProps.builder()
                     .actions(List.of("logs:CreateLogGroup",
                             "logs:CreateLogStream",

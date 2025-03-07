@@ -51,16 +51,6 @@ Globals:
         POWERTOOLS_LOG_LEVEL: 'INFO'
     Architectures:
       - arm64
-    # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
-    Policies:
-      - Version: "2012-10-17"
-        Statement:
-          - Effect: Deny
-            Action:
-              - logs:CreateLogGroup
-              - logs:CreateLogStream
-              - logs:PutLogEvents
-            Resource: arn:aws:logs:*:*:*
   Api:
     Cors:
       AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
@@ -91,6 +81,15 @@ Resources:
                 - secretsmanager:GetSecretValue
                 - dynamodb:GetItem
               Resource: !Ref DDApiKeySecretArn
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
     Metadata:
       BuildMethod: makefile
 
@@ -117,6 +116,15 @@ Resources:
                 - secretsmanager:GetSecretValue
                 - dynamodb:GetItem
               Resource: !Ref DDApiKeySecretArn
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
     Metadata:
       BuildMethod: makefile
               
@@ -151,6 +159,15 @@ Resources:
                 - secretsmanager:GetSecretValue
                 - dynamodb:GetItem
               Resource: !Ref DDApiKeySecretArn
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -195,6 +212,15 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -240,6 +266,15 @@ Resources:
                 - secretsmanager:GetSecretValue
                 - dynamodb:GetItem
               Resource: !Ref DDApiKeySecretArn
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -298,33 +333,6 @@ Resources:
         - AttributeName: PK
           KeyType: HASH
 
-  # ProductApiPricingWorker:
-  #   Type: AWS::Serverless::Function
-  #   Properties:
-  #     CodeUri: .
-  #     Handler: bootstrap
-  #     FunctionName: !Sub GoProductApiPricingWorker-${Env}
-  #     Environment:
-  #       Variables:
-  #         DD_SERVICE_MAPPING: !Sub "lambda_sns:${TopicArn}"
-  #         TABLE_NAME: "{{resolve:ssm:/go/product/product-table-name:1}}"
-  #     Events:
-  #       PricingChangedTopic:
-  #         Type: SNS
-  #         Properties:
-  #           Topic: !Ref TopicArn
-  #     Policies:
-  #       - DynamoDBCrudPolicy:
-  #           TableName: "{{resolve:ssm:/go/product/product-table-name:1}}"
-  #       - Version: "2012-10-17"
-  #         Statement:
-  #           - Effect: Allow
-  #             Action:
-  #               - secretsmanager:GetSecretValue
-  #             Resource: !Ref DDApiKeySecretArn
-  #   Metadata:
-  #     BuildMethod: makefile
-
   ProductApiStockUpdatedWorker:
     Type: AWS::Serverless::Function
     Properties:
@@ -345,6 +353,15 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
     Metadata:
       BuildMethod: makefile
 
@@ -371,6 +388,15 @@ Resources:
               Resource: !Ref DDApiKeySecretArn
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt StockUpdatedTopic.TopicName
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
     Metadata:
       BuildMethod: makefile
  
@@ -451,6 +477,15 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
     Metadata:
       BuildMethod: makefile
 

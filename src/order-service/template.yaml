@@ -58,16 +58,6 @@ Globals:
         AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
     Architectures:
       - x86_64
-    # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
-    Policies:
-      - Version: "2012-10-17"
-        Statement:
-          - Effect: Deny
-            Action:
-              - logs:CreateLogGroup
-              - logs:CreateLogStream
-              - logs:PutLogEvents
-            Resource: arn:aws:logs:*:*:*
 
 Resources:
   OrdersServiceEventBus:
@@ -170,6 +160,15 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -209,6 +208,15 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -243,6 +251,15 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -272,6 +289,15 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecretArn
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
