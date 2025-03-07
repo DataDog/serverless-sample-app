@@ -10,6 +10,7 @@ import { Construct } from "constructs";
 import { EventBus } from "aws-cdk-lib/aws-events";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { randomUUID } from "crypto";
+import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 
 // no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class SharedResourcesStack extends cdk.Stack {
@@ -17,6 +18,7 @@ export class SharedResourcesStack extends cdk.Stack {
     super(scope, id, props);
 
     const env = process.env.ENV ?? "local";
+    const ddApiKey = process.env.DD_API_KEY!;
 
     const sharedEventBus = new EventBus(this, "SharedEventBus", {
       eventBusName: `SharedEventBus-${env}`,
@@ -38,9 +40,15 @@ export class SharedResourcesStack extends cdk.Stack {
         stringValue: sharedEventBus.eventBusArn,
       }
     );
+
     const jwtSecretKeyParameter = new StringParameter(this, "JwtSecretKey", {
       parameterName: `/${env}/shared/secret-access-key`,
       stringValue: randomUUID().toString(),
+    });
+
+    const ddApiKeySecret = new Secret(this, "DDApiKeySecret", {
+      secretName: `/${env}/shared/serverless-sample-dd-api-key`,
+      secretStringValue: new cdk.SecretValue(ddApiKey),
     });
   }
 }

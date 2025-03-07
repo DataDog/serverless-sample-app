@@ -36,3 +36,9 @@ resources:
         Name: /${sls:stage}/shared/secret-access-key
         Type: String
         Value: "This is a sample secret key - please don't use in production environment.'"
+
+    DDApiKeySecret:
+      Type: 'AWS::SecretsManager::Secret'
+      Properties:
+        Name: !Sub /${sls:stage}/shared/serverless-sample-dd-api-key
+        SecretString: ${param:DD_API_KEY}
