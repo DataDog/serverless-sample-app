@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 public class ApiDriver {
@@ -43,14 +44,18 @@ public class ApiDriver {
                 .connectTimeout(Duration.ofSeconds(HTTP_TIMEOUT))
                 .build();
         this.objectMapper = objectMapper;
-        String serviceName = env == "dev" || env == "prod" ? "shared" : "InventoryService";
+        String serviceName = Objects.equals(env, "dev") || Objects.equals(env, "prod") ? "shared" : "InventoryService";
+
+        System.out.println("Env: " + env);
+        System.out.println("Service Name: " + serviceName);
 
         this.apiEndpoint = getParameterValue(ssmClient, String.format("/%s/InventoryService/api-endpoint", env));
         this.secretKey = getParameterValue(ssmClient, String.format("/%s/%s/secret-access-key", env, serviceName));
-        this.busName = getParameterValue(ssmClient, String.format("/%s/InventoryService/event-bus-name", env));
+        this.busName = getParameterValue(ssmClient, String.format("/%s/%s/event-bus-name", env, serviceName));
     }
 
     private String getParameterValue(SsmClient ssmClient, String paramName) {
+        System.out.println("Getting parameter: " + paramName);
         GetParameterRequest request = GetParameterRequest.builder().name(paramName).withDecryption(true).build();
         GetParameterResponse response = ssmClient.getParameter(request);
         return response.parameter().value();

@@ -717,9 +717,6 @@ Resources:
                 - !Sub /${Env}/shared/secret-access-key
                 - !Sub /${Env}/${ServiceName}/secret-access-key
             -
-              Name: PRODUCT_API_ENDPOINT_PARAMETER
-              Value: !Sub "/${Env}/ProductManagementService/api-endpoint"
-            -
               Name: TEAM
               Value: "orders"
             -

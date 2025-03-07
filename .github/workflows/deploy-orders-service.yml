@@ -52,14 +52,14 @@ jobs:
           cd src/order-service
           make build
           make tf-apply
-      # - name: Integration test dev
-      #   shell: bash
-      #   env:
-      #     ENV: "dev"
-      #     AWS_REGION: "eu-west-2"
-      #   run: |
-      #     cd src/order-service
-      #     make integration-test
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "eu-west-2"
+        run: |
+          cd src/order-service
+          make integration-test
       - name: Terraform destroy
         shell: bash
         if: always()
@@ -116,14 +116,14 @@ jobs:
         run: |
           cd src/order-service
           make cdk-deploy
-      # - name: Integration test dev
-      #   shell: bash
-      #   env:
-      #     ENV: "dev"
-      #     AWS_REGION: "eu-west-1"
-      #   run: |
-      #     cd src/order-service
-      #     make integration-test
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "eu-west-1"
+        run: |
+          cd src/order-service
+          make integration-test
       - name: Destroy
         shell: bash
         if: always()
@@ -176,14 +176,14 @@ jobs:
         run: |
           cd src/order-service
           make sam
-      # - name: Integration test dev
-      #   shell: bash
-      #   env:
-      #     ENV: "dev"
-      #     AWS_REGION: "us-east-1"
-      #   run: |
-      #     cd src/order-service
-      #     make integration-test
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "us-east-1"
+        run: |
+          cd src/order-service
+          make integration-test
       - name: Destroy
         shell: bash
         if: always()
