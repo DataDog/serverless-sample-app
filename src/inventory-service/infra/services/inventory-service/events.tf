@@ -52,7 +52,7 @@ resource "aws_iam_role" "shared_eb_publish_role" {
         Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          Service = "states.amazonaws.com"
+          Service = "events.amazonaws.com"
         }
       }
     ]
@@ -66,8 +66,8 @@ resource "aws_iam_role_policy_attachment" "shared_eb_publish_role_attachment" {
 }
 
 # Create events on inventory service event bus
-resource "aws_cloudwatch_event_rule" "event_rule" {
-  name           = "InventoryAclRule"
+resource "aws_cloudwatch_event_rule" "product_created_event_rule" {
+  name           = "InventoryProductCreatedRule"
   event_bus_name = aws_cloudwatch_event_bus.inventory_service_bus.name
   event_pattern  = <<EOF
 {
@@ -112,9 +112,9 @@ EOF
 }
 
 # If running in an integrated environment also create the rules on the shared event bus to get public events into the internal bus
-resource "aws_cloudwatch_event_rule" "shared_bus_event_rule" {
+resource "aws_cloudwatch_event_rule" "shared_bus_product_created_event_rule" {
   count = var.env == "dev" || var.env == "prod" ? 1 : 0
-  name           = "InventoryAclRule"
+  name           = "InventoryProductCreatedRule"
   event_bus_name = data.aws_ssm_parameter.shared_eb_name[count.index].value
   event_pattern  = <<EOF
 {
@@ -130,7 +130,7 @@ EOF
 
 resource "aws_cloudwatch_event_target" "shared_bus_product_created_target" {
   count = var.env == "dev" || var.env == "prod" ? 1 : 0
-  rule           = aws_cloudwatch_event_rule.shared_bus_event_rule[count.index].name
+  rule           = aws_cloudwatch_event_rule.shared_bus_product_created_event_rule[count.index].name
   target_id      = aws_cloudwatch_event_bus.inventory_service_bus.id
   arn            = aws_cloudwatch_event_bus.inventory_service_bus.arn
   event_bus_name = data.aws_ssm_parameter.shared_eb_name[count.index].value

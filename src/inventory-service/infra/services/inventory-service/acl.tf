@@ -75,7 +75,7 @@ resource "aws_iam_role_policy_attachment" "inventory_acl_sns_publish" {
 }
 
 resource "aws_cloudwatch_event_target" "sqs_target" {
-  rule           = aws_cloudwatch_event_rule.event_rule.name
+  rule           = aws_cloudwatch_event_rule.product_created_event_rule.name
   target_id      = aws_sqs_queue.public_event_acl_queue.name
   arn            = aws_sqs_queue.public_event_acl_queue.arn
   event_bus_name = aws_cloudwatch_event_bus.inventory_service_bus.name
