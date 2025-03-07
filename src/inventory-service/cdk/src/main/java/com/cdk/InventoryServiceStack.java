@@ -1,10 +1,7 @@
 package com.cdk;
 
 import com.cdk.constructs.SharedProps;
-import com.cdk.events.InventoryStockReservationFailedEvent;
-import com.cdk.events.InventoryStockReservedEvent;
-import com.cdk.events.InventoryStockUpdatedEvent;
-import com.cdk.events.ProductOutOfStockEvent;
+import com.cdk.events.*;
 import com.cdk.inventory.acl.InventoryAcl;
 import com.cdk.inventory.acl.InventoryAclProps;
 import com.cdk.inventory.api.InventoryApiContainer;
@@ -56,6 +53,16 @@ public class InventoryServiceStack  extends Stack {
 
             for (var event : publicEvents) {
                 event.addTarget(new software.amazon.awscdk.services.events.targets.EventBus(serviceProps.getSharedEventBus()));
+            }
+
+            var eventSubscriptions = List.of(
+                    new OrderCreatedEvent(this, "SharedOrderCreatedEvent", sharedProps, serviceProps.getSharedEventBus()),
+                    new OrderCompletedEvent(this, "SharedOrderCompletedEvent", sharedProps, serviceProps.getSharedEventBus()),
+                    new ProductCreatedEvent(this, "SharedProductCreatedEvent", sharedProps, serviceProps.getSharedEventBus())
+            );
+
+            for (var event : eventSubscriptions) {
+                event.addTarget(new software.amazon.awscdk.services.events.targets.EventBus(serviceProps.getInventoryEventBus()));
             }
         }
     }

@@ -21,17 +21,19 @@ resource "aws_iam_role" "lambda_function_role" {
   })
 }
 
+// The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
 resource "aws_iam_policy" "function_logging_policy" {
-  name = "tf-node-${var.function_name}-logging-policy-${var.env}"
+  name = "TF-${var.service_name}-${var.function_name}-${var.env}-logging-policy"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
       {
         Action : [
           "logs:CreateLogStream",
+          "logs:CreateLogStream",
           "logs:PutLogEvents"
         ],
-        Effect : "Allow",
+        Effect : "Deny",
         Resource : "arn:aws:logs:*:*:*"
       }
     ]

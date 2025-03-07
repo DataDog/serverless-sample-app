@@ -73,7 +73,7 @@ func NewInstrumentedFunction(scope constructs.Construct, id string, props *Instr
 		Architecture: awslambda.Architecture_ARM_64(),
 	})
 
-	// Disable logging to CloudWatch, the Datadog extension will ship logs directly to Datadog
+	// The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
 	if os.Getenv("ENABLE_CLOUDWATCH_LOGS") != "Y" {
 		function.Function.AddToRolePolicy(awsiam.NewPolicyStatement(&awsiam.PolicyStatementProps{
 			Actions:   jsii.Strings("logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"),

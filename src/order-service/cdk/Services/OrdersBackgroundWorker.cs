@@ -67,7 +67,7 @@ public class OrdersBackgroundWorker : Construct
         props.OrdersWorkflow.Grant(handleStockReserved.Function,
             new[] { "states:SendTaskSuccess", "states:SendTaskFailure" });
 
-        AddSharedBusRule("OrdersStockReserved", props, new EventPattern()
+        AddEventRule("OrdersStockReserved", props, new EventPattern()
         {
             DetailType = ["inventory.stockReserved.v1"],
             Source = [$"{props.SharedProps.Env}.inventory"]
@@ -91,14 +91,14 @@ public class OrdersBackgroundWorker : Construct
         props.OrdersWorkflow.Grant(handleOutOfStock.Function,
             new[] { "states:SendTaskSuccess", "states:SendTaskFailure" });
 
-        AddSharedBusRule("OrdersStockReservationFailed", props, new EventPattern()
+        AddEventRule("OrdersStockReservationFailed", props, new EventPattern()
         {
             DetailType = ["inventory.stockReservationFailed.v1"],
             Source = [$"{props.SharedProps.Env}.inventory"]
         }, stockReservationFailedEventQueue.Queue);
     }
     
-    private void AddSharedBusRule(string name, OrdersBackgroundWorkerProps props, EventPattern pattern, IQueue target)
+    private void AddEventRule(string name, OrdersBackgroundWorkerProps props, EventPattern pattern, IQueue target)
     {
         if (props.ServiceProps.SharedEventBus.EventBus != null)
         {

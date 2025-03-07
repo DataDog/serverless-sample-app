@@ -13,6 +13,7 @@ import { Alias } from "aws-cdk-lib/aws-kms";
 import { SharedProps } from "./sharedFunctionProps";
 import path = require("path");
 import { RustFunction } from "cargo-lambda-cdk";
+import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 export class InstrumentedLambdaFunctionProps {
   sharedProps: SharedProps;
@@ -65,6 +66,21 @@ export class InstrumentedLambdaFunction extends Construct {
     Tags.of(this.function).add("service", props.sharedProps.serviceName);
     Tags.of(this.function).add("env", props.sharedProps.environment);
     Tags.of(this.function).add("version", props.sharedProps.version);
+
+    // The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+    if (process.env.ENABLE_CLOUDWATCH_LOGS != "Y") {
+      this.function.addToRolePolicy(
+        new PolicyStatement({
+          actions: [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents",
+          ],
+          resources: ["arn:aws:logs:*:*:*"],
+          effect: Effect.DENY,
+        })
+      );
+    }
 
     props.sharedProps.datadogConfiguration.addLambdaFunctions([this.function]);
   }

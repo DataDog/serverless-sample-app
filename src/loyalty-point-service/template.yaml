@@ -5,132 +5,387 @@
 # Copyright 2024 Datadog, Inc.
 #
 
-AWSTemplateFormatVersion: "2010-09-09"
-Transform: AWS::Serverless-2016-10-31
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: 
+  - AWS::Serverless-2016-10-31
+  - Name: DatadogServerless
+    Parameters:
+      stackName: !Ref "AWS::StackName"
+      apiKeySecretArn: !Ref DDApiKeySecretArn
+      nodeLayerVersion: 120
+      extensionLayerVersion: 68
+      service: !Ref ServiceName
+      env: !Ref Env
+      version: !Ref CommitHash
+      site: !Ref DDSite
+      captureLambdaPayload: true
+Description: A sample SAM template for deploying Lambda functions.
 
-Parameters:
-  DDApiKeySecretArn:
+Parameters: 
+  ServiceName: 
     Type: String
-  DDSite:
-    Type: String
-  Env:
+    Default: NodeProductApi
+  Env: 
     Type: String
     Default: dev
   CommitHash:
     Type: String
     Default: latest
+  DDApiKeySecretArn:
+    Type: String
+  DDSite:
+    Type: String
+    Type: String
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Timeout: 29
+    MemorySize: 512
+    Environment:
+      Variables:
+        ENV: !Ref Env
+        TABLE_NAME: !Ref ProductApiTable
+        POWERTOOLS_SERVICE_NAME: !Ref ServiceName
+        POWERTOOLS_LOG_LEVEL: 'INFO'
+        DOMAIN: "products"
+    Architectures:
+      - x86_64
+    # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+    Policies:
+      - Version: "2012-10-17"
+        Statement:
+          - Effect: Deny
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: arn:aws:logs:*:*:*
+  Api:
+    Cors:
+      AllowMethods: "'POST, GET, PUT, DELETE'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'http://localhost:8080'"
 
 Resources:
-  Shared:
-    Type: AWS::Serverless::Application
+  GetProductFunction:
+    Type: AWS::Serverless::Function
     Properties:
-      Location: template-shared.yaml
+      CodeUri: ./
+      Handler: getProductFunction.handler
+      FunctionName: !Sub GetProductFunction-${Env}
+      Events:
+        GetProduct:
+          Type: HttpApi
+          Properties: 
+            Path: /product/{productId}
+            Method: get
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName:
+              !Ref ProductApiTable
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "node22"
+        Sourcemap: true
+        SourcesContent: true
+        EntryPoints:
+         - ./src/product-api/adapters/getProductFunction.ts
+        External:
+          - "opentracing"
+          - "dd-trace"
+          - "@datadog/native-metrics"
+          - "@datadog/pprof"
+          - '@datadog/native-appsec'
+          - '@datadog/native-iast-taint-tracking'
+          - '@datadog/native-iast-rewriter'
+          - 'graphql/language/visitor' 
+          - 'graphql/language/printer'
+          - 'graphql/utilities'
+          - '@aws-sdk/client-sqs'
+          - '@aws-sdk/client-dynamodb'
 
-  ProductApi:
-    Type: AWS::Serverless::Application
+  ListProductsFunction:
+    Type: AWS::Serverless::Function
     Properties:
-      Location: template-api.yaml
-      Parameters:
-        DDApiKeySecretArn: !Ref DDApiKeySecretArn
-        DDSite: !Ref DDSite
-        Env: !Ref Env
-        CommitHash: !Ref CommitHash
-    DependsOn: Shared
+      CodeUri: ./
+      Handler: listProductsFunction.handler
+      FunctionName: !Sub ListProductFunction-${Env}
+      Events:
+        GetProduct:
+          Type: HttpApi
+          Properties: 
+            Path: /product
+            Method: get
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName:
+              !Ref ProductApiTable
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+                - dynamodb:GetItem
+              Resource: !Ref DDApiKeySecretArn
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "node22"
+        Sourcemap: true
+        SourcesContent: true
+        EntryPoints:
+         - ./src/product-api/adapters/listProductsFunction.ts 
+        External:
+          - "opentracing"
+          - "dd-trace"
+          - "@datadog/native-metrics"
+          - "@datadog/pprof"
+          - '@datadog/native-appsec'
+          - '@datadog/native-iast-taint-tracking'
+          - '@datadog/native-iast-rewriter'
+          - 'graphql/language/visitor' 
+          - 'graphql/language/printer'
+          - 'graphql/utilities'
+          - '@aws-sdk/client-sqs'
+          - '@aws-sdk/client-dynamodb'
 
-  InventoryApi:
-    Type: AWS::Serverless::Application
+  CreateProductFunction:
+    Type: AWS::Serverless::Function
     Properties:
-      Location: template-inventory-api.yaml
-      Parameters:
-        DDApiKeySecretArn: !Ref DDApiKeySecretArn
-        DDSite: !Ref DDSite
-        Env: !Ref Env
-        CommitHash: !Ref CommitHash
-    DependsOn: Shared
+      CodeUri: ./
+      Handler: createProductFunction.handler
+      FunctionName: !Sub CreateProductFunction-${Env}
+      Events:
+        GetProduct:
+          Type: HttpApi
+          Properties: 
+            Path: /product
+            Method: post
+      Environment:
+        Variables:
+          PRODUCT_CREATED_TOPIC_ARN: !Ref ProductCreatedTopic
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+              Resource: !GetAtt ProductApiTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+                - dynamodb:GetItem
+              Resource: !Ref DDApiKeySecretArn
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ProductCreatedTopic.TopicName
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "node22"
+        Sourcemap: true
+        SourcesContent: true
+        EntryPoints:
+         - ./src/product-api/adapters/createProductFunction.ts 
+        External:
+          - "opentracing"
+          - "dd-trace"
+          - "@datadog/native-metrics"
+          - "@datadog/pprof"
+          - '@datadog/native-appsec'
+          - '@datadog/native-iast-taint-tracking'
+          - '@datadog/native-iast-rewriter'
+          - 'graphql/language/visitor' 
+          - 'graphql/language/printer'
+          - 'graphql/utilities'
+          - '@aws-sdk/client-sqs'
+          - '@aws-sdk/client-sns'
+          - '@aws-sdk/client-dynamodb'
 
-  ProductPricingService:
-    Type: AWS::Serverless::Application
+  UpdateProductFunction:
+    Type: AWS::Serverless::Function
     Properties:
-      Location: template-pricing-service.yaml
-      Parameters:
-        DDApiKeySecretArn: !Ref DDApiKeySecretArn
-        DDSite: !Ref DDSite
-        Env: !Ref Env
-        CommitHash: !Ref CommitHash
-    DependsOn:
-      - Shared
-      - ProductApi
+      CodeUri: ./
+      Handler: updateProductFunction.handler
+      FunctionName: !Sub UpdateProductFunction-${Env}
+      Events:
+        GetProduct:
+          Type: HttpApi
+          Properties: 
+            Path: /product
+            Method: put
+      Environment:
+        Variables:
+          PRODUCT_UPDATED_TOPIC_ARN: !Ref ProductUpdatedTopic
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+              Resource: !GetAtt ProductApiTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecretArn
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ProductUpdatedTopic.TopicName
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "node22"
+        Sourcemap: true
+        SourcesContent: true
+        EntryPoints:
+         - ./src/product-api/adapters/updateProductFunction.ts 
+        External:
+          - "opentracing"
+          - "dd-trace"
+          - "@datadog/native-metrics"
+          - "@datadog/pprof"
+          - '@datadog/native-appsec'
+          - '@datadog/native-iast-taint-tracking'
+          - '@datadog/native-iast-rewriter'
+          - 'graphql/language/visitor' 
+          - 'graphql/language/printer'
+          - 'graphql/utilities'
+          - '@aws-sdk/client-sqs'
+          - '@aws-sdk/client-sns'
+          - '@aws-sdk/client-dynamodb'
 
-  ProductApiWorker:
-    Type: AWS::Serverless::Application
+  DeleteProductFunction:
+    Type: AWS::Serverless::Function
     Properties:
-      Location: template-product-api-worker.yaml
-      Parameters:
-        DDApiKeySecretArn: !Ref DDApiKeySecretArn
-        DDSite: !Ref DDSite
-        Env: !Ref Env
-        CommitHash: !Ref CommitHash
-    DependsOn:
-      - ProductPricingService
-      - ProductAcl
+      CodeUri: ./
+      Handler: deleteProductFunction.handler
+      FunctionName: !Sub DeleteProductFunction-${Env}
+      Events:
+        GetProduct:
+          Type: HttpApi
+          Properties: 
+            Path: /product/{productId}
+            Method: delete
+      Environment:
+        Variables:
+          PRODUCT_DELETED_TOPIC_ARN: !Ref ProductDeletedTopic
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:DeleteItem
+                - dynamodb:GetItem
+              Resource: !GetAtt ProductApiTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+                - dynamodb:GetItem
+              Resource: !Ref DDApiKeySecretArn
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ProductDeletedTopic.TopicName
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "node22"
+        Sourcemap: true
+        SourcesContent: true
+        EntryPoints:
+         - ./src/product-api/adapters/deleteProductFunction.ts 
+        External:
+          - "opentracing"
+          - "dd-trace"
+          - "@datadog/native-metrics"
+          - "@datadog/pprof"
+          - '@datadog/native-appsec'
+          - '@datadog/native-iast-taint-tracking'
+          - '@datadog/native-iast-rewriter'
+          - 'graphql/language/visitor' 
+          - 'graphql/language/printer'
+          - 'graphql/utilities'
+          - '@aws-sdk/client-sqs'
+          - '@aws-sdk/client-sns'
+          - '@aws-sdk/client-dynamodb'
+  
+  ProductCreatedTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "NodeProductCreatedTopic-${Env}"
+  ProductUpdatedTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "NodeProductUpdatedTopic-${Env}"
+  ProductDeletedTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "NodeProductDeletedTopic-${Env}"
+  
+  ProductCreatedTopicArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /node/product/product-created-topic
+      Type: String
+      Value: !Ref ProductCreatedTopic
+  ProductUpdatedTopicArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /node/product/product-updated-topic
+      Type: String
+      Value: !Ref ProductUpdatedTopic
+  ProductDeletedTopicArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /node/product/product-deleted-topic
+      Type: String
+      Value: !Ref ProductDeletedTopic
+  ProductApiTableName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /node/product/product-table-name
+      Type: String
+      Value: !Ref ProductApiTable
 
-  ProductPublicEventPublisher:
-    Type: AWS::Serverless::Application
+  ProductApiTable:
+    Type: AWS::DynamoDB::Table
     Properties:
-      Location: template-product-event-publisher.yaml
-      Parameters:
-        DDApiKeySecretArn: !Ref DDApiKeySecretArn
-        DDSite: !Ref DDSite
-        Env: !Ref Env
-        CommitHash: !Ref CommitHash
-    DependsOn:
-      - ProductApi
+      TableName: !Sub NodeProducts-${Env}
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
 
-  InventoryAcl:
-    Type: AWS::Serverless::Application
+  ApiEndpoint:
+    Type: AWS::SSM::Parameter
     Properties:
-      Location: template-inventory-acl.yaml
-      Parameters:
-        DDApiKeySecretArn: !Ref DDApiKeySecretArn
-        DDSite: !Ref DDSite
-        Env: !Ref Env
-        CommitHash: !Ref CommitHash
-    DependsOn:
-      - Shared
+      Name: !Sub /node/${Env}/product/api-endpoint
+      Type: String
+      Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
 
-  ProductAcl:
-    Type: AWS::Serverless::Application
-    Properties:
-      Location: template-product-acl.yaml
-      Parameters:
-        DDApiKeySecretArn: !Ref DDApiKeySecretArn
-        DDSite: !Ref DDSite
-        Env: !Ref Env
-        CommitHash: !Ref CommitHash
-    DependsOn:
-      - Shared
-
-  InventoryOrderingService:
-    Type: AWS::Serverless::Application
-    Properties:
-      Location: template-inventory-ordering-service.yaml
-      Parameters:
-        DDApiKeySecretArn: !Ref DDApiKeySecretArn
-        DDSite: !Ref DDSite
-        Env: !Ref Env
-        CommitHash: !Ref CommitHash
-    DependsOn:
-      - InventoryAcl
-      - InventoryApi
-
-  AnalyticsService:
-    Type: AWS::Serverless::Application
-    Properties:
-      Location: template-analytics-service.yaml
-      Parameters:
-        DDApiKeySecretArn: !Ref DDApiKeySecretArn
-        DDSite: !Ref DDSite
-        Env: !Ref Env
-        CommitHash: !Ref CommitHash
-    DependsOn:
-      - Shared
+Outputs:
+  NodeProductApiEndpoint:
+    Description: Product API Endpoint
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+    Export:
+      Name: NodeProductApiEndpoint

@@ -8,6 +8,9 @@ package com.cdk.constructs;
 
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.Duration;
+import software.amazon.awscdk.services.iam.Effect;
+import software.amazon.awscdk.services.iam.PolicyStatement;
+import software.amazon.awscdk.services.iam.PolicyStatementProps;
 import software.amazon.awscdk.services.lambda.*;
 import software.amazon.awscdk.services.lambda.Runtime;
 import software.amazon.awscdk.services.lambda.VersionProps;
@@ -85,6 +88,17 @@ public class InstrumentedFunction extends Construct {
                     .aliasName("prod")
                     .version(version)
                     .build());
+        }
+
+        // The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        if (!System.getenv("ENABLE_CLOUDWATCH_LOGS").equals("Y")) {
+            this.function.addToRolePolicy(new PolicyStatement(PolicyStatementProps.builder()
+                    .actions(List.of("logs:CreateLogGroup",
+                            "logs:CreateLogStream",
+                            "logs:PutLogEvents"))
+                    .resources(List.of("arn:aws:logs:*:*:*"))
+                    .effect(Effect.DENY)
+                    .build()));
         }
 
         props.sharedProps().ddApiKeySecret().grantRead(this.function);
