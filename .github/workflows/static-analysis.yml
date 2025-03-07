@@ -13,7 +13,7 @@ jobs:
     uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
     with:
       service-name: serverless-sample-dotnet
-      directory: src/dotnet
+      directory: src/order-service
     secrets:
       dd_api_key: ${{secrets.DD_API_KEY}}
       dd_app_key: ${{secrets.DD_APP_KEY}}
@@ -22,7 +22,7 @@ jobs:
     uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
     with:
       service-name: serverless-sample-java
-      directory: src/java
+      directory: src/inventory-service
     secrets:
       dd_api_key: ${{secrets.DD_API_KEY}}
       dd_app_key: ${{secrets.DD_APP_KEY}}
@@ -31,7 +31,7 @@ jobs:
     uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
     with:
       service-name: serverless-sample-rust
-      directory: src/rust
+      directory: src/user-management-service
     secrets:
       dd_api_key: ${{secrets.DD_API_KEY}}
       dd_app_key: ${{secrets.DD_APP_KEY}}
@@ -40,7 +40,7 @@ jobs:
     uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
     with:
       service-name: serverless-sample-go
-      directory: src/java
+      directory: src/product-management-service
     secrets:
       dd_api_key: ${{secrets.DD_API_KEY}}
       dd_app_key: ${{secrets.DD_APP_KEY}}
@@ -49,7 +49,16 @@ jobs:
     uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
     with:
       service-name: serverless-sample-nodejs
-      directory: src/nodejs
+      directory: src/loyalty-point-service
+    secrets:
+      dd_api_key: ${{secrets.DD_API_KEY}}
+      dd_app_key: ${{secrets.DD_APP_KEY}}
+
+  frontend-static-analysis:
+    uses: DataDog/serverless-sample-app/.github/workflows/shared-static-analysis.yml@main
+    with:
+      service-name: serverless-sample-frontend
+      directory: src/frontend
     secrets:
       dd_api_key: ${{secrets.DD_API_KEY}}
       dd_app_key: ${{secrets.DD_APP_KEY}}
