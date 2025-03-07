@@ -7,9 +7,9 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 export default {
   title: "EventCatalog",
   tagline: "Discover, Explore and Document your Event Driven Architectures",
-  organizationName: "ServerlessJames",
+  organizationName: "Serverles eCommerce",
   homepageLink: "https://eventcatalog.dev/",
-  editUrl: "https://github.com/boyney123/eventcatalog-demo/edit/master",
+  editUrl: "https://github.com/DataDog/serverless-sample-app",
   // By default set to false, add true to get urls ending in /
   trailingSlash: false,
   // Change to make the base url of the site different, by default https://{website}.com/docs,
