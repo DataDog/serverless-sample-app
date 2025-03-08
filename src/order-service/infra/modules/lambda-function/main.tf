@@ -66,11 +66,10 @@ resource "aws_iam_role_policy_attachment" "secrets_retrieval_policy_attachment" 
 }
 
 resource "aws_iam_role_policy_attachment" "additional_policy_attachments" {
-  for_each   = toset(var.additional_policy_attachments)
+  count      = length(var.additional_policy_attachments)
   role       = aws_iam_role.lambda_function_role.id
-  policy_arn = each.value
+  policy_arn = var.additional_policy_attachments[count.index]
 }
-
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
   name              = "/aws/lambda/TfDotnet-${var.function_name}-${var.env}"
   retention_in_days = 7

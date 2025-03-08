@@ -38,15 +38,15 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "additional_policy_attachments" {
-  for_each   = toset(var.additional_task_role_policy_attachments)
+  count      = length(var.additional_task_role_policy_attachments)
   role       = aws_iam_role.ecs_task_role.id
-  policy_arn = each.value
+  policy_arn = var.additional_task_role_policy_attachments[count.index]
 }
 
 resource "aws_iam_role_policy_attachment" "additional_execution_role_policy_attachments" {
-  for_each   = toset(var.additional_execution_role_policy_attachments)
+  count      = length(var.additional_execution_role_policy_attachments)
   role       = aws_iam_role.ecs_task_execution_role.id
-  policy_arn = each.value
+  policy_arn = var.additional_execution_role_policy_attachments[count.index]
 }
 
 resource "aws_ecs_task_definition" "main" {
