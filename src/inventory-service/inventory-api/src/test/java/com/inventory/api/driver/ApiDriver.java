@@ -20,10 +20,7 @@ import software.amazon.awssdk.services.ssm.model.GetParameterRequest;
 import software.amazon.awssdk.services.ssm.model.GetParameterResponse;
 
 import java.time.Duration;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 public class ApiDriver {
@@ -61,7 +58,7 @@ public class ApiDriver {
         return response.parameter().value();
     }
 
-    public ApiResponse<ProductDTO> getProductStockLevel(String id) throws IOException, InterruptedException, ExecutionException {
+    public ApiResponse<InventoryItemDTO> getProductStockLevel(String id) throws IOException, InterruptedException, ExecutionException {
         String jwt = generateJWT(secretKey);
         String apiEndpoint = this.apiEndpoint + "/inventory/" + id;
 
@@ -78,9 +75,9 @@ public class ApiDriver {
         System.out.println(String.format("First attempt to get stock level for product: %s", id));
         var httpResult = this.httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         System.out.println(httpResult.body());
-        ApiResponse<ProductDTO> stockLevelResponse = null;
+        ApiResponse<InventoryItemDTO> stockLevelResponse = null;
 
-        TypeReference<ApiResponse<ProductDTO>> typeRef = new TypeReference<ApiResponse<ProductDTO>>(){};
+        TypeReference<ApiResponse<InventoryItemDTO>> typeRef = new TypeReference<ApiResponse<InventoryItemDTO>>(){};
         stockLevelResponse = objectMapper.readValue(httpResult.body(), typeRef);
 
         var success = false;
@@ -136,6 +133,33 @@ public class ApiDriver {
         String message = objectMapper.writeValueAsString(cloudEvent);
         String detailType = "product.productCreated.v1";
         String source = String.format("%s.products", System.getenv("ENV"));
+
+        PutEventsRequestEntry entry = PutEventsRequestEntry.builder()
+                .detail(message)
+                .detailType(detailType)
+                .eventBusName(busName)
+                .source(source)
+                .build();
+
+        PutEventsRequest request = PutEventsRequest.builder().entries(entry).build();
+        PutEventsResponse response = eventBridgeClient.putEvents(request);
+
+        if (response.failedEntryCount() > 0) {
+            throw new RuntimeException("Failed to publish event");
+        }
+    }
+
+    public void injectOrderCreatedEvent(String productId) throws JsonProcessingException {
+        OrderCreatedEventV1 event = new OrderCreatedEventV1();
+        event.setOrderNumber("1234");
+        event.setProducts(List.of(productId));
+
+        CloudEventWrapper<OrderCreatedEventV1> cloudEvent = new CloudEventWrapper<>();
+        cloudEvent.setData(event);
+
+        String message = objectMapper.writeValueAsString(cloudEvent);
+        String detailType = "orders.orderCreated.v1";
+        String source = String.format("%s.orders", System.getenv("ENV"));
 
         PutEventsRequestEntry entry = PutEventsRequestEntry.builder()
                 .detail(message)

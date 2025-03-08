@@ -42,34 +42,34 @@ public class handleProductCreatedLambda implements RequestHandler<SQSEvent, SQSB
         List<SQSBatchResponse.BatchItemFailure> batchItemFailures = new ArrayList<>();
 
         for (SQSEvent.SQSMessage message : sqsEvent.getRecords()) {
-            final Span processSpan = GlobalTracer
-                    .get()
-                    .buildSpan("process")
-                    .start();
-            try (Scope scope = GlobalTracer.get().activateSpan(processSpan)) {
-                processSpan.setTag("messaging.id", message.getMessageId());
-                processSpan.setTag("messaging.operation.type", "process");
-                processSpan.setTag("messaging.system", "aws_sqs");
+            try {
+                TypeReference<EventBridgeMessageWrapper<ProductCreatedEventV1>> typeRef = new TypeReference<EventBridgeMessageWrapper<ProductCreatedEventV1>>() {};
+                EventBridgeMessageWrapper<ProductCreatedEventV1> evtWrapper = objectMapper.readValue(message.getBody(), typeRef);
 
-                try {
-                    TypeReference<EventBridgeMessageWrapper<ProductCreatedEventV1>> typeRef = new TypeReference<EventBridgeMessageWrapper<ProductCreatedEventV1>>(){};
+                final Span processSpan = GlobalTracer
+                        .get()
+                        .buildSpan(String.format("process %s", evtWrapper.getDetailType()))
+                        .asChildOf(span)
+                        .start();
 
-                    EventBridgeMessageWrapper<ProductCreatedEventV1> evtWrapper = objectMapper.readValue(message.getBody(), typeRef);
-
-                    this.logger.info(evtWrapper.getDetail().getData().getProductId());
+                try (Scope scope = GlobalTracer.get().activateSpan(processSpan)) {
+                    processSpan.setTag("messaging.id", message.getMessageId());
+                    processSpan.setTag("messaging.operation.type", "process");
+                    processSpan.setTag("messaging.system", "aws_sqs");
+                    processSpan.setTag("product.id", evtWrapper.getDetail().getData().getProductId());
 
                     this.eventHandler.handleProductCreatedV1Event(evtWrapper.getDetail().getData());
-                } catch (JsonProcessingException | Error exception) {
-                    batchItemFailures.add(SQSBatchResponse.BatchItemFailure.builder().withItemIdentifier(message.getMessageId()).build());
-                    logger.error("An exception occurred!", exception);
-                    span.setTag(Tags.ERROR, true);
-                    span.log(Collections.singletonMap(Fields.ERROR_OBJECT, exception));
-                }
-                finally {
-                    processSpan.finish();
-                    span.finish();
                 }
 
+                processSpan.finish();
+
+            } catch (JsonProcessingException | Error exception) {
+                batchItemFailures.add(SQSBatchResponse.BatchItemFailure.builder().withItemIdentifier(message.getMessageId()).build());
+                logger.error("An exception occurred!", exception);
+                span.setTag(Tags.ERROR, true);
+                span.log(Collections.singletonMap(Fields.ERROR_OBJECT, exception));
+            } finally {
+                span.finish();
             }
         }
 

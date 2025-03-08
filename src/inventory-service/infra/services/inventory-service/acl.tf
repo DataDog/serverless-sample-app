@@ -41,7 +41,7 @@ resource "aws_sqs_queue_policy" "allow_eb_publish" {
 }
 
 module "inventory_acl_function" {
-  service_name   = "InventoryOrdering"
+  service_name   = "InventoryService"
   package_name = "com.inventory.acl"
   source         = "../../modules/lambda-function"
   jar_file       = "../inventory-acl/target/function.zip"
@@ -57,22 +57,16 @@ module "inventory_acl_function" {
   env = var.env
   app_version = var.app_version
   s3_bucket_name = aws_s3_bucket.lambda_code_storage_bucket.id
+  additional_policy_attachments = [
+    aws_iam_policy.sns_publish.arn,
+    aws_iam_policy.sqs_receive_policy.arn
+  ]
 }
 
 resource "aws_lambda_event_source_mapping" "public_event_publisher" {
   event_source_arn        = aws_sqs_queue.public_event_acl_queue.arn
   function_name           = module.inventory_acl_function.function_arn
   function_response_types = ["ReportBatchItemFailures"]
-}
-
-resource "aws_iam_role_policy_attachment" "inventory_acl_sqs_receive_policy" {
-  role       = module.inventory_acl_function.function_role_name
-  policy_arn = aws_iam_policy.sqs_receive_policy.arn
-}
-
-resource "aws_iam_role_policy_attachment" "inventory_acl_sns_publish" {
-  role       = module.inventory_acl_function.function_role_name
-  policy_arn = aws_iam_policy.sns_publish.arn
 }
 
 resource "aws_cloudwatch_event_target" "sqs_target" {
@@ -101,7 +95,7 @@ resource "aws_sqs_queue_policy" "allow_order_created_eb_publish" {
 }
 
 module "order_created_function" {
-  service_name   = "InventoryOrdering"
+  service_name   = "InventoryService"
   package_name = "com.inventory.acl"
   source         = "../../modules/lambda-function"
   jar_file       = "../inventory-acl/target/function.zip"
@@ -117,32 +111,18 @@ module "order_created_function" {
   env = var.env
   app_version = var.app_version
   s3_bucket_name = aws_s3_bucket.lambda_code_storage_bucket.id
+  additional_policy_attachments = [
+    aws_iam_policy.sqs_receive_policy.arn,
+    aws_iam_policy.dynamo_db_read.arn,
+    aws_iam_policy.dynamo_db_write.arn,
+    aws_iam_policy.eb_publish.arn
+  ]
 }
 
 resource "aws_lambda_event_source_mapping" "order_created_esm" {
   event_source_arn        = aws_sqs_queue.order_created_queue.arn
   function_name           = module.order_created_function.function_arn
   function_response_types = ["ReportBatchItemFailures"]
-}
-
-resource "aws_iam_role_policy_attachment" "inventory_order_created_sqs_receive_policy" {
-  role       = module.order_created_function.function_role_name
-  policy_arn = aws_iam_policy.sqs_receive_policy.arn
-}
-
-resource "aws_iam_role_policy_attachment" "order_created_function_acl_read" {
-  role       = module.order_created_function.function_role_name
-  policy_arn = aws_iam_policy.dynamo_db_read.arn
-}
-
-resource "aws_iam_role_policy_attachment" "order_created_function_acl_write" {
-  role       = module.order_created_function.function_role_name
-  policy_arn = aws_iam_policy.dynamo_db_write.arn
-}
-
-resource "aws_iam_role_policy_attachment" "order_created_function_eb_publish" {
-  role       = module.order_created_function.function_role_name
-  policy_arn = aws_iam_policy.eb_publish.arn
 }
 
 resource "aws_cloudwatch_event_target" "order_created_sqs_target" {
@@ -171,7 +151,7 @@ resource "aws_sqs_queue_policy" "allow_order_completed_eb_publish" {
 }
 
 module "order_completed_function" {
-  service_name   = "InventoryOrdering"
+  service_name   = "InventoryService"
   package_name = "com.inventory.acl"
   source         = "../../modules/lambda-function"
   jar_file       = "../inventory-acl/target/function.zip"
@@ -187,32 +167,18 @@ module "order_completed_function" {
   env = var.env
   app_version = var.app_version
   s3_bucket_name = aws_s3_bucket.lambda_code_storage_bucket.id
+  additional_policy_attachments = [
+    aws_iam_policy.sqs_receive_policy.arn,
+    aws_iam_policy.dynamo_db_read.arn,
+    aws_iam_policy.dynamo_db_write.arn,
+    aws_iam_policy.eb_publish.arn
+  ]
 }
 
 resource "aws_lambda_event_source_mapping" "order_completed_esm" {
   event_source_arn        = aws_sqs_queue.order_completed_queue.arn
   function_name           = module.order_completed_function.function_arn
   function_response_types = ["ReportBatchItemFailures"]
-}
-
-resource "aws_iam_role_policy_attachment" "inventory_order_completed_sqs_receive_policy" {
-  role       = module.order_completed_function.function_role_name
-  policy_arn = aws_iam_policy.sqs_receive_policy.arn
-}
-
-resource "aws_iam_role_policy_attachment" "order_completed_function_acl_read" {
-  role       = module.order_completed_function.function_role_name
-  policy_arn = aws_iam_policy.dynamo_db_read.arn
-}
-
-resource "aws_iam_role_policy_attachment" "order_completed_function_acl_write" {
-  role       = module.order_completed_function.function_role_name
-  policy_arn = aws_iam_policy.dynamo_db_write.arn
-}
-
-resource "aws_iam_role_policy_attachment" "order_completed_function_eb_publish" {
-  role       = module.order_completed_function.function_role_name
-  policy_arn = aws_iam_policy.eb_publish.arn
 }
 
 resource "aws_cloudwatch_event_target" "order_completed_sqs_target" {

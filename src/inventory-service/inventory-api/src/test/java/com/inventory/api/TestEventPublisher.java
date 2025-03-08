@@ -6,10 +6,8 @@
 
 package com.inventory.api;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inventory.core.*;
-import com.inventory.core.adapters.EventWrapper;
 
 public class TestEventPublisher implements EventPublisher {
     private final ObjectMapper mapper = new ObjectMapper();

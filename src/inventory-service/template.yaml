@@ -13,7 +13,7 @@ Transform:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
       javaLayerVersion: "18"
-      extensionLayerVersion: "71"
+      extensionLayerVersion: "73"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -51,6 +51,8 @@ Globals:
     MemorySize: 2048
     Environment:
       Variables:
+        TEAM: "inventory"
+        DOMAIN: "inventory"
         ENV: !Ref Env
         DD_LOGS_INJECTION: "true"
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName

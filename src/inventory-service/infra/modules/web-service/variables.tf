@@ -53,14 +53,6 @@ variable "memory_size" {
   default = "512"
 }
 
-variable "execution_role_arn" {
-  type = string
-}
-
-variable "task_role_arn" {
-  type = string
-}
-
 variable "ecs_cluster_id" {
   type = string
 }
@@ -75,4 +67,14 @@ variable "security_group_ids" {
 
 variable "target_group_arn" {
   type = string
+}
+
+variable "additional_execution_role_policy_attachments" {
+  type = list(string)
+  default = []
+}
+
+variable "additional_task_role_policy_attachments" {
+  type = list(string)
+  default = []
 }

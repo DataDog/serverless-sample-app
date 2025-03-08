@@ -10,10 +10,12 @@ public class InventoryItemDTO {
 
     private final String productId;
     private final Double currentStockLevel;
+    private final Double reservedStockLevel;
 
     public InventoryItemDTO(InventoryItem item) {
         this.productId = item.getProductId();
         this.currentStockLevel = item.getAvailableStockLevel();
+        this.reservedStockLevel = item.getReservedStockLevel();
     }
 
     public String getProductId() {
@@ -22,5 +24,9 @@ public class InventoryItemDTO {
 
     public Double getCurrentStockLevel() {
         return currentStockLevel;
+    }
+
+    public Double getReservedStockLevel() {
+        return reservedStockLevel;
     }
 }

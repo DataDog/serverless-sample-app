@@ -7,7 +7,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class EventWrapper<T> implements Serializable {
+public class CloudEventWrapper<T> implements Serializable {
     @JsonProperty("id")
     private String id;
     @JsonProperty("source")
@@ -21,7 +21,7 @@ public class EventWrapper<T> implements Serializable {
     @JsonProperty("data")
     private T data;
 
-    public EventWrapper(String type, T data) {
+    public CloudEventWrapper(String type, T data) {
         this.id = UUID.randomUUID().toString();
         this.source = String.format("%s.inventory", System.getenv("ENV"));
         this.type = type;
@@ -36,5 +36,25 @@ public class EventWrapper<T> implements Serializable {
 
     public void setData(T data) {
         this.data = data;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getTime() {
+        return time;
+    }
+
+    public String getTraceparent() {
+        return traceparent;
     }
 }

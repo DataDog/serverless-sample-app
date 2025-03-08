@@ -6,6 +6,7 @@
 
 package com.inventory.core;
 
+import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
 import io.opentracing.tag.Tags;
@@ -61,6 +62,7 @@ public class InventoryItemService {
             span.setTag("product.id", request.getProductId());
 
             var validationResponse = request.validate();
+            span.setTag("validation.failureCount", validationResponse.size());
 
             if (!validationResponse.isEmpty()) {
                 return new HandlerResponse<>(null, validationResponse, false);
@@ -69,10 +71,13 @@ public class InventoryItemService {
             var existingInventoryItem = this.repository.withProductId(request.getProductId());
 
             if (existingInventoryItem == null) {
+                span.setTag("product.notFound", "true");
                 return new HandlerResponse<>(null, List.of("Product not found"), false);
             }
 
             var currentStockLevel = existingInventoryItem.getCurrentStockLevel();
+            span.setTag("product.currentStockLevel", currentStockLevel);
+            span.setTag("product.newStockLevel", request.getStockLevel());
             existingInventoryItem.setCurrentStockLevel(request.getStockLevel());
 
             this.repository.update(existingInventoryItem);
@@ -96,38 +101,51 @@ public class InventoryItemService {
             var isFailure = false;
             ArrayList<InventoryItem> stockAddedFor = new java.util.ArrayList<>();
 
-            span.setTag("order.number", orderNumber);
+            span.setTag("order.id", orderNumber);
             span.setTag("order.productCount", products.size());
 
             for (var productId : products) {
-                var inventoryItem = this.repository.withProductId(productId);
+                final Span stockCheckSpan = GlobalTracer.get()
+                        .buildSpan("stockCheck")
+                        .asChildOf(span)
+                        .start();
 
-                if (inventoryItem.getAvailableStockLevel() <= 0) {
-                    isFailure = true;
-                    break;
+                try (Scope scope = GlobalTracer.get().activateSpan(stockCheckSpan)) {
+                    stockCheckSpan.setTag("product.id", productId);
+                    var inventoryItem = this.repository.withProductId(productId);
+
+                    if (inventoryItem.getAvailableStockLevel() <= 0) {
+                        stockCheckSpan.setTag("product.outOfStock", "true");
+                        isFailure = true;
+                        break;
+                    }
+
+                    var previousStockLevel = inventoryItem.getCurrentStockLevel();
+                    stockCheckSpan.setTag("product.previousStockLevel", previousStockLevel);
+                    inventoryItem.reserveStockFor(orderNumber);
+                    stockCheckSpan.setTag("product.newStockLevel", inventoryItem.getCurrentStockLevel());
+
+                    this.repository.update(inventoryItem);
+                    this.eventPublisher.publishInventoryStockUpdatedEvent(new InventoryStockUpdatedEvent(productId, previousStockLevel, inventoryItem.getCurrentStockLevel()));
+                    stockAddedFor.add(inventoryItem);
                 }
-
-                var previousStockLevel = inventoryItem.getCurrentStockLevel();
-                inventoryItem.reserveStockFor(orderNumber);
-                this.repository.update(inventoryItem);
-                this.eventPublisher.publishInventoryStockUpdatedEvent(new InventoryStockUpdatedEvent(productId, previousStockLevel, inventoryItem.getCurrentStockLevel()));
-                stockAddedFor.add(inventoryItem);
             }
 
             orderCache.store(orderNumber, (ArrayList<String>) products);
 
             if (isFailure) {
+                span.setTag("order.reserved", "false");
                 this.eventPublisher.publishStockReservationFailedEvent(new StockReservationFailedEventV1(orderNumber, conversationId));
             } else {
                 for (InventoryItem inventoryItem : stockAddedFor) {
                     this.repository.update(inventoryItem);
                 }
+                span.setTag("order.reserved", "true");
                 this.eventPublisher.publishStockReservedEvent(new StockReservedEventV1(orderNumber, conversationId));
             }
 
             return new HandlerResponse<>(true, List.of("OK"), true);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             logger.error("An exception occurred!", e);
             span.setTag(Tags.ERROR, true);
             span.setTag("error.message", e.getMessage());
@@ -140,26 +158,33 @@ public class InventoryItemService {
 
         try {
             var products = orderCache.products(orderNumber);
-
             span.setTag("order.number", orderNumber);
 
             for (var productId : products) {
-                var inventoryItem = this.repository.withProductId(productId);
+                final Span stockCheckSpan = GlobalTracer.get()
+                        .buildSpan("dispatchedStock")
+                        .asChildOf(span)
+                        .start();
 
-                var previousStockLevel = inventoryItem.getCurrentStockLevel();
+                try (Scope scope = GlobalTracer.get().activateSpan(stockCheckSpan)) {
+                    stockCheckSpan.setTag("product.id", productId);
+                    var inventoryItem = this.repository.withProductId(productId);
 
-                inventoryItem.stockDispatchedFor(orderNumber);
-                this.repository.update(inventoryItem);
-                this.eventPublisher.publishInventoryStockUpdatedEvent(new InventoryStockUpdatedEvent(inventoryItem.getProductId(), previousStockLevel, inventoryItem.getCurrentStockLevel()));
+                    var previousStockLevel = inventoryItem.getCurrentStockLevel();
 
-                if (inventoryItem.getAvailableStockLevel() <= 0) {
-                    this.eventPublisher.publishProductOutOfStockEvent(new ProductOutOfStockEventV1(productId));
+                    inventoryItem.stockDispatchedFor(orderNumber);
+                    this.repository.update(inventoryItem);
+                    this.eventPublisher.publishInventoryStockUpdatedEvent(new InventoryStockUpdatedEvent(inventoryItem.getProductId(), previousStockLevel, inventoryItem.getCurrentStockLevel()));
+
+                    if (inventoryItem.getAvailableStockLevel() <= 0) {
+                        stockCheckSpan.setTag("product.outOfStock", "true");
+                        this.eventPublisher.publishProductOutOfStockEvent(new ProductOutOfStockEventV1(productId));
+                    }
                 }
             }
 
             return new HandlerResponse<>(true, List.of("OK"), true);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             logger.error("An exception occurred!", e);
             span.setTag(Tags.ERROR, true);
             span.setTag("error.message", e.getMessage());

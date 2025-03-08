@@ -6,7 +6,6 @@
 
 package com.inventory.core.adapters;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inventory.core.InventoryItem;
 import com.inventory.core.InventoryItemRepository;
 
@@ -25,7 +24,6 @@ import java.util.Map;
 @ApplicationScoped
 public class InventoryItemRepositoryImpl implements InventoryItemRepository {
     private final DynamoDbClient dynamoDB;
-    private final ObjectMapper mapper;
     private final Logger logger = LoggerFactory.getLogger(InventoryItemRepositoryImpl.class);
     private static final String PARTITION_KEY = "PK";
     private static final String PRODUCT_ID_KEY = "productId";
@@ -34,23 +32,20 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
     private static final String RESERVED_STOCK_ORDERS_KEY = "stockOrders";
     private static final String TYPE_KEY = "Type";
 
-    public InventoryItemRepositoryImpl(DynamoDbClient dynamoDB, ObjectMapper mapper) {
+    public InventoryItemRepositoryImpl(DynamoDbClient dynamoDB) {
         this.dynamoDB = dynamoDB;
-        this.mapper = mapper;
     }
 
     @Override
     public InventoryItem withProductId(String productId) {
         final Span span = GlobalTracer.get().activeSpan();
-        span.setTag("table.name", System.getenv("TABLE_NAME"));
-
-        logger.info("Retrieving product with id: " + productId);
 
         HashMap<String, AttributeValue> key = new HashMap<>();
         key.put(PARTITION_KEY, AttributeValue.fromS(productId));
         
         GetItemRequest request = GetItemRequest.builder()
                 .tableName(System.getenv("TABLE_NAME"))
+                .returnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
                 .key(key)
                 .build();
 
@@ -61,13 +56,13 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
         Map<String, AttributeValue> item = result.item();
         
         if (item.isEmpty() || !item.containsKey(PRODUCT_ID_KEY)) {
-            logger.warn("Product not found");
             span.setTag("product.found", false);
             return null;
         }
 
-        span.setTag("product.found", false);
-        logger.info("Product found");
+        span.setTag("db.wcu", result.consumedCapacity().writeCapacityUnits());
+        span.setTag("db.rcu", result.consumedCapacity().readCapacityUnits());
+        span.setTag("product.found", true);
 
         ArrayList<String> orders = new ArrayList<>(item.get(RESERVED_STOCK_ORDERS_KEY).ss());
         return new InventoryItem(item.get(PARTITION_KEY).s(), Double.parseDouble(item.get(STOCK_LEVEL_KEY).n()), Double.parseDouble(item.get(RESERVED_STOCK_LEVEL_KEY).n()), orders);
@@ -75,6 +70,8 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
 
     @Override
     public void update(InventoryItem product) {
+        final Span span = GlobalTracer.get().activeSpan();
+
         HashMap<String, AttributeValue> item =
                 new HashMap<>();
         item.put(PARTITION_KEY, AttributeValue.fromS(product.getProductId()));
@@ -87,8 +84,13 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
         PutItemRequest putItemRequest = PutItemRequest.builder()
                 .tableName(System.getenv("TABLE_NAME"))
                 .item(item)
+                .returnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
                 .build();
 
-        this.dynamoDB.putItem(putItemRequest);
+        var response = this.dynamoDB.putItem(putItemRequest);
+
+        span.setTag("db.wcu", response.consumedCapacity().writeCapacityUnits());
+        span.setTag("db.rcu", response.consumedCapacity().readCapacityUnits());
+        span.setTag("product.found", true);
     }
 }

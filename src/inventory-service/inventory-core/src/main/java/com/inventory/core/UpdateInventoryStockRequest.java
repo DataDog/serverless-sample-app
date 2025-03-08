@@ -16,7 +16,7 @@ public class UpdateInventoryStockRequest {
     public List<String> validate() {
         List<String> validationResponse = new ArrayList<>();
         if (this.stockLevel <= 0) {
-            validationResponse.add("Price must be greater than 0");
+            validationResponse.add("Stock level be greater than 0");
         }
         
         if (this.productId == null || this.productId.length() <= 3) {

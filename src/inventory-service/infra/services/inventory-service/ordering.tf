@@ -6,7 +6,7 @@
 //
 
 module "inventory_ordering_service" {
-  service_name   = "InventoryOrderingService"
+  service_name   = "InventoryService"
   package_name = "com.inventory.ordering"
   source         = "../../modules/lambda-function"
   jar_file       = "../inventory-ordering-service/target/com.inventory.ordering-1.0.0-SNAPSHOT-aws.jar"

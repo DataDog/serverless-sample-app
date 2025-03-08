@@ -74,6 +74,7 @@ public class InventoryApiContainer extends Construct {
                         .executionRole(executionRole)
                         .taskRole(taskRole)
                         .environment(Map.of(
+                                "DD_LOGS_INJECTION", "true",
                                 "TABLE_NAME", table.getTableName(),
                                 "EVENT_BUS_NAME", props.sharedEventBus().getEventBusName(),
                                 "TEAM", "inventory",

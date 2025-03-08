@@ -20,6 +20,7 @@ class ProductResourceTest {
     ApiDriver apiDriver;
     ObjectMapper objectMapper;
     static final int WORKFLOW_MINIMUM_EXECUTION=15000;
+    static final int ORDER_CREATED_PROCESSING_DELAY=10000;
 
     @BeforeEach
     public void setup() {
@@ -73,5 +74,35 @@ class ProductResourceTest {
 
         Assertions.assertNotNull(stockLevel.getData());
         Assertions.assertEquals(10.0, stockLevel.getData().getCurrentStockLevel());
+    }
+
+
+    @Test
+    public void test_stock_levels_are_decreased_when_order_created() throws IOException, ExecutionException, InterruptedException {
+        var randomProductId = UUID.randomUUID().toString();
+
+        apiDriver.injectProductCreatedEvent(randomProductId);
+
+        Thread.sleep(WORKFLOW_MINIMUM_EXECUTION);
+
+        var stockLevel = apiDriver.getProductStockLevel(randomProductId);
+        Assertions.assertEquals(randomProductId, stockLevel.getData().getProductId());
+
+        var updateStockLevelResult = apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
+
+        Assertions.assertEquals(200, updateStockLevelResult.statusCode());
+
+        stockLevel = apiDriver.getProductStockLevel(randomProductId);
+
+        Assertions.assertEquals(10.0, stockLevel.getData().getCurrentStockLevel());
+
+        apiDriver.injectOrderCreatedEvent(randomProductId);
+
+        Thread.sleep(ORDER_CREATED_PROCESSING_DELAY);
+
+        stockLevel = apiDriver.getProductStockLevel(randomProductId);
+
+        Assertions.assertEquals(9, stockLevel.getData().getCurrentStockLevel());
+        Assertions.assertEquals(1, stockLevel.getData().getReservedStockLevel());
     }
 }

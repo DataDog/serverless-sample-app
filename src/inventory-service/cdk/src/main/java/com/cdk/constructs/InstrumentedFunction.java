@@ -42,6 +42,8 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.put("DD_API_KEY", props.sharedProps().ddApiKeySecret().getSecretValue().unsafeUnwrap());
         lambdaEnvironment.put("DD_CAPTURE_LAMBDA_PAYLOAD", "true");
         lambdaEnvironment.put("DD_LOGS_INJECTION", "true");
+        lambdaEnvironment.put("TEAM", "inventory");
+        lambdaEnvironment.put("DOMAIN", "inventory");
         lambdaEnvironment.put("spring_cloud_function_definition", props.routingExpression());
         lambdaEnvironment.put("QUARKUS_LAMBDA_HANDLER", props.routingExpression());
         lambdaEnvironment.put("JAVA_TOOL_OPTIONS", " -XX:+TieredCompilation -XX:TieredStopAtLevel=1");
@@ -51,7 +53,7 @@ public class InstrumentedFunction extends Construct {
 
         List<ILayerVersion> layers = new ArrayList<>(2);
         layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:18",System.getenv("AWS_REGION"))));
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:71", System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:73", System.getenv("AWS_REGION"))));
 
 
         Asset fileAsset = Asset.Builder.create(this, String.format("%sS3Asset", props.routingExpression()))

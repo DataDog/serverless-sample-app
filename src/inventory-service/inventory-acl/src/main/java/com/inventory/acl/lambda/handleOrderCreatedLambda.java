@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inventory.acl.adapters.EventBridgeMessageWrapper;
 import com.inventory.acl.core.ExternalEventHandler;
 import com.inventory.acl.core.events.external.OrderCreatedEventV1;
+import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
 import io.opentracing.tag.Tags;
@@ -41,33 +42,37 @@ public class handleOrderCreatedLambda implements RequestHandler<SQSEvent, SQSBat
         List<SQSBatchResponse.BatchItemFailure> batchItemFailures = new ArrayList<>();
 
         for (SQSEvent.SQSMessage message : sqsEvent.getRecords()) {
-            final Span processSpan = GlobalTracer.get().buildSpan("process").asChildOf(span).start();
-
-            processSpan.setTag("messaging.id", message.getMessageId());
-            processSpan.setTag("messaging.operation.type", "process");
-            processSpan.setTag("messaging.system", "aws_sqs");
-
             try {
-                TypeReference<EventBridgeMessageWrapper<OrderCreatedEventV1>> typeRef = new TypeReference<EventBridgeMessageWrapper<OrderCreatedEventV1>>(){};
-
+                TypeReference<EventBridgeMessageWrapper<OrderCreatedEventV1>> typeRef = new TypeReference<EventBridgeMessageWrapper<OrderCreatedEventV1>>() {};
                 EventBridgeMessageWrapper<OrderCreatedEventV1> evtWrapper = objectMapper.readValue(message.getBody(), typeRef);
 
-                this.logger.info(evtWrapper.getDetail().getData().getOrderNumber());
-                this.logger.info(evtWrapper.getDetail().getConversationId());
+                final Span processSpan = GlobalTracer.get()
+                        .buildSpan(String.format("process %s", evtWrapper.getDetailType()))
+                        .asChildOf(span)
+                        .start();
 
-                var result = this.eventHandler.handleOrderCreatedV1Event(evtWrapper.getDetail().getData(), evtWrapper.getDetail().getConversationId());
+                try (Scope scope = GlobalTracer.get().activateSpan(processSpan)) {
+                    processSpan.setTag("messaging.id", message.getMessageId());
+                    processSpan.setTag("messaging.operation.type", "process");
+                    processSpan.setTag("messaging.system", "aws_sqs");
+                    processSpan.setTag("order.id", evtWrapper.getDetail().getData().getOrderNumber());
+                    processSpan.setTag("conversationId", evtWrapper.getDetail().getConversationId());
+                    processSpan.setTag("order.productCount", evtWrapper.getDetail().getData().getProducts().size());
 
-                if (!result) {
-                    batchItemFailures.add(SQSBatchResponse.BatchItemFailure.builder().withItemIdentifier(message.getMessageId()).build());
+                    var result = this.eventHandler.handleOrderCreatedV1Event(evtWrapper.getDetail().getData(), evtWrapper.getDetail().getConversationId());
+
+                    if (!result) {
+                        batchItemFailures.add(SQSBatchResponse.BatchItemFailure.builder().withItemIdentifier(message.getMessageId()).build());
+                    }
                 }
+
+                processSpan.finish();
             } catch (JsonProcessingException | Error exception) {
                 batchItemFailures.add(SQSBatchResponse.BatchItemFailure.builder().withItemIdentifier(message.getMessageId()).build());
                 logger.error("An exception occurred!", exception);
                 span.setTag(Tags.ERROR, true);
                 span.log(Collections.singletonMap(Fields.ERROR_OBJECT, exception));
-            }
-            finally {
-                processSpan.finish();
+            } finally {
                 span.finish();
             }
         }
