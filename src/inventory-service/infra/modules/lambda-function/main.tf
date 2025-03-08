@@ -72,10 +72,11 @@ resource "aws_iam_role_policy_attachment" "secrets_retrieval_policy_attachment" 
   policy_arn = aws_iam_policy.dd_api_secret_policy.arn
 }
 
+# Replace the for_each approach with count
 resource "aws_iam_role_policy_attachment" "additional_policy_attachments" {
-  for_each   = toset(var.additional_policy_attachments)
+  count      = length(var.additional_policy_attachments)
   role       = aws_iam_role.lambda_function_role.id
-  policy_arn = each.value
+  policy_arn = var.additional_policy_attachments[count.index]
 }
 
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
