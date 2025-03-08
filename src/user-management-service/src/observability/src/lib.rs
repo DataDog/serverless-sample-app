@@ -22,7 +22,7 @@ use tracing_subscriber::{layer::SubscriberExt, Registry};
 mod utils;
 
 pub use utils::parse_name_from_arn;
-use uuid::{uuid, Uuid};
+use uuid::Uuid;
 
 pub fn observability() -> impl Subscriber + Send + Sync {
     let tracer = new_pipeline()
