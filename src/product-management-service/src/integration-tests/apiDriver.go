@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
-	"github.com/dgrijalva/jwt-go"
 
 	"strings"
 	"testing"
@@ -217,7 +217,7 @@ func (a *ApiDriver) InjectProductStockUpdatedEvent(t *testing.T, productId strin
 		NewStockLevel:      newStockLevel,
 		PreviousStockLevel: 20,
 	}
-	var tracedMessage = observability.NewTracedMessage(context.TODO(), stockUpdatedEvent)
+	var tracedMessage = observability.NewCloudEvent(context.TODO(), "inventory.stockUpdated.v1", stockUpdatedEvent)
 	evtData, _ := json.Marshal(tracedMessage)
 	message := string(evtData)
 
