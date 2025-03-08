@@ -213,7 +213,7 @@ impl ApiDriver {
     pub async fn publish_order_completed_event(&self, email: &str) {
         let payload = CloudEvent::new(UserCreatedEvent {
             email_address: email.to_string(),
-        });
+        }, "orders.orderCompleted.v1".to_string());
         let payload_string = serde_json::to_string(&payload).expect("Error serde");
 
         let request = aws_sdk_eventbridge::types::builders::PutEventsRequestEntryBuilder::default()
