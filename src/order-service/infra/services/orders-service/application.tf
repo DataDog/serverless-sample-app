@@ -106,7 +106,7 @@ module "orders_web_service" {
     },
     {
       name  = "EVENT_BUS_NAME"
-      value = var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name : aws_cloudwatch_event_bus.orders_service_bus.name
+      value = var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.orders_service_bus.name
     },
     {
       name  = "ORDER_WORKFLOW_ARN"
