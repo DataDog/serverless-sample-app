@@ -25,7 +25,7 @@ public class TestEventPublisher implements EventPublisher {
     }
 
     @Override
-    public void publishStockReservedEvent(StockReservedEventV1 evt, String conversationId) {
+    public void publishStockReservedEvent(StockReservedEventV1 evt) {
         return;
     }
 
@@ -35,7 +35,7 @@ public class TestEventPublisher implements EventPublisher {
     }
 
     @Override
-    public void publishStockReservationFailedEvent(StockReservationFailedEventV1 evt, String conversationId) {
+    public void publishStockReservationFailedEvent(StockReservationFailedEventV1 evt) {
         return;
     }
 }
