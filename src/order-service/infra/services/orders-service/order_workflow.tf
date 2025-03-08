@@ -84,7 +84,7 @@ resource "aws_sfn_state_machine" "order_workflow_state_machine" {
 
   definition = templatefile("${path.module}/../../../cdk/workflows/orderProcessingWorkflow.asl.json", {
     TableName = aws_dynamodb_table.orders_api.name
-    EventBusName = var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name : aws_cloudwatch_event_bus.orders_service_bus.name
+    EventBusName = var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name.value : aws_cloudwatch_event_bus.orders_service_bus.name
     Env = var.env
     ConfirmOrderLambda = module.confirm_order_handler.function_arn
     NoStockLambda = module.no_stock_handler.function_arn
