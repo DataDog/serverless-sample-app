@@ -26,7 +26,7 @@ public class HandlerFunctions(IEventStore eventStore)
         {
             Logger.LogInformation($"Handling SNS message from {record.Sns.TopicArn}");
             
-            var processingSpan = Tracer.Instance.StartActive("process", new SpanCreationSettings()
+            var processingSpan = Tracer.Instance.StartActive($"process {record.Sns.TopicArn}", new SpanCreationSettings()
             {
                 Parent = activeSpan?.Context
             });
@@ -69,7 +69,7 @@ public class HandlerFunctions(IEventStore eventStore)
         
         Logger.LogInformation($"Handling EventBridge event from {evt.Source} with type {evt.DetailType}");
 
-        var processingSpan = Tracer.Instance.StartActive("process", new SpanCreationSettings()
+        var processingSpan = Tracer.Instance.StartActive($"process {evt.DetailType}", new SpanCreationSettings()
         {
             Parent = activeSpan?.Context
         });

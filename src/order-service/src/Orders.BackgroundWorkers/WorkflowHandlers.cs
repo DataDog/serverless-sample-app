@@ -4,6 +4,7 @@
 
 using Amazon.Lambda.Annotations;
 using Orders.Core;
+using Orders.Core.Adapters;
 using Orders.Core.StockReservationFailure;
 using Orders.Core.StockReservationSuccess;
 
@@ -14,12 +15,18 @@ public class WorkflowHandlers(StockReservationSuccessHandler successHandler, Sto
     [LambdaFunction]
     public async Task ReservationSuccess(StockReservationSuccess request)
     {
+        request.OrderNumber.AddToTelemetry("order.id");
+        request.UserId.AddToTelemetry("user.id");
+        
         await successHandler.Handle(request);
     }
     
     [LambdaFunction]
     public async Task ReservationFailed(StockReservationFailure request)
     {
+        request.OrderNumber.AddToTelemetry("order.id");
+        request.UserId.AddToTelemetry("user.id");
+        
         await failureHandler.Handle(request);
     }
 }

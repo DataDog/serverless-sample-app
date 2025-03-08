@@ -3,6 +3,7 @@
 // Copyright 2025 Datadog, Inc.
 
 using System.Text.Json.Serialization;
+using Orders.Core.Adapters;
 
 namespace Orders.Core;
 
@@ -29,10 +30,13 @@ public record Order
     
     public static Order CreateStandardOrder(string userId, string[] products)
     {
+        var orderId = Guid.NewGuid().ToString();
+        orderId.AddToTelemetry("order.id");
+        
         return new Order()
         {
             UserId = userId,
-            OrderNumber = Guid.NewGuid().ToString(),
+            OrderNumber = orderId,
             OrderDate = DateTime.UtcNow,
             OrderType = OrderType.Standard,
             TotalPrice = 0,
@@ -43,10 +47,13 @@ public record Order
     
     public static Order CreatePriorityOrder(string userId, string[] products)
     {
+        var orderId = Guid.NewGuid().ToString();
+        orderId.AddToTelemetry("order.id");
+        
         return new Order()
         {
             UserId = userId,
-            OrderNumber = Guid.NewGuid().ToString(),
+            OrderNumber = orderId,
             OrderDate = DateTime.UtcNow,
             OrderType = OrderType.Priority,
             TotalPrice = 0,

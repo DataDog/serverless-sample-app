@@ -28,4 +28,8 @@
         <Using Include="Xunit"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Orders.Core\Orders.Core.csproj" />
+    </ItemGroup>
+
 </Project>

@@ -13,4 +13,7 @@ public record StockReservationFailedEvent
     
     [JsonPropertyName("productId")]
     public string ProductId { get; set; }
+    
+    [JsonPropertyName("conversationId")]
+    public string ConversationId { get; set; }
 }

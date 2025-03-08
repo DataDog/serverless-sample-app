@@ -19,6 +19,8 @@ public class CreateOrderHandler
     {
         try
         {
+            request.AddToTelemetry();
+            
             var userClaims = context.User.Claims.ExtractUserId();
 
             Order? newOrder = null;

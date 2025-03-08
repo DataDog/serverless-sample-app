@@ -4,6 +4,7 @@
 
 using Microsoft.AspNetCore.Authorization;
 using Orders.Core;
+using Orders.Core.Adapters;
 
 namespace Orders.Api.GetOrderDetails;
 
@@ -14,6 +15,8 @@ public class GetOrderDetailsHandler
     {
         try
         {
+            orderId.AddToTelemetry("order.id");
+            
             var user = context.User.Claims.ExtractUserId();
             var existingOrder = await orders.WithOrderId(user.UserId, orderId);
             if (existingOrder is null) return Results.NotFound();

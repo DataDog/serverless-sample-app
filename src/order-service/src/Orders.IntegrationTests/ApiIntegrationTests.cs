@@ -41,6 +41,10 @@ public class ApiIntegrationTests
         order = JsonSerializer.Deserialize<OrderDTO>(await getOrderResult.Content.ReadAsStringAsync());
         
         Assert.Equal("Confirmed", order.OrderStatus);
+        
+        var orderConfirmedWasPublished = await _apiDriver.VerifyOrderConfirmedEventPublishedFor(order.OrderId);
+        
+        Assert.True(orderConfirmedWasPublished, "Order confirmed event was not published");
     }
     
     [Fact]

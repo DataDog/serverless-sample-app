@@ -13,7 +13,7 @@ Transform:
       stackName: !Ref "AWS::StackName"
       apiKeySecretArn: !Ref DDApiKeySecretArn
       dotnetLayerVersion: "18"
-      extensionLayerVersion: "71"
+      extensionLayerVersion: "73"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -153,7 +153,7 @@ Resources:
       FunctionName: !Sub ${ServiceName}-StockReservationSuccessACL-${Env}
       Environment:
         Variables:
-          EventBusName: !If
+          EVENT_BUS_NAME: !If
             - IsIntegratedEnvironment
             - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
             - !Ref OrdersServiceEventBus
@@ -190,7 +190,10 @@ Resources:
             - Effect: Allow
               Action:
                 - events:DescribeEventBus
-              Resource: !GetAtt OrdersServiceEventBus.Arn
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+                - !GetAtt OrdersServiceEventBus.Arn
         - EventBridgePutEventsPolicy:
             EventBusName: !If
               - IsIntegratedEnvironment
@@ -198,7 +201,6 @@ Resources:
               - !Ref OrdersServiceEventBus
         - DynamoDBCrudPolicy:
             TableName: !Ref OrdersTable
-
   HandleInventoryStockReservationFailed:
     Type: AWS::Serverless::Function
     Properties:
@@ -255,7 +257,6 @@ Resources:
               - !Ref OrdersServiceEventBus
         - DynamoDBCrudPolicy:
             TableName: !Ref OrdersTable
-
   ConfirmOrderHandler:
     Type: AWS::Serverless::Function
     Properties:
@@ -290,7 +291,10 @@ Resources:
             - Effect: Allow
               Action:
                 - events:DescribeEventBus
-              Resource: !GetAtt OrdersServiceEventBus.Arn
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+                - !GetAtt OrdersServiceEventBus.Arn
         - EventBridgePutEventsPolicy:
             EventBusName: !If
               - IsIntegratedEnvironment
@@ -299,7 +303,6 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref OrdersTable
             
-
   NoStockHandler:
     Type: AWS::Serverless::Function
     Properties:
@@ -334,7 +337,10 @@ Resources:
             - Effect: Allow
               Action:
                 - events:DescribeEventBus
-              Resource: !GetAtt OrdersServiceEventBus.Arn
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
+                - !GetAtt OrdersServiceEventBus.Arn
         - EventBridgePutEventsPolicy:
             EventBusName: !If
               - IsIntegratedEnvironment
@@ -462,7 +468,10 @@ Resources:
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
-
+            
+################################################      
+#################### API #######################
+################################################
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -801,6 +810,9 @@ Resources:
             -
               Name: ENV
               Value: !Ref Env
+
+            - Name: DD_LOGS_INJECTION
+              Value: "true"
           PortMappings:
             - ContainerPort: 8080
               Protocol: tcp
@@ -874,7 +886,10 @@ Resources:
             Type: fluentbit
             Options:
               enable-ecs-log-metadata: "true"
-
+  
+################################################      
+######## Public Event Subscriptions ############
+################################################
   SharedEventBusToOrdersServiceEventBusRole:
     Type: AWS::IAM::Role
     Condition: IsIntegratedEnvironment
@@ -939,8 +954,61 @@ Resources:
       Name: !Sub /${Env}/${ServiceName}/api-endpoint
       Type: String
       Value: !Sub "http://${ECSALB.DNSName}" 
-      
-  ### Deploy Test Harness
+
+#################################################      
+############ Deploy Test Harness ################
+#################################################
+  SharedEventBusOrderCreatedEventRule:
+    Type: AWS::Events::Rule
+    Condition: IsNonProdEnvironment
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: shared-orders-order-created
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.orders"
+        detail-type:
+          - "orders.orderCreated.v1"
+      Targets:
+        - Id: OrdersServiceEventBus
+          Arn: !GetAtt OrdersServiceEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToOrdersServiceEventBusRole.Arn
+
+  SharedEventBusOrderConfirmedEventRule:
+    Type: AWS::Events::Rule
+    Condition: IsNonProdEnvironment
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: shared-orders-order-confirmed
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.orders"
+        detail-type:
+          - "orders.orderConfirmed.v1"
+      Targets:
+        - Id: OrdersServiceEventBus
+          Arn: !GetAtt OrdersServiceEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToOrdersServiceEventBusRole.Arn
+          
+  SharedEventBusOrderCompletedEventRule:
+    Type: AWS::Events::Rule
+    Condition: IsNonProdEnvironment
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: shared-orders-order-completed
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.orders"
+        detail-type:
+          - "orders.orderCompleted.v1"
+      Targets:
+        - Id: OrdersServiceEventBus
+          Arn: !GetAtt OrdersServiceEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToOrdersServiceEventBusRole.Arn
+
   TestHarnessTable:
     Type: AWS::DynamoDB::Table
     Condition: IsNonProdEnvironment
@@ -969,6 +1037,7 @@ Resources:
         Variables:
           TABLE_NAME: !Ref TestHarnessTable
           KEY_PROPERTY_NAME: "orderNumber"
+          DD_SERVICE: !Sub "${ServiceName}-TestHarness"
       Events:
         Api:
           Type: Api
@@ -996,6 +1065,7 @@ Resources:
         Variables:
           TABLE_NAME: !Ref TestHarnessTable
           KEY_PROPERTY_NAME: "orderNumber"
+          DD_SERVICE: !Sub "${ServiceName}-TestHarness"
       Events:
         OrderCreated:
           Type: CloudWatchEvent

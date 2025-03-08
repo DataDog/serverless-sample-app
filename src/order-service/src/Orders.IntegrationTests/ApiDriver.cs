@@ -10,7 +10,9 @@ using Amazon.EventBridge;
 using Amazon.EventBridge.Model;
 using Amazon.SimpleSystemsManagement;
 using Amazon.SimpleSystemsManagement.Model;
+using CloudNative.CloudEvents.SystemTextJson;
 using Microsoft.IdentityModel.Tokens;
+using Orders.Core.Adapters;
 using Xunit.Abstractions;
 
 namespace Orders.IntegrationTests;
@@ -114,6 +116,12 @@ public class ApiDriver
             DetailType = "inventory.stockReserved.v1",
             Detail = "{\"conversationId\":\"" + stockReservedEvent.ConversationId + "\"}"
         };
+        var cloudEvent = putRequestEntry.GenerateCloudEventFrom();
+        var evtFormatter = new JsonEventFormatter();
+        if (cloudEvent != null)
+        {
+            putRequestEntry.Detail = evtFormatter.ConvertToJsonElement(cloudEvent).ToString();
+        }
         
         _testOutputHelper.WriteLine($"Sending event: {JsonSerializer.Serialize(putRequestEntry)}");
 
@@ -158,6 +166,12 @@ public class ApiDriver
             DetailType = "inventory.stockReservationFailed.v1",
             Detail = "{\"conversationId\":\"" + reservationFailedEvent.ConversationId + "\"}"
         };
+        var cloudEvent = putRequestEntry.GenerateCloudEventFrom();
+        var evtFormatter = new JsonEventFormatter();
+        if (cloudEvent != null)
+        {
+            putRequestEntry.Detail = evtFormatter.ConvertToJsonElement(cloudEvent).ToString();
+        }
         
         _testOutputHelper.WriteLine($"Sending event: {JsonSerializer.Serialize(putRequestEntry)}");
 

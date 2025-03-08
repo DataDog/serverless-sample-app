@@ -6,12 +6,13 @@ using System.Text.Json;
 using Amazon.Lambda.Annotations;
 using Amazon.Lambda.SQSEvents;
 using Datadog.Trace;
+using Microsoft.Extensions.Logging;
 using Orders.BackgroundWorkers.ExternalEvents;
 using Orders.Core;
 
 namespace Orders.BackgroundWorkers;
 
-public class Functions(IOrderWorkflow orderWorkflow)
+public class Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
 {
     [LambdaFunction]
     public async Task HandleStockReserved(SQSEvent evt)
@@ -21,32 +22,34 @@ public class Functions(IOrderWorkflow orderWorkflow)
 
         foreach (var record in evt.Records)
         {
-            var processingSpan = Tracer.Instance.StartActive("process", new SpanCreationSettings
-            {
-                Parent = activeSpan?.Context,
-
-            });
-            record.AddToTelemetry();
-            
+            IScope? processingSpan = null;
             try
             {
-                var evtData = JsonSerializer.Deserialize<EventBridgeMessageWrapper<EventWrapper<StockReservedEvent>>>(record.Body); ;
+                var evtData = JsonSerializer.Deserialize<EventBridgeMessageWrapper<EventWrapper<StockReservedEvent>>>(record.Body);
+                
+                processingSpan = Tracer.Instance.StartActive($"process {evtData.Detail.Type}", new SpanCreationSettings
+                {
+                    Parent = activeSpan?.Context,
+                });
+                record.AddToTelemetry();
+                evtData.Detail?.AddToTelemetry();
                 
                 if (evtData is null)
                     throw new ArgumentException("Event payload does not serialize to a `StockReservedEvent`");
 
-                await orderWorkflow.StockReservationSuccessful(evtData.Detail!.ConversationId);
+                await orderWorkflow.StockReservationSuccessful(evtData.Detail!.Data.ConversationId);
 
-                processingSpan.Close();
+                processingSpan?.Close();
             }
             catch (Exception e)
             {
-                processingSpan.Span?.SetTag("error.type", e.GetType().Name);
+                logger.LogError(e, e.Message);
+                processingSpan?.Span.SetException(e);
                 throw;
             }
             finally
             {
-                processingSpan.Close();
+                processingSpan?.Close();
             }
         }
     }
@@ -59,31 +62,36 @@ public class Functions(IOrderWorkflow orderWorkflow)
 
         foreach (var record in evt.Records)
         {
-            var processingSpan = Tracer.Instance.StartActive("process", new SpanCreationSettings()
-            {
-                Parent = activeSpan?.Context
-            });
-            record.AddToTelemetry();
+            IScope? processingSpan = null;
             
             try
             {
                 var evtData = JsonSerializer.Deserialize<EventBridgeMessageWrapper<EventWrapper<StockReservationFailedEvent>>>(record.Body);
                 
+                processingSpan = Tracer.Instance.StartActive($"process {evtData.Detail.Type}", new SpanCreationSettings
+                {
+                    Parent = activeSpan?.Context,
+                });
+                
+                record.AddToTelemetry();
+                evtData.Detail?.AddToTelemetry();
+                
                 if (evtData is null)
                     throw new ArgumentException("Event payload does not serialize to a `StockReservationFailedEvent`");
-
-                await orderWorkflow.StockReservationFailed(evtData.Detail!.ConversationId);
+                
+                await orderWorkflow.StockReservationFailed(evtData.Detail!.Data.ConversationId);
 
                 processingSpan.Close();
             }
             catch (Exception e)
             {
-                processingSpan.Span?.SetTag("error.type", e.GetType().Name);
+                logger.LogError(e, e.Message);
+                processingSpan?.Span?.SetTag("error.type", e.GetType().Name);
                 throw;
             }
             finally
             {
-                processingSpan.Close();
+                processingSpan?.Close();
             }
         }
     }

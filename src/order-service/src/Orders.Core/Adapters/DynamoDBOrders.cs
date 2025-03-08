@@ -5,6 +5,7 @@
 using System.Globalization;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
+using Datadog.Trace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -39,8 +40,11 @@ public class DynamoDBOrders(
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
                 { ":PK", new AttributeValue { S = userId } }
-            }
+            },
+            ReturnConsumedCapacity = ReturnConsumedCapacity.TOTAL
         });
+
+        queryResult.AddToTelemetry();
 
         var orderList = new List<Order>();
 
@@ -68,7 +72,10 @@ public class DynamoDBOrders(
                 { ":PK", new AttributeValue { S = "CONFIRMED" } }
             },
             IndexName = "GSI1",
+            ReturnConsumedCapacity = ReturnConsumedCapacity.TOTAL
         });
+
+        queryResult.AddToTelemetry();
 
         var orderList = new List<Order>();
 
@@ -90,12 +97,17 @@ public class DynamoDBOrders(
         logger.LogInformation("Retrieving Order with orderId {orderId} and user {userId} from DynamoDB", orderId,
             userId);
 
-        var getItemResult = await dynamoDbClient.GetItemAsync(configuration["TABLE_NAME"],
-            new Dictionary<string, AttributeValue>()
+        var getItemResult = await dynamoDbClient.GetItemAsync(new GetItemRequest()
+        {
+            TableName = configuration["TABLE_NAME"],
+            Key = new Dictionary<string, AttributeValue>()
             {
                 { PARTITION_KEY, new AttributeValue(userId) },
                 { SORT_KEY, new AttributeValue(orderId) }
-            });
+            },
+            ReturnConsumedCapacity = ReturnConsumedCapacity.TOTAL
+        });
+        getItemResult.AddToTelemetry();
 
         if (!getItemResult.IsItemSet) return null;
 
@@ -132,6 +144,12 @@ public class DynamoDBOrders(
             attributes.Add(GSI1SK, new AttributeValue(order.OrderNumber));
         }
 
-        await dynamoDbClient.PutItemAsync(configuration["TABLE_NAME"], attributes);
+        var putItemResponse = await dynamoDbClient.PutItemAsync(new PutItemRequest()
+        {
+            TableName = configuration["TABLE_NAME"],
+            Item = attributes,
+            ReturnConsumedCapacity = ReturnConsumedCapacity.TOTAL
+        });
+        putItemResponse.AddToTelemetry();
     }
 }

@@ -5,6 +5,7 @@
 using System.Text.Json;
 using Amazon.StepFunctions;
 using Amazon.StepFunctions.Model;
+using Datadog.Trace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -14,7 +15,7 @@ public class StepFunctionsOrderWorkflow(ILogger<StepFunctionsOrderWorkflow> logg
 {
     public async Task StartWorkflowFor(Order order)
     {
-        await stepFunctionsClient.StartExecutionAsync(new StartExecutionRequest()
+        var startExecutionRequest = new StartExecutionRequest()
         {
             StateMachineArn = configuration["ORDER_WORKFLOW_ARN"],
             Name = $"{order.OrderNumber}_{Guid.NewGuid().ToString()}",
@@ -22,12 +23,17 @@ public class StepFunctionsOrderWorkflow(ILogger<StepFunctionsOrderWorkflow> logg
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             })
-        });
+        };
+        startExecutionRequest.AddToTelemetry();
+        
+        var result = await stepFunctionsClient.StartExecutionAsync(startExecutionRequest);
+        result.AddToTelemetry();
     }
 
     public async Task StockReservationSuccessful(string correlationId)
     {
-        await stepFunctionsClient.SendTaskSuccessAsync(new SendTaskSuccessRequest()
+        correlationId.AddToTelemetry("conversationId");
+        var response = await stepFunctionsClient.SendTaskSuccessAsync(new SendTaskSuccessRequest()
         {
             TaskToken = correlationId,
             Output = "{\"result\": \"Stock reserved successfully\"}"
@@ -36,6 +42,8 @@ public class StepFunctionsOrderWorkflow(ILogger<StepFunctionsOrderWorkflow> logg
 
     public async Task StockReservationFailed(string correlationId)
     {
+        correlationId.AddToTelemetry("conversationId");
+        
         await stepFunctionsClient.SendTaskFailureAsync(new SendTaskFailureRequest
         {
             Cause = "Stock could not be reserved successfully",

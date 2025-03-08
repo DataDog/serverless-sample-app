@@ -4,6 +4,7 @@
 
 using System.Diagnostics;
 using System.Security.Claims;
+using Datadog.Trace;
 
 namespace Orders.Api;
 
@@ -13,9 +14,15 @@ public static class UserClaimExtensions
 {
     public static UserClaims ExtractUserId(this IEnumerable<Claim> claims)
     {
-        var accountId = claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier").Value;
+        var userId = claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier").Value;
         var userType = claims.FirstOrDefault(c => c.Type == "user_type").Value;
+
+        if (Tracer.Instance.ActiveScope != null)
+        {
+            Tracer.Instance.ActiveScope.Span.SetTag("user.id", userId);
+            Tracer.Instance.ActiveScope.Span.SetTag("user.type", userType);
+        }
         
-        return new UserClaims(accountId, userType);
+        return new UserClaims(userId, userType);
     }
 }

@@ -20,12 +20,15 @@ public class CompleteOrderHandler
     {
         try
         {
+            request.AddToTelemetry();
+            
             var user = context.User.Claims.ExtractUserId();
 
             if (user.UserType != "ADMIN")
             {
                 return Results.Unauthorized();
             }
+            
             var existingOrder = await orders.WithOrderId(request.UserId, request.OrderId);
 
             if (existingOrder == null)

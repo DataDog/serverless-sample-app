@@ -9,7 +9,10 @@ namespace Orders.BackgroundWorkers.ExternalEvents;
 public class EventWrapper<T>
 {
     [JsonPropertyName("id")] public string Id { get; set; }
+    
+    [JsonPropertyName("type")] public string Type { get; set; }
+    
     [JsonPropertyName("traceparent")] public string TraceParent { get; set; }
+    
     [JsonPropertyName("data")] public T Data { get; set; }
-    [JsonPropertyName("conversationId")] public string ConversationId { get; set; }
 }
