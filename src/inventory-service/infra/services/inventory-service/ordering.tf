@@ -21,11 +21,9 @@ module "inventory_ordering_service" {
   env = var.env
   app_version = var.app_version
   s3_bucket_name = aws_s3_bucket.lambda_code_storage_bucket.id
-}
-
-resource "aws_iam_role_policy_attachment" "product_created_handler_sqs_receive_permission" {
-  role       = module.inventory_ordering_service.function_role_name
-  policy_arn = aws_iam_policy.sfn_start_execution.arn
+  additional_policy_attachments = [
+    aws_iam_policy.sfn_start_execution.arn
+  ]
 }
 
 resource "aws_lambda_permission" "product_created_sns" {
