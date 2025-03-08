@@ -11,16 +11,23 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class StockReservedEventV1 {
     private final String orderNumber;
+    private final String conversationId;
 
     public StockReservedEventV1(){
         this.orderNumber = "";
+        this.conversationId = "";
     }
 
-    public StockReservedEventV1(String orderNumber) {
+    public StockReservedEventV1(String orderNumber, String conversationId) {
         this.orderNumber = orderNumber;
+        this.conversationId = conversationId;
     }
 
     public String getOrderNumber() {
         return orderNumber;
+    }
+
+    public String getConversationId() {
+        return conversationId;
     }
 }

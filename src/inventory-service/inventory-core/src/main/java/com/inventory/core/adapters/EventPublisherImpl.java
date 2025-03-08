@@ -67,11 +67,11 @@ public class EventPublisherImpl implements EventPublisher {
     }
 
     @Override
-    public void publishStockReservedEvent(StockReservedEventV1 evt, String conversationId) {
+    public void publishStockReservedEvent(StockReservedEventV1 evt) {
         final Span span = GlobalTracer.get().activeSpan();
 
         try {
-            String evtData = mapper.writeValueAsString(new EventWrapper<StockReservedEventV1>("inventory.stockReserved.v1", evt, conversationId));
+            String evtData = mapper.writeValueAsString(new EventWrapper<StockReservedEventV1>("inventory.stockReserved.v1", evt));
 
             this.publish("inventory.stockReserved.v1", evtData);
         }
@@ -99,11 +99,11 @@ public class EventPublisherImpl implements EventPublisher {
     }
 
     @Override
-    public void publishStockReservationFailedEvent(StockReservationFailedEventV1 evt, String conversationId) {
+    public void publishStockReservationFailedEvent(StockReservationFailedEventV1 evt) {
         final Span span = GlobalTracer.get().activeSpan();
 
         try {
-            String evtData = mapper.writeValueAsString(new EventWrapper<StockReservationFailedEventV1>("inventory.stockReservationFailed.v1", evt, conversationId));
+            String evtData = mapper.writeValueAsString(new EventWrapper<StockReservationFailedEventV1>("inventory.stockReservationFailed.v1", evt));
 
             this.publish("inventory.stockReservationFailed.v1", evtData);
         }

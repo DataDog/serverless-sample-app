@@ -117,12 +117,12 @@ public class InventoryItemService {
             orderCache.store(orderNumber, (ArrayList<String>) products);
 
             if (isFailure) {
-                this.eventPublisher.publishStockReservationFailedEvent(new StockReservationFailedEventV1(orderNumber), conversationId);
+                this.eventPublisher.publishStockReservationFailedEvent(new StockReservationFailedEventV1(orderNumber, conversationId));
             } else {
                 for (InventoryItem inventoryItem : stockAddedFor) {
                     this.repository.update(inventoryItem);
                 }
-                this.eventPublisher.publishStockReservedEvent(new StockReservedEventV1(orderNumber), conversationId);
+                this.eventPublisher.publishStockReservedEvent(new StockReservedEventV1(orderNumber, conversationId));
             }
 
             return new HandlerResponse<>(true, List.of("OK"), true);

@@ -11,9 +11,9 @@ public interface EventPublisher {
 
     void publishInventoryStockUpdatedEvent(InventoryStockUpdatedEvent evt);
 
-    void publishStockReservedEvent(StockReservedEventV1 evt, String conversationId);
+    void publishStockReservedEvent(StockReservedEventV1 evt);
 
     void publishProductOutOfStockEvent(ProductOutOfStockEventV1 evt);
 
-    void publishStockReservationFailedEvent(StockReservationFailedEventV1 evt, String conversationId);
+    void publishStockReservationFailedEvent(StockReservationFailedEventV1 evt);
 }

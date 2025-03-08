@@ -21,21 +21,13 @@ public class EventWrapper<T> implements Serializable {
     @JsonProperty("data")
     private T data;
 
-    @JsonProperty("conversationId")
-    private String conversationId;
-
     public EventWrapper(String type, T data) {
-        this(type, data, "");
-    }
-
-    public EventWrapper(String type, T data, String conversationId) {
         this.id = UUID.randomUUID().toString();
         this.source = String.format("%s.inventory", System.getenv("ENV"));
         this.type = type;
         this.time = LocalDateTime.now().toString();
         this.traceparent = String.format("00-%s-%s-01", GlobalTracer.get().activeSpan().context().toTraceId().toString(), GlobalTracer.get().activeSpan().context().toSpanId().toString());
         this.data = data;
-        this.conversationId = conversationId;
     }
 
     public T getData() {
@@ -44,13 +36,5 @@ public class EventWrapper<T> implements Serializable {
 
     public void setData(T data) {
         this.data = data;
-    }
-
-    public String getConversationId() {
-        return conversationId;
-    }
-
-    public void setConversationId(String conversationId) {
-        this.conversationId = conversationId;
     }
 }
