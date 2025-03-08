@@ -99,7 +99,7 @@ data "aws_iam_policy_document" "allow_eb_publish_policy" {
   }
 }
 resource "aws_sqs_queue_policy" "sqs_target_permissions" {
-  count = length(var.queue_id) > 0 ? 1 : 0
+  count = length(var.queue_name) > 0 ? 1 : 0
   queue_url = var.queue_id
   policy    = data.aws_iam_policy_document.allow_eb_publish_policy[count.index].json
 }
