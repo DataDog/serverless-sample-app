@@ -6,4 +6,4 @@ using Amazon.CDK.AWS.SecretsManager;
 
 namespace OrdersService.CDK.Constructs;
 
-public record SharedProps(string ServiceName, string Env, string Version, ISecret DDApiKeySecret);
+public record SharedProps(string ServiceName, string Env, string Version, string Team, string Domain, ISecret DDApiKeySecret);

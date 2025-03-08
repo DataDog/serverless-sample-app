@@ -5,9 +5,6 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-# Deploying multiple independent services from a single TF file is not recommended, this is for demonstration purposes only
-
-
 module "orders-service" {
   source                = "./services/orders-service"
   dd_api_key_secret_arn = var.dd_api_key_secret_arn

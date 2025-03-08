@@ -1,11 +1,62 @@
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "TF_${var.service_name}_ex-${var.env}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role" "ecs_task_role" {
+  name = "TF_${var.service_name}_task-${var.env}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "additional_policy_attachments" {
+  for_each   = toset(var.additional_task_role_policy_attachments)
+  role       = aws_iam_role.ecs_task_role.id
+  policy_arn = each.value
+}
+
+resource "aws_iam_role_policy_attachment" "additional_execution_role_policy_attachments" {
+  for_each   = toset(var.additional_execution_role_policy_attachments)
+  role       = aws_iam_role.ecs_task_execution_role.id
+  policy_arn = each.value
+}
+
 resource "aws_ecs_task_definition" "main" {
   family                   = var.service_name
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.cpu
   memory                   = var.memory_size
-  execution_role_arn       = var.execution_role_arn
-  task_role_arn            = var.task_role_arn
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
   runtime_platform {
     operating_system_family = "LINUX"
     cpu_architecture        = "ARM64"
@@ -57,6 +108,14 @@ resource "aws_ecs_task_definition" "main" {
       ]
       environment = [
         {
+          name  = "TEAM"
+          value = "orders"
+        },
+        {
+          name  = "DOMAIN"
+          value = "orders"
+        },
+        {
           name  = "DD_SITE"
           value = var.dd_site
         },
@@ -65,8 +124,8 @@ resource "aws_ecs_task_definition" "main" {
           value = "true"
         },
         {
-          name  = "DD_LOGS_ENABLED"
-          value = "false"
+          name  = "DD_LOGS_INJECTION"
+          value = "true"
         },
         {
           name  = "DD_PROCESS_AGENT_ENABLED"

@@ -46,7 +46,9 @@ public class InstrumentedFunction : Construct
             { "DD_VERSION", props.Shared.Version },
             { "DD_SERVICE", props.Shared.ServiceName },
             { "DD_API_KEY_SECRET_ARN", props.DdApiKeySecret.SecretArn },
-            { "DD_CAPTURE_LAMBDA_PAYLOAD", "true" }
+            { "DD_CAPTURE_LAMBDA_PAYLOAD", "true" },
+            { "DOMAIN", props.Shared.Domain },
+            { "TEAM", props.Shared.Team }
         };
 
         Function = new DotNetFunction(this, id,

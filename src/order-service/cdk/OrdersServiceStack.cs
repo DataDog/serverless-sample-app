@@ -26,7 +26,9 @@ public class OrdersServiceStack : Stack
         var serviceName = "OrdersService";
         var env = System.Environment.GetEnvironmentVariable("ENV") ?? "dev";
         var version = System.Environment.GetEnvironmentVariable("VERSION") ?? "latest";
-        var sharedProps = new SharedProps(serviceName, env, version, secret);
+        var team = "orders";
+        var domain = "orders";
+        var sharedProps = new SharedProps(serviceName, env, version, team, domain, secret);
 
         var orderServiceProps = OrderServiceProps.Create(this, sharedProps);
 

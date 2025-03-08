@@ -49,16 +49,6 @@ resource "aws_iam_role_policy_attachment" "order_workflow_function_invoke_policy
   policy_arn = aws_iam_policy.order_workflow_function_invoke.arn
 }
 
-resource "aws_iam_role_policy_attachment" "order_workflow_ddb_read_policy_attachment" {
-  role       = aws_iam_role.order_workflow_sfn_role.id
-  policy_arn = aws_iam_policy.dynamo_db_read.arn
-}
-
-resource "aws_iam_role_policy_attachment" "order_workflow_ddb_write_policy_attachment" {
-  role       = aws_iam_role.order_workflow_sfn_role.id
-  policy_arn = aws_iam_policy.dynamo_db_write.arn
-}
-
 resource "aws_iam_role_policy_attachment" "order_workflow_eb_publish_policy_attachment" {
   role       = aws_iam_role.order_workflow_sfn_role.id
   policy_arn = aws_iam_policy.eb_publish.arn
@@ -71,7 +61,6 @@ resource "aws_cloudwatch_log_group" "sfn_log_group" {
     prevent_destroy = false
   }
 }
-
 
 resource "aws_sfn_state_machine" "order_workflow_state_machine" {
   name     = "OrderService-orders-${var.env}"
@@ -93,4 +82,48 @@ resource "aws_sfn_state_machine" "order_workflow_state_machine" {
     DD_ENHANCED_METRICS : "true"
     DD_TRACE_ENABLED : "true"
   }
+}
+
+module "confirm_order_handler" {
+  source         = "../../modules/lambda-function"
+  publish_directory = "../src/Orders.BackgroundWorkers/bin/Release/net8.0/Orders.BackgroundWorkers.zip"
+  service_name   = "OrdersService"
+  function_name  = "ConfirmOrders"
+  lambda_handler = "Orders.BackgroundWorkers::Orders.BackgroundWorkers.WorkflowHandlers_ReservationSuccess_Generated::ReservationSuccess"
+  environment_variables = {
+    EVENT_BUS_NAME : var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.orders_service_bus.name
+    TABLE_NAME : aws_dynamodb_table.orders_api.name
+  }
+  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
+  app_version = var.app_version
+  env = var.env
+  additional_policy_attachments = [
+    aws_iam_policy.step_functions_interactions.arn,
+    aws_iam_policy.eb_publish.arn,
+    aws_iam_policy.dynamo_db_read.arn,
+    aws_iam_policy.dynamo_db_write.arn
+  ]
+}
+
+module "no_stock_handler" {
+  source         = "../../modules/lambda-function"
+  publish_directory = "../src/Orders.BackgroundWorkers/bin/Release/net8.0/Orders.BackgroundWorkers.zip"
+  service_name   = "OrdersService"
+  function_name  = "NoStock"
+  lambda_handler = "Orders.BackgroundWorkers::Orders.BackgroundWorkers.WorkflowHandlers_ReservationFailed_Generated::ReservationFailed"
+  environment_variables = {
+    EVENT_BUS_NAME : var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.orders_service_bus.name
+    TABLE_NAME : aws_dynamodb_table.orders_api.name
+  }
+  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
+  app_version = var.app_version
+  env = var.env
+  additional_policy_attachments = [
+    aws_iam_policy.step_functions_interactions.arn,
+    aws_iam_policy.eb_publish.arn,
+    aws_iam_policy.dynamo_db_read.arn,
+    aws_iam_policy.dynamo_db_write.arn
+  ]
 }

@@ -61,3 +61,8 @@ variable "dd_site" {
   default = "The Datadog site to use"
   type = string
 }
+
+variable "additional_policy_attachments" {
+  type = list(string)
+  default = []
+}

@@ -9,79 +9,6 @@ resource "aws_ecs_cluster" "main" {
   name = "Orders-cluster-${var.env}"
 }
 
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "TF_OrdersApiTaskExecutionRole-${var.env}"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role" "ecs_task_role" {
-  name = "TF_OrdersApiTaskRole-${var.env}"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-resource "aws_iam_role_policy_attachment" "orders_get_secret" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = aws_iam_policy.get_api_key_secret.arn
-}
-
-resource "aws_iam_role_policy_attachment" "orders_db_read_access" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = aws_iam_policy.dynamo_db_read.arn
-}
-
-resource "aws_iam_role_policy_attachment" "orders_db__writeaccess" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = aws_iam_policy.dynamo_db_write.arn
-}
-
-resource "aws_iam_role_policy_attachment" "orders_api_start_workflow" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = aws_iam_policy.step_functions_interactions.arn
-}
-
-resource "aws_iam_role_policy_attachment" "orders_read_ssm_jwt" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = aws_iam_policy.get_jwt_ssm_parameter.arn
-}
-
-resource "aws_iam_role_policy_attachment" "orders_read_ssm_product_api_endpoint" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = aws_iam_policy.get_api_key_secret.arn
-}
-resource "aws_iam_role_policy_attachment" "orders_put_events" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = aws_iam_policy.eb_publish.arn
-}
-
 resource "aws_ssm_parameter" "orders_service_access_key" {
   count = var.env == "dev" || var.env == "prod" ? 0 : 1
   name  = "/${var.env}/OrdersService/secret-access-key"
@@ -91,7 +18,7 @@ resource "aws_ssm_parameter" "orders_service_access_key" {
 
 module "orders_web_service" {
   source       = "../../modules/web-service"
-  service_name = "OrdersApi"
+  service_name = "ordersservice"
   image        = "public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-dotnet:latest"
   env          = var.env
   app_version  = var.app_version
@@ -131,12 +58,21 @@ module "orders_web_service" {
   ]
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
-  execution_role_arn    = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn         = aws_iam_role.ecs_task_role.arn
   ecs_cluster_id        = aws_ecs_cluster.main.id
   subnet_ids            = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
   security_group_ids    = [aws_security_group.ecs_sg.id]
   target_group_arn      = aws_lb_target_group.target_group.arn
+  additional_execution_role_policy_attachments = [
+    aws_iam_policy.get_api_key_secret.arn
+  ]
+  additional_task_role_policy_attachments = [
+    aws_iam_policy.get_jwt_ssm_parameter.arn,
+    aws_iam_policy.dynamo_db_read.arn,
+    aws_iam_policy.dynamo_db_write.arn,
+    aws_iam_policy.step_functions_interactions.arn,
+    aws_iam_policy.get_jwt_ssm_parameter.arn,
+    aws_iam_policy.eb_publish.arn
+  ]
 }
 
 resource "aws_ssm_parameter" "api_endpoint" {

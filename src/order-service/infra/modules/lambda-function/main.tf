@@ -56,7 +56,6 @@ resource "aws_iam_policy" "dd_api_secret_policy" {
   })
 }
 
-
 resource "aws_iam_role_policy_attachment" "function_logging_policy_attachment" {
   role       = aws_iam_role.lambda_function_role.id
   policy_arn = aws_iam_policy.function_logging_policy.arn
@@ -64,6 +63,12 @@ resource "aws_iam_role_policy_attachment" "function_logging_policy_attachment" {
 resource "aws_iam_role_policy_attachment" "secrets_retrieval_policy_attachment" {
   role       = aws_iam_role.lambda_function_role.id
   policy_arn = aws_iam_policy.dd_api_secret_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "additional_policy_attachments" {
+  for_each   = toset(var.additional_policy_attachments)
+  role       = aws_iam_role.lambda_function_role.id
+  policy_arn = each.value
 }
 
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
@@ -89,6 +94,8 @@ module "aws_lambda_function" {
   timeout                  = var.timeout
 
   environment_variables = merge(tomap({
+    "TEAM": "orders",
+    "DOMAIN" : "orders",
     "ENV": var.env,
     "DD_SITE" : var.dd_site
     "DD_SERVICE" : var.service_name

@@ -77,7 +77,7 @@ module "event_id_resource" {
 module "event_harness_api_lambda" {
   count = var.env == "prod" ? 0 : 1
   publish_directory = "../src/TestHarness/TestHarness.Lambda/bin/Release/net8.0/TestHarness.Lambda.zip"
-  service_name   = "OrdersService"
+  service_name   = "OrdersService-TestHarness"
   source         = "../../modules/lambda-function"
   function_name  = "TestHarnessApi"
   lambda_handler = "TestHarness.Lambda::TestHarness.Lambda.ApiFunctions_GetReceivedEvents_Generated::GetReceivedEvents"
@@ -143,7 +143,7 @@ resource "aws_api_gateway_stage" "event_harness_api_stage" {
 module "event_harness_event_bridge_lambda" {
   count = var.env == "prod" ? 0 : 1
   publish_directory = "../src/TestHarness/TestHarness.Lambda/bin/Release/net8.0/TestHarness.Lambda.zip"
-  service_name   = "OrdersService"
+  service_name   = "OrdersService-TestHarness"
   source         = "../../modules/lambda-function"
   function_name  = "TestHarnessEventBridge"
   lambda_handler = "TestHarness.Lambda::TestHarness.Lambda.HandlerFunctions_HandleEventBridge_Generated::HandleEventBridge"
@@ -169,10 +169,20 @@ resource "aws_iam_role_policy_attachment" "event_harness_eb_lambda_dynamo_db_wri
   policy_arn = aws_iam_policy.test_harness_dynamo_db_write[count.index].arn
 }
 
-resource "aws_cloudwatch_event_rule" "order_created_event_harness_rule" {
+##################################################
+########## Event Bridge Rules and Targets ########
+##################################################
+## ORDER CREATED
+module "shared_bus_order_created_subscription" {
   count = var.env == "prod" ? 0 : 1
-  name           = "OrderCreatedForwardingRule"
-  event_bus_name = aws_cloudwatch_event_bus.orders_service_bus.name
+  source        = "../../modules/shared_bus_to_domain"
+  rule_name = "OrderCreated_TestHarness_Rule"
+  env           = var.env
+  shared_bus_name = data.aws_ssm_parameter.shared_eb_name[0].value
+  domain_bus_arn = aws_cloudwatch_event_bus.orders_service_bus.arn
+  domain_bus_name = aws_cloudwatch_event_bus.orders_service_bus.name
+  function_arn = module.event_harness_event_bridge_lambda[count.index].function_arn
+  function_name = module.event_harness_event_bridge_lambda[count.index].function_name
   event_pattern  = <<EOF
 {
   "detail-type": [
@@ -185,25 +195,17 @@ resource "aws_cloudwatch_event_rule" "order_created_event_harness_rule" {
 EOF
 }
 
-resource "aws_cloudwatch_event_target" "shared_bus_order_created_event_harness_target" {
+# ORDER CONFIRMED
+module "shared_bus_order_confirmed_subscription" {
   count = var.env == "prod" ? 0 : 1
-  rule           = aws_cloudwatch_event_rule.order_created_event_harness_rule[count.index].name
-  arn            = module.event_harness_event_bridge_lambda[count.index].function_arn
-  event_bus_name = aws_cloudwatch_event_bus.orders_service_bus.id
-}
-
-resource "aws_lambda_permission" "allow_order_created_rule_cloudwatch" {
-  count = var.env == "prod" ? 0 : 1
-  action        = "lambda:InvokeFunction"
+  source        = "../../modules/shared_bus_to_domain"
+  rule_name = "OrderConfirmed_TestHarness_Rule"
+  env           = var.env
+  shared_bus_name = data.aws_ssm_parameter.shared_eb_name[0].value
+  domain_bus_arn = aws_cloudwatch_event_bus.orders_service_bus.arn
+  domain_bus_name = aws_cloudwatch_event_bus.orders_service_bus.name
+  function_arn = module.event_harness_event_bridge_lambda[count.index].function_arn
   function_name = module.event_harness_event_bridge_lambda[count.index].function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.order_created_event_harness_rule[count.index].arn
-}
-
-resource "aws_cloudwatch_event_rule" "order_confirmed_event_harness_rule" {
-  count = var.env == "prod" ? 0 : 1
-  name           = "OrderConfirmedForwardingRule"
-  event_bus_name = aws_cloudwatch_event_bus.orders_service_bus.name
   event_pattern  = <<EOF
 {
   "detail-type": [
@@ -216,25 +218,17 @@ resource "aws_cloudwatch_event_rule" "order_confirmed_event_harness_rule" {
 EOF
 }
 
-resource "aws_cloudwatch_event_target" "shared_bus_order_confirmed_event_harness_target" {
+# ORDER COMPLETED
+module "shared_bus_order_completed_subscription" {
   count = var.env == "prod" ? 0 : 1
-  rule           = aws_cloudwatch_event_rule.order_confirmed_event_harness_rule[count.index].name
-  arn            = module.event_harness_event_bridge_lambda[count.index].function_arn
-  event_bus_name = aws_cloudwatch_event_bus.orders_service_bus.id
-}
-
-resource "aws_lambda_permission" "allow_order_confirmed_rule_cloudwatch" {
-  count = var.env == "prod" ? 0 : 1
-  action        = "lambda:InvokeFunction"
+  source        = "../../modules/shared_bus_to_domain"
+  rule_name = "OrderCompleted_TestHarness_Rule"
+  env           = var.env
+  shared_bus_name = data.aws_ssm_parameter.shared_eb_name[0].value
+  domain_bus_arn = aws_cloudwatch_event_bus.orders_service_bus.arn
+  domain_bus_name = aws_cloudwatch_event_bus.orders_service_bus.name
+  function_arn = module.event_harness_event_bridge_lambda[count.index].function_arn
   function_name = module.event_harness_event_bridge_lambda[count.index].function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.order_confirmed_event_harness_rule[count.index].arn
-}
-
-resource "aws_cloudwatch_event_rule" "order_completed_event_harness_rule" {
-  count = var.env == "prod" ? 0 : 1
-  name           = "OrderCompletedForwardingRule"
-  event_bus_name = aws_cloudwatch_event_bus.orders_service_bus.name
   event_pattern  = <<EOF
 {
   "detail-type": [
@@ -245,21 +239,6 @@ resource "aws_cloudwatch_event_rule" "order_completed_event_harness_rule" {
   ]
 }
 EOF
-}
-
-resource "aws_cloudwatch_event_target" "shared_bus_order_completed_event_harness_target" {
-  count = var.env == "prod" ? 0 : 1
-  rule           = aws_cloudwatch_event_rule.order_completed_event_harness_rule[count.index].name
-  arn            = module.event_harness_event_bridge_lambda[count.index].function_arn
-  event_bus_name = aws_cloudwatch_event_bus.orders_service_bus.id
-}
-
-resource "aws_lambda_permission" "allow_order_completed_rule_cloudwatch" {
-  count = var.env == "prod" ? 0 : 1
-  action        = "lambda:InvokeFunction"
-  function_name = module.event_harness_event_bridge_lambda[count.index].function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.order_completed_event_harness_rule[count.index].arn
 }
 
 resource "aws_ssm_parameter" "test_harness_api_endpoint" {
