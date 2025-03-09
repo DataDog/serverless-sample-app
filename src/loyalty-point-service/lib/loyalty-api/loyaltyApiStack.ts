@@ -19,20 +19,18 @@ import { EventBus } from "aws-cdk-lib/aws-events";
 export class LoyaltyApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
-
-    const ddApiKey = Secret.fromSecretCompleteArn(
-      this,
-      "DDApiKeySecret",
-      process.env.DD_API_KEY_SECRET_ARN!
-    );
-
     const service = "LoyaltyService";
     const env = process.env.ENV ?? "dev";
     const version = process.env["COMMIT_HASH"] ?? "latest";
 
+    const ddApiKey = new Secret(this, "DDApiKeySecret", {
+      secretName: `/${env}/${service}/dd-api-key`,
+      secretStringValue: new cdk.SecretValue(process.env.DD_API_KEY!),
+    })
+
     const datadogConfiguration = new Datadog(this, "Datadog", {
-      nodeLayerVersion: 120,
-      extensionLayerVersion: 71,
+      nodeLayerVersion: 121,
+      extensionLayerVersion: 73,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
       service,

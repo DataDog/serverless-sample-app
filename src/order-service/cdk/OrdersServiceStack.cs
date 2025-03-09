@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using Amazon.CDK;
 using Amazon.CDK.AWS.Events;
+using Amazon.CDK.AWS.SecretsManager;
 using Amazon.CDK.AWS.SNS;
 using Amazon.CDK.AWS.SSM;
 using Constructs;
@@ -20,12 +21,17 @@ public class OrdersServiceStack : Stack
 {
     internal OrdersServiceStack(Construct scope, string id, IStackProps props = null) : base(scope, id, props)
     {
-        var secret = Secret.FromSecretCompleteArn(this, "DatadogApiKeySecret",
-            System.Environment.GetEnvironmentVariable("DD_API_KEY_SECRET_ARN") ??
-            throw new Exception("DD_API_KEY_SECRET_ARN environment variable is not set"));
         var serviceName = "OrdersService";
         var env = System.Environment.GetEnvironmentVariable("ENV") ?? "dev";
         var version = System.Environment.GetEnvironmentVariable("VERSION") ?? "latest";
+
+        var secret = new Secret(this, "DDApiKeySecret", new SecretProps()
+        {
+            SecretName = $"/{env}/{serviceName}/dd-api-key",
+            SecretStringValue = new SecretValue(System.Environment.GetEnvironmentVariable("DD_API_KEY") ??
+                                                throw new Exception("DD_API_KEY environment variable is not set"))
+        });
+        
         var team = "orders";
         var domain = "orders";
         var sharedProps = new SharedProps(serviceName, env, version, team, domain, secret);

@@ -3,6 +3,7 @@ package main
 import (
 	services "cdk/services"
 	sharedconstructs "cdk/sharedConstructs"
+	"fmt"
 	"os"
 
 	"github.com/DataDog/datadog-cdk-constructs-go/ddcdkconstruct"
@@ -53,7 +54,13 @@ func NewProductManagementService(scope constructs.Construct, id string, props *P
 		version = "latest"
 	}
 
-	ddApiKeySecret := awssecretsmanager.Secret_FromSecretCompleteArn(stack, jsii.String("DDApiKeySecret"), jsii.String(os.Getenv("DD_API_KEY_SECRET_ARN")))
+	ddApiKey := os.Getenv("DD_API_KEY")
+	secretValue := awscdk.SecretValue_UnsafePlainText(&ddApiKey)
+
+	ddApiKeySecret := awssecretsmanager.NewSecret(stack, jsii.String("Secret"), &awssecretsmanager.SecretProps{
+		SecretStringValue: secretValue,
+		SecretName:        jsii.String(fmt.Sprintf("/%s/%s/datadog-api-key", env, serviceName)),
+	})
 
 	datadog := ddcdkconstruct.NewDatadog(
 		stack,

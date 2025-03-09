@@ -42,7 +42,7 @@ jobs:
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "eu-west-2"
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
-          DD_API_KEY: ${{secrets.APP_DD_API_KEY}}
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
         run: |
           cd src/shared-infra
           make tf-apply
@@ -79,7 +79,7 @@ jobs:
           ENV: "dev"
           DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
-          DD_API_KEY: ${{secrets.APP_DD_API_KEY}}
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
         run: |
           cd src/shared-infra
           npm i
@@ -115,7 +115,7 @@ jobs:
           DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "us-east-1"
-          DD_API_KEY: ${{secrets.APP_DD_API_KEY}}
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
         run: |
           cd src/shared-infra
           make sam
@@ -150,7 +150,7 @@ jobs:
           DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "us-east-2"
-          DD_API_KEY: ${{secrets.APP_DD_API_KEY}}
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
         run: |
           cd src/shared-infra
           npm i
