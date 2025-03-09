@@ -11,7 +11,7 @@ Transform:
   - Name: DatadogServerless
     Parameters:
       stackName: !Ref "AWS::StackName"
-      apiKeySecretArn: !Ref DDApiKeySecretArn
+      apiKeySecretArn: !Ref DDApiKeySecret
       dotnetLayerVersion: "18"
       extensionLayerVersion: "73"
       service: !Ref ServiceName
@@ -40,8 +40,6 @@ Parameters:
   CommitHash:
     Type: String
     Default: latest
-  DDApiKeySecretArn:
-    Type: String
   DDSite:
     Type: String
 
@@ -63,6 +61,13 @@ Globals:
       - x86_64
 
 Resources:
+  DDApiKeySecret:
+    Type: 'AWS::SecretsManager::Secret'
+    Properties:
+      Name: !Sub "/${Env}/${ServiceName}/datadog-api-key"
+      Description: "The Datadog API key"
+      SecretString: !Ref DDApiKey
+
   OrdersServiceEventBus:
     Type: AWS::Events::EventBus
     Properties:
@@ -171,7 +176,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -227,7 +232,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -278,7 +283,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -324,7 +329,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -689,7 +694,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: !Ref DDApiKeySecretArn
+                Resource: !Ref DDApiKeySecret
 
   ECSTaskRole:
     Type: AWS::IAM::Role
@@ -743,7 +748,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: !Ref DDApiKeySecretArn
+                Resource: !Ref DDApiKeySecret
         - PolicyName: allow-ssm-access-key-retrieve
           PolicyDocument:
             Version: "2012-10-17"
@@ -874,7 +879,7 @@ Resources:
               Value: "GET /"
           Secrets:
             - Name: DD_API_KEY
-              ValueFrom: !Ref DDApiKeySecretArn
+              ValueFrom: !Ref DDApiKeySecret
           PortMappings:
             - ContainerPort: 8125
               HostPort: 8125
@@ -1052,7 +1057,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         - DynamoDBCrudPolicy:
             TableName: !Ref TestHarnessTable
 
@@ -1102,7 +1107,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         - DynamoDBCrudPolicy:
             TableName: !Ref TestHarnessTable
   

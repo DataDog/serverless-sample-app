@@ -20,8 +20,6 @@ Parameters:
   CommitHash:
     Type: String
     Default: latest
-  DDApiKeySecretArn:
-    Type: String
   DDSite:
     Type: String
     Type: String
@@ -42,7 +40,7 @@ Globals:
         DD_TRACE_ENABLED: "true"
         DD_LAMBDA_HANDLER: "bootstrap"
         DD_ENV: !Ref Env
-        DD_API_KEY_SECRET_ARN: !Ref DDApiKeySecretArn
+        DD_API_KEY_SECRET_ARN: !Ref DDApiKeySecret
         DD_SITE: !Ref DDSite
         DD_VERSION: !Ref CommitHash
         DD_SERVICE: !Ref ServiceName
@@ -58,6 +56,13 @@ Globals:
       AllowOrigin: "'*'"
 
 Resources:
+  DDApiKeySecret:
+    Type: 'AWS::SecretsManager::Secret'
+    Properties:
+      Name: !Sub "/${Env}/${ServiceName}/datadog-api-key"
+      Description: "The Datadog API key"
+      SecretString: !Ref DDApiKey
+
   GetProductFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -80,7 +85,7 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
                 - dynamodb:GetItem
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -115,7 +120,7 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
                 - dynamodb:GetItem
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -158,7 +163,7 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
                 - dynamodb:GetItem
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -211,7 +216,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -265,7 +270,7 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
                 - dynamodb:GetItem
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -352,7 +357,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -385,7 +390,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt StockUpdatedTopic.TopicName
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
@@ -476,7 +481,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
