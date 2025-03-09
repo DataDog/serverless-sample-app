@@ -22,6 +22,7 @@ Parameters:
     Default: latest
   DDSite:
     Type: String
+  DDApiKey:
     Type: String
 
 Globals:
@@ -30,7 +31,7 @@ Globals:
     Timeout: 29
     MemorySize: 512
     Layers:
-      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension-ARM:71
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension-ARM:73
     Environment:
       Variables:
         ENV: !Ref Env

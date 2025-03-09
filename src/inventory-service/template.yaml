@@ -41,6 +41,8 @@ Parameters:
     Default: latest
   DDSite:
     Type: String
+  DDApiKey:
+    Type: String
 
 Globals:
   Function:

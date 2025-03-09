@@ -7,49 +7,49 @@
 
 # Create a set of IAM policies our application will need
 resource "aws_iam_policy" "dynamo_db_read" {
-  name   = "tf-orders-dynamo_db_read_policy-${var.env}"
+  name   = "tf-orders-ddb-read-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.dynamo_db_read.json
 }
 
 resource "aws_iam_policy" "dynamo_db_write" {
-  name   = "tf-orders-api-dynamo_db_write_policy-${var.env}"
+  name   = "tf-orders-ddb-write-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.dynamo_db_write.json
 }
 
 resource "aws_iam_policy" "eb_publish" {
-  name   = "tf-orders-api-publish-policy-${var.env}"
+  name   = "tf-orders-publish-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.eb_publish.json
 }
 
 resource "aws_iam_policy" "step_functions_interactions" {
-  name   = "tf-orders-api-step-function-interactions-${var.env}"
+  name   = "tf-orders-sfn-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.step_function_interactions.json
 }
 
 resource "aws_iam_policy" "order_workflow_function_invoke" {
-  name   = "tf-orders-order_workflow_function_invoke-${var.env}"
+  name   = "tf-orders-sfn-invoke-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.order_workflow_lambda_invoke.json
 }
 
 resource "aws_iam_policy" "get_api_key_secret" {
-  name   = "tf-orders-api-get-secret-${var.env}"
+  name   = "tf-orders-get-secret-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.retrieve_api_key_secret.json
 }
 
 resource "aws_iam_policy" "get_jwt_ssm_parameter" {
-  name   = "tf-orders-api-get-jwt-param-${var.env}"
+  name   = "tf-orders-get-jwt-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.allow_jwt_secret_key_ssm_read.json
 }
 
 resource "aws_iam_policy" "sqs_receive_policy" {
-  name   = "TF_OrdersService-sqs-policy-${var.env}"
+  name   = "tf-orders-sqs-receive-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.sqs_receive.json
 }

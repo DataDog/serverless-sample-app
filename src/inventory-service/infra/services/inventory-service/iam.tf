@@ -7,55 +7,55 @@
 
 # Create a set of IAM policies our application will need
 resource "aws_iam_policy" "dynamo_db_read" {
-  name   = "TF_InventoryOrdering-dynamo_db_read_policy-${var.env}"
+  name   = "TF_Inventory-ddb-read-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.dynamo_db_read.json
 }
 
 resource "aws_iam_policy" "dynamo_db_write" {
-  name   = "TF_InventoryOrdering-dynamo_db_write_policy-${var.env}"
+  name   = "TF_Inventory-ddb-write-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.dynamo_db_write.json
 }
 
 resource "aws_iam_policy" "eb_publish" {
-  name   = "TF_InventoryOrdering-publish-policy-${var.env}"
+  name   = "TF_Inventory-publish-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.eb_publish.json
 }
 
 resource "aws_iam_policy" "get_api_key_secret" {
-  name   = "TF_InventoryOrdering-get-secret-${var.env}"
+  name   = "TF_Inventory-get-secret-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.retrieve_api_key_secret.json
 }
 
 resource "aws_iam_policy" "sqs_receive_policy" {
-  name   = "TF_InventoryOrdering-sqs-policy-${var.env}"
+  name   = "TF_Inventory-sqs-receive-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.sqs_receive.json
 }
 
 resource "aws_iam_policy" "sns_publish" {
-  name   = "TF_InventoryOrdering-acl-sns_publish-${var.env}"
+  name   = "TF_Inventory-sns_publish-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.sns_publish.json
 }
 
 resource "aws_iam_policy" "sfn_start_execution" {
-  name   = "TF_InventoryOrdering-start-execution-${var.env}"
+  name   = "TF_Inventory-sfn-start-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.stepfunctions_start_execution.json
 }
 
 resource "aws_iam_policy" "allow_jwt_secret_access" {
-  name   = "TF_InventoryOrdering-jwt_secret_access-${var.env}"
+  name   = "TF_Inventory-jwt-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.allow_jwt_secret_key_ssm_read.json
 }
 
 resource "aws_iam_role" "invetory_ordering_sfn_role" {
-  name = "TF_InventoryOrdering-sfn-role-${var.env}"
+  name = "TF_Inventory-sfn-role-${var.env}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -71,7 +71,7 @@ resource "aws_iam_role" "invetory_ordering_sfn_role" {
 }
 
 resource "aws_iam_policy" "function_logging_policy" {
-  name = "TF_InventoryOrdering-logging-policy-${var.env}"
+  name = "TF_Inventory-logging-${var.env}"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
