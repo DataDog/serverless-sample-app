@@ -11,7 +11,7 @@ Transform:
   - Name: DatadogServerless
     Parameters:
       stackName: !Ref "AWS::StackName"
-      apiKeySecretArn: !Ref DDApiKeySecret
+      apiKey: !Ref DDApiKey
       javaLayerVersion: "18"
       extensionLayerVersion: "73"
       service: !Ref ServiceName

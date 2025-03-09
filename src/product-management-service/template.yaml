@@ -41,7 +41,7 @@ Globals:
         DD_TRACE_ENABLED: "true"
         DD_LAMBDA_HANDLER: "bootstrap"
         DD_ENV: !Ref Env
-        DD_API_KEY_SECRET_ARN: !Ref DDApiKeySecret
+        DD_API_KEY: !Ref DDApiKey
         DD_SITE: !Ref DDSite
         DD_VERSION: !Ref CommitHash
         DD_SERVICE: !Ref ServiceName
