@@ -6,7 +6,8 @@
 //
 
 resource "aws_secretsmanager_secret" "dd_api_key_secret" {
-  name = "/${var.env}/ProductManagementService/dd-api-key"
+  name = "/${var.env}/ProductManagementService/sls-sample-dd-api-key-secret"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "dd_api_key_secret_version" {
