@@ -47,39 +47,6 @@ jobs:
           cd src/product-management-service
           make pre-build
           make build
-      - name: Deploy to ephermal environment
-        shell: bash
-        env:
-          COMMIT_HASH: ${{ env.sha_short }}
-          ENV: ${{ env.sha_short }}
-          DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
-          AWS_REGION: "eu-west-2"
-          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
-        run: |
-          cd src/product-management-service
-          make tf-apply
-      - name: Integration test ephermal environment
-        shell: bash
-        env:
-          ENV: ${{ env.sha_short }}
-          AWS_REGION: "eu-west-2"
-        run: |
-          cd src/product-management-service
-          make integration-test
-      - name: Teardown ephermal environment
-        shell: bash
-        if: always()
-        env:
-          COMMIT_HASH: ${{ env.sha_short }}
-          ENV: ${{ env.sha_short }}
-          DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
-          AWS_REGION: "eu-west-2"
-          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
-        run: |
-          cd src/product-management-service
-          make tf-destroy
       - name: Deploy to dev
         shell: bash
         env:
@@ -91,8 +58,6 @@ jobs:
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
           cd src/product-management-service
-          make pre-build
-          make build
           make tf-apply
 
   deploy-cdk:
