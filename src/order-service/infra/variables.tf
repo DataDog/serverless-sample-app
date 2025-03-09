@@ -5,9 +5,9 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-variable "dd_api_key_secret_arn" {
+variable "dd_api_key" {
   type        = string
-  description = "The ARN of the Datadog API key secret"
+  description = "The Datadog API key"
 }
 
 variable "dd_site" {

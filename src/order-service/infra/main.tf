@@ -5,9 +5,18 @@
 // Copyright 2024 Datadog, Inc.
 //
 
+resource "aws_secretsmanager_secret" "dd_api_key_secret" {
+  name = "/${var.env}/OrdersService/dd-api-key"
+}
+
+resource "aws_secretsmanager_secret_version" "dd_api_key_secret_version" {
+  secret_id     = aws_secretsmanager_secret.dd_api_key_secret.id
+  secret_string = var.dd_api_key
+}
+
 module "orders-service" {
   source                = "./services/orders-service"
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key_secret_arn = aws_secretsmanager_secret.dd_api_key_secret.arn
   dd_site               = var.dd_site
   env                   = var.env
   app_version           = var.app_version
