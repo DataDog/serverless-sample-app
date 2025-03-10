@@ -8,7 +8,7 @@ observability = {path = "../../observability"}
 lambda_http = "0.14"
 aws-sdk-dynamodb = "1.49"
 aws-sdk-sns = "1.46"
-uuid = {version = "1.10.0", features = ["v4"]}
+uuid = {version = "1.15.1", features = ["v4"]}
 async-trait = "0.1"
 
 thiserror = {workspace = true}

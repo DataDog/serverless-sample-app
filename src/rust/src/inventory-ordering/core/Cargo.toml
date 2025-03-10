@@ -5,8 +5,8 @@ edition = "2021"
 
 [dependencies]
 observability = {path = "../../observability"}
-aws-sdk-sfn = "1.48"
-uuid = {version = "1.10.0", features = ["v4"]}
+aws-sdk-sfn = "1.64"
+uuid = {version = "1.15.1", features = ["v4"]}
 async-trait = "0.1"
 
 thiserror = {workspace = true}

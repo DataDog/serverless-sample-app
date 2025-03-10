@@ -18,16 +18,16 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@aws-sdk/client-cloudformation": "^3.744.0",
+    "@aws-sdk/client-cloudformation": "^3.758.0",
     "@aws-sdk/client-dynamodb": "^3.744.0",
-    "@aws-sdk/client-eventbridge": "^3.744.0",
+    "@aws-sdk/client-eventbridge": "^3.758.0",
     "@aws-sdk/client-sfn": "^3.744.0",
     "@aws-sdk/client-sns": "^3.744.0",
     "@aws-sdk/client-sqs": "^3.744.0",
     "@aws-sdk/client-ssm": "^3.744.0",
     "@types/aws-lambda": "8.10.147",
     "@types/jest": "^29.5.14",
-    "@types/node": "22.13.1",
+    "@types/node": "22.13.8",
     "aws-cdk": "2.178.1",
     "aws-cdk-lib": "^2.172.0",
     "axios": "^1.7.9",
@@ -43,12 +43,12 @@
     "serverless-step-functions": "^3.21.2",
     "source-map-support": "^0.5.21",
     "sst": "^2.45.1",
-    "ts-jest": "^29.2.5",
+    "ts-jest": "^29.2.6",
     "ts-node": "^10.9.2",
     "typescript": "~5.7.2"
   },
   "dependencies": {
-    "@aws-lambda-powertools/logger": "^2.14.0",
+    "@aws-lambda-powertools/logger": "^2.15.0",
     "cloudevents": "^8.0.2",
     "zod": "^3.24.2"
   }
