@@ -1,17 +1,14 @@
 #!/bin/bash
 
 pushd src/inventory-service
-mvn clean package -DskipTests
-bg
+make build
 popd
 
 pushd src/user-management-service
-cargo build --release
-bg
+make build
 popd
 
 pushd src/product-management-service
 make build
-bg
 popd
 
