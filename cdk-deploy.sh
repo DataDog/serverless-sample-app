@@ -33,7 +33,7 @@ cdk deploy --require-approval never &> ../../deployment-logs/loyalty-point-servi
 popd
 
 # Wait for all background jobs to complete
-wait
+#wait
 
 # Print deployment status
 echo "Deployment complete. Check logs in deployment-logs directory"
