@@ -16,6 +16,14 @@ pushd src/loyalty-point-service
 npm i
 popd
 
+pushd src/order-service
+dotnet restore
+popd
+
+pushd src/order-service/src/Orders.BackgroundWorkers
+dotnet lambda package
+popd
+
 pushd src/user-management-service
 ./package.sh
 popd
