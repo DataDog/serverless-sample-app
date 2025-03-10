@@ -96,7 +96,7 @@ export class LoyaltyServiceProps {
     // Create the rule on the domain bus.
     const rule = new Rule(
       scope,
-      `${this.sharedProps.serviceName}-${ruleName}`,
+      `${this.sharedProps.serviceName}-${ruleName}-${this.sharedProps.environment}`,
       {
         eventBus: this.loyaltyEventBus,
       }
@@ -107,7 +107,7 @@ export class LoyaltyServiceProps {
     if (this.sharedEventBus !== undefined) {
       const sharedBusRule = new Rule(
         scope,
-        `${this.sharedProps.serviceName}-${ruleName}`,
+        `${this.sharedProps.serviceName}-Shared${ruleName}-${this.sharedProps.environment}`,
         {
           eventBus: this.sharedEventBus,
         }

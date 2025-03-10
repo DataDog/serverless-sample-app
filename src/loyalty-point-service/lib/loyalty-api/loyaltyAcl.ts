@@ -84,7 +84,7 @@ export class LoyaltyACL extends Construct {
       "OrderCompletedQueue",
       {
         sharedProps: props.serviceProps.getSharedProps(),
-        queueName: `${props.serviceProps.getSharedProps().serviceName}-OrderCompleted`,
+        queueName: `OrderCompleted`,
       }
     ).queue;
 
