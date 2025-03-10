@@ -7,7 +7,7 @@ cdk deploy --require-approval never
 popd
 
 pushd src/inventory-service/cdk
-mvn clean package -DskipTests & cdk deploy --require-approval never &
+mvn clean package -DskipTests -q & cdk deploy --require-approval never &
 bg
 popd
 
@@ -27,7 +27,7 @@ cdk deploy --require-approval never &
 bg
 popd
 
-pushd src/loyalty-point-service/cdk
+pushd src/loyalty-point-service
 npm i
 cdk deploy --require-approval never &
 bg
