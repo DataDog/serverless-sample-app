@@ -36,7 +36,7 @@ export class LoyaltyServiceProps {
       scope,
       "LoyaltyEventBusNameParameter",
       {
-        parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/event-bus-arn`,
+        parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/event-bus-name`,
         stringValue: this.loyaltyEventBus.eventBusName,
       }
     );
