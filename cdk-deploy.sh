@@ -29,7 +29,7 @@ cdk deploy --require-approval never &> ../../../deployment-logs/product-manageme
 popd
 
 pushd src/loyalty-point-service
-cdk deploy --require-approval never &> ../deployment-logs/loyalty-point-service.log &
+cdk deploy --require-approval never &> ../../deployment-logs/loyalty-point-service.log &
 popd
 
 # Wait for all background jobs to complete
