@@ -82,7 +82,6 @@ jobs:
           cd src/loyalty-point-service
           make tf-destroy
 
-
   deploy-cdk:
     runs-on: ubuntu-latest
     concurrency:

@@ -1,7 +1,9 @@
 #!/bin/bash
 
 pushd src/shared-infra
-cdk deploy
+npm i
+cdk bootstrap
+cdk deploy --require-approval never
 popd
 
 pushd src/inventory-service/cdk
@@ -25,6 +27,7 @@ bg
 popd
 
 pushd src/loyalty-point-service/cdk
+npm i
 cdk deploy --require-approval never &
 bg
 popd
