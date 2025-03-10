@@ -18,6 +18,7 @@ export class LoyaltyServiceProps {
 
   constructor(scope: Construct, sharedProps: SharedProps) {
     var integratedEnvironments = ["dev", "prod"];
+    this.sharedProps = sharedProps;
 
     this.loyaltyEventBus = new EventBus(scope, "LoyaltyEventBus", {
       eventBusName: `${sharedProps.serviceName}-bus-${sharedProps.environment}`,
