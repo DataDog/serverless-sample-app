@@ -1,0 +1,27 @@
+name: Serverless Sample App Auto Reviewer
+
+on: [pull_request]
+
+env:
+  AUTO_REVIEWER_VERSION: "1.2.0-zfs-debug"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+        with:
+          repository: DataDog/auto-reviewer
+          path: auto-reviewer
+          ref: ${{ env.AUTO_REVIEWER_VERSION }}
+          token: ${{ secrets.REPO_ACCESS }}
+      - uses: ./auto-reviewer
+        with:
+          draft_pr_approval: true
+          dry_run: false
+          enforce_author_and_file_paths: true # Will approve IF AND ONLY IF the user AND the files are in the ignore lists
+          approved_comment_message: "This PR has been approved by the Serverless ONE auto-reviewer."
+          auto_reviewer_version: ${{ env.AUTO_REVIEWER_VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_ACCESS }}
