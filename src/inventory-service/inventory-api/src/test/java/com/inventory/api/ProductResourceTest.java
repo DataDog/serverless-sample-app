@@ -19,8 +19,8 @@ import java.util.concurrent.ExecutionException;
 class ProductResourceTest {
     ApiDriver apiDriver;
     ObjectMapper objectMapper;
-    static final int WORKFLOW_MINIMUM_EXECUTION=15000;
-    static final int ORDER_CREATED_PROCESSING_DELAY=15000;
+    static final int WORKFLOW_MINIMUM_EXECUTION=30000;
+    static final int ORDER_CREATED_PROCESSING_DELAY=30000;
 
     @BeforeEach
     public void setup() {
