@@ -25,7 +25,7 @@ export class ResiliantQueue extends Construct {
 
     this.deadLetterQueue = new Queue(
       this,
-      `${props.queueName}DLQ-${props.sharedProps.environment}`,
+      `${props.sharedProps.serviceName}-${props.queueName}DLQ-${props.sharedProps.environment}`,
       {
         queueName: `${props.queueName}DLQ-${props.sharedProps.environment}`,
       }
@@ -33,7 +33,7 @@ export class ResiliantQueue extends Construct {
 
     this.holdingDlq = new Queue(
       this,
-      `${props.queueName}TempDLQ-${props.sharedProps.environment}`,
+      `${props.sharedProps.serviceName}-${props.queueName}TempDLQ-${props.sharedProps.environment}`,
       {
         queueName: `${props.queueName}TempDLQ-${props.sharedProps.environment}`,
       }
@@ -41,7 +41,7 @@ export class ResiliantQueue extends Construct {
 
     this.queue = new Queue(
       this,
-      `${props.queueName}-${props.sharedProps.environment}`,
+      `${props.sharedProps.serviceName}-${props.queueName}-${props.sharedProps.environment}`,
       {
         queueName: `${props.queueName}-${props.sharedProps.environment}`,
         deadLetterQueue: {

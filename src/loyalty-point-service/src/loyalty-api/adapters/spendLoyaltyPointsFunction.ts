@@ -15,14 +15,19 @@ import {
 } from "../core/spend-points/spendPointsHandler";
 import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
 import { DynamoDbLoyaltyPointRepository } from "./dynamoDbLoyaltyPointRepository";
-import { verify } from "jsonwebtoken";
+import { JwtPayload, verify } from "jsonwebtoken";
 import { getParameter } from "@aws-lambda-powertools/parameters/ssm";
+import { Logger } from "@aws-lambda-powertools/logger";
+import { EventBridgeEventPublisher } from "./eventBridgeEventPublisher";
 
 const dynamoDbClient = new DynamoDBClient();
+const eventBridgeClient = new EventBridgeClient();
 
 const spendPointsHandler = new SpendPointsCommandHandler(
-  new DynamoDbLoyaltyPointRepository(dynamoDbClient)
+  new DynamoDbLoyaltyPointRepository(dynamoDbClient),
+  new EventBridgeEventPublisher(eventBridgeClient)
 );
+const logger = new Logger({});
 
 export const handler = async (
   event: APIGatewayProxyEventV2
@@ -32,10 +37,29 @@ export const handler = async (
   const span = tracer.scope().active();
   addDefaultServiceTagsTo(span);
 
-  const verificationResult = verify(
-    event.headers.Authorization!.replace("Bearer ", ""),
-    parameter!
-  );
+  let verificationResult: JwtPayload | string = "";
+
+  try {
+    verificationResult = verify(
+      event.headers.Authorization!.replace("Bearer ", ""),
+      parameter!
+    );
+  } catch (err: Error | any) {
+    logger.warn("Unauthorized request", { error: err });
+  }
+
+  if (verificationResult.length === 0) {
+    return {
+      statusCode: 401,
+      body: "Unauthorized",
+      headers: {
+        "Content-Type": "application-json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Methods": "*",
+      },
+    };
+  }
 
   const userId = verificationResult.sub!.toString();
 

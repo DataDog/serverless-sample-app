@@ -7,20 +7,18 @@
 
 import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
-import { SharedProps } from "../constructs/sharedFunctionProps";
 import { InstrumentedLambdaFunction } from "../constructs/lambdaFunction";
 import { IFunction } from "aws-cdk-lib/aws-lambda";
-import { IEventBus, Rule } from "aws-cdk-lib/aws-events";
 import { IQueue } from "aws-cdk-lib/aws-sqs";
 import { ResiliantQueue } from "../constructs/resiliantQueue";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { SqsQueue } from "aws-cdk-lib/aws-events-targets";
 import { ITable } from "aws-cdk-lib/aws-dynamodb";
+import { LoyaltyServiceProps } from "./loyaltyServiceProps";
 
 export interface LoyaltyACLServiceProps {
-  sharedProps: SharedProps;
+  serviceProps: LoyaltyServiceProps;
   ddApiKeySecret: ISecret;
-  sharedEventBus: IEventBus;
   loyaltyTable: ITable
 }
 
@@ -42,8 +40,8 @@ export class LoyaltyACL extends Construct {
       this,
       "UserCreatedQueue",
       {
-        sharedProps: props.sharedProps,
-        queueName: `${props.sharedProps.serviceName}-UserCreated`,
+        sharedProps: props.serviceProps.getSharedProps(),
+        queueName: `UserCreated`,
       }
     ).queue;
 
@@ -51,11 +49,11 @@ export class LoyaltyACL extends Construct {
       this,
       "HandleUserCreatedFunction",
       {
-        sharedProps: props.sharedProps,
+        sharedProps: props.serviceProps.getSharedProps(),
         functionName: "HandleUserCreated",
         handler: "index.handler",
         environment: {
-          EVENT_BUS_NAME: props.sharedEventBus.eventBusName,
+          EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
           TABLE_NAME: props.loyaltyTable.tableName,
         },
         buildDef:
@@ -64,7 +62,7 @@ export class LoyaltyACL extends Construct {
         onFailure: undefined
       }
     ).function;
-    props.sharedEventBus.grantPutEventsTo(this.handleUserCreatedFunction);
+    props.serviceProps.getPublisherBus().grantPutEventsTo(this.handleUserCreatedFunction);
     props.loyaltyTable.grantReadWriteData(this.handleUserCreatedFunction);
 
     this.handleUserCreatedFunction.addEventSource(
@@ -73,12 +71,9 @@ export class LoyaltyACL extends Construct {
       })
     );
 
-    const rule = new Rule(this, `${props.sharedProps.serviceName}-UserCreated`, {
-      eventBus: props.sharedEventBus,
-    });
-    rule.addEventPattern({
+    const rule = props.serviceProps.addSubscriptionRule(this, `${props.serviceProps.getSharedProps().serviceName}-UserCreated`, {
       detailType: ["users.userCreated.v1"],
-      source: [`${props.sharedProps.environment}.users`],
+      source: [`${props.serviceProps.getSharedProps().environment}.users`],
     });
     rule.addTarget(new SqsQueue(this.userCreatedEventQueue));
   }
@@ -88,8 +83,8 @@ export class LoyaltyACL extends Construct {
       this,
       "OrderCompletedQueue",
       {
-        sharedProps: props.sharedProps,
-        queueName: `${props.sharedProps.serviceName}-OrderCompleted`,
+        sharedProps: props.serviceProps.getSharedProps(),
+        queueName: `${props.serviceProps.getSharedProps().serviceName}-OrderCompleted`,
       }
     ).queue;
 
@@ -97,11 +92,11 @@ export class LoyaltyACL extends Construct {
       this,
       "HandleOrderCompletedFunction",
       {
-        sharedProps: props.sharedProps,
+        sharedProps: props.serviceProps.getSharedProps(),
         functionName: "HandleOrderCompleted",
         handler: "index.handler",
         environment: {
-          EVENT_BUS_NAME: props.sharedEventBus.eventBusName,
+          EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
           TABLE_NAME: props.loyaltyTable.tableName,
         },
         buildDef:
@@ -110,7 +105,7 @@ export class LoyaltyACL extends Construct {
         onFailure: undefined
       }
     ).function;
-    props.sharedEventBus.grantPutEventsTo(this.handleOrderCompletedFunction);
+    props.serviceProps.getPublisherBus().grantPutEventsTo(this.handleOrderCompletedFunction);
     props.loyaltyTable.grantReadWriteData(this.handleOrderCompletedFunction);
 
     this.handleOrderCompletedFunction.addEventSource(
@@ -119,12 +114,9 @@ export class LoyaltyACL extends Construct {
       })
     );
 
-    const rule = new Rule(this, `${props.sharedProps.serviceName}-OrderCompleted`, {
-      eventBus: props.sharedEventBus,
-    });
-    rule.addEventPattern({
+    const rule = props.serviceProps.addSubscriptionRule(this, `${props.serviceProps.getSharedProps().serviceName}-OrderCompleted`, {
       detailType: ["orders.orderCompleted.v1"],
-      source: [`${props.sharedProps.environment}.orders`],
+      source: [`${props.serviceProps.getSharedProps().environment}.orders`],
     });
     rule.addTarget(new SqsQueue(this.orderCompletedEventQueue));
   }

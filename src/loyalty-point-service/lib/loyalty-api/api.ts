@@ -19,9 +19,10 @@ import { InstrumentedLambdaFunction } from "../constructs/lambdaFunction";
 import { RemovalPolicy } from "aws-cdk-lib";
 import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
 import { IStringParameter } from "aws-cdk-lib/aws-ssm";
+import { LoyaltyServiceProps } from "./loyaltyServiceProps";
 
 export interface ApiProps {
-  sharedProps: SharedProps;
+  serviceProps: LoyaltyServiceProps;
   ddApiKeySecret: ISecret;
   jwtSecret: IStringParameter;
 }
@@ -34,7 +35,7 @@ export class Api extends Construct {
     super(scope, id);
 
     this.table = new Table(this, "LoyaltyPoints", {
-      tableName: `${props.sharedProps.serviceName}-Points-${props.sharedProps.environment}`,
+      tableName: `${props.serviceProps.getSharedProps().serviceName}-Points-${props.serviceProps.getSharedProps().environment}`,
       tableClass: TableClass.STANDARD,
       billingMode: BillingMode.PAY_PER_REQUEST,
       partitionKey: {
@@ -49,7 +50,7 @@ export class Api extends Construct {
 
     this.api = new RestApi(
       this,
-      `${props.sharedProps.serviceName}-API-${props.sharedProps.environment}`,
+      `${props.serviceProps.getSharedProps().serviceName}-API-${props.serviceProps.getSharedProps().environment}`,
       {
         defaultCorsPreflightOptions: {
           allowOrigins: ["http://localhost:8080"],
@@ -69,7 +70,7 @@ export class Api extends Construct {
       this,
       "GetLoyaltyAccountFunction",
       {
-        sharedProps: props.sharedProps,
+        sharedProps: props.serviceProps.getSharedProps(),
         functionName: "GetLoyaltyAccount",
         handler: "index.handler",
         environment: {
@@ -92,15 +93,16 @@ export class Api extends Construct {
   }
 
   buildSpendPointsFunction(props: ApiProps): LambdaIntegration {
-    const createProductFunction = new InstrumentedLambdaFunction(
+    const spendPointsFunction = new InstrumentedLambdaFunction(
       this,
       "SpendPointsFunction",
       {
-        sharedProps: props.sharedProps,
+        sharedProps: props.serviceProps.getSharedProps(),
         functionName: "SpendPointsFunction",
         handler: "index.handler",
         environment: {
           TABLE_NAME: this.table.tableName,
+          EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
           JWT_SECRET_PARAM_NAME: props.jwtSecret.parameterName,
         },
         buildDef:
@@ -110,10 +112,13 @@ export class Api extends Construct {
       }
     );
     const spendPointsIntegration = new LambdaIntegration(
-      createProductFunction.function
+      spendPointsFunction.function
     );
-    this.table.grantReadWriteData(createProductFunction.function);
-    props.jwtSecret.grantRead(createProductFunction.function);
+    this.table.grantReadWriteData(spendPointsFunction.function);
+    props.jwtSecret.grantRead(spendPointsFunction.function);
+    props.serviceProps.getPublisherBus().grantPutEventsTo(
+      spendPointsFunction.function
+    );
 
     return spendPointsIntegration;
   }

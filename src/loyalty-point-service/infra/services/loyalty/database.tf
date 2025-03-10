@@ -5,8 +5,13 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-resource "aws_iam_policy" "sns_publish" {
-  name   = "tf-node-pricing-service-sns_publish_policy-${var.env}"
-  path   = "/"
-  policy = data.aws_iam_policy_document.sns_publish.json
+resource "aws_dynamodb_table" "loyalty_table" {
+  name           = "LoyaltyService-accounts-${var.env}"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "PK"
+
+  attribute {
+    name = "PK"
+    type = "S"
+  }
 }

@@ -7,25 +7,31 @@
 
 # Create a set of IAM policies our application will need
 resource "aws_iam_policy" "dynamo_db_read" {
-  name   = "tf-node-inventory-api-dynamo_db_read_policy-${var.env}"
+  name   = "tf-loyalty-ddb-read-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.dynamo_db_read.json
 }
 
 resource "aws_iam_policy" "dynamo_db_write" {
-  name   = "tf-node-inventory-api-dynamo_db_write_policy-${var.env}"
+  name   = "tf-loyalty-ddb-write-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.dynamo_db_write.json
 }
 
 resource "aws_iam_policy" "eb_publish" {
-  name   = "tf-node-inventory-api-publish-policy-${var.env}"
+  name   = "tf-loyalty-publish-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.eb_publish.json
 }
 
-resource "aws_iam_policy" "get_api_key_secret" {
-  name   = "tf-node-inventory-api-get-secret-${var.env}"
+resource "aws_iam_policy" "get_jwt_ssm_parameter" {
+  name   = "tf-loyalty-get-jwt-${var.env}"
   path   = "/"
-  policy = data.aws_iam_policy_document.retrieve_api_key_secret.json
+  policy = data.aws_iam_policy_document.allow_jwt_secret_key_ssm_read.json
+}
+
+resource "aws_iam_policy" "sqs_receive_policy" {
+  name   = "tf-loyalty-sqs-receive-${var.env}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.sqs_receive.json
 }

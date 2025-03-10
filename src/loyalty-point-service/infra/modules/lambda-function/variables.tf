@@ -59,3 +59,8 @@ variable "memory_size" {
   type    = number
   default = 512
 }
+
+variable "additional_policy_attachments" {
+  type = list(string)
+  default = []
+}

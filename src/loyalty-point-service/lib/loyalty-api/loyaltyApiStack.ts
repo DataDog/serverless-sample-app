@@ -14,6 +14,7 @@ import { Api } from "./api";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { LoyaltyACL } from "./loyaltyAcl";
 import { EventBus } from "aws-cdk-lib/aws-events";
+import { LoyaltyServiceProps } from "./loyaltyServiceProps";
 
 // no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class LoyaltyApiStack extends cdk.Stack {
@@ -26,7 +27,7 @@ export class LoyaltyApiStack extends cdk.Stack {
     const ddApiKey = new Secret(this, "DDApiKeySecret", {
       secretName: `/${env}/${service}/dd-api-key`,
       secretStringValue: new cdk.SecretValue(process.env.DD_API_KEY!),
-    })
+    });
 
     const datadogConfiguration = new Datadog(this, "Datadog", {
       nodeLayerVersion: 121,
@@ -50,32 +51,16 @@ export class LoyaltyApiStack extends cdk.Stack {
       datadogConfiguration,
     };
 
-    const sharedEventBusParam = StringParameter.fromStringParameterName(
-      this,
-      "EventBusParameter",
-      `/${env}/shared/event-bus-name`
-    );
-    const sharedAccessKeyParam = StringParameter.fromStringParameterName(
-      this,
-      "SecretAccessKeyParameter",
-      `/${env}/shared/secret-access-key`
-    );
-
-    const sharedEventBus = EventBus.fromEventBusName(
-      this,
-      "SharedEventBus",
-      sharedEventBusParam.stringValue
-    );
+    const loyaltyServiceProps = new LoyaltyServiceProps(this, sharedProps);
 
     const api = new Api(this, "LoyaltyAPI", {
-      sharedProps,
+      serviceProps: loyaltyServiceProps,
       ddApiKeySecret: ddApiKey,
-      jwtSecret: sharedAccessKeyParam,
+      jwtSecret: loyaltyServiceProps.getJwtSecret(),
     });
     const acl = new LoyaltyACL(this, "LoyaltyACL", {
-      sharedProps,
+      serviceProps: loyaltyServiceProps,
       ddApiKeySecret: ddApiKey,
-      sharedEventBus: sharedEventBus,
       loyaltyTable: api.table,
     });
 

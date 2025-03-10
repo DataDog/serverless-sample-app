@@ -11,9 +11,9 @@ Transform:
   - Name: DatadogServerless
     Parameters:
       stackName: !Ref "AWS::StackName"
-      apiKeySecretArn: !Ref DDApiKeySecretArn
-      nodeLayerVersion: 120
-      extensionLayerVersion: 68
+      apiKey: !Ref DDApiKey
+      nodeLayerVersion: 121
+      extensionLayerVersion: 73
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -21,17 +21,26 @@ Transform:
       captureLambdaPayload: true
 Description: A sample SAM template for deploying Lambda functions.
 
+Conditions:
+  IsNonProdEnvironment: !Not [!Equals [!Ref Env, prod]]
+  IsIntegratedEnvironment: !Or
+    - !Equals [ "dev", !Ref Env ]
+    - !Equals [ "prod", !Ref Env ]
+  IsNotIntegratedEnvironment: !And
+    - !Not [!Equals [!Ref Env, prod]]
+    - !Not [!Equals [!Ref Env, dev]]
+
 Parameters: 
   ServiceName: 
     Type: String
-    Default: NodeProductApi
+    Default: LoyaltyService
   Env: 
     Type: String
     Default: dev
   CommitHash:
     Type: String
     Default: latest
-  DDApiKeySecretArn:
+  DDApiKey:
     Type: String
   DDSite:
     Type: String
@@ -45,9 +54,10 @@ Globals:
     Environment:
       Variables:
         ENV: !Ref Env
-        TABLE_NAME: !Ref ProductApiTable
+        TABLE_NAME: !Ref LoyaltyAccountTable
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
         POWERTOOLS_LOG_LEVEL: 'INFO'
+        DD_LOGS_INJECTION: "true"
         DOMAIN: "products"
     Architectures:
       - x86_64
@@ -58,28 +68,81 @@ Globals:
       AllowOrigin: "'http://localhost:8080'"
 
 Resources:
-  GetProductFunction:
+  DDApiKeySecret:
+    Type: 'AWS::SecretsManager::Secret'
+    Properties:
+      Name: !Sub "/${Env}/${ServiceName}/datadog-api-key"
+      Description: "The Datadog API key"
+      SecretString: !Ref DDApiKey
+
+  LoyaltyServiceEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub "${ServiceName}-Bus-${Env}"
+
+  LoyaltyBusNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/event-bus-name
+      Type: String
+      Value: !Ref LoyaltyServiceEventBus
+
+  LoyaltyBusArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/event-bus-arn
+      Type: String
+      Value: !GetAtt LoyaltyServiceEventBus.Arn
+
+  LoyaltysSecretAccessKeyParameter:
+    Type: AWS::SSM::Parameter
+    Condition: IsNotIntegratedEnvironment
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/secret-access-key
+      Type: String
+      Value: "This is a sample secret key that should not be used in production`"
+      
+################################################
+################     API     ###################
+################################################
+
+  GetLoyaltyPointsFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./
-      Handler: getProductFunction.handler
-      FunctionName: !Sub GetProductFunction-${Env}
+      Handler: getLoyaltyAccountFunction.handler
+      FunctionName: !Sub GetLoyaltyPointsFunction-${Env}
+      Environment:
+        Variables:
+          EVENT_BUS_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Ref LoyaltyServiceEventBus
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
       Events:
         GetProduct:
           Type: HttpApi
           Properties: 
-            Path: /product/{productId}
+            Path: /loyalty/{productId}
             Method: get
       Policies:
         - DynamoDBReadPolicy:
             TableName:
-              !Ref ProductApiTable
+              !Ref LoyaltyAccountTable
+        - EventBridgePutEventsPolicy:
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref LoyaltyServiceEventBus
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecretArn
+              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -89,52 +152,18 @@ Resources:
                 - logs:CreateLogStream
                 - logs:PutLogEvents
               Resource: arn:aws:logs:*:*:*
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "node22"
-        Sourcemap: true
-        SourcesContent: true
-        EntryPoints:
-         - ./src/product-api/adapters/getProductFunction.ts
-        External:
-          - "opentracing"
-          - "dd-trace"
-          - "@datadog/native-metrics"
-          - "@datadog/pprof"
-          - '@datadog/native-appsec'
-          - '@datadog/native-iast-taint-tracking'
-          - '@datadog/native-iast-rewriter'
-          - 'graphql/language/visitor' 
-          - 'graphql/language/printer'
-          - 'graphql/utilities'
-          - '@aws-sdk/client-sqs'
-          - '@aws-sdk/client-dynamodb'
-
-  ListProductsFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: listProductsFunction.handler
-      FunctionName: !Sub ListProductFunction-${Env}
-      Events:
-        GetProduct:
-          Type: HttpApi
-          Properties: 
-            Path: /product
-            Method: get
-      Policies:
-        - DynamoDBReadPolicy:
-            TableName:
-              !Ref ProductApiTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
-                - secretsmanager:GetSecretValue
-                - dynamodb:GetItem
-              Resource: !Ref DDApiKeySecretArn
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -143,7 +172,7 @@ Resources:
         Sourcemap: true
         SourcesContent: true
         EntryPoints:
-         - ./src/product-api/adapters/listProductsFunction.ts 
+         - ./src/loyalty-api/adapters/getLoyaltyAccountFunction.ts
         External:
           - "opentracing"
           - "dd-trace"
@@ -158,38 +187,55 @@ Resources:
           - '@aws-sdk/client-sqs'
           - '@aws-sdk/client-dynamodb'
 
-  CreateProductFunction:
+  SpendLoyaltyPointsFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./
-      Handler: createProductFunction.handler
-      FunctionName: !Sub CreateProductFunction-${Env}
+      Handler: spendLoyaltyPointsFunction.handler
+      FunctionName: !Sub SpendLoyaltyPointsFunction-${Env}
+      Environment:
+        Variables:
+          EVENT_BUS_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Ref LoyaltyServiceEventBus
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
       Events:
         GetProduct:
           Type: HttpApi
           Properties: 
-            Path: /product
+            Path: /loyalty
             Method: post
-      Environment:
-        Variables:
-          PRODUCT_CREATED_TOPIC_ARN: !Ref ProductCreatedTopic
       Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:PutItem
-                - dynamodb:GetItem
-              Resource: !GetAtt ProductApiTable.Arn
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Ref LoyaltyAccountTable
+        - EventBridgePutEventsPolicy:
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref LoyaltyServiceEventBus
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-                - dynamodb:GetItem
-              Resource: !Ref DDApiKeySecretArn
-        - SNSPublishMessagePolicy:
-            TopicName: !GetAtt ProductCreatedTopic.TopicName
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -198,7 +244,7 @@ Resources:
         Sourcemap: true
         SourcesContent: true
         EntryPoints:
-         - ./src/product-api/adapters/createProductFunction.ts 
+         - ./src/loyalty-api/adapters/spendLoyaltyPointsFunction.ts
         External:
           - "opentracing"
           - "dd-trace"
@@ -211,40 +257,38 @@ Resources:
           - 'graphql/language/printer'
           - 'graphql/utilities'
           - '@aws-sdk/client-sqs'
-          - '@aws-sdk/client-sns'
           - '@aws-sdk/client-dynamodb'
 
-  UpdateProductFunction:
+################################################
+############# Background Workers ###############
+################################################
+
+  HandleUserCreatedEventFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./
-      Handler: updateProductFunction.handler
-      FunctionName: !Sub UpdateProductFunction-${Env}
-      Events:
-        GetProduct:
-          Type: HttpApi
-          Properties: 
-            Path: /product
-            Method: put
+      Handler: handleUserCreatedFunction.handler
+      FunctionName: !Sub HandleUserCreated-${Env}
       Environment:
         Variables:
-          PRODUCT_UPDATED_TOPIC_ARN: !Ref ProductUpdatedTopic
+          EVENT_BUS_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Ref LoyaltyServiceEventBus
+      Events:
+        UserCreatedQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt UserCreatedQueue.Arn
       Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:PutItem
-                - dynamodb:GetItem
-              Resource: !GetAtt ProductApiTable.Arn
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecretArn
-        - SNSPublishMessagePolicy:
-            TopicName: !GetAtt ProductUpdatedTopic.TopicName
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Ref LoyaltyAccountTable
+        - EventBridgePutEventsPolicy:
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref LoyaltyServiceEventBus
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -253,7 +297,7 @@ Resources:
         Sourcemap: true
         SourcesContent: true
         EntryPoints:
-         - ./src/product-api/adapters/updateProductFunction.ts 
+         - ./src/loyalty-api/adapters/handleUserCreatedFunction.ts
         External:
           - "opentracing"
           - "dd-trace"
@@ -266,41 +310,80 @@ Resources:
           - 'graphql/language/printer'
           - 'graphql/utilities'
           - '@aws-sdk/client-sqs'
-          - '@aws-sdk/client-sns'
           - '@aws-sdk/client-dynamodb'
 
-  DeleteProductFunction:
+  UserCreatedDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-UserCreatedDLQ-${Env}"
+
+  UserCreatedQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-UserCreated-${Env}"
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - "UserCreatedDLQ"
+            - "Arn"
+        maxReceiveCount: 3
+
+  UserCreatedEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref LoyaltyServiceEventBus
+      Name: loyalty-user-created
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.users"
+        detail-type:
+          - "users.userCreated.v1"
+      Targets:
+        - Id: UserCreatedQueue
+          Arn: !GetAtt UserCreatedQueue.Arn
+
+  EBToUserCreatedQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref UserCreatedQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: allow-eb-send-message
+            Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Resource: !GetAtt UserCreatedQueue.Arn
+            Action: SQS:SendMessage
+
+  HandleOrderCompletedEventFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./
-      Handler: deleteProductFunction.handler
-      FunctionName: !Sub DeleteProductFunction-${Env}
-      Events:
-        GetProduct:
-          Type: HttpApi
-          Properties: 
-            Path: /product/{productId}
-            Method: delete
+      Handler: handleOrderCompletedFunction.handler
+      FunctionName: !Sub HandleOrderCompleted-${Env}
       Environment:
         Variables:
-          PRODUCT_DELETED_TOPIC_ARN: !Ref ProductDeletedTopic
+          EVENT_BUS_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Ref LoyaltyServiceEventBus
+      Events:
+        OrderCompletedQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt OrderCompletedQueue.Arn
       Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:DeleteItem
-                - dynamodb:GetItem
-              Resource: !GetAtt ProductApiTable.Arn
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-                - dynamodb:GetItem
-              Resource: !Ref DDApiKeySecretArn
-        - SNSPublishMessagePolicy:
-            TopicName: !GetAtt ProductDeletedTopic.TopicName
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Ref LoyaltyAccountTable
+        - EventBridgePutEventsPolicy:
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref LoyaltyServiceEventBus
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -309,7 +392,7 @@ Resources:
         Sourcemap: true
         SourcesContent: true
         EntryPoints:
-         - ./src/product-api/adapters/deleteProductFunction.ts 
+         - ./src/loyalty-api/adapters/handleOrderCompletedFunction.ts
         External:
           - "opentracing"
           - "dd-trace"
@@ -322,51 +405,119 @@ Resources:
           - 'graphql/language/printer'
           - 'graphql/utilities'
           - '@aws-sdk/client-sqs'
-          - '@aws-sdk/client-sns'
           - '@aws-sdk/client-dynamodb'
-  
-  ProductCreatedTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: !Sub "NodeProductCreatedTopic-${Env}"
-  ProductUpdatedTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: !Sub "NodeProductUpdatedTopic-${Env}"
-  ProductDeletedTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: !Sub "NodeProductDeletedTopic-${Env}"
-  
-  ProductCreatedTopicArn:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /node/product/product-created-topic
-      Type: String
-      Value: !Ref ProductCreatedTopic
-  ProductUpdatedTopicArn:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /node/product/product-updated-topic
-      Type: String
-      Value: !Ref ProductUpdatedTopic
-  ProductDeletedTopicArn:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /node/product/product-deleted-topic
-      Type: String
-      Value: !Ref ProductDeletedTopic
-  ProductApiTableName:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /node/product/product-table-name
-      Type: String
-      Value: !Ref ProductApiTable
 
-  ProductApiTable:
+  OrderCompletedDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-OrderCompletedDLQ-${Env}"
+
+  OrderCompletedQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-OrderCompleted-${Env}"
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - "OrderCompletedDLQ"
+            - "Arn"
+        maxReceiveCount: 3
+
+  OrderCompletedEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref LoyaltyServiceEventBus
+      Name: loyalty-order-completed
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.orders"
+        detail-type:
+          - "orders.orderCompleted.v1"
+      Targets:
+        - Id: OrderCompletedQueue
+          Arn: !GetAtt OrderCompletedQueue.Arn
+
+  EBToOrderCompletedQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref OrderCompletedQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: allow-eb-send-message
+            Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Resource: !GetAtt OrderCompletedQueue.Arn
+            Action: SQS:SendMessage
+
+################################################      
+######## Public Event Subscriptions ############
+################################################
+  SharedEventBusToLoyaltyServiceEventBusRole:
+    Type: AWS::IAM::Role
+    Condition: IsIntegratedEnvironment
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: allow-eb-publish
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "events:PutEvents"
+                Resource: [!GetAtt LoyaltyServiceEventBus.Arn]
+
+  SharedEventBusUserCreatedEventRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: shared-loyalty-user-created
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.users"
+        detail-type:
+          - "users.userCreated.v1"
+      Targets:
+        - Id: LoyaltyServiceEventBus
+          Arn: !GetAtt LoyaltyServiceEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToLoyaltyServiceEventBusRole.Arn
+          
+  SharedEventBusOrderCompletedEventRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: shared-loyalty-order-completed
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.orders"
+        detail-type:
+          - "orders.orderCompleted.v1"
+      Targets:
+        - Id: LoyaltyServiceEventBus
+          Arn: !GetAtt LoyaltyServiceEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToLoyaltyServiceEventBusRole.Arn
+
+  LoyaltyAccountTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub NodeProducts-${Env}
+      TableName: !Sub ${ServiceName}-Accounts-${Env}
       AttributeDefinitions:
         - AttributeName: PK
           AttributeType: S
@@ -378,13 +529,13 @@ Resources:
   ApiEndpoint:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /node/${Env}/product/api-endpoint
+      Name: !Sub /${Env}/${ServiceName}/api-endpoint
       Type: String
       Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
 
 Outputs:
-  NodeProductApiEndpoint:
-    Description: Product API Endpoint
+  LoyaltyApiEndpoint:
+    Description: Loyalty API Endpoint
     Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
     Export:
-      Name: NodeProductApiEndpoint
+      Name: LoyaltyAPIEndpoint
