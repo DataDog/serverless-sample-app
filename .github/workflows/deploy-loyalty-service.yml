@@ -3,7 +3,7 @@ name: Deploy Loyalty Service
 on:
     push:
       paths:
-        - src/loyalty-service/**
+        - src/loyalty-point-service/**
       branches:
         - 'service-per-lang'
     workflow_dispatch:
@@ -46,7 +46,7 @@ jobs:
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "us-east-1"
         run: |
-          cd src/loyalty-service
+          cd src/loyalty-point-service
           make build
       - name: Terraform apply
         shell: bash
@@ -58,7 +58,7 @@ jobs:
           AWS_REGION: "eu-west-2"
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
-          cd src/loyalty-service
+          cd src/loyalty-point-service
           make tf-apply
       # - name: Integration test dev
       #   shell: bash
@@ -66,7 +66,7 @@ jobs:
       #     ENV: "dev"
       #     AWS_REGION: "eu-west-2"
       #   run: |
-      #     cd src/loyalty-service
+      #     cd src/loyalty-point-service
       #     make integration-test
       - name: Terraform destroy
         shell: bash
@@ -79,7 +79,7 @@ jobs:
           AWS_REGION: "eu-west-2"
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
-          cd src/loyalty-service
+          cd src/loyalty-point-service
           make tf-destroy
 
 
@@ -117,7 +117,7 @@ jobs:
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "us-east-1"
         run: |
-          cd src/loyalty-service
+          cd src/loyalty-point-service
           make build
       - name: Deploy to AWS
         shell: bash
@@ -127,7 +127,7 @@ jobs:
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
         run: |
-          cd src/loyalty-service
+          cd src/loyalty-point-service
           make cdk-deploy
       # - name: Integration test dev
       #   shell: bash
@@ -135,7 +135,7 @@ jobs:
       #     ENV: "dev"
       #     AWS_REGION: "eu-west-1"
       #   run: |
-      #     cd src/loyalty-service
+      #     cd src/loyalty-point-service
       #     make integration-test
       - name: Destroy
         shell: bash
@@ -146,7 +146,7 @@ jobs:
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
         run: |
-          cd src/loyalty-service
+          cd src/loyalty-point-service
           make cdk-destroy
 
   deploy-sam:
@@ -181,7 +181,7 @@ jobs:
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "us-east-1"
         run: |
-          cd src/loyalty-service
+          cd src/loyalty-point-service
           make build
       - name: Deploy to AWS
         shell: bash
@@ -192,7 +192,7 @@ jobs:
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "us-east-1"
         run: |
-          cd src/loyalty-service
+          cd src/loyalty-point-service
           make sam
       # - name: Integration test dev
       #   shell: bash
@@ -200,7 +200,7 @@ jobs:
       #     ENV: "dev"
       #     AWS_REGION: "us-east-1"
       #   run: |
-      #     cd src/loyalty-service
+      #     cd src/loyalty-point-service
       #     make integration-test
       - name: Destroy
         shell: bash
@@ -212,5 +212,5 @@ jobs:
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "us-east-1"
         run: |
-          cd src/loyalty-service
+          cd src/loyalty-point-service
           make sam-destroy
