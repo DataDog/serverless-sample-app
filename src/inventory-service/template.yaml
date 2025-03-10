@@ -790,7 +790,7 @@ Resources:
               dd_source: "quarkus"
               dd_message_key: "log"
               provider: "ecs"
-              apikey: !Sub "{{resolve:secretsmanager:${DDApiKeySecretArn}}}"
+              apikey: !Ref DDApiKey
         - Name: DatadogAgent
           Image: public.ecr.aws/datadog/agent:latest
           Environment:
