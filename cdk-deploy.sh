@@ -12,6 +12,7 @@ bg
 popd
 
 pushd src/user-management-service
+npm i
 cdk deploy --require-approval never &
 bg
 popd
