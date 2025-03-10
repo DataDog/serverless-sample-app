@@ -37,7 +37,7 @@ pre-build:
 	mkdir out/ProductPublicEventPublisher
 	mkdir out/ProductAcl
 
-build: package-api-functions package-product-acl package-api-worker-functions package-event-publisher-functions
+build: pre-build package-api-functions package-product-acl package-api-worker-functions package-event-publisher-functions
 
 package-api-functions: package-GetProductFunction package-CreateProductFunction package-DeleteProductFunction package-UpdateProductFunction package-ListProductsFunction
 
