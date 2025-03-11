@@ -17,14 +17,6 @@ async function updateConfig() {
       client,
       "/dev/ProductManagementService/api-endpoint"
     );
-    const inventoryApiEndpoint = await getParameterValue(
-      client,
-      "/dev/InventoryService/api-endpoint"
-    );
-    const orderApiEndpoint = await getParameterValue(
-      client,
-      "/dev/OrdersService/api-endpoint"
-    );
     const userApiEndpoint = await getParameterValue(
       client,
       "/dev/UserManagementService/api-endpoint"
@@ -32,6 +24,14 @@ async function updateConfig() {
     const pricingApiEndpoint = await getParameterValue(
       client,
       "/dev/PricingService/api-endpoint"
+    );
+    const orderApiEndpoint = await getParameterValue(
+      client,
+      "/dev/OrdersService/api-endpoint"
+    );
+    const inventoryApiEndpoint = await getParameterValue(
+      client,
+      "/dev/InventoryService/api-endpoint"
     );
 
     // Create config object
@@ -41,6 +41,7 @@ async function updateConfig() {
       INVENTORY_API_ENDPOINT: inventoryApiEndpoint,
       ORDER_API_ENDPOINT: orderApiEndpoint,
       LOYALTY_API_ENDPOINT: loyaltyApiEndpoint,
+      PRICING_API_ENDPOINT: pricingApiEndpoint,
       DD_CLIENT_TOKEN: "pubaf7193b34bdb6ae82db1d81396376859",
       DD_APPLICATION_ID: "9603559d-897a-498f-b8e5-c3aa95dfe71f",
       DD_SITE: "datadoghq.eu",
