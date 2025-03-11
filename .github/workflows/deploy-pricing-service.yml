@@ -1,0 +1,212 @@
+name: Deploy Pricing Service
+
+on:
+  push:
+    paths:
+      - src/pricing-service/**
+    branches:
+      - "service-per-lang"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-tf:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: tf-pricing-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: "eu-west-2"
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Build
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "us-east-1"
+        run: |
+          cd src/pricing-service
+          make build
+      - name: Terraform apply
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/pricing-service
+          make tf-apply
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "eu-west-2"
+        run: |
+          cd src/pricing-service
+          make integration-test
+      - name: Terraform destroy
+        shell: bash
+        if: always()
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/pricing-service
+          make tf-destroy
+
+  deploy-cdk:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: cdk-pricing-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+      - name: Install CDK
+        run: |
+          npm install -g aws-cdk
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: "eu-west-1"
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Build
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "us-east-1"
+        run: |
+          cd src/pricing-service
+          make build
+      - name: Deploy to AWS
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          cd src/pricing-service
+          make cdk-deploy
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "eu-west-1"
+        run: |
+          cd src/pricing-service
+          make integration-test
+      - name: Destroy
+        shell: bash
+        if: always()
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          cd src/pricing-service
+          make cdk-destroy
+
+  deploy-sam:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: sam-pricing-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+      - uses: aws-actions/setup-sam@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: "us-east-1"
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Build
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "us-east-1"
+        run: |
+          cd src/pricing-service
+          make build
+      - name: Deploy to AWS
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "us-east-1"
+        run: |
+          cd src/pricing-service
+          make sam
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "us-east-1"
+        run: |
+          cd src/pricing-service
+          make integration-test
+      - name: Destroy
+        shell: bash
+        if: always()
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "us-east-1"
+        run: |
+          cd src/pricing-service
+          make sam-destroy
