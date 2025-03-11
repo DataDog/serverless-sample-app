@@ -5,6 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
+    <!--This is for development purposes only, do not use this in frontend code in production-->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="upgrade-insecure-requests"
+    />
     <title>Serverless eCommerce</title>
     <link
       rel="stylesheet"
@@ -31,7 +36,7 @@
         <div class="product-grid" id="productCards">
           <!-- Product cards will be dynamically inserted here -->
         </div>
-        
+
         <div class="order-summary">
           <article>
             <header>
@@ -43,12 +48,14 @@
             </div>
             <footer>
               <p>Total Items: <span id="totalItems">0</span></p>
-              <button id="checkoutBtn" onclick="createOrder()" disabled>Proceed to Checkout</button>
+              <button id="checkoutBtn" onclick="createOrder()" disabled>
+                Proceed to Checkout
+              </button>
             </footer>
           </article>
         </div>
       </div>
-      
+
       <div id="loading"></div>
     </main>
     <div id="footer"></div>
