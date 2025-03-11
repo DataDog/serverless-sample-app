@@ -1,26 +1,28 @@
 {
-    "scripts": {
-        "build:app": "rm -r -f dist && mkdir dist && cp -r ./src/ ./dist && browserify -e ./src/app.js -o ./dist/app.js",
-        "start": "rm -r -f dist && mkdir dist && cp -r ./src/ ./dist && browserify -e ./src/app.js -o ./dist/app.js && cd dist && npx http-server -c-1"
-    },
-    "devDependencies": {
-        "babel-core": "6.26.3",
-        "@babel/preset-env": "^7.25.7",
-        "babelify": "10.0.0"
-    },
-    "browserify": {
-        "transform": [
-            [
-                "babelify",
-                {
-                    "presets": [
-                        "@babel/preset-env"
-                    ]
-                }
-            ]
-        ]
-    },
-    "dependencies": {
-        "browserify": "^17.0.0"
-    }
+  "scripts": {
+    "build:app": "rm -r -f dist && mkdir dist && cp -r ./src/ ./dist && browserify -e ./src/app.js -o ./dist/app.js",
+    "start": "rm -r -f dist && mkdir dist && cp -r ./src/ ./dist && browserify -e ./src/app.js -o ./dist/app.js && cd dist && npx http-server -c-1",
+    "config-and-start": "node generateConfig.mjs && rm -r -f dist && mkdir dist && cp -r ./src/ ./dist && browserify -e ./src/app.js -o ./dist/app.js && cd dist && npx http-server ./src -c-1"
+  },
+  "devDependencies": {
+    "babel-core": "6.26.3",
+    "@babel/preset-env": "^7.26.9",
+    "babelify": "10.0.0",
+    "@aws-sdk/client-ssm": "^3.759.0"
+  },
+  "browserify": {
+    "transform": [
+      [
+        "babelify",
+        {
+          "presets": [
+            "@babel/preset-env"
+          ]
+        }
+      ]
+    ]
+  },
+  "dependencies": {
+    "browserify": "^17.0.1"
+  }
 }
