@@ -24,8 +24,11 @@ window.DD_RUM &&
 
 loadComponent("header", "/header.html", () => {
   let jwt = localStorage.getItem("jwt");
+  let userType = localStorage.getItem("userType");
 
   let profileElemt = document.getElementById("profile");
+  let ordersElement = document.getElementById("orders");
+  let productsElement = document.getElementById("products");
 
   if (!jwt) {
     let logoutElement = document.getElementById("logout");
@@ -35,9 +38,16 @@ loadComponent("header", "/header.html", () => {
     let loginElement = document.getElementById("login");
     loginElement.style.display = "none";
   }
+
+  if (userType !== "ADMIN") {
+    productsElement.style.display = "none";
+    ordersElement.style.display = "none";
+  } else {
+    ordersElement.style.display = "inline-block";
+    productsElement.style.display = "inline-block";
+  }
 });
-loadComponent("footer", "/footer.html", () => {
-});
+loadComponent("footer", "/footer.html", () => {});
 
 export function logout() {
   localStorage.removeItem("jwt");
