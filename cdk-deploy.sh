@@ -12,24 +12,28 @@ popd
 
 # Service deployments in parallel
 pushd src/inventory-service/cdk
-cdk deploy --require-approval never &> ../../../deployment-logs/inventory-service.log &
+cdk deploy --require-approval never &>../../../deployment-logs/inventory-service.log &
 popd
 
 pushd src/user-management-service
 npm i
-cdk deploy --require-approval never &> ../../deployment-logs/user-management-service.log &
+cdk deploy --require-approval never &>../../deployment-logs/user-management-service.log &
 popd
 
 pushd src/order-service/cdk
-cdk deploy --require-approval never &> ../../../deployment-logs/order-service.log &
+cdk deploy --require-approval never &>../../../deployment-logs/order-service.log &
 popd
 
 pushd src/product-management-service/cdk
-cdk deploy --require-approval never &> ../../../deployment-logs/product-management-service.log &
+cdk deploy --require-approval never &>../../../deployment-logs/product-management-service.log &
 popd
 
 pushd src/loyalty-point-service
-cdk deploy --require-approval never &> ../../deployment-logs/loyalty-point-service.log &
+cdk deploy --require-approval never &>../../deployment-logs/loyalty-point-service.log &
+popd
+
+pushd src/pricing-service
+cdk deploy --require-approval never &>../../deployment-logs/pricing-service.log &
 popd
 
 # Wait for all background jobs to complete
