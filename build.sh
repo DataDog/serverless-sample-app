@@ -16,6 +16,10 @@ pushd src/loyalty-point-service
 npm i
 popd
 
+pushd src/pricing-service
+npm i
+popd
+
 pushd src/order-service
 dotnet restore
 popd
@@ -31,4 +35,3 @@ popd
 pushd src/product-management-service
 make build
 popd
-
