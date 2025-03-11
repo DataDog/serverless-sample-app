@@ -105,6 +105,9 @@ Resources:
       CodeUri: .
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-ListProduct-${Env}
+      Environment:
+        Variables:
+          PRODUCT_CREATED_TOPIC_ARN: !Ref ProductCreatedTopic
       Events:
         GetProduct:
           Type: Api
@@ -112,7 +115,7 @@ Resources:
             Path: /product
             Method: get
       Policies:
-        - DynamoDBReadPolicy:
+        - DynamoDBCrudPolicy:
             TableName:
               !Ref ProductApiTable
         - Version: "2012-10-17"
@@ -131,6 +134,8 @@ Resources:
                 - logs:CreateLogStream
                 - logs:PutLogEvents
               Resource: arn:aws:logs:*:*:*
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ProductCreatedTopic.TopicName
     Metadata:
       BuildMethod: makefile
               

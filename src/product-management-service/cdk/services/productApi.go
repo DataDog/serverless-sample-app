@@ -70,7 +70,8 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		EnvironmentVariables: environmentVariables,
 	})
 
-	table.GrantReadData(listProductsFunction.Function)
+	table.GrantReadWriteData(listProductsFunction.Function)
+	productCreatedTopic.GrantPublish(listProductsFunction.Function)
 
 	createProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "CreateProductFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.SharedProps,

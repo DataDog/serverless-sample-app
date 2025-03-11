@@ -10,6 +10,7 @@ package main
 import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"os"
 	"product-api/internal/adapters"
 	"product-api/internal/core"
@@ -30,8 +31,9 @@ var (
 		awstrace.AppendMiddleware(&awsCfg)
 		return awsCfg
 	}()
-	handler = core.NewListProductsQueryHandler(
-		adapters.NewDynamoDbProductRepository(*dynamodb.NewFromConfig(awsCfg), os.Getenv("TABLE_NAME")))
+	dynamoDbRepository   = adapters.NewDynamoDbProductRepository(*dynamodb.NewFromConfig(awsCfg), os.Getenv("TABLE_NAME"))
+	createProductHandler = core.NewCreateProductCommandHandler(dynamoDbRepository, adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg)))
+	handler              = core.NewListProductsQueryHandler(dynamoDbRepository)
 )
 
 func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -45,5 +47,12 @@ func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest)
 }
 
 func main() {
+	// Seed database on first call
+	_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Flat White", Price: 3.5})
+	_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Espresso", Price: 2.99})
+	_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Latte", Price: 4.99})
+	_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Long Black", Price: 3.50})
+	_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Cappuccino", Price: 4.99})
+
 	lambda.Start(ddlambda.WrapFunction(functionHandler, nil))
 }

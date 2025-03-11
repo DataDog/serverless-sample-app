@@ -9,8 +9,7 @@ package core
 
 import (
 	"context"
-
-	"github.com/google/uuid"
+	"strings"
 )
 
 type ProductRepository interface {
@@ -38,7 +37,7 @@ func NewProduct(name string, price float32) (*Product, error) {
 	}
 
 	return &Product{
-		Id:             uuid.New().String(),
+		Id:             strings.ReplaceAll(strings.ToUpper(name), " ", ""),
 		Name:           name,
 		Price:          price,
 		PreviousName:   "",

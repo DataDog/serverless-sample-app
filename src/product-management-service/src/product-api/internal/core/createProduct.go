@@ -42,6 +42,12 @@ func (handler *CreateProductCommandHandler) Handle(ctx context.Context, command 
 		return nil, err
 	}
 
+	existingProduct, _ := handler.productRepository.Get(ctx, product.Id)
+
+	if existingProduct != nil {
+		return existingProduct.AsDto(), nil
+	}
+
 	err = handler.productRepository.Store(ctx, *product)
 
 	if err != nil {

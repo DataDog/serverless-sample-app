@@ -82,6 +82,7 @@ module "list_products_lambda" {
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.product_api.name
+    "PRODUCT_CREATED_TOPIC_ARN" : aws_sns_topic.product_created.arn
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -92,6 +93,16 @@ module "list_products_lambda" {
 resource "aws_iam_role_policy_attachment" "list_products_lambda_dynamo_db_read" {
   role       = module.list_products_lambda.function_role_name
   policy_arn = aws_iam_policy.dynamo_db_read.arn
+}
+
+resource "aws_iam_role_policy_attachment" "list_products_lambda_dynamo_db_write" {
+  role       = module.list_products_lambda.function_role_name
+  policy_arn = aws_iam_policy.dynamo_db_write.arn
+}
+
+resource "aws_iam_role_policy_attachment" "list_products_lambda_sns_publish" {
+  role       = module.list_products_lambda.function_role_name
+  policy_arn = aws_iam_policy.sns_publish_create.arn
 }
 
 
