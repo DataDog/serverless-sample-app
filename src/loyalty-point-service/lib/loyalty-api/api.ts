@@ -35,7 +35,9 @@ export class Api extends Construct {
     super(scope, id);
 
     this.table = new Table(this, "LoyaltyPoints", {
-      tableName: `${props.serviceProps.getSharedProps().serviceName}-Points-${props.serviceProps.getSharedProps().environment}`,
+      tableName: `${props.serviceProps.getSharedProps().serviceName}-Points-${
+        props.serviceProps.getSharedProps().environment
+      }`,
       tableClass: TableClass.STANDARD,
       billingMode: BillingMode.PAY_PER_REQUEST,
       partitionKey: {
@@ -50,10 +52,12 @@ export class Api extends Construct {
 
     this.api = new RestApi(
       this,
-      `${props.serviceProps.getSharedProps().serviceName}-API-${props.serviceProps.getSharedProps().environment}`,
+      `${props.serviceProps.getSharedProps().serviceName}-API-${
+        props.serviceProps.getSharedProps().environment
+      }`,
       {
         defaultCorsPreflightOptions: {
-          allowOrigins: ["http://localhost:8080"],
+          allowOrigins: ["*"],
           allowHeaders: ["*"],
           allowMethods: ["GET,PUT,POST,DELETE"],
         },
@@ -116,9 +120,9 @@ export class Api extends Construct {
     );
     this.table.grantReadWriteData(spendPointsFunction.function);
     props.jwtSecret.grantRead(spendPointsFunction.function);
-    props.serviceProps.getPublisherBus().grantPutEventsTo(
-      spendPointsFunction.function
-    );
+    props.serviceProps
+      .getPublisherBus()
+      .grantPutEventsTo(spendPointsFunction.function);
 
     return spendPointsIntegration;
   }

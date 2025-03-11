@@ -5,7 +5,7 @@
 # Copyright 2024 Datadog, Inc.
 #
 
-AWSTemplateFormatVersion : '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform:
   - AWS::Serverless-2016-10-31
 
@@ -47,11 +47,11 @@ Globals:
     Cors:
       AllowMethods: "'POST, GET, PUT, DELETE'"
       AllowHeaders: "'*'"
-      AllowOrigin: "'http://localhost:8080'"
+      AllowOrigin: "'*'"
 
 Resources:
   DDApiKeySecret:
-    Type: 'AWS::SecretsManager::Secret'
+    Type: "AWS::SecretsManager::Secret"
     Properties:
       Name: !Sub "/${Env}/${ServiceName}/datadog-api-key"
       Description: "The Datadog API key"
@@ -264,11 +264,11 @@ Resources:
 
   SnsToQueuePolicy:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
+    Properties:
       Queues:
         - !Ref OrderCompletedQueue
-      PolicyDocument: 
-        Version: '2012-10-17'
+      PolicyDocument:
+        Version: "2012-10-17"
         Statement:
           - Sid: allow-eb-send-message-messages
             Effect: Allow
@@ -276,7 +276,7 @@ Resources:
               Service: "events.amazonaws.com"
             Resource: !GetAtt OrderCompletedQueue.Arn
             Action: SQS:SendMessage
-  
+
   UserCreatedTopic:
     Type: AWS::SNS::Topic
     Properties:

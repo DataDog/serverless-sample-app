@@ -41,30 +41,30 @@ public class TestEventHarness : Construct
             },
             RemovalPolicy = RemovalPolicy.DESTROY
         });
-        
+
         var apiEnvironmentVariables = new Dictionary<string, string>(2)
         {
             { "TABLE_NAME", TestEventTable.TableName },
         };
-        var eventApiFunction = new InstrumentedFunction(this, $"EventHarnessApiFunction-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", 
-            new FunctionProps(props.Shared,$"TestApi-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", "../src/TestHarness/TestHarness.Lambda",
+        var eventApiFunction = new InstrumentedFunction(this, $"EventHarnessApiFunction-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}",
+            new FunctionProps(props.Shared, $"TestApi-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", "../src/TestHarness/TestHarness.Lambda",
                 "TestHarness.Lambda::TestHarness.Lambda.ApiFunctions_GetReceivedEvents_Generated::GetReceivedEvents", apiEnvironmentVariables, props.DdApiKeySecret));
         TestEventTable.GrantReadData(eventApiFunction.Function);
-        
+
         var httpAPi = new RestApi(this, $"TestEventApi{props.Shared.ServiceName}-${props.Shared.Env}-${props.Shared.Version}", new RestApiProps()
         {
             DefaultCorsPreflightOptions = new CorsOptions()
             {
                 AllowHeaders = ["*"],
-                AllowOrigins = ["http://localhost:8080"],
+                AllowOrigins = ["*"],
                 AllowMethods = ["GET", "POST", "PUT", "DELETE"],
             }
         });
         var productResource = httpAPi.Root.AddResource("events");
-        
+
         var specificProductResource = productResource.AddResource("{eventId}");
         specificProductResource.AddMethod("GET", new LambdaIntegration(eventApiFunction.Function));
-        
+
         var apiEndpointParam = new StringParameter(this, "TestEventHarnessApiEndpoint", new StringParameterProps()
         {
             ParameterName = $"/{props.Shared.Env}/{props.Shared.ServiceName}_TestHarness/api-endpoint",
@@ -78,8 +78,8 @@ public class TestEventHarness : Construct
                 { "TABLE_NAME", TestEventTable.TableName },
                 { "KEY_PROPERTY_NAME", props.JsonPropertyKeyName }
             };
-            var handlerFunction = new InstrumentedFunction(this, $"EventHarnessSns-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", 
-                new FunctionProps(props.Shared,$"SnsEvent-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", "../src/TestHarness/TestHarness.Lambda",
+            var handlerFunction = new InstrumentedFunction(this, $"EventHarnessSns-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}",
+                new FunctionProps(props.Shared, $"SnsEvent-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", "../src/TestHarness/TestHarness.Lambda",
                     "TestHarness.Lambda::TestHarness.Lambda.HandlerFunctions_HandleSns_Generated::HandleSns", snsHandlerEnvVariables, props.DdApiKeySecret));
             TestEventTable.GrantReadWriteData(handlerFunction.Function);
 
@@ -96,8 +96,8 @@ public class TestEventHarness : Construct
                 { "TABLE_NAME", TestEventTable.TableName },
                 { "KEY_PROPERTY_NAME", props.JsonPropertyKeyName }
             };
-            var handlerFunction = new InstrumentedFunction(this, $"EventHarnessEventBridge-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", 
-                new FunctionProps(props.Shared,$"EBEvent-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", "../src/TestHarness/TestHarness.Lambda",
+            var handlerFunction = new InstrumentedFunction(this, $"EventHarnessEventBridge-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}",
+                new FunctionProps(props.Shared, $"EBEvent-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", "../src/TestHarness/TestHarness.Lambda",
                     "TestHarness.Lambda::TestHarness.Lambda.HandlerFunctions_HandleEventBridge_Generated::HandleEventBridge", eventBridgeHandlerVariables, props.DdApiKeySecret));
             TestEventTable.GrantReadWriteData(handlerFunction.Function);
 

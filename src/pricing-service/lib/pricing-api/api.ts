@@ -36,7 +36,7 @@ export class Api extends Construct {
       }`,
       {
         defaultCorsPreflightOptions: {
-          allowOrigins: ["http://localhost:8080"],
+          allowOrigins: ["*"],
           allowHeaders: ["*"],
           allowMethods: ["GET,PUT,POST,DELETE"],
         },
