@@ -3,19 +3,21 @@
 > [!CAUTION]
 > Deploying resources in this repository may incur costs in your AWS or DataDog account. Each runtime specific README contains instructions on deleting all resources, it is recommended you do this when not in use.
 
-This repository contains source code for demonstrating the getting started experience when using native tracing through various AWS serverless technologies. It implements the same architecture in all the available Lambda runtimes, and different IaC tools to provide a getting started experience for where ever you are today.
+This repository contains source code for demonstrating best practices for observing your AWS serverless applications using Datadog.
+
+## High Level Architecture
 
 ![Architecture Diagram](img/serverless-lambda-tracing.png)
 
 ## Implementations
 
-|                      | Node                                             | Python | .NET                                | Java                                           | Go  | Rust |
-| -------------------- | ------------------------------------------------ | ------ | ----------------------------------- | ---------------------------------------------- | --- | ---- |
-| AWS CDK              | [Y](./src/nodejs/README.md#aws-cdk)              |        | [Y](./src/dotnet/README.md#aws-cdk) | [Y](./src/java/README.md#aws-cdk)              |  [Y](./src/go/README.md#aws-cdk)   | [Y](./src/rust/README.md#aws-cdk)     |
-| AWS SAM              | [Y](./src/nodejs/README.md#aws-sam)              |        | [Y](./src/dotnet/README.md#aws-sam)                                    | [Y](./src/java/README.md#aws-sam)              | [Y](./src/go/README.md#aws-sam)    | [Y](./src/rust/README.md#aws-sam)     |
-| Terraform            | [Y](./src/nodejs/README.md#terraform)            |        | [Y](./src/dotnet/README.md#terraform)                                    | [Y](./src/java/README.md#terraform)            |  [Y](./src/go/README.md#terraform)   | [Y](./src/rust/README.md#terraform)     |
-| Serverless Framework | [Y](./src/nodejs/README.md#serverless-framework) |        |  [N](./src/dotnet/README.md#serverless-framework)                                   | [Y](./src/java/README.md#serverless-framework) |     |      |
-| SST v2               | [Y](./src/nodejs/README.md#serverless-stack-sst) |        |                                     |                                                |     |      |
+|                      | Node                                                            | Python | .NET                                                    | Java                                                        | Go                                                        | Rust                                                   |
+| -------------------- | --------------------------------------------------------------- | ------ | ------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------ |
+| AWS CDK              | [Y](./src/loyalty-point-service/README.md#aws-cdk)              |        | [Y](./src/order-service/README.md#aws-cdk)              | [Y](./src/inventory-service/README.md#aws-cdk)              | [Y](./src/product-management-service/README.md#aws-cdk)   | [Y](./src/user-management-service/README.md#aws-cdk)   |
+| AWS SAM              | [Y](./src/loyalty-point-service/README.md#aws-sam)              |        | [Y](./src/order-service/README.md#aws-sam)              | [Y](./src/inventory-service/README.md#aws-sam)              | [Y](./src/product-management-service/README.md#aws-sam)   | [Y](./src/user-management-service/README.md#aws-sam)   |
+| Terraform            | [Y](./src/loyalty-point-service/README.md#terraform)            |        | [Y](./src/order-service/README.md#terraform)            | [Y](./src/inventory-service/README.md#terraform)            | [Y](./src/product-management-service/README.md#terraform) | [Y](./src/user-management-service/README.md#terraform) |
+| Serverless Framework | [Y](./src/loyalty-point-service/README.md#serverless-framework) |        | [N](./src/order-service/README.md#serverless-framework) | [Y](./src/inventory-service/README.md#serverless-framework) |                                                           |                                                        |
+| SST v2               | [Y](./src/loyalty-point-service/README.md#serverless-stack-sst) |        |                                                         |                                                             |                                                           |                                                        |
 
 ## End to End Tracing Output
 
@@ -23,30 +25,75 @@ Once deployed, the system demonstrates the full end to end observability Datadog
 
 ![End to end tracing](img/end-to-end-trace.png)
 
-The application simulates `Product`, `Inventory` and `Analytics` services, inside an eCommerce application. The functionality is managed by three independent teams, the product service, inventory service and analytics service team. Interactions between domains runs through a shared Amazon EventBridge EventBus.
-
 ## Demo Application
 
-### Product Service
+### Product Management Service
 
-The product service is made up of 3 independent services, that interact asynchronously.
+**Runtime: GoLang**
 
-1. The `ProductAPI` provides CRUD (Create, Read, Update, Delete) API provides the ability to manage product information. On all CUD requests, private events are published onto respective SNS topics for downstream processing. The API has one additional Lambda function reacting to `PricingChanged` events published by the `ProductPricingService`.
-2. The `ProductPricingService`. This service consumers `ProductCreated` and `ProductUpdated` events published by the `ProductAPI` and asynchronously calculates pricing discounts for the product. On calculation, it publishes a `PricingChanged` event onto another SNS topic which the `ProductAPI` then consumers to update pricing
-3. The `PublicEventPublisher` acts as a translation layer between private and public events. It takes the `ProductCreated`, `ProductUpdated` and `ProductDeleted` events and translates them into the respective events for downstream processing.
+**AWS Services Used: API Gateway, Lambda, DynamoDB, SNS, SQS, EventBridge**
+
+The product service manages the product catalogue, and items that are available to the frontend. It is made up of 3 independent services.
+
+1. The `ProductAPI` provides CRUD (Create, Read, Update, Delete) API provides the ability to manage product information. On all CRUD requests, private events are published onto internal SNS topics for downstream processing. The API has one additional Lambda function reacting to `PricingChanged` events published by the `PricingService`.
+2. The `ProductAcl` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes events published by external services, translates them to internal events and processes them
+3. The `ProductEventPublisher` acts as a translation layer between private and public events. It takes the `ProductCreated`, `ProductUpdated` and `ProductDeleted` events and translates them into the respective events for downstream processing.
 
 ### Inventory Service
 
-The inventory service is made up of 2 independent services, that interact asynchronously.
+**Runtime: Java**
 
-1. The `InventoryAntiCorruptionLayer` acts as an anti-corruption layer. It receives requests from upstream services, ensures they are semantically correct against the expected schema and translates them for further processing inside the `InventorySevice`. This step also acts as a buffer, to prevent overload from upstream services.
-2. The `StockOrderingService` takes upstream events and starts a StepFunctions workflow to start the processing of purchasing stock for the product
+**AWS Services Used: Application Load Balancer, ECS, Fargate, Lambda, SQS, DynamoDB, EventBridge, StepFunctions**
 
-### Analytics Service
+The inventory service manages stock levels, and allows admin users to update the stock of products. It is made up of 3 independent services.
 
-The analytics service is made up of a single service that recevies all events from `EventBridge` and increments a metric inside Datadog depending on the type of event received. The analytics service also demonstrates the use of [`SpanLinks`](https://docs.datadoghq.com/tracing/trace_collection/span_links/). SpanLinks are useful when two processes are related but don't have a direct parent-child relationship.
+1. The `InventoryAPI` allows all users to retrieve the stock level for a given product, and allows admin users to update the stock level of a given product
+2. The `InventoryACL` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes events published by external services, translates them to internal events and processes them
+3. The `InventoryOrderingService` reacts to `NewProductAdded` events and starts the stock ordering workflow
 
-In this scenario, analytics spans would add noise to the end to end trace for the product creation and inventory ordering flow. However, causality is still useful to understand. Span Links provide a link, but still keeps independence in the traces.
+### Order Service
+
+**Runtime: .NET**
+
+**AWS Services Used: Application Load Balancer, ECS, Fargate, Lambda, SQS, DynamoDB, EventBridge, StepFunctions**
+
+The order services allows users to place orders, and traces the flow of an order through the system using a Step Function workflow. It is made up of 2 independent services
+
+1. The `Orders.Api` provides various API endpoints to create, update and manage orders as they flow through the system
+2. The `Orders.BackgroundWorkers` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes events published by external services, translates them to internal events and processes them
+
+### User Management Service
+
+**Runtime: Rust**
+
+**AWS Services Used: API Gateway, Lambda, SQS, DynamoDB, EventBridge**
+
+The user management services manages everything related to user accounts. It allows users to register and login, generating a JWT that is used by other services to authenticate. It also tracks the number of orders a user has placed. It is made up of 2 independent services
+
+1. The `Api` provides various API endpoints to register new users, login and retrieve details about a given user
+2. The `BackgroundWorker` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes events published by external services, translates them to internal events and processes them
+
+### Loyalty Account Service
+
+**Runtime: NodeJS**
+
+**AWS Services Used: API Gateway, Lambda, SQS, DynamoDB, EventBridge**
+
+The loyalty account service tracks the status of a users loyalty account, and manages how many loyalty points a user has. It allows users to retrieve the current state of their loyalty account, and reacts to OrderCompleted events to add additional points to a loyalty account.
+
+1. The `Api` provides various endpoints to get a users loyalty account, as well as an additional endpoint to spend their points
+2. The `LoyaltyACL` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes events published by external services, translates them to internal events and processes them
+
+### Pricing Service
+
+**Runtime: NodeJS**
+
+**AWS Services Used: API Gateway, Lambda, SQS, DynamoDB, EventBridge**
+
+The pricing service generates custom pricing breakdowns that are available to premium users.
+
+1. The `Api` provides a single endpoint to generate pricing for a specific product synchronously
+2. The `PricingEventHandlers` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes Product Created and Updated events, generates pricing, and then publishes a PricingGenerated event back onto the event bus
 
 ## Load Tests
 
