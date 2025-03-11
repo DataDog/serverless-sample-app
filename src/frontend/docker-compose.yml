@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     image: frontend:latest
     ports:
-      - "8080:8080"
+      - "8090:8080"
     environment:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
