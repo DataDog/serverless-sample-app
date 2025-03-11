@@ -76,7 +76,7 @@ async function getParameterValue(client, parameterName) {
 
       const command = new GetParameterCommand(getParameterCommand);
       const response = await client.send(command);
-      return response.Parameter.Value;
+      return response.Parameter.Value.replace(/\/+$/, "");
     } catch (error) {
       console.error(
         `Error fetching parameter ${parameterName}:`,
