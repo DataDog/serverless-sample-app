@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using Amazon.CDK;
+using Amazon.CDK.AWS.APIGateway;
 using Amazon.CDK.AWS.DynamoDB;
 using Amazon.CDK.AWS.EC2;
 using Amazon.CDK.AWS.ECS;
@@ -66,13 +67,7 @@ public class OrdersApi : Construct
 
         CreateOrderWorkflow(props, describeBusPolicyStatement);
 
-        var application = CreateOrderAPI(props, describeBusPolicyStatement);
-
-        var apiEndpointParam = new StringParameter(this, "ApiEndpoint", new StringParameterProps()
-        {
-            ParameterName = $"/{props.SharedProps.Env}/{props.SharedProps.ServiceName}/api-endpoint",
-            StringValue = $"http://{application.LoadBalancer.LoadBalancerDnsName}"
-        });
+        CreateOrderAPI(props, describeBusPolicyStatement);
     }
 
     private void CreateOrderWorkflow(OrdersApiProps props, PolicyStatement describeBusPolicyStatement)
@@ -179,6 +174,8 @@ public class OrdersApi : Construct
         });
         taskRole.AddManagedPolicy(
             ManagedPolicy.FromAwsManagedPolicyName("service-role/AmazonECSTaskExecutionRolePolicy"));
+        
+        
 
         var application = new ApplicationLoadBalancedFargateService(this, "OrdersService",
             new ApplicationLoadBalancedFargateServiceProps
@@ -307,6 +304,107 @@ public class OrdersApi : Construct
             }
         });
 
+        CreateApiGatewayForAlb(props, application);
+
         return application;
+    }
+    
+    private IRestApi CreateApiGatewayForAlb(OrdersApiProps props, ApplicationLoadBalancedFargateService application)
+    {
+        var api = new RestApi(this, "OrdersApi", new RestApiProps
+        {
+            RestApiName = $"{props.SharedProps.ServiceName}-Orders-Api-{props.SharedProps.Env}",
+            Description = "API Gateway for Orders Service",
+            DeployOptions = new StageOptions
+            {
+                StageName = props.SharedProps.Env,
+            },
+            DefaultCorsPreflightOptions = new CorsOptions
+            {
+                AllowOrigins = Cors.ALL_ORIGINS,
+                AllowMethods = Cors.ALL_METHODS,
+                AllowHeaders = new[] { "Content-Type", "Authorization" }
+            }
+        });
+
+        // Create integration with the ALB
+        var albDnsName = application.LoadBalancer.LoadBalancerDnsName;
+        var integration = new HttpIntegration($"http://{albDnsName}/{{proxy}}", new HttpIntegrationProps()
+        {
+            HttpMethod = "ANY",
+            Proxy = true,
+            Options = new IntegrationOptions
+            {
+                IntegrationResponses = new[]
+                {
+                    new IntegrationResponse
+                    {
+                        StatusCode = "200",
+                        ResponseParameters = new Dictionary<string, string>
+                        {
+                            {
+                                "method.response.header.Access-Control-Allow-Origin", "'*'"
+                            }
+                        }
+                    }
+                },
+                RequestParameters = new Dictionary<string, string>
+                {
+                    {
+                        "integration.request.path.proxy", "method.request.path.proxy"
+                    }
+                },
+            },
+        });
+
+        // Proxy all requests to the ALB
+        var proxyResource = api.Root.AddResource("{proxy+}");
+        proxyResource.AddMethod("ANY", integration, new MethodOptions
+        {
+            RequestParameters = new Dictionary<string, bool>()
+            {
+                {"method.request.path.proxy", true} 
+            },
+            MethodResponses = new[] 
+            {
+                new MethodResponse
+                {
+                    StatusCode = "200",
+                    ResponseParameters = new Dictionary<string, bool>
+                    {
+                        {"method.response.header.Access-Control-Allow-Origin", true}
+                    },
+                }
+            }
+        });
+
+        // Also route the root path
+        api.Root.AddMethod("ANY", integration, new MethodOptions
+        {
+            RequestParameters = new Dictionary<string, bool>()
+            {
+                {"method.request.path.proxy", true} 
+            },
+            MethodResponses = new[] 
+            {
+                new MethodResponse
+                {
+                    StatusCode = "200",
+                    ResponseParameters = new Dictionary<string, bool>
+                    {
+                        {"method.response.header.Access-Control-Allow-Origin", true}
+                    }
+                }
+            }
+        });
+
+        // Add API Gateway endpoint to parameters
+        new StringParameter(this, "ApiGatewayEndpoint", new StringParameterProps
+        {
+            ParameterName = $"/{props.SharedProps.Env}/{props.SharedProps.ServiceName}/api-endpoint",
+            StringValue = api.Url
+        });
+
+        return api;
     }
 }

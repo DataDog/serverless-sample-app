@@ -11,6 +11,7 @@ import software.amazon.awscdk.CfnOutput;
 import software.amazon.awscdk.CfnOutputProps;
 import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.RemovalPolicy;
+import software.amazon.awscdk.services.apigateway.*;
 import software.amazon.awscdk.services.dynamodb.*;
 import software.amazon.awscdk.services.ec2.*;
 import software.amazon.awscdk.services.ecs.*;
@@ -62,6 +63,21 @@ public class InventoryApiContainer extends Construct {
                 .build();
         taskRole.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName("service-role/AmazonECSTaskExecutionRolePolicy"));
 
+        Map<String, String> environmentVariables = new HashMap<>();
+        environmentVariables.put("DD_LOGS_INJECTION", "true");
+        environmentVariables.put("TABLE_NAME", table.getTableName());
+        environmentVariables.put("EVENT_BUS_NAME", props.sharedEventBus().getEventBusName());
+        environmentVariables.put("TEAM", "inventory");
+        environmentVariables.put("DOMAIN", "inventory");
+        environmentVariables.put("ENV", props.sharedProps().env());
+        environmentVariables.put("DD_SERVICE", props.sharedProps().service());
+        environmentVariables.put("DD_ENV", props.sharedProps().env());
+        environmentVariables.put("DD_VERSION", props.sharedProps().version());
+        environmentVariables.put("JWT_SECRET_PARAM_NAME", props.jwtAccessKeyParameter().getParameterName());
+        environmentVariables.put("QUARKUS_HTTP_CORS_HEADERS", "Accept,Authorization,Content-Type");
+        environmentVariables.put("QUARKUS_HTTP_CORS_METHODS", "GET,POST,OPTIONS,PUT,DELETE");
+        environmentVariables.put("QUARKUS_HTTP_CORS_ORIGINS", "*");
+
         ApplicationLoadBalancedFargateService application = ApplicationLoadBalancedFargateService.Builder.create(this, "InventoryApiService")
                 .cluster(cluster)
                 .desiredCount(1)
@@ -73,18 +89,7 @@ public class InventoryApiContainer extends Construct {
                         .image(ContainerImage.fromRegistry("public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-inventory-java:latest"))
                         .executionRole(executionRole)
                         .taskRole(taskRole)
-                        .environment(Map.of(
-                                "DD_LOGS_INJECTION", "true",
-                                "TABLE_NAME", table.getTableName(),
-                                "EVENT_BUS_NAME", props.sharedEventBus().getEventBusName(),
-                                "TEAM", "inventory",
-                                "DOMAIN", "inventory",
-                                "ENV", props.sharedProps().env(),
-                                "DD_SERVICE", props.sharedProps().service(),
-                                "DD_ENV", props.sharedProps().env(),
-                                "DD_VERSION", props.sharedProps().version(),
-                                "JWT_SECRET_PARAM_NAME", props.jwtAccessKeyParameter().getParameterName()
-                        ))
+                        .environment(environmentVariables)
                         .containerPort(8080)
                         .containerName("InventoryApi")
                         .logDriver(new FireLensLogDriver(FireLensLogDriverProps.builder()
@@ -183,11 +188,75 @@ public class InventoryApiContainer extends Construct {
                 .stringValue(String.format("http://%s", application.getLoadBalancer().getLoadBalancerDnsName()))
                 .build());
 
+        var restApi = createApiGatewayForAlb(props, application);
+
         var apiEndpointOutput = new CfnOutput(this, "InventoryApiUrlOutput", CfnOutputProps.builder()
-                .value(application.getLoadBalancer().getLoadBalancerDnsName())
+                .value(restApi.getUrl())
                 .exportName("InventoryApiEndpoint")
                 .build());
         
+    }
+
+    private RestApi createApiGatewayForAlb(InventoryApiContainerProps props, ApplicationLoadBalancedFargateService application) {
+        RestApi api = RestApi.Builder.create(this, "OrdersApi")
+                .restApiName(String.format("%s-Orders-Api-%s", props.sharedProps().service(), props.sharedProps().env()))
+                .description("API Gateway for Orders Service")
+                .deployOptions(StageOptions.builder()
+                        .stageName(props.sharedProps().env())
+                        .build())
+                .defaultCorsPreflightOptions(CorsOptions.builder()
+                        .allowOrigins(Cors.ALL_ORIGINS)
+                        .allowMethods(Cors.ALL_METHODS)
+                        .allowHeaders(List.of("Content-Type", "Authorization"))
+                        .build())
+                .build();
+
+        // Create integration with the ALB
+        String albDnsName = application.getLoadBalancer().getLoadBalancerDnsName();
+        HttpIntegration integration = HttpIntegration.Builder.create(String.format("http://%s/{proxy}", albDnsName))
+                .httpMethod("ANY")
+                .proxy(true)
+                .options(IntegrationOptions.builder()
+                        .integrationResponses(List.of(IntegrationResponse.builder()
+                                .statusCode("200")
+                                .responseParameters(Map.of(
+                                        "method.response.header.Access-Control-Allow-Origin", "'*'"
+                                ))
+                                .build()))
+                        .requestParameters(Map.of(
+                                "integration.request.path.proxy", "method.request.path.proxy"
+                        ))
+                        .build())
+                .build();
+
+        // Proxy all requests to the ALB
+        IResource proxyResource = api.getRoot().addResource("{proxy+}");
+        proxyResource.addMethod("ANY", integration, MethodOptions.builder()
+                .requestParameters(Map.of(
+                        "method.request.path.proxy", true
+                ))
+                .methodResponses(List.of(MethodResponse.builder()
+                        .statusCode("200")
+                        .responseParameters(Map.of(
+                                "method.response.header.Access-Control-Allow-Origin", true
+                        ))
+                        .build()))
+                .build());
+
+        // Also route the root path
+        api.getRoot().addMethod("ANY", integration, MethodOptions.builder()
+                .requestParameters(Map.of(
+                        "method.request.path.proxy", true
+                ))
+                .methodResponses(List.of(MethodResponse.builder()
+                        .statusCode("200")
+                        .responseParameters(Map.of(
+                                "method.response.header.Access-Control-Allow-Origin", true
+                        ))
+                        .build()))
+                .build());
+
+        return api;
     }
 
     public ITable getTable(){

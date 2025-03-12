@@ -51,6 +51,7 @@ loadComponent("footer", "/footer.html", () => {});
 
 export function logout() {
   localStorage.removeItem("jwt");
+  localStorage.removeItem("userType");
   window.location.href = "/login";
 }
 

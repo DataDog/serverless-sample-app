@@ -140,7 +140,31 @@ function refreshData() {
         const productCard = document.createElement("article");
         productCard.className = "product-card";
 
-        productCard.innerHTML = `
+        if (product.stockLevel <= 0) {
+          loadStockLevel(
+            product,
+            (productId, productName, productPrice, productStock) => {
+              productCard.innerHTML = `
+          <header>
+            <h3>${productName}</h3>
+          </header>
+          <p class="price">$${productPrice}</p>
+          <p class="stock">${productStock} in stock</p>
+          <footer>
+            <button class="view-details" onclick="viewProductDetails('${productId}', this)">View Details</button>
+            ${
+              productStock > 0
+                ? `<button class="add-to-cart" onclick="addToOrder('${productName}', '${productId}')">Add to Order</button>`
+                : ""
+            }
+          </footer>
+        `;
+
+              productCardsElement.appendChild(productCard);
+            }
+          );
+        } else {
+          productCard.innerHTML = `
           <header>
             <h3>${product.name}</h3>
           </header>
@@ -158,12 +182,47 @@ function refreshData() {
           </footer>
         `;
 
-        productCardsElement.appendChild(productCard);
+          productCardsElement.appendChild(productCard);
+        }
       });
     },
     error: function (xhr, status, error) {
       loadingSpinner.ariaBusy = false;
       alert("Failed to load products: " + error);
+    },
+  });
+}
+
+function loadStockLevel(product, callback) {
+  $.ajax({
+    url: `${config.INVENTORY_API_ENDPOINT}/inventory/${product.productId}`,
+    method: "GET",
+    contentType: "application/json",
+    success: function (response) {
+      console.log(`Loading stock for ${product.productId}`);
+      console.log(response);
+
+      if (response.data === null) {
+        callback(product.productId, product.name, product.price, 0);
+        return 0;
+      }
+
+      console.log(response.data.currentStockLevel);
+
+      callback(
+        product.productId,
+        product.name,
+        product.price,
+        response.data.currentStockLevel
+      );
+
+      return response.data.currentStockLevel;
+    },
+    error: function (xhr, status, error) {
+      return 0;
+    },
+    beforeSend: function (xhr) {
+      xhr.setRequestHeader("Authorization", `Bearer ${jwt}`);
     },
   });
 }

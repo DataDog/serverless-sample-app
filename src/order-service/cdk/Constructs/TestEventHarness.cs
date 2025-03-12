@@ -51,7 +51,7 @@ public class TestEventHarness : Construct
                 "TestHarness.Lambda::TestHarness.Lambda.ApiFunctions_GetReceivedEvents_Generated::GetReceivedEvents", apiEnvironmentVariables, props.DdApiKeySecret));
         TestEventTable.GrantReadData(eventApiFunction.Function);
 
-        var httpAPi = new RestApi(this, $"TestEventApi{props.Shared.ServiceName}-${props.Shared.Env}-${props.Shared.Version}", new RestApiProps()
+        var httpAPi = new RestApi(this, $"TestEventApi{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", new RestApiProps()
         {
             DefaultCorsPreflightOptions = new CorsOptions()
             {

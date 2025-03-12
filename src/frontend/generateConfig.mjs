@@ -7,7 +7,7 @@ import path from "path";
 async function updateConfig() {
   try {
     // Initialize SSM client
-    const client = new SSMClient({ region: "us-east-1" });
+    const client = new SSMClient({ region: process.env.AWS_REGION });
 
     const loyaltyApiEndpoint = await getParameterValue(
       client,

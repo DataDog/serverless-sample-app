@@ -1,4 +1,4 @@
-package com.inventory.core.adapters;
+package com.inventory.api;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -30,7 +30,25 @@ public class Authenticator {
                 .value();
     }
 
-    public boolean Authorize(String token) {
+    public boolean AuthorizeStandardAccess(String token) {
+        try {
+            LOGGER.info(secretString);
+
+            Key key = Keys.hmacShaKeyFor(secretString.getBytes());
+            Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+
+            if (claims.get(USER_TYPE_CLAIM) != null) {
+                return false;
+            }
+        } catch (Exception e) {
+            LOGGER.error("User type: " + e.getMessage());
+            return false;
+        }
+
+        return true;
+    }
+
+    public boolean AuthorizeAdmin(String token) {
         try {
             LOGGER.info(secretString);
 

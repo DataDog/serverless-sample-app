@@ -179,6 +179,7 @@ function viewProduct(productId, btnElement) {
 }
 
 function loadStockLevel(productId) {
+  console.log(`${config.INVENTORY_API_ENDPOINT}/inventory/${productId}`);
   $.ajax({
     url: `${config.INVENTORY_API_ENDPOINT}/inventory/${productId}`,
     method: "GET",
@@ -194,7 +195,7 @@ function loadStockLevel(productId) {
     },
     beforeSend: function (xhr) {
       xhr.setRequestHeader("Authorization", `Bearer ${jwt}`);
-    }
+    },
   });
 }
 
