@@ -22,12 +22,8 @@ public class EventBridgeEventPublisher(
 
     private async Task Publish(PutEventsRequestEntry evt)
     {
-        var activeSpan = Tracer.Instance.ActiveScope?.Span;
-
-        var scope = Tracer.Instance.StartActive($"publish {evt.DetailType}", new SpanCreationSettings()
-        {
-            Parent = activeSpan.Context
-        });
+        var scope = Tracer.Instance.StartActive($"publish {evt.DetailType}");
+        
         var cloudEvent = evt.GenerateCloudEventFrom();
         var evtFormatter = new JsonEventFormatter();
         if (cloudEvent != null)
