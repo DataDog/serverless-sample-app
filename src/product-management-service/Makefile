@@ -48,7 +48,7 @@ package-product-acl: package-ProductAclFunction
 
 package-api-worker-functions: package-ProductApiPricingWorker package-ProductApiStockUpdatedWorker
 
-package-event-publisher-functions: package-EventPublisher
+package-event-publisher-functions: package-ProductPublicEventPublisher
 
 package-GetProductFunction:
 	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap get-product/main.go;cp bootstrap ../../out/GetProduct/bootstrap
@@ -82,7 +82,7 @@ package-ProductAclFunction:
 	cd src/product-acl;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap inventory-stock-updated-event-handler/main.go;cp bootstrap ../../out/ProductAcl/bootstrap
 	zip -r -j out/ProductAcl/ProductAcl.zip out/ProductAcl/bootstrap
 
-package-EventPublisher:
+package-ProductPublicEventPublisher:
 	cd src/product-event-publisher;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap public-event-publisher/main.go;cp bootstrap ../../out/EventPublisher/bootstrap
 	zip -r -j out/EventPublisher/EventPublisher.zip out/EventPublisher/bootstrap
 
@@ -107,7 +107,7 @@ build-ProductApiPricingWorker:
 build-ProductApiStockUpdatedWorker:
 	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-stock-updated/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
 
-build-EventPublisher:
+build-ProductPublicEventPublisher:
 	cd src/product-event-publisher;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap public-event-publisher/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
 
 build-ProductInventoryStockUpdatedHandler:

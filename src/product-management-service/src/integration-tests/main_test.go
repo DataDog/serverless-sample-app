@@ -3,6 +3,7 @@ package integration_tests
 import (
 	"context"
 	"encoding/json"
+	"github.com/Microsoft/go-winio/pkg/guid"
 	"os"
 	"testing"
 	"time"
@@ -26,7 +27,8 @@ var (
 )
 
 func TestProductEndToEndProcess(t *testing.T) {
-	productNameUnderTest := "test-product"
+	randomId, _ := guid.NewV4()
+	productNameUnderTest := randomId.String()
 	priceUnderTest := 10.0
 	stockLevelUnderTest := 10.0
 
