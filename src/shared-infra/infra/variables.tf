@@ -5,34 +5,29 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-variable "dd_api_key_secret_arn" {
-  type        = string
-  description = "The ARN of the Datadog API key secret"
-}
-
 variable "dd_site" {
-  type = string
+  type        = string
   description = "The Datadog site to use"
-  default = "datadoghq.com"
+  default     = "datadoghq.com"
 }
 
 variable "env" {
-  type = string
+  type        = string
   description = "The deployment environment"
 }
 
 variable "app_version" {
-  type = string
+  type        = string
   description = "The version of the application being deployed"
-  default = "latest"
+  default     = "latest"
 }
 
 variable "region" {
-  type = string
+  type        = string
   description = "The AWS region to deploy to"
 }
 
 variable "dd_api_key" {
-  type = string
+  type        = string
   description = "Datadog API key"
 }
