@@ -7,8 +7,6 @@
 package com.cdk.inventory.api;
 
 import org.jetbrains.annotations.NotNull;
-import software.amazon.awscdk.CfnOutput;
-import software.amazon.awscdk.CfnOutputProps;
 import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.services.apigateway.*;
@@ -183,16 +181,11 @@ public class InventoryApiContainer extends Construct {
                 ))
                 .build());
 
-        StringParameter apiEndpoint = new StringParameter(this, "ApiEndpoint", StringParameterProps.builder()
-                .parameterName(String.format("/%s/%s/api-endpoint", props.serviceProps().getSharedProps().env(), props.serviceProps().getSharedProps().service()))
-                .stringValue(String.format("http://%s", application.getLoadBalancer().getLoadBalancerDnsName()))
-                .build());
-
         var restApi = createApiGatewayForAlb(props, application);
 
-        var apiEndpointOutput = new CfnOutput(this, "InventoryApiUrlOutput", CfnOutputProps.builder()
-                .value(restApi.getUrl())
-                .exportName("InventoryApiEndpoint")
+        StringParameter apiEndpoint = new StringParameter(this, "ApiEndpoint", StringParameterProps.builder()
+                .parameterName(String.format("/%s/%s/api-endpoint", props.serviceProps().getSharedProps().env(), props.serviceProps().getSharedProps().service()))
+                .stringValue(restApi.getUrl())
                 .build());
         
     }
