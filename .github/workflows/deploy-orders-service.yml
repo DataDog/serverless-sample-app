@@ -94,6 +94,19 @@ jobs:
         run: |
           cd src/order-service
           make integration-test
+      - name: Destroy dev
+        shell: bash
+        if: always()
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/order-service
+          make tf-destroy
 
   deploy-cdk:
     runs-on: ubuntu-latest
@@ -175,6 +188,18 @@ jobs:
         run: |
           cd src/order-service
           make integration-test
+      - name: Destroy dev
+        shell: bash
+        if: always()
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          cd src/order-service
+          make cdk-destroy
 
   deploy-sam:
     runs-on: ubuntu-latest
@@ -255,3 +280,15 @@ jobs:
         run: |
           cd src/order-service
           make integration-test
+      - name: Destroy dev
+        shell: bash
+        if: always()
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/order-service
+          make sam-destroy
