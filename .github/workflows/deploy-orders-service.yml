@@ -38,7 +38,7 @@ jobs:
         shell: bash
         run: |
           echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
-      - name: Terraform apply
+      - name: Build
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -50,8 +50,19 @@ jobs:
         run: |
           cd src/order-service
           make build
+      - name: Deploy to ephermal environment
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "tf-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/order-service
           make tf-apply
-      - name: Integration test dev
+      - name: Integration test ephermal environment
         shell: bash
         env:
           ENV: "tf-${{ env.sha_short }}"
@@ -59,7 +70,7 @@ jobs:
         run: |
           cd src/order-service
           make integration-test
-      - name: Terraform destroy
+      - name: Destroy ephermal environment
         shell: bash
         if: always()
         env:
@@ -72,7 +83,7 @@ jobs:
         run: |
           cd src/order-service
           make tf-destroy
-      - name: Deploy to AWS dev
+      - name: Deploy to dev
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -84,7 +95,6 @@ jobs:
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
           cd src/order-service
-          make build
           make tf-apply
       - name: Integration test dev
         shell: bash
