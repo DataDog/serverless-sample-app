@@ -54,14 +54,25 @@ func NewProductAclService(scope constructs.Construct, id string, props *ProductA
 	}))
 
 	productCreatedRule := awsevents.NewRule(scope, jsii.String("Product-StockUpdated"), &awsevents.RuleProps{
-		EventBus: props.ServiceProps.SubscriberEventBus,
+		EventBus: props.ServiceProps.ProductEventBus,
 	})
 
-	productCreatedRule.AddEventPattern(&awsevents.EventPattern{
+	stockUpdatedPattern := &awsevents.EventPattern{
 		DetailType: jsii.Strings("inventory.stockUpdated.v1"),
 		Source:     jsii.Strings(fmt.Sprintf("%s.inventory", props.ServiceProps.SharedProps.Env)),
-	})
+	}
+
+	productCreatedRule.AddEventPattern(stockUpdatedPattern)
 	productCreatedRule.AddTarget(awseventstargets.NewSqsQueue(productStockUpdatedEventQueue.Queue, &awseventstargets.SqsQueueProps{}))
+
+	// If the shared bus exists create the subscription on the shared bus as well
+	if props.ServiceProps.SharedEventBus != nil {
+		sharedProductCreatedRule := awsevents.NewRule(scope, jsii.String("SharedProduct-StockUpdated"), &awsevents.RuleProps{
+			EventBus: props.ServiceProps.SharedEventBus,
+		})
+		sharedProductCreatedRule.AddEventPattern(stockUpdatedPattern)
+		sharedProductCreatedRule.AddTarget(awseventstargets.NewEventBus(props.ServiceProps.ProductEventBus, &awseventstargets.EventBusProps{}))
+	}
 
 	return ProductAcl{
 		ProductStockUpdatedTopic: productStockUpdatedTopic,

@@ -34,7 +34,7 @@ func NewProductPublicEventPublisherService(scope constructs.Construct, id string
 	environmentVariables["PRODUCT_CREATED_TOPIC_ARN"] = jsii.String(*props.ProductCreatedTopic.TopicArn())
 	environmentVariables["PRODUCT_UPDATED_TOPIC_ARN"] = jsii.String(*props.ProductUpdatedTopic.TopicArn())
 	environmentVariables["PRODUCT_DELETED_TOPIC_ARN"] = jsii.String(*props.ProductDeletedTopic.TopicArn())
-	environmentVariables["EVENT_BUS_NAME"] = jsii.String(*props.ServiceProps.PublisherEventBus.EventBusName())
+	environmentVariables["EVENT_BUS_NAME"] = jsii.String(*props.ServiceProps.getPublisherEventBus().EventBusName())
 
 	publicEventPublisherFunction := sharedconstructs.NewInstrumentedFunction(scope, "PublicEventPublisher", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,
@@ -43,7 +43,7 @@ func NewProductPublicEventPublisherService(scope constructs.Construct, id string
 		EnvironmentVariables: environmentVariables,
 	})
 
-	props.ServiceProps.PublisherEventBus.GrantPutEventsTo(publicEventPublisherFunction.Function)
+	props.ServiceProps.getPublisherEventBus().GrantPutEventsTo(publicEventPublisherFunction.Function)
 
 	publicEventPublisherFunction.Function.AddEventSource(awslambdaeventsources.NewSqsEventSource(publicEventPublisherQueue.Queue, &awslambdaeventsources.SqsEventSourceProps{
 		ReportBatchItemFailures: jsii.Bool(true),

@@ -11,9 +11,17 @@ import (
 
 type ProductServiceProps struct {
 	SharedProps             sharedconstructs.SharedProps
-	PublisherEventBus       awsevents.IEventBus
-	SubscriberEventBus      awsevents.IEventBus
+	ProductEventBus         awsevents.IEventBus
+	SharedEventBus          awsevents.IEventBus
 	JwtSecretAccessKeyParam awsssm.IStringParameter
+}
+
+func (p *ProductServiceProps) getPublisherEventBus() awsevents.IEventBus {
+	if p.SharedEventBus != nil {
+		return p.SharedEventBus
+	} else {
+		return p.ProductEventBus
+	}
 }
 
 func NewProductServiceProps(stack awscdk.Stack, sharedProps sharedconstructs.SharedProps) ProductServiceProps {
@@ -40,8 +48,8 @@ func NewProductServiceProps(stack awscdk.Stack, sharedProps sharedconstructs.Sha
 
 		return ProductServiceProps{
 			SharedProps:             sharedProps,
-			PublisherEventBus:       sharedEventBus,
-			SubscriberEventBus:      productServiceEventBus,
+			ProductEventBus:         sharedEventBus,
+			SharedEventBus:          productServiceEventBus,
 			JwtSecretAccessKeyParam: jwtSecretAccessKey,
 		}
 	} else {
@@ -52,8 +60,8 @@ func NewProductServiceProps(stack awscdk.Stack, sharedProps sharedconstructs.Sha
 
 		return ProductServiceProps{
 			SharedProps:             sharedProps,
-			PublisherEventBus:       productServiceEventBus,
-			SubscriberEventBus:      productServiceEventBus,
+			ProductEventBus:         productServiceEventBus,
+			SharedEventBus:          productServiceEventBus,
 			JwtSecretAccessKeyParam: productServiceSecretAccessKey,
 		}
 	}
