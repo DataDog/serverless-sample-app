@@ -46,7 +46,7 @@ export class PricingServiceProps {
         scope,
         "JwtSecretAccessKey",
         {
-          parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/jwt-secret-access-key`,
+          parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/secret-access-key`,
           stringValue:
             "This is a sample secret key that should not be used in production`",
         }

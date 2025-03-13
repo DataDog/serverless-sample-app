@@ -43,11 +43,44 @@ jobs:
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/pricing-service
           make build
-      - name: Terraform apply
+      - name: Deploy to ephermal environment
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "tf-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/pricing-service
+          make tf-apply
+      - name: Integration test ephermal environment
+        shell: bash
+        env:
+          ENV: "tf-${{ env.sha_short }}"
+          AWS_REGION: "eu-west-2"
+        run: |
+          cd src/pricing-service
+          make integration-test
+      - name: Destroy ephermal environment
+        shell: bash
+        if: always()
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "tf-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/pricing-service
+          make tf-destroy
+      - name: Deploy to dev
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -67,7 +100,7 @@ jobs:
         run: |
           cd src/pricing-service
           make integration-test
-      - name: Terraform destroy
+      - name: Destroy dev
         shell: bash
         if: always()
         env:
@@ -112,11 +145,40 @@ jobs:
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/pricing-service
           make build
-      - name: Deploy to AWS
+      - name: Deploy to ephermal environment
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "cdk-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          cd src/pricing-service
+          make cdk-deploy
+      - name: Integration test ephermal environment
+        shell: bash
+        env:
+          ENV: "cdk-${{ env.sha_short }}"
+          AWS_REGION: "eu-west-1"
+        run: |
+          cd src/pricing-service
+          make integration-test
+      - name: Destroy ephermal environment
+        shell: bash
+        if: always()
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "cdk-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          cd src/pricing-service
+          make cdk-destroy
+      - name: Deploy to dev
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -134,7 +196,7 @@ jobs:
         run: |
           cd src/pricing-service
           make integration-test
-      - name: Destroy
+      - name: Destroy dev
         shell: bash
         if: always()
         env:
@@ -163,7 +225,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "us-east-1"
+          aws-region: "eu-central-1"
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -175,18 +237,49 @@ jobs:
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/pricing-service
           make build
-      - name: Deploy to AWS
+      - name: Deploy to ephermal environment
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "sam-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/pricing-service
+          make sam
+      - name: Integration test ephermal environment
+        shell: bash
+        env:
+          ENV: "sam-${{ env.sha_short }}"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/pricing-service
+          make integration-test
+      - name: Destroy ephermeral environment
+        shell: bash
+        if: always()
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "sam-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/pricing-service
+          make sam-destroy
+      - name: Deploy to dev
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/pricing-service
           make sam
@@ -194,11 +287,11 @@ jobs:
         shell: bash
         env:
           ENV: "dev"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/pricing-service
           make integration-test
-      - name: Destroy
+      - name: Destroy dev`
         shell: bash
         if: always()
         env:
@@ -206,7 +299,7 @@ jobs:
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/pricing-service
           make sam-destroy
