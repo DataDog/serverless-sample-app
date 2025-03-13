@@ -252,7 +252,7 @@ jobs:
         run: |
           cd src/loyalty-point-service
           make sam
-      - name: Integration test dev
+      - name: Integration test ephermal environment
         shell: bash
         env:
           ENV: "sam-${{ env.sha_short }}"
@@ -260,7 +260,7 @@ jobs:
         run: |
           cd src/loyalty-point-service
           make integration-test
-      - name: Destroy dev
+      - name: Destroy ephemeral environment
         shell: bash
         if: always()
         env:
