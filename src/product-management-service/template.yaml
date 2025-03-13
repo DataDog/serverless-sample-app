@@ -5,8 +5,8 @@
 # Copyright 2024 Datadog, Inc.
 #
 
-AWSTemplateFormatVersion : '2010-09-09'
-Transform: 
+AWSTemplateFormatVersion: "2010-09-09"
+Transform:
   - AWS::Serverless-2016-10-31
 Description: A sample SAM template for deploying Lambda functions.
 
@@ -19,11 +19,11 @@ Conditions:
     - !Not [!Equals [!Ref Env, prod]]
     - !Not [!Equals [!Ref Env, dev]]
 
-Parameters: 
-  ServiceName: 
+Parameters:
+  ServiceName:
     Type: String
     Default: ProductManagementService
-  Env: 
+  Env:
     Type: String
     Default: dev
   CommitHash:
@@ -65,7 +65,7 @@ Globals:
 
 Resources:
   DDApiKeySecret:
-    Type: 'AWS::SecretsManager::Secret'
+    Type: "AWS::SecretsManager::Secret"
     Properties:
       Name: !Sub "/${Env}/${ServiceName}/datadog-api-key"
       Description: "The Datadog API key"
@@ -107,13 +107,12 @@ Resources:
       Events:
         GetProduct:
           Type: Api
-          Properties: 
+          Properties:
             Path: /product/{productId}
             Method: get
       Policies:
         - DynamoDBReadPolicy:
-            TableName:
-              !Ref ProductApiTable
+            TableName: !Ref ProductApiTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -145,13 +144,12 @@ Resources:
       Events:
         GetProduct:
           Type: Api
-          Properties: 
+          Properties:
             Path: /product
             Method: get
       Policies:
         - DynamoDBCrudPolicy:
-            TableName:
-              !Ref ProductApiTable
+            TableName: !Ref ProductApiTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -172,7 +170,7 @@ Resources:
             TopicName: !GetAtt ProductCreatedTopic.TopicName
     Metadata:
       BuildMethod: makefile
-              
+
   CreateProductFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -182,7 +180,7 @@ Resources:
       Events:
         GetProduct:
           Type: Api
-          Properties: 
+          Properties:
             Path: /product
             Method: post
       Environment:
@@ -225,9 +223,9 @@ Resources:
                 - "ssm:GetParameterHistory"
                 - "ssm:GetParameters"
               Resource: !If
-                  - IsIntegratedEnvironment
-                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
-                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductCreatedTopic.TopicName
     Metadata:
@@ -242,7 +240,7 @@ Resources:
       Events:
         GetProduct:
           Type: Api
-          Properties: 
+          Properties:
             Path: /product
             Method: put
       Environment:
@@ -284,9 +282,9 @@ Resources:
                 - "ssm:GetParameterHistory"
                 - "ssm:GetParameters"
               Resource: !If
-                  - IsIntegratedEnvironment
-                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
-                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductUpdatedTopic.TopicName
     Metadata:
@@ -301,7 +299,7 @@ Resources:
       Events:
         GetProduct:
           Type: Api
-          Properties: 
+          Properties:
             Path: /product/{productId}
             Method: delete
       Environment:
@@ -344,14 +342,14 @@ Resources:
                 - "ssm:GetParameterHistory"
                 - "ssm:GetParameters"
               Resource: !If
-                  - IsIntegratedEnvironment
-                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
-                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductDeletedTopic.TopicName
     Metadata:
       BuildMethod: makefile
-  
+
   ProductCreatedTopic:
     Type: AWS::SNS::Topic
     Properties:
@@ -364,7 +362,7 @@ Resources:
     Type: AWS::SNS::Topic
     Properties:
       TopicName: !Sub "${ServiceName}-ProductDeleted-${Env}"
-  
+
   ProductCreatedTopicArn:
     Type: AWS::SSM::Parameter
     Properties:
@@ -433,7 +431,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub SAM-${ServiceName}-StockUpdated-${Env}
+      FunctionName: !Sub SAM-${ServiceName}-ACLStockUpdated-${Env}
       Environment:
         Variables:
           STOCK_LEVEL_UPDATED_TOPIC_ARN: !Ref StockUpdatedTopic
@@ -462,7 +460,7 @@ Resources:
               Resource: arn:aws:logs:*:*:*
     Metadata:
       BuildMethod: makefile
- 
+
   StockUpdatedTopic:
     Type: AWS::SNS::Topic
     Properties:
@@ -486,11 +484,11 @@ Resources:
 
   ProductStockUpdatedSQSQueuePolicy:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
+    Properties:
       Queues:
         - !Ref ProductStockUpdatedEventQueue
       PolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Sid: allow-eb-send-message-messages
             Effect: Allow
@@ -498,7 +496,7 @@ Resources:
               Service: "events.amazonaws.com"
             Resource: !GetAtt ProductStockUpdatedEventQueue.Arn
             Action: SQS:SendMessage
-            
+
   ################################################
   ######## Public Event Subscriptions ############
   ################################################
@@ -620,61 +618,60 @@ Resources:
 
   SnsToQueuePolicy:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
+    Properties:
       Queues:
         - !Ref ProductPublicEventPublisherQueue
-      PolicyDocument: 
-        Version: '2012-10-17'
+      PolicyDocument:
+        Version: "2012-10-17"
         Statement:
           - Sid: allow-created-messages
             Effect: Allow
-            Principal: '*'
+            Principal: "*"
             Resource: !GetAtt ProductPublicEventPublisherQueue.Arn
             Action: SQS:SendMessage
-            Condition: 
+            Condition:
               ArnEquals:
                 aws:SourceArn: !Ref ProductCreatedTopic
           - Sid: allow-updated-messages
             Effect: Allow
-            Principal: '*'
+            Principal: "*"
             Resource: !GetAtt ProductPublicEventPublisherQueue.Arn
             Action: SQS:SendMessage
-            Condition: 
+            Condition:
               ArnEquals:
                 aws:SourceArn: !Ref ProductUpdatedTopic
           - Sid: allow-deleted-messages
             Effect: Allow
-            Principal: '*'
+            Principal: "*"
             Resource: !GetAtt ProductPublicEventPublisherQueue.Arn
             Action: SQS:SendMessage
-            Condition: 
+            Condition:
               ArnEquals:
                 aws:SourceArn: !Ref ProductDeletedTopic
 
-  
   ProductCreatedTopicSubscription:
-    Type: 'AWS::SNS::Subscription'
+    Type: "AWS::SNS::Subscription"
     Properties:
       TopicArn: !Ref ProductCreatedTopic
-      Endpoint: !GetAtt 
+      Endpoint: !GetAtt
         - ProductPublicEventPublisherQueue
         - Arn
       Protocol: sqs
-  
+
   ProductUpdatedTopicSubscription:
-    Type: 'AWS::SNS::Subscription'
+    Type: "AWS::SNS::Subscription"
     Properties:
       TopicArn: !Ref ProductUpdatedTopic
-      Endpoint: !GetAtt 
+      Endpoint: !GetAtt
         - ProductPublicEventPublisherQueue
         - Arn
       Protocol: sqs
-  
+
   ProductDeletedTopicSubscription:
-    Type: 'AWS::SNS::Subscription'
+    Type: "AWS::SNS::Subscription"
     Properties:
       TopicArn: !Ref ProductDeletedTopic
-      Endpoint: !GetAtt 
+      Endpoint: !GetAtt
         - ProductPublicEventPublisherQueue
         - Arn
       Protocol: sqs
