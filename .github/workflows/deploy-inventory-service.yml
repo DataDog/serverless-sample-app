@@ -1,12 +1,12 @@
 name: Deploy Inventory Service
 
 on:
-    push:
-      paths:
-        - src/inventory-service/**
-      branches:
-        - 'service-per-lang'
-    workflow_dispatch:
+  push:
+    paths:
+      - src/inventory-service/**
+    branches:
+      - "service-per-lang"
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -16,18 +16,17 @@ jobs:
   deploy-tf:
     runs-on: ubuntu-latest
     concurrency:
-        group: tf-inventory-service
+      group: tf-inventory-service
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
       - name: Set up Java 21 for x64
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'corretto'
+          java-version: "21"
+          distribution: "corretto"
           architecture: x64
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@master
@@ -44,18 +43,49 @@ jobs:
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/inventory-service
           make build
-      - name: Terraform apply
+      - name: Deploy ephermal environment
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: ${{ env.sha_short }}
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/inventory-service
+          make tf-apply
+      - name: Integration test ephermal environment
+        shell: bash
+        env:
+          ENV: ${{ env.sha_short }}
+          AWS_REGION: "eu-west-2"
+        run: |
+          cd src/inventory-service
+          make integration-test
+      - name: Destroy ephermal environment
+        shell: bash
+        if: always()
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: ${{ env.sha_short }}
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/inventory-service
+          make tf-destroy
+      - name: Deploy dev
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_2_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "eu-west-2"
@@ -71,29 +101,13 @@ jobs:
         run: |
           cd src/inventory-service
           make integration-test
-      - name: Terraform destroy
-        shell: bash
-        if: always()
-        env:
-          COMMIT_HASH: ${{ env.sha_short }}
-          ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_2_DD_API_KEY_SECRET_ARN}}
-          DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
-          AWS_REGION: "eu-west-2"
-          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
-        run: |
-          cd src/inventory-service
-          make tf-destroy
-
 
   deploy-cdk:
     runs-on: ubuntu-latest
     concurrency:
-        group: cdk-inventory-service
+      group: cdk-inventory-service
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
         uses: actions/setup-node@v3
@@ -105,8 +119,8 @@ jobs:
       - name: Set up Java 21 for x64
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'corretto'
+          java-version: "21"
+          distribution: "corretto"
           architecture: x64
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@master
@@ -126,16 +140,45 @@ jobs:
           DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/inventory-service
           make build
-      - name: Deploy to AWS
+      - name: Deploy ephermal environment
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: ${{ env.sha_short }}
+          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          cd src/inventory-service
+          make cdk-deploy
+      - name: Integration test ephermal environment
+        shell: bash
+        env:
+          ENV: ${{ env.sha_short }}
+          AWS_REGION: "eu-west-1"
+        run: |
+          cd src/inventory-service
+          make integration-test
+      - name: Destroy ephermal environment
+        shell: bash
+        if: always()
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: ${{ env.sha_short }}
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          cd src/inventory-service
+          make cdk-destroy
+      - name: Deploy dev
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
         run: |
@@ -149,26 +192,13 @@ jobs:
         run: |
           cd src/inventory-service
           make integration-test
-      - name: Destroy
-        shell: bash
-        if: always()
-        env:
-          COMMIT_HASH: ${{ env.sha_short }}
-          ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
-          DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
-        run: |
-          cd src/inventory-service
-          make cdk-destroy
 
   deploy-sam:
     runs-on: ubuntu-latest
     concurrency:
-        group: sam-inventory-service
+      group: sam-inventory-service
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
         uses: actions/setup-node@v3
@@ -177,8 +207,8 @@ jobs:
       - name: Set up Java 21 for x64
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'corretto'
+          java-version: "21"
+          distribution: "corretto"
           architecture: x64
       - uses: aws-actions/setup-sam@v1
       - name: Configure AWS credentials
@@ -186,7 +216,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "us-east-1"
+          aws-region: "eu-central-1"
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -196,30 +226,28 @@ jobs:
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/inventory-service
           make build
-      - name: Deploy to AWS
+      - name: Deploy to ephermal environment
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
-          ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
+          ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/inventory-service
           make sam
-      - name: Integration test dev
+      - name: Integration test ephermal environment
         shell: bash
         env:
-          ENV: "dev"
-          AWS_REGION: "us-east-1"
+          ENV: ${{ env.sha_short }}
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/inventory-service
           make integration-test
@@ -228,11 +256,30 @@ jobs:
         if: always()
         env:
           COMMIT_HASH: ${{ env.sha_short }}
-          ENV: "dev"
+          ENV: ${{ env.sha_short }}
           DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/inventory-service
           make sam-destroy
+      - name: Deploy to dev
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/inventory-service
+          make sam
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/inventory-service
+          make integration-test
