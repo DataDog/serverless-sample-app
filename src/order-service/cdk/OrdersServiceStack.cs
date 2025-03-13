@@ -24,6 +24,7 @@ public class OrdersServiceStack : Stack
         var serviceName = "OrdersService";
         var env = System.Environment.GetEnvironmentVariable("ENV") ?? "dev";
         var version = System.Environment.GetEnvironmentVariable("VERSION") ?? "latest";
+        var ddSite = System.Environment.GetEnvironmentVariable("DD_API_KEY") ?? "datadoghq.com";
 
         var secret = new Secret(this, "DDApiKeySecret", new SecretProps()
         {
@@ -31,12 +32,12 @@ public class OrdersServiceStack : Stack
             SecretStringValue = new SecretValue(System.Environment.GetEnvironmentVariable("DD_API_KEY") ??
                                                 throw new Exception("DD_API_KEY environment variable is not set"))
         });
-        
+
         var team = "orders";
         var domain = "orders";
-        var sharedProps = new SharedProps(serviceName, env, version, team, domain, secret);
+        var sharedProps = new SharedProps(serviceName, env, version, team, domain, secret, ddSite);
 
-        var orderServiceProps = OrderServiceProps.Create(this, sharedProps);
+        var orderServiceProps = new OrderServiceProps(this, "OrderServiceProps", sharedProps);
 
         var orderApi = new OrdersApi(this, "OrdersApi",
             new OrdersApiProps(sharedProps, orderServiceProps));

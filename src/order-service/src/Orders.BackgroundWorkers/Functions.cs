@@ -9,6 +9,7 @@ using Datadog.Trace;
 using Microsoft.Extensions.Logging;
 using Orders.BackgroundWorkers.ExternalEvents;
 using Orders.Core;
+using Orders.Core.Adapters;
 
 namespace Orders.BackgroundWorkers;
 
@@ -37,6 +38,7 @@ public class Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
                 if (evtData is null)
                     throw new ArgumentException("Event payload does not serialize to a `StockReservedEvent`");
 
+                evtData.Detail!.Data.OrderNumber.AddToTelemetry("order.id");
                 await orderWorkflow.StockReservationSuccessful(evtData.Detail!.Data.ConversationId);
 
                 processingSpan?.Close();
@@ -79,6 +81,7 @@ public class Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
                 if (evtData is null)
                     throw new ArgumentException("Event payload does not serialize to a `StockReservationFailedEvent`");
                 
+                evtData.Detail!.Data.OrderNumber.AddToTelemetry("order.id");
                 await orderWorkflow.StockReservationFailed(evtData.Detail!.Data.ConversationId);
 
                 processingSpan.Close();

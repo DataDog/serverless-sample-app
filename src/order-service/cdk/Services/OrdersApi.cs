@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025 Datadog, Inc.
 
+using System;
 using System.Collections.Generic;
 using Amazon.CDK;
 using Amazon.CDK.AWS.APIGateway;
@@ -18,6 +19,7 @@ using Amazon.CDK.AWS.SSM;
 using Amazon.CDK.AWS.StepFunctions;
 using Constructs;
 using OrdersService.CDK.Constructs;
+using Attribute = Amazon.CDK.AWS.DynamoDB.Attribute;
 using FunctionProps = OrdersService.CDK.Constructs.FunctionProps;
 using HealthCheck = Amazon.CDK.AWS.ElasticLoadBalancingV2.HealthCheck;
 using Policy = Amazon.CDK.AWS.IAM.Policy;
@@ -33,42 +35,6 @@ public class OrdersApi : Construct
     public ITopic OrderCreatedTopic { get; private set; }
     public Table OrdersTable { get; private set; }
     public IStateMachine OrdersWorkflow { get; private set; }
-
-    public OrdersApi(Construct scope, string id, OrdersApiProps props) : base(scope, id)
-    {
-        var describeBusPolicyStatement = new PolicyStatement(new PolicyStatementProps()
-        {
-            Effect = Effect.ALLOW,
-            Resources = new[] { props.ServiceProps.PublisherBus.EventBusArn },
-            Actions = new[] { "events:DescribeEventBus" }
-        });
-
-        OrdersTable = new Table(this, "DotnetOrdersTable", new TableProps()
-        {
-            PartitionKey = new Attribute() { Name = "PK", Type = AttributeType.STRING },
-            SortKey = new Attribute() { Name = "SK", Type = AttributeType.STRING },
-            BillingMode = BillingMode.PAY_PER_REQUEST,
-            TableName = $"{props.SharedProps.ServiceName}-OrderTable-{props.SharedProps.Env}",
-            TableClass = TableClass.STANDARD,
-            RemovalPolicy = RemovalPolicy.DESTROY,
-        });
-        OrdersTable.AddGlobalSecondaryIndex(new GlobalSecondaryIndexProps()
-        {
-            IndexName = "GSI1",
-            PartitionKey = new Attribute() { Name = "GSI1PK", Type = AttributeType.STRING },
-            SortKey = new Attribute() { Name = "GSI1SK", Type = AttributeType.STRING },
-            ProjectionType = ProjectionType.ALL
-        });
-
-        OrderCreatedTopic = new Topic(this, "OrderCreatedTopic", new TopicProps()
-        {
-            TopicName = $"{props.SharedProps.ServiceName}-OrderCreated-{props.SharedProps.Env}"
-        });
-
-        CreateOrderWorkflow(props, describeBusPolicyStatement);
-
-        CreateOrderAPI(props, describeBusPolicyStatement);
-    }
 
     private void CreateOrderWorkflow(OrdersApiProps props, PolicyStatement describeBusPolicyStatement)
     {
@@ -116,6 +82,42 @@ public class OrdersApi : Construct
         OrdersTable.GrantWriteData(OrdersWorkflow);
         confirmOrderHandler.GrantInvoke(OrdersWorkflow);
         noStockHandler.GrantInvoke(OrdersWorkflow);
+    }
+
+    public OrdersApi(Construct scope, string id, OrdersApiProps props) : base(scope, id)
+    {
+        var describeBusPolicyStatement = new PolicyStatement(new PolicyStatementProps()
+        {
+            Effect = Effect.ALLOW,
+            Resources = new[] { props.ServiceProps.PublisherBus.EventBusArn },
+            Actions = new[] { "events:DescribeEventBus" }
+        });
+
+        OrdersTable = new Table(this, "DotnetOrdersTable", new TableProps()
+        {
+            PartitionKey = new Attribute() { Name = "PK", Type = AttributeType.STRING },
+            SortKey = new Attribute() { Name = "SK", Type = AttributeType.STRING },
+            BillingMode = BillingMode.PAY_PER_REQUEST,
+            TableName = $"{props.SharedProps.ServiceName}-OrderTable-{props.SharedProps.Env}",
+            TableClass = TableClass.STANDARD,
+            RemovalPolicy = RemovalPolicy.DESTROY,
+        });
+        OrdersTable.AddGlobalSecondaryIndex(new GlobalSecondaryIndexProps()
+        {
+            IndexName = "GSI1",
+            PartitionKey = new Attribute() { Name = "GSI1PK", Type = AttributeType.STRING },
+            SortKey = new Attribute() { Name = "GSI1SK", Type = AttributeType.STRING },
+            ProjectionType = ProjectionType.ALL
+        });
+
+        OrderCreatedTopic = new Topic(this, "OrderCreatedTopic", new TopicProps()
+        {
+            TopicName = $"{props.SharedProps.ServiceName}-OrderCreated-{props.SharedProps.Env}"
+        });
+
+        CreateOrderWorkflow(props, describeBusPolicyStatement);
+
+        CreateOrderAPI(props, describeBusPolicyStatement);
     }
 
     private IFunction CreateConfirmOrderHandler(OrdersApiProps props,
@@ -215,7 +217,7 @@ public class OrdersApi : Construct
                         Options = new Dictionary<string, string>
                         {
                             { "Name", "datadog" },
-                            { "Host", "http-intake.logs.datadoghq.eu" },
+                            { "Host", $"http-intake.logs.{props.SharedProps.DDSite}" },
                             { "TLS", "on" },
                             { "dd_service", props.SharedProps.ServiceName },
                             { "dd_source", "expressjs" },
@@ -285,7 +287,7 @@ public class OrdersApi : Construct
             ContainerName = "datadog-agent",
             Environment = new Dictionary<string, string>
             {
-                { "DD_SITE", "datadoghq.eu" },
+                { "DD_SITE", props.SharedProps.DDSite },
                 { "ECS_FARGATE", "true" },
                 { "DD_LOGS_ENABLED", "false" },
                 { "DD_PROCESS_AGENT_ENABLED", "true" },

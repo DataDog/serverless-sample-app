@@ -13,7 +13,7 @@ Transform:
       stackName: !Ref "AWS::StackName"
       apiKey: !Ref DDApiKey
       dotnetLayerVersion: "18"
-      extensionLayerVersion: "73"
+      extensionLayerVersion: "74"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -24,8 +24,8 @@ Description: A sample SAM template for deploying Lambda functions.
 Conditions:
   IsNonProdEnvironment: !Not [!Equals [!Ref Env, prod]]
   IsIntegratedEnvironment: !Or
-    - !Equals [ "dev", !Ref Env ]
-    - !Equals [ "prod", !Ref Env ]
+    - !Equals ["dev", !Ref Env]
+    - !Equals ["prod", !Ref Env]
   IsNotIntegratedEnvironment: !And
     - !Not [!Equals [!Ref Env, prod]]
     - !Not [!Equals [!Ref Env, dev]]
@@ -57,14 +57,14 @@ Globals:
         ENV: !Ref Env
         DD_LOGS_INJECTION: "true"
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
-        POWERTOOLS_LOG_LEVEL: 'INFO'
+        POWERTOOLS_LOG_LEVEL: "INFO"
         AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
     Architectures:
       - x86_64
 
 Resources:
   DDApiKeySecret:
-    Type: 'AWS::SecretsManager::Secret'
+    Type: "AWS::SecretsManager::Secret"
     Properties:
       Name: !Sub "/${Env}/${ServiceName}/datadog-api-key"
       Description: "The Datadog API key"
@@ -96,7 +96,7 @@ Resources:
       Name: !Sub /${Env}/${ServiceName}/secret-access-key
       Type: String
       Value: "This is a sample secret key that should not be used in production`"
-      
+
   OrderWorkflowLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -153,7 +153,7 @@ Resources:
       Tags:
         DD_ENHANCED_METRICS: "true"
         DD_TRACE_ENABLED: "true"
-      
+
   HandleInventoryStockReserved:
     Type: AWS::Serverless::Function
     Properties:
@@ -311,7 +311,7 @@ Resources:
               - !Ref OrdersServiceEventBus
         - DynamoDBCrudPolicy:
             TableName: !Ref OrdersTable
-            
+
   NoStockHandler:
     Type: AWS::Serverless::Function
     Properties:
@@ -395,7 +395,7 @@ Resources:
       Queues:
         - !Ref OrdersStockReservedQueue
       PolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Sid: allow-eb-send-message-messages
             Effect: Allow
@@ -441,7 +441,7 @@ Resources:
       Queues:
         - !Ref StockReservationFailedQueue
       PolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Sid: allow-eb-send-message-messages
             Effect: Allow
@@ -469,7 +469,7 @@ Resources:
         - AttributeName: SK
           KeyType: RANGE
       GlobalSecondaryIndexes:
-        - IndexName: "GSI"
+        - IndexName: "GSI1"
           KeySchema:
             - AttributeName: "GSI1PK"
               KeyType: "HASH"
@@ -477,32 +477,32 @@ Resources:
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
-            
-################################################      
-#################### API #######################
-################################################
+
+  ################################################
+  #################### API #######################
+  ################################################
   VPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: 10.0.0.0/16
-  
+
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.0.0/24
-      AvailabilityZone: !Select [0, !GetAZs '']
-  
+      AvailabilityZone: !Select [0, !GetAZs ""]
+
   PublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.1.0/24
-      AvailabilityZone: !Select [1, !GetAZs '']
+      AvailabilityZone: !Select [1, !GetAZs ""]
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
-  
+
   VPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
@@ -513,13 +513,13 @@ Resources:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
-  
+
   PublicRoute:
     Type: AWS::EC2::Route
     DependsOn: VPCGatewayAttachment
     Properties:
       RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: '0.0.0.0/0'
+      DestinationCidrBlock: "0.0.0.0/0"
       GatewayId: !Ref InternetGateway
 
   PublicSubnet1RouteTableAssociation:
@@ -614,7 +614,7 @@ Resources:
       EnableECSManagedTags: true
     DependsOn:
       - ALBListener
-  
+
   ECSALBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -644,7 +644,7 @@ Resources:
         - !Ref PublicSubnet2
       SecurityGroups:
         - !Ref ALBSecurityGroup
-  
+
   ALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -730,7 +730,9 @@ Resources:
                   - "dynamodb:Query"
                   - "dynamodb:Scan"
                   - "dynamodb:UpdateItem"
-                Resource: !GetAtt OrdersTable.Arn
+                Resource:
+                  - !GetAtt OrdersTable.Arn
+                  - !Sub "${OrdersTable.Arn}/*"
         - PolicyName: allow-eb-publish
           PolicyDocument:
             Version: 2012-10-17
@@ -792,32 +794,25 @@ Resources:
         - Name: OrderApi
           Image: public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-dotnet:latest
           Environment:
-            -
-              Name: TABLE_NAME
+            - Name: TABLE_NAME
               Value: !Ref OrdersTable
-            -
-              Name: EVENT_BUS_NAME
+            - Name: EVENT_BUS_NAME
               Value: !If
                 - IsIntegratedEnvironment
                 - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
                 - !Ref OrdersServiceEventBus
-            -
-              Name: ORDER_WORKFLOW_ARN
+            - Name: ORDER_WORKFLOW_ARN
               Value: !GetAtt OrderWorkflow.Arn
-            -
-              Name: JWT_SECRET_PARAM_NAME
+            - Name: JWT_SECRET_PARAM_NAME
               Value: !If
                 - IsIntegratedEnvironment
                 - !Sub /${Env}/shared/secret-access-key
                 - !Sub /${Env}/${ServiceName}/secret-access-key
-            -
-              Name: TEAM
+            - Name: TEAM
               Value: "orders"
-            -
-              Name: DOMAIN
+            - Name: DOMAIN
               Value: "orders"
-            -
-              Name: ENV
+            - Name: ENV
               Value: !Ref Env
 
             - Name: DD_LOGS_INJECTION
@@ -833,7 +828,7 @@ Resources:
             LogDriver: awsfirelens
             Options:
               Name: "datadog"
-              Host: "http-intake.logs.datadoghq.eu"
+              Host: !Sub "http-intake.logs.${DDSite}"
               TLS: "on"
               dd_service: !Ref ServiceName
               dd_source: "quarkus"
@@ -843,41 +838,29 @@ Resources:
         - Name: DatadogAgent
           Image: public.ecr.aws/datadog/agent:latest
           Environment:
-            -
-              Name: DD_SITE
-              Value: "datadoghq.eu"
-            -
-              Name: ECS_FARGATE
+            - Name: DD_SITE
+              Value: !Ref DDSite
+            - Name: ECS_FARGATE
               Value: "true"
-            -
-              Name: DD_LOGS_ENABLED
+            - Name: DD_LOGS_ENABLED
               Value: "false"
-            -
-              Name: DD_PROCESS_AGENT_ENABLED
+            - Name: DD_PROCESS_AGENT_ENABLED
               Value: "true"
-            -
-              Name: DD_APM_ENABLED
+            - Name: DD_APM_ENABLED
               Value: "true"
-            -
-              Name: DD_APM_NON_LOCAL_TRAFFIC
+            - Name: DD_APM_NON_LOCAL_TRAFFIC
               Value: "true"
-            -
-              Name: DD_DOGSTATSD_NON_LOCAL_TRAFFIC
+            - Name: DD_DOGSTATSD_NON_LOCAL_TRAFFIC
               Value: "true"
-            -
-              Name: DD_ECS_TASK_COLLECTION_ENABLED
+            - Name: DD_ECS_TASK_COLLECTION_ENABLED
               Value: "true"
-            -
-              Name: DD_ENV
+            - Name: DD_ENV
               Value: !Ref Env
-            -
-              Name: DD_SERVICE
+            - Name: DD_SERVICE
               Value: !Ref ServiceName
-            -
-              Name: DD_VERSION
+            - Name: DD_VERSION
               Value: !Ref CommitHash
-            -
-              Name: DD_APM_IGNORE_RESOURCES
+            - Name: DD_APM_IGNORE_RESOURCES
               Value: "GET /"
           Secrets:
             - Name: DD_API_KEY
@@ -895,10 +878,10 @@ Resources:
             Type: fluentbit
             Options:
               enable-ecs-log-metadata: "true"
-  
-################################################      
-######## Public Event Subscriptions ############
-################################################
+
+  ################################################
+  ######## Public Event Subscriptions ############
+  ################################################
   SharedEventBusToOrdersServiceEventBusRole:
     Type: AWS::IAM::Role
     Condition: IsIntegratedEnvironment
@@ -939,7 +922,7 @@ Resources:
         - Id: OrdersServiceEventBus
           Arn: !GetAtt OrdersServiceEventBus.Arn
           RoleArn: !GetAtt SharedEventBusToOrdersServiceEventBusRole.Arn
-          
+
   SharedEventBusStockReservationFailedEventRule:
     Type: AWS::Events::Rule
     Condition: IsIntegratedEnvironment
@@ -962,14 +945,14 @@ Resources:
     Properties:
       Name: !Sub /${Env}/${ServiceName}/api-endpoint
       Type: String
-      Value: !Sub "http://${ECSALB.DNSName}" 
+      Value: !Sub "http://${ECSALB.DNSName}"
 
-#################################################      
-############ Deploy Test Harness ################
-#################################################
+  #################################################
+  ############ Deploy Test Harness ################
+  #################################################
   SharedEventBusOrderCreatedEventRule:
     Type: AWS::Events::Rule
-    Condition: IsNonProdEnvironment
+    Condition: IsIntegratedEnvironment
     Properties:
       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
       Name: shared-orders-order-created
@@ -986,7 +969,7 @@ Resources:
 
   SharedEventBusOrderConfirmedEventRule:
     Type: AWS::Events::Rule
-    Condition: IsNonProdEnvironment
+    Condition: IsIntegratedEnvironment
     Properties:
       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
       Name: shared-orders-order-confirmed
@@ -1000,10 +983,10 @@ Resources:
         - Id: OrdersServiceEventBus
           Arn: !GetAtt OrdersServiceEventBus.Arn
           RoleArn: !GetAtt SharedEventBusToOrdersServiceEventBusRole.Arn
-          
+
   SharedEventBusOrderCompletedEventRule:
     Type: AWS::Events::Rule
-    Condition: IsNonProdEnvironment
+    Condition: IsIntegratedEnvironment
     Properties:
       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
       Name: shared-orders-order-completed
@@ -1034,7 +1017,7 @@ Resources:
           KeyType: HASH
         - AttributeName: SK
           KeyType: RANGE
-          
+
   EventTestHarnessAPI:
     Type: AWS::Serverless::Function
     Condition: IsNonProdEnvironment
@@ -1112,7 +1095,7 @@ Resources:
               Resource: !Ref DDApiKeySecret
         - DynamoDBCrudPolicy:
             TableName: !Ref TestHarnessTable
-  
+
   TestHarnessApiEndpoint:
     Type: AWS::SSM::Parameter
     Condition: IsNonProdEnvironment
@@ -1120,5 +1103,3 @@ Resources:
       Name: !Sub /${Env}/${ServiceName}_TestHarness/api-endpoint
       Type: String
       Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
-
-  

@@ -8,16 +8,12 @@ namespace Orders.IntegrationTests;
 
 public record OrderDTO
 {
-    [JsonPropertyName("orderId")]
-    public string OrderId { get; set; }
-    
-    [JsonPropertyName("orderDate")]
-    public DateTime OrderDate { get; set; }
+    [JsonPropertyName("orderId")] public string OrderId { get; set; }
+    [JsonPropertyName("userId")] public string UserId { get; set; }
 
-    [JsonPropertyName("products")]
-    public string[] Products { get; set; }
-    
-    [JsonPropertyName("status")]
-    public string OrderStatus { get; set; }
-    
+    [JsonPropertyName("orderDate")] public DateTime OrderDate { get; set; }
+
+    [JsonPropertyName("products")] public string[] Products { get; set; }
+
+    [JsonPropertyName("status")] public string OrderStatus { get; set; }
 }

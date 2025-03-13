@@ -83,10 +83,10 @@ resource "aws_ecs_task_definition" "main" {
         logDriver = "awsfirelens"
         options = {
           Name           = "datadog"
-          Host           = "http-intake.logs.datadoghq.eu"
+          Host           = "http-intake.logs.${var.dd_site}"
           TLS            = "on"
           dd_service     = var.service_name
-          dd_source      = "expressjs",
+          dd_source      = "dotnet",
           dd_message_key = "log",
           provider       = "ecs",
           apikey         = data.aws_secretsmanager_secret_version.current_api_key_secret.secret_string

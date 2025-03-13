@@ -13,28 +13,19 @@ using OrdersService.CDK.Events;
 
 namespace OrdersService.CDK;
 
-public record SharedEventBus(IEventBus? EventBus);
-public record OrdersServiceEventBus(IEventBus EventBus);
-
-public class OrderServiceProps(
-    SharedEventBus? SharedEventBus,
-    OrdersServiceEventBus OrdersEventBus,
-    IStringParameter JwtSecretAccessKey)
+public class OrderServiceProps : Construct
 {
-    public SharedEventBus SharedEventBus { get; } = SharedEventBus;
-    public OrdersServiceEventBus OrdersEventBus { get; } = OrdersEventBus;
-    public IStringParameter JwtSecretAccessKey { get; } = JwtSecretAccessKey;
-    
-    public IEventBus PublisherBus => SharedEventBus == null ? OrdersEventBus.EventBus : SharedEventBus.EventBus;
+    public IEventBus SharedEventBus { get; private init; }
+    public IEventBus OrdersEventBus { get; private init; }
+    public IStringParameter JwtSecretAccessKey { get; private init; }
 
-    public static OrderServiceProps Create(Construct scope, SharedProps props)
+    public IEventBus PublisherBus => SharedEventBus == null ? OrdersEventBus : SharedEventBus;
+
+    public OrderServiceProps(Construct scope, string id, SharedProps props) : base(scope, id)
     {
-        var integratedEnvironments = new List<string> {"prod", "dev"};
-        
-        IEventBus? sharedEventBus = null;
-        IStringParameter? jwtAccessKeyParameter = null;
-        
-        var orderServiceEventBus = new EventBus(scope, "OrdersEventBus", new EventBusProps()
+        var integratedEnvironments = new List<string> { "prod", "dev" };
+
+        OrdersEventBus = new EventBus(scope, "OrdersEventBus", new EventBusProps()
         {
             EventBusName = $"{props.ServiceName}-bus-{props.Env}"
         });
@@ -42,18 +33,18 @@ public class OrderServiceProps(
             new StringParameterProps
             {
                 ParameterName = $"/{props.Env}/{props.ServiceName}/event-bus-name",
-                StringValue = orderServiceEventBus.EventBusName
+                StringValue = OrdersEventBus.EventBusName
             });
         var ordersEventBusArnParameter = new StringParameter(scope, "OrdersEventBusArnParameter",
             new StringParameterProps
             {
                 ParameterName = $"/{props.Env}/{props.ServiceName}/event-bus-arn",
-                StringValue = orderServiceEventBus.EventBusArn
+                StringValue = OrdersEventBus.EventBusArn
             });
 
         if (!integratedEnvironments.Contains(props.Env))
         {
-            jwtAccessKeyParameter = new StringParameter(scope, "OrdersTestJwtAccessKeyParameter",
+            JwtSecretAccessKey = new StringParameter(scope, "OrdersTestJwtAccessKeyParameter",
                 new StringParameterProps
                 {
                     ParameterName = $"/{props.Env}/{props.ServiceName}/secret-access-key",
@@ -62,16 +53,14 @@ public class OrderServiceProps(
         }
         else
         {
-            jwtAccessKeyParameter =
-                StringParameter.FromStringParameterName(scope, "JwtAccessKeyParameter", $"/{props.Env}/shared/secret-access-key");
+            JwtSecretAccessKey =
+                StringParameter.FromStringParameterName(scope, "JwtAccessKeyParameter",
+                    $"/{props.Env}/shared/secret-access-key");
 
             var eventBusTopicArn = StringParameter.FromStringParameterName(scope, "EventBusTopicArn",
                 $"/{props.Env}/shared/event-bus-name");
-            sharedEventBus = EventBus.FromEventBusName(scope, "SharedEventBus", eventBusTopicArn.StringValue);
+            SharedEventBus = EventBus.FromEventBusName(scope, "SharedEventBus", eventBusTopicArn.StringValue);
         }
-
-        var serviceProps = new OrderServiceProps(new SharedEventBus(sharedEventBus),
-            new OrdersServiceEventBus(orderServiceEventBus), jwtAccessKeyParameter);
 
         // Deploy the test harness in all non-production environments.
         if (props.Env != "prod")
@@ -80,23 +69,21 @@ public class OrderServiceProps(
             {
                 new OrderCreatedEventRule(scope, "OrderCreatedRule", props, new RuleProps()
                 {
-                    EventBus = serviceProps.PublisherBus
+                    EventBus = PublisherBus
                 }),
                 new OrderConfirmedEventRule(scope, "OrderConfirmedRule", props, new RuleProps()
                 {
-                    EventBus = serviceProps.PublisherBus
+                    EventBus = PublisherBus
                 }),
                 new OrderCompletedEventRule(scope, "OrderCompletedRule", props, new RuleProps()
                 {
-                    EventBus = serviceProps.PublisherBus
-                }),
+                    EventBus = PublisherBus
+                })
             };
-            
-            var testEventHarness = new TestEventHarness(scope, "OrdersTestEventHarness",
-                new TestEventHarnessProps(props, props.DDApiKeySecret, "orderNumber", new List<ITopic>(), publicEvents));
-        }
 
-        return serviceProps;
+            var testEventHarness = new TestEventHarness(scope, "OrdersTestEventHarness",
+                new TestEventHarnessProps(props, props.DDApiKeySecret, "orderNumber", new List<ITopic>(),
+                    publicEvents));
+        }
     }
 }
-

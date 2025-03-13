@@ -1,6 +1,17 @@
 tf-apply:
 	cd infra;terraform init -backend-config="key=orders-service/${ENV}/terraform.tfstate" -backend-config "bucket=${TF_STATE_BUCKET_NAME}" -backend-config "region=${AWS_REGION}" -reconfigure;terraform apply -var dd_api_key=${DD_API_KEY} -var dd_site=${DD_SITE} -var env=${ENV} -var app_version=${COMMIT_HASH} -var region=${AWS_REGION} -auto-approve
 
+tf-apply-local:
+	cd infra && \
+	terraform init -backend=false -reconfigure && \
+	terraform apply \
+		-var dd_api_key=${DD_API_KEY} \
+		-var dd_site=${DD_SITE} \
+		-var env=${ENV} \
+		-var app_version=${COMMIT_HASH} \
+		-var region=${AWS_REGION} \
+		-auto-approve
+
 tf-destroy:
 	cd infra;terraform init -backend-config="key=orders-service/${ENV}/terraform.tfstate" -backend-config "bucket=${TF_STATE_BUCKET_NAME}" -backend-config "region=${AWS_REGION}" -reconfigure;terraform destroy -var dd_api_key=${DD_API_KEY} -var dd_site=${DD_SITE} -var env=${ENV} -var app_version=${COMMIT_HASH} -var region=${AWS_REGION} -auto-approve
 

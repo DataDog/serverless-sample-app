@@ -6,7 +6,15 @@ namespace Orders.IntegrationTests;
 
 public record ReceivedEvent
 {
-    public string ConversationId { get; set; }
+    public string Key { get; set; }
+
+    public string EventData { get; set; }
     
     public string EventType { get; set; }
+
+    public DateTime ReceivedOn { get; set; }
+
+    public string ReceivedFrom { get; set; }
+    
+    public string ConversationId { get; set; }
 }

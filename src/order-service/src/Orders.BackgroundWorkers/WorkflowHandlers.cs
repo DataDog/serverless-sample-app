@@ -3,6 +3,7 @@
 // Copyright 2025 Datadog, Inc.
 
 using Amazon.Lambda.Annotations;
+using Datadog.Trace;
 using Orders.Core;
 using Orders.Core.Adapters;
 using Orders.Core.StockReservationFailure;
@@ -15,8 +16,7 @@ public class WorkflowHandlers(StockReservationSuccessHandler successHandler, Sto
     [LambdaFunction]
     public async Task ReservationSuccess(StockReservationSuccess request)
     {
-        request.OrderNumber.AddToTelemetry("order.id");
-        request.UserId.AddToTelemetry("user.id");
+        var activeSpan = Tracer.Instance.ActiveScope?.Span;
         
         await successHandler.Handle(request);
     }
@@ -24,9 +24,6 @@ public class WorkflowHandlers(StockReservationSuccessHandler successHandler, Sto
     [LambdaFunction]
     public async Task ReservationFailed(StockReservationFailure request)
     {
-        request.OrderNumber.AddToTelemetry("order.id");
-        request.UserId.AddToTelemetry("user.id");
-        
         await failureHandler.Handle(request);
     }
 }

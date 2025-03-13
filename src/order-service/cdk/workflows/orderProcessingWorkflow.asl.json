@@ -115,7 +115,8 @@
       ],
       "Output": {
         "original": "{% $states.input %}",
-        "result": "{% $states.result %}"
+        "result": "{% $states.result %}",
+        "_datadog": "{% $states.input._datadog %}"
       },
       "Next": "Confirm Order"
     },

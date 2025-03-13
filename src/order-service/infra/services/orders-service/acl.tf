@@ -20,11 +20,10 @@ resource "aws_sqs_queue" "stock_reserved_queue" {
 }
 
 module "shared_bus_stock_reserved_subscription" {
-  count = var.env == "dev" || var.env == "prod" ? 1 : 0
   source        = "../../modules/shared_bus_to_domain"
   rule_name = "Orders_StockReserved_Rule"
   env           = var.env
-  shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[count.index].value : ""
+  shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : ""
   domain_bus_arn = aws_cloudwatch_event_bus.orders_service_bus.arn
   domain_bus_name = aws_cloudwatch_event_bus.orders_service_bus.name
   queue_arn = aws_sqs_queue.stock_reserved_queue.arn
@@ -85,11 +84,10 @@ resource "aws_sqs_queue" "stock_reservation_failed_queue" {
 }
 
 module "shared_bus_stock_reservation_failed_subscription" {
-  count = var.env == "dev" || var.env == "prod" ? 1 : 0
   source        = "../../modules/shared_bus_to_domain"
   rule_name = "Orders_StockReservationFailed_Rule"
   env           = var.env
-  shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[count.index].value : ""
+  shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : ""
   domain_bus_arn = aws_cloudwatch_event_bus.orders_service_bus.arn
   domain_bus_name = aws_cloudwatch_event_bus.orders_service_bus.name
   queue_arn = aws_sqs_queue.stock_reservation_failed_queue.arn

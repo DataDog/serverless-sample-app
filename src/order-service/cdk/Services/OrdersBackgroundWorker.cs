@@ -28,7 +28,7 @@ public class OrdersBackgroundWorker : Construct
     {
         var environmentVariables = new Dictionary<string, string>(2)
         {
-            { "EVENT_BUS_NAME", props.ServiceProps.OrdersEventBus.EventBus.EventBusName },
+            { "EVENT_BUS_NAME", props.ServiceProps.OrdersEventBus.EventBusName },
             { "TABLE_NAME", props.OrdersTable.TableName }
         };
 
@@ -40,7 +40,7 @@ public class OrdersBackgroundWorker : Construct
                 new PolicyStatement(new PolicyStatementProps()
                 {
                     Effect = Effect.ALLOW,
-                    Resources = new[] { props.ServiceProps.OrdersEventBus.EventBus.EventBusArn },
+                    Resources = new[] { props.ServiceProps.OrdersEventBus.EventBusArn },
                     Actions = new[] { "events:DescribeEventBus" }
                 })
             }
@@ -100,19 +100,19 @@ public class OrdersBackgroundWorker : Construct
     
     private void AddEventRule(string name, OrdersBackgroundWorkerProps props, EventPattern pattern, IQueue target)
     {
-        if (props.ServiceProps.SharedEventBus.EventBus != null)
+        if (props.ServiceProps.SharedEventBus != null)
         {
             var sharedBusRule = new Rule(this, $"{name}SharedBusRule", new RuleProps()
             {
-                EventBus = props.ServiceProps.SharedEventBus.EventBus
+                EventBus = props.ServiceProps.SharedEventBus
             });
             sharedBusRule.AddEventPattern(pattern);
-            sharedBusRule.AddTarget(new EventBus(props.ServiceProps.OrdersEventBus.EventBus));
+            sharedBusRule.AddTarget(new EventBus(props.ServiceProps.OrdersEventBus));
         }
 
         var ordersBusRule = new Rule(this, $"{name}OrdersBusRule", new RuleProps()
         {
-            EventBus = props.ServiceProps.OrdersEventBus.EventBus
+            EventBus = props.ServiceProps.OrdersEventBus
         });
         ordersBusRule.AddEventPattern(pattern);
         ordersBusRule.AddTarget(new SqsQueue(target));
