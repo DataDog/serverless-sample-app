@@ -563,7 +563,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub SAM-${ServiceName}-PublicEventPublisher-${Env}
+      FunctionName: !Sub SAM-${ServiceName}-EventPublisher-${Env}
       Environment:
         Variables:
           EVENT_BUS_NAME: !If
