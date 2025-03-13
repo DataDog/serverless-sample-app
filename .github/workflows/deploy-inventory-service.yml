@@ -44,7 +44,7 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "eu-central-1"
+          AWS_REGION: "eu-west-2"
         run: |
           cd src/inventory-service
           make build
