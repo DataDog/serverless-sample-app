@@ -83,6 +83,7 @@ resource "aws_cloudwatch_event_target" "sqs_target" {
   arn            = var.queue_arn
   event_bus_name = var.domain_bus_name
 }
+
 data "aws_iam_policy_document" "allow_eb_publish_policy" {
   count = length(var.queue_name) > 0 ? 1 : 0
   statement {
@@ -98,6 +99,7 @@ data "aws_iam_policy_document" "allow_eb_publish_policy" {
     resources = [var.queue_arn]
   }
 }
+
 resource "aws_sqs_queue_policy" "sqs_target_permissions" {
   count = length(var.queue_name) > 0 ? 1 : 0
   queue_url = var.queue_id
