@@ -17,10 +17,14 @@ import {
 import { UpdatePointsCommandHandler } from "../core/update-points/update-points-handler";
 import { DynamoDbLoyaltyPointRepository } from "./dynamoDbLoyaltyPointRepository";
 import { OrderCompletedEventV1 } from "../events/orderCompletedEventV1";
+import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
+import { EventBridgeEventPublisher } from "./eventBridgeEventPublisher";
 
 const dynamoDbClient = new DynamoDBClient();
+const eventBridgeClient = new EventBridgeClient();
 const updatePointsCommandHandler = new UpdatePointsCommandHandler(
-  new DynamoDbLoyaltyPointRepository(dynamoDbClient)
+  new DynamoDbLoyaltyPointRepository(dynamoDbClient),
+  new EventBridgeEventPublisher(eventBridgeClient)
 );
 const logger = new Logger({});
 
@@ -34,8 +38,11 @@ export const handler = async (event: SQSEvent): Promise<string> => {
     let messageProcessingSpan: Span | undefined = undefined;
 
     try {
-      const evtWrapper: EventBridgeMessageWrapper<CloudEvent<OrderCompletedEventV1>> = 
+      const evtWrapper: EventBridgeMessageWrapper<CloudEvent<string>> =
         JSON.parse(message.body);
+      const evtData: OrderCompletedEventV1 = JSON.parse(
+        evtWrapper.detail.data!
+      );
 
       messageProcessingSpan = startProcessSpanWithSemanticConventions(
         evtWrapper.detail,
@@ -48,8 +55,8 @@ export const handler = async (event: SQSEvent): Promise<string> => {
       );
 
       await updatePointsCommandHandler.handle({
-        orderNumber: evtWrapper.detail.data!.orderNumber,
-        userId: evtWrapper.detail.data!.userId,
+        orderNumber: evtData.orderNumber,
+        userId: evtData.userId,
         pointsToAdd: 50,
       });
     } catch (error) {

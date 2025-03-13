@@ -37,6 +37,12 @@ export class UpdatePointsCommandHandler {
   ): Promise<HandlerResponse<LoyaltyPointsDTO>> {
     try {
       const span = tracer.scope().active()!;
+      span.addTags({
+        "user.id": command.userId,
+      });
+      span.addTags({
+        "order.id": command.orderNumber,
+      });
 
       let loyaltyAccount = await this.repository.forUser(command.userId);
 

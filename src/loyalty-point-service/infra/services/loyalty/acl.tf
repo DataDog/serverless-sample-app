@@ -20,17 +20,16 @@ resource "aws_sqs_queue" "user_created_queue" {
 }
 
 module "shared_bus_stock_reserved_subscription" {
-  count = var.env == "dev" || var.env == "prod" ? 1 : 0
-  source        = "../../modules/shared_bus_to_domain"
-  rule_name = "LoyaltyService_UserCreated_Rule"
-  env           = var.env
-  shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[count.index].value : ""
-  domain_bus_arn = aws_cloudwatch_event_bus.loyalty_service_bus.arn
+  source          = "../../modules/shared_bus_to_domain"
+  rule_name       = "LoyaltyService_UserCreated_Rule"
+  env             = var.env
+  shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : ""
+  domain_bus_arn  = aws_cloudwatch_event_bus.loyalty_service_bus.arn
   domain_bus_name = aws_cloudwatch_event_bus.loyalty_service_bus.name
-  queue_arn = aws_sqs_queue.user_created_queue.arn
-  queue_name = aws_sqs_queue.user_created_queue.name
-  queue_id = aws_sqs_queue.user_created_queue.id
-  event_pattern  = <<EOF
+  queue_arn       = aws_sqs_queue.user_created_queue.arn
+  queue_name      = aws_sqs_queue.user_created_queue.name
+  queue_id        = aws_sqs_queue.user_created_queue.id
+  event_pattern   = <<EOF
 {
   "detail-type": [
     "users.userCreated.v1"
@@ -50,12 +49,12 @@ module "handle_user_created_lambda" {
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.loyalty_table.name
-    "EVENT_BUS_NAME": var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
+    "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
-  dd_site = var.dd_site
-  app_version = var.app_version
-  env = var.env
+  dd_site               = var.dd_site
+  app_version           = var.app_version
+  env                   = var.env
   additional_policy_attachments = [
     aws_iam_policy.sqs_receive_policy.arn,
     aws_iam_policy.dynamo_db_read.arn,
@@ -84,17 +83,16 @@ resource "aws_sqs_queue" "order_completed_queue" {
 }
 
 module "shared_bus_order_completed_subscription" {
-  count = var.env == "dev" || var.env == "prod" ? 1 : 0
-  source        = "../../modules/shared_bus_to_domain"
-  rule_name = "LoyaltyService_OrderCompleted_Rule"
-  env           = var.env
-  shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[count.index].value : ""
-  domain_bus_arn = aws_cloudwatch_event_bus.loyalty_service_bus.arn
+  source          = "../../modules/shared_bus_to_domain"
+  rule_name       = "LoyaltyService_OrderCompleted_Rule"
+  env             = var.env
+  shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : ""
+  domain_bus_arn  = aws_cloudwatch_event_bus.loyalty_service_bus.arn
   domain_bus_name = aws_cloudwatch_event_bus.loyalty_service_bus.name
-  queue_arn = aws_sqs_queue.order_completed_queue.arn
-  queue_name = aws_sqs_queue.order_completed_queue.name
-  queue_id = aws_sqs_queue.order_completed_queue.id
-  event_pattern  = <<EOF
+  queue_arn       = aws_sqs_queue.order_completed_queue.arn
+  queue_name      = aws_sqs_queue.order_completed_queue.name
+  queue_id        = aws_sqs_queue.order_completed_queue.id
+  event_pattern   = <<EOF
 {
   "detail-type": [
     "orders.orderCompleted.v1"
@@ -114,12 +112,12 @@ module "handle_order_completed_lambda" {
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.loyalty_table.name
-    "EVENT_BUS_NAME": var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
+    "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
-  dd_site = var.dd_site
-  app_version = var.app_version
-  env = var.env
+  dd_site               = var.dd_site
+  app_version           = var.app_version
+  env                   = var.env
   additional_policy_attachments = [
     aws_iam_policy.sqs_receive_policy.arn,
     aws_iam_policy.dynamo_db_read.arn,

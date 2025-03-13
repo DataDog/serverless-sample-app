@@ -14,7 +14,6 @@ import {
 } from "aws-cdk-lib/aws-dynamodb";
 import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
-import { SharedProps } from "../constructs/sharedFunctionProps";
 import { InstrumentedLambdaFunction } from "../constructs/lambdaFunction";
 import { RemovalPolicy } from "aws-cdk-lib";
 import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";

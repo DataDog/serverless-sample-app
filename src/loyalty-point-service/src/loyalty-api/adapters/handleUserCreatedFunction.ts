@@ -17,10 +17,14 @@ import {
 import { UpdatePointsCommandHandler } from "../core/update-points/update-points-handler";
 import { DynamoDbLoyaltyPointRepository } from "./dynamoDbLoyaltyPointRepository";
 import { UserCreatedEventV1 } from "../events/userCreatedEventV1";
+import { EventBridgeEventPublisher } from "./eventBridgeEventPublisher";
+import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
 
 const dynamoDbClient = new DynamoDBClient();
+const eventBridgeClient = new EventBridgeClient();
 const updatePointsCommandHandler = new UpdatePointsCommandHandler(
-  new DynamoDbLoyaltyPointRepository(dynamoDbClient)
+  new DynamoDbLoyaltyPointRepository(dynamoDbClient),
+  new EventBridgeEventPublisher(eventBridgeClient)
 );
 const logger = new Logger({});
 

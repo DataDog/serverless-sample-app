@@ -109,8 +109,8 @@ Resources:
   GetLoyaltyPointsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./
-      Handler: getLoyaltyAccountFunction.handler
+      CodeUri: ./out/getLoyaltyAccountFunction/getLoyaltyAccountFunction.zip
+      Handler: index.handler
       FunctionName: !Sub GetLoyaltyPointsFunction-${Env}
       Environment:
         Variables:
@@ -124,9 +124,9 @@ Resources:
             - !Sub /${Env}/${ServiceName}/secret-access-key
       Events:
         GetProduct:
-          Type: HttpApi
+          Type: Api
           Properties: 
-            Path: /loyalty/{productId}
+            Path: /loyalty
             Method: get
       Policies:
         - DynamoDBReadPolicy:
@@ -164,34 +164,12 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "node22"
-        Sourcemap: true
-        SourcesContent: true
-        EntryPoints:
-         - ./src/loyalty-api/adapters/getLoyaltyAccountFunction.ts
-        External:
-          - "opentracing"
-          - "dd-trace"
-          - "@datadog/native-metrics"
-          - "@datadog/pprof"
-          - '@datadog/native-appsec'
-          - '@datadog/native-iast-taint-tracking'
-          - '@datadog/native-iast-rewriter'
-          - 'graphql/language/visitor' 
-          - 'graphql/language/printer'
-          - 'graphql/utilities'
-          - '@aws-sdk/client-sqs'
-          - '@aws-sdk/client-dynamodb'
 
   SpendLoyaltyPointsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./
-      Handler: spendLoyaltyPointsFunction.handler
+      CodeUri: ./out/spendLoyaltyPointsFunction/spendLoyaltyPointsFunction.zip
+      Handler: index.handler
       FunctionName: !Sub SpendLoyaltyPointsFunction-${Env}
       Environment:
         Variables:
@@ -205,7 +183,7 @@ Resources:
             - !Sub /${Env}/${ServiceName}/secret-access-key
       Events:
         GetProduct:
-          Type: HttpApi
+          Type: Api
           Properties: 
             Path: /loyalty
             Method: post
@@ -236,28 +214,6 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "node22"
-        Sourcemap: true
-        SourcesContent: true
-        EntryPoints:
-         - ./src/loyalty-api/adapters/spendLoyaltyPointsFunction.ts
-        External:
-          - "opentracing"
-          - "dd-trace"
-          - "@datadog/native-metrics"
-          - "@datadog/pprof"
-          - '@datadog/native-appsec'
-          - '@datadog/native-iast-taint-tracking'
-          - '@datadog/native-iast-rewriter'
-          - 'graphql/language/visitor' 
-          - 'graphql/language/printer'
-          - 'graphql/utilities'
-          - '@aws-sdk/client-sqs'
-          - '@aws-sdk/client-dynamodb'
 
 ################################################
 ############# Background Workers ###############
@@ -266,8 +222,8 @@ Resources:
   HandleUserCreatedEventFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./
-      Handler: handleUserCreatedFunction.handler
+      CodeUri: ./out/handleUserCreatedFunction/handleUserCreatedFunction.zip
+      Handler: index.handler
       FunctionName: !Sub HandleUserCreated-${Env}
       Environment:
         Variables:
@@ -289,28 +245,6 @@ Resources:
               - IsIntegratedEnvironment
               - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
               - !Ref LoyaltyServiceEventBus
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "node22"
-        Sourcemap: true
-        SourcesContent: true
-        EntryPoints:
-         - ./src/loyalty-api/adapters/handleUserCreatedFunction.ts
-        External:
-          - "opentracing"
-          - "dd-trace"
-          - "@datadog/native-metrics"
-          - "@datadog/pprof"
-          - '@datadog/native-appsec'
-          - '@datadog/native-iast-taint-tracking'
-          - '@datadog/native-iast-rewriter'
-          - 'graphql/language/visitor' 
-          - 'graphql/language/printer'
-          - 'graphql/utilities'
-          - '@aws-sdk/client-sqs'
-          - '@aws-sdk/client-dynamodb'
 
   UserCreatedDLQ:
     Type: AWS::SQS::Queue
@@ -361,8 +295,8 @@ Resources:
   HandleOrderCompletedEventFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./
-      Handler: handleOrderCompletedFunction.handler
+      CodeUri: ./out/handleOrderCompletedFunction/handleOrderCompletedFunction.zip
+      Handler: index.handler
       FunctionName: !Sub HandleOrderCompleted-${Env}
       Environment:
         Variables:
@@ -384,28 +318,6 @@ Resources:
               - IsIntegratedEnvironment
               - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
               - !Ref LoyaltyServiceEventBus
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "node22"
-        Sourcemap: true
-        SourcesContent: true
-        EntryPoints:
-         - ./src/loyalty-api/adapters/handleOrderCompletedFunction.ts
-        External:
-          - "opentracing"
-          - "dd-trace"
-          - "@datadog/native-metrics"
-          - "@datadog/pprof"
-          - '@datadog/native-appsec'
-          - '@datadog/native-iast-taint-tracking'
-          - '@datadog/native-iast-rewriter'
-          - 'graphql/language/visitor' 
-          - 'graphql/language/printer'
-          - 'graphql/utilities'
-          - '@aws-sdk/client-sqs'
-          - '@aws-sdk/client-dynamodb'
 
   OrderCompletedDLQ:
     Type: AWS::SQS::Queue
@@ -531,11 +443,4 @@ Resources:
     Properties:
       Name: !Sub /${Env}/${ServiceName}/api-endpoint
       Type: String
-      Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
-
-Outputs:
-  LoyaltyApiEndpoint:
-    Description: Loyalty API Endpoint
-    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
-    Export:
-      Name: LoyaltyAPIEndpoint
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
