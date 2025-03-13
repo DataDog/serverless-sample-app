@@ -10,7 +10,6 @@ package services
 import (
 	sharedconstructs "cdk/sharedConstructs"
 
-	"github.com/aws/aws-cdk-go/awscdk/v2/awsevents"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambdaeventsources"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssns"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssnssubscriptions"
@@ -19,16 +18,15 @@ import (
 )
 
 type ProductPublicEventPublisherServiceProps struct {
-	SharedProps         sharedconstructs.SharedProps
+	ServiceProps        ProductServiceProps
 	ProductCreatedTopic awssns.ITopic
 	ProductUpdatedTopic awssns.ITopic
 	ProductDeletedTopic awssns.ITopic
-	SharedEventBus      awsevents.IEventBus
 }
 
 func NewProductPublicEventPublisherService(scope constructs.Construct, id string, props *ProductPublicEventPublisherServiceProps) {
 	publicEventPublisherQueue := sharedconstructs.NewResiliantQueue(scope, "ProductPublicEventPublisherQueue", &sharedconstructs.ResiliantQueueProps{
-		SharedProps: props.SharedProps,
+		SharedProps: props.ServiceProps.SharedProps,
 		QueueName:   "ProductPublicEventPublisher",
 	})
 
@@ -36,16 +34,16 @@ func NewProductPublicEventPublisherService(scope constructs.Construct, id string
 	environmentVariables["PRODUCT_CREATED_TOPIC_ARN"] = jsii.String(*props.ProductCreatedTopic.TopicArn())
 	environmentVariables["PRODUCT_UPDATED_TOPIC_ARN"] = jsii.String(*props.ProductUpdatedTopic.TopicArn())
 	environmentVariables["PRODUCT_DELETED_TOPIC_ARN"] = jsii.String(*props.ProductDeletedTopic.TopicArn())
-	environmentVariables["EVENT_BUS_NAME"] = jsii.String(*props.SharedEventBus.EventBusName())
+	environmentVariables["EVENT_BUS_NAME"] = jsii.String(*props.ServiceProps.PublisherEventBus.EventBusName())
 
 	publicEventPublisherFunction := sharedconstructs.NewInstrumentedFunction(scope, "PublicEventPublisher", &sharedconstructs.InstrumentedFunctionProps{
-		SharedProps:          props.SharedProps,
+		SharedProps:          props.ServiceProps.SharedProps,
 		FunctionName:         "ProductEventPublisher",
 		Entry:                "../src/product-event-publisher/public-event-publisher/",
 		EnvironmentVariables: environmentVariables,
 	})
 
-	props.SharedEventBus.GrantPutEventsTo(publicEventPublisherFunction.Function)
+	props.ServiceProps.PublisherEventBus.GrantPutEventsTo(publicEventPublisherFunction.Function)
 
 	publicEventPublisherFunction.Function.AddEventSource(awslambdaeventsources.NewSqsEventSource(publicEventPublisherQueue.Queue, &awslambdaeventsources.SqsEventSourceProps{
 		ReportBatchItemFailures: jsii.Bool(true),

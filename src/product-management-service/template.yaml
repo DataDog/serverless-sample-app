@@ -10,6 +10,15 @@ Transform:
   - AWS::Serverless-2016-10-31
 Description: A sample SAM template for deploying Lambda functions.
 
+Conditions:
+  IsNonProdEnvironment: !Not [!Equals [!Ref Env, prod]]
+  IsIntegratedEnvironment: !Or
+    - !Equals ["dev", !Ref Env]
+    - !Equals ["prod", !Ref Env]
+  IsNotIntegratedEnvironment: !And
+    - !Not [!Equals [!Ref Env, prod]]
+    - !Not [!Equals [!Ref Env, dev]]
+
 Parameters: 
   ServiceName: 
     Type: String
@@ -31,7 +40,7 @@ Globals:
     Timeout: 29
     MemorySize: 512
     Layers:
-      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension-ARM:73
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension-ARM:74
     Environment:
       Variables:
         ENV: !Ref Env
@@ -46,8 +55,6 @@ Globals:
         DD_VERSION: !Ref CommitHash
         DD_SERVICE: !Ref ServiceName
         TABLE_NAME: !Ref ProductApiTable
-        POWERTOOLS_SERVICE_NAME: !Ref ServiceName
-        POWERTOOLS_LOG_LEVEL: 'INFO'
     Architectures:
       - arm64
   Api:
@@ -63,6 +70,33 @@ Resources:
       Name: !Sub "/${Env}/${ServiceName}/datadog-api-key"
       Description: "The Datadog API key"
       SecretString: !Ref DDApiKey
+
+  ProductServiceEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub "${ServiceName}-Bus-${Env}"
+
+  OrdersBusNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/event-bus-name
+      Type: String
+      Value: !Ref ProductServiceEventBus
+
+  OrdersBusArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/event-bus-arn
+      Type: String
+      Value: !GetAtt ProductServiceEventBus.Arn
+
+  OrdersSecretAccessKeyParameter:
+    Type: AWS::SSM::Parameter
+    Condition: IsNotIntegratedEnvironment
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/secret-access-key
+      Type: String
+      Value: "This is a sample secret key that should not be used in production`"
 
   GetProductFunction:
     Type: AWS::Serverless::Function
@@ -154,7 +188,10 @@ Resources:
       Environment:
         Variables:
           PRODUCT_CREATED_TOPIC_ARN: !Ref ProductCreatedTopic
-          JWT_SECRET_PARAM_NAME: !Sub "/${Env}/shared/secret-access-key"
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -187,7 +224,10 @@ Resources:
                 - "ssm:GetParameter"
                 - "ssm:GetParameterHistory"
                 - "ssm:GetParameters"
-              Resource: !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+              Resource: !If
+                  - IsIntegratedEnvironment
+                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductCreatedTopic.TopicName
     Metadata:
@@ -208,7 +248,10 @@ Resources:
       Environment:
         Variables:
           PRODUCT_UPDATED_TOPIC_ARN: !Ref ProductUpdatedTopic
-          JWT_SECRET_PARAM_NAME: !Sub "/${Env}/shared/secret-access-key"
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -240,7 +283,10 @@ Resources:
                 - "ssm:GetParameter"
                 - "ssm:GetParameterHistory"
                 - "ssm:GetParameters"
-              Resource: !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+              Resource: !If
+                  - IsIntegratedEnvironment
+                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductUpdatedTopic.TopicName
     Metadata:
@@ -261,7 +307,10 @@ Resources:
       Environment:
         Variables:
           PRODUCT_DELETED_TOPIC_ARN: !Ref ProductDeletedTopic
-          JWT_SECRET_PARAM_NAME: !Sub "/${Env}/shared/secret-access-key"
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -294,7 +343,10 @@ Resources:
                 - "ssm:GetParameter"
                 - "ssm:GetParameterHistory"
                 - "ssm:GetParameters"
-              Resource: !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+              Resource: !If
+                  - IsIntegratedEnvironment
+                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ProductDeletedTopic.TopicName
     Metadata:
@@ -446,12 +498,40 @@ Resources:
               Service: "events.amazonaws.com"
             Resource: !GetAtt ProductStockUpdatedEventQueue.Arn
             Action: SQS:SendMessage
+            
+  ################################################
+  ######## Public Event Subscriptions ############
+  ################################################
+  SharedEventBusToProductServiceEventBusRole:
+    Type: AWS::IAM::Role
+    Condition: IsIntegratedEnvironment
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: allow-eb-publish
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "events:PutEvents"
+                Resource: [!GetAtt ProductServiceEventBus.Arn]
 
-  ProductCreatedEventRule:
+  SharedEventBusStockUpdatedEventRule:
     Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
     Properties:
       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-      Name: product-stock-updated
+      Name: shared-product-management-stock-updated
       State: ENABLED
       EventPattern:
         source:
@@ -459,7 +539,23 @@ Resources:
         detail-type:
           - "inventory.stockUpdated.v1"
       Targets:
-        - Id: ProductCreatedEventQueue
+        - Id: ProductServiceEventBus
+          Arn: !GetAtt ProductServiceEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToProductServiceEventBusRole.Arn
+
+  StockUpdatedEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref ProductServiceEventBus
+      Name: product-management-stock-updated
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.inventory"
+        detail-type:
+          - "inventory.stockUpdated.v1"
+      Targets:
+        - Id: ProductStockUpdatedEventQueue
           Arn: !GetAtt ProductStockUpdatedEventQueue.Arn
 
   ProductPublicEventPublisher:
@@ -470,7 +566,10 @@ Resources:
       FunctionName: !Sub SAM-${ServiceName}-PublicEventPublisher-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+          EVENT_BUS_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Ref ProductServiceEventBus
           PRODUCT_CREATED_TOPIC_ARN: !Ref ProductCreatedTopic
           PRODUCT_UPDATED_TOPIC_ARN: !Ref ProductUpdatedTopic
           PRODUCT_DELETED_TOPIC_ARN: !Ref ProductDeletedTopic
@@ -481,7 +580,10 @@ Resources:
             Queue: !GetAtt ProductPublicEventPublisherQueue.Arn
       Policies:
         - EventBridgePutEventsPolicy:
-            EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref ProductServiceEventBus
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow

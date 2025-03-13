@@ -41,7 +41,7 @@ resource "aws_iam_policy" "function_logging_policy" {
 }
 
 resource "aws_iam_policy" "dd_api_secret_policy" {
-  name = "TF-${var.service_name}-${var.function_name}-${var.env}-api-key-secret-policy"
+  name = "TF-${var.service_name}-dd-key-${var.function_name}-${var.env}"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -64,6 +64,12 @@ resource "aws_iam_role_policy_attachment" "function_logging_policy_attachment" {
 resource "aws_iam_role_policy_attachment" "secrets_retrieval_policy_attachment" {
   role       = aws_iam_role.lambda_function_role.id
   policy_arn = aws_iam_policy.dd_api_secret_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "additional_policy_attachments" {
+  count      = length(var.additional_policy_attachments)
+  role       = aws_iam_role.lambda_function_role.id
+  policy_arn = var.additional_policy_attachments[count.index]
 }
 
 resource "aws_cloudwatch_log_group" "lambda_log_group" {

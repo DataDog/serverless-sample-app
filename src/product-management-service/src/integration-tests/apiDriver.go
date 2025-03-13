@@ -60,6 +60,13 @@ func NewApiDriver(env string, ssmClient ssm.Client, eventBridgeClient eventbridg
 	paramName := fmt.Sprintf("/%s/ProductManagementService/api-endpoint", env)
 	shouldDecrypt := true
 
+	isIntegratedEnvironment := env == "dev" || env == "prod"
+	serviceName := "ProductManagementService"
+
+	if isIntegratedEnvironment {
+		serviceName = "shared"
+	}
+
 	req := ssm.GetParameterInput{
 		Name:           &paramName,
 		WithDecryption: &shouldDecrypt,
@@ -68,9 +75,9 @@ func NewApiDriver(env string, ssmClient ssm.Client, eventBridgeClient eventbridg
 	if err != nil {
 		panic(err)
 	}
-	accessKeyParameterName := "/%s/shared/secret-access-key"
+	accessKeyParameterName := "/%s/%s/secret-access-key"
 
-	secretKeyParamName := fmt.Sprintf(accessKeyParameterName, env)
+	secretKeyParamName := fmt.Sprintf(accessKeyParameterName, env, serviceName)
 	secretKeyRequest := ssm.GetParameterInput{
 		Name:           &secretKeyParamName,
 		WithDecryption: &shouldDecrypt,
@@ -79,7 +86,7 @@ func NewApiDriver(env string, ssmClient ssm.Client, eventBridgeClient eventbridg
 	if secretKeyErr != nil {
 		panic(secretKeyErr)
 	}
-	busNameParamName := fmt.Sprintf("/%s/shared/event-bus-name", env)
+	busNameParamName := fmt.Sprintf("/%s/%s/event-bus-name", env, serviceName)
 	eventBusRequest := ssm.GetParameterInput{
 		Name:           &busNameParamName,
 		WithDecryption: &shouldDecrypt,

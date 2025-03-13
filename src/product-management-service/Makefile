@@ -1,6 +1,9 @@
 tf-apply:
 	cd infra;terraform init -backend-config="key=product-management-services/${ENV}/terraform.tfstate" -backend-config "bucket=${TF_STATE_BUCKET_NAME}" -backend-config "region=${AWS_REGION}" -reconfigure;terraform apply -var dd_api_key=${DD_API_KEY} -var dd_site=${DD_SITE} -var env=${ENV} -var app_version=${COMMIT_HASH} -var region=${AWS_REGION} -auto-approve
 
+tf-apply-local:
+	cd infra;terraform init -backend=false -reconfigure;terraform apply -var dd_api_key=${DD_API_KEY} -var dd_site=${DD_SITE} -var env=${ENV} -var app_version=${COMMIT_HASH} -var region=${AWS_REGION} -auto-approve
+
 tf-refresh:
 	cd infra;terraform init -backend-config="key=product-management-services/${ENV}/terraform.tfstate" -backend-config "bucket=${TF_STATE_BUCKET_NAME}" -backend-config "region=${AWS_REGION}" -reconfigure;terraform apply -var dd_api_key=${DD_API_KEY} -var dd_site=${DD_SITE} -var env=${ENV} -var app_version=${COMMIT_HASH} -var region=${AWS_REGION} -auto-approve -refresh-only
 
@@ -33,8 +36,8 @@ pre-build:
 	mkdir out/DeleteProduct
 	mkdir out/UpdateProduct
 	mkdir out/PriceCalculatedHandlerFunction
-	mkdir out/StockUpdatedHandlerFunction
-	mkdir out/ProductPublicEventPublisher
+	mkdir out/StockUpdated
+	mkdir out/EventPublisher
 	mkdir out/ProductAcl
 
 build: pre-build package-api-functions package-product-acl package-api-worker-functions package-event-publisher-functions
@@ -45,7 +48,7 @@ package-product-acl: package-ProductAclFunction
 
 package-api-worker-functions: package-ProductApiPricingWorker package-ProductApiStockUpdatedWorker
 
-package-event-publisher-functions: package-ProductPublicEventPublisher
+package-event-publisher-functions: package-EventPublisher
 
 package-GetProductFunction:
 	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap get-product/main.go;cp bootstrap ../../out/GetProduct/bootstrap
@@ -72,16 +75,16 @@ package-ProductApiPricingWorker:
 	zip -r -j out/PriceCalculatedHandlerFunction/PriceCalculatedHandlerFunction.zip out/PriceCalculatedHandlerFunction/bootstrap
 
 package-ProductApiStockUpdatedWorker:
-	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-stock-updated/main.go;cp bootstrap ../../out/StockUpdatedHandlerFunction/bootstrap
-	zip -r -j out/StockUpdatedHandlerFunction/StockUpdatedHandlerFunction.zip out/StockUpdatedHandlerFunction/bootstrap
+	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-stock-updated/main.go;cp bootstrap ../../out/StockUpdated/bootstrap
+	zip -r -j out/StockUpdated/StockUpdated.zip out/StockUpdated/bootstrap
 
 package-ProductAclFunction:
 	cd src/product-acl;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap inventory-stock-updated-event-handler/main.go;cp bootstrap ../../out/ProductAcl/bootstrap
 	zip -r -j out/ProductAcl/ProductAcl.zip out/ProductAcl/bootstrap
 
-package-ProductPublicEventPublisher:
-	cd src/product-event-publisher;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap public-event-publisher/main.go;cp bootstrap ../../out/ProductPublicEventPublisher/bootstrap
-	zip -r -j out/ProductPublicEventPublisher/ProductPublicEventPublisher.zip out/ProductPublicEventPublisher/bootstrap
+package-EventPublisher:
+	cd src/product-event-publisher;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap public-event-publisher/main.go;cp bootstrap ../../out/EventPublisher/bootstrap
+	zip -r -j out/EventPublisher/EventPublisher.zip out/EventPublisher/bootstrap
 
 build-GetProductFunction:
 	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap get-product/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
@@ -104,7 +107,7 @@ build-ProductApiPricingWorker:
 build-ProductApiStockUpdatedWorker:
 	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-stock-updated/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
 
-build-ProductPublicEventPublisher:
+build-EventPublisher:
 	cd src/product-event-publisher;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap public-event-publisher/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
 
 build-ProductInventoryStockUpdatedHandler:

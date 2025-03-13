@@ -20,8 +20,7 @@ import (
 )
 
 type ProductAclServiceProps struct {
-	SharedProps    sharedconstructs.SharedProps
-	SharedEventBus awsevents.IEventBus
+	ServiceProps ProductServiceProps
 }
 
 type ProductAcl struct {
@@ -30,11 +29,11 @@ type ProductAcl struct {
 
 func NewProductAclService(scope constructs.Construct, id string, props *ProductAclServiceProps) ProductAcl {
 	productStockUpdatedTopic := awssns.NewTopic(scope, jsii.String("ProductProductAddedTopic"), &awssns.TopicProps{
-		TopicName: jsii.Sprintf("%s-InventoryStockUpdated-%s", props.SharedProps.ServiceName, props.SharedProps.Env),
+		TopicName: jsii.Sprintf("%s-InventoryStockUpdated-%s", props.ServiceProps.SharedProps.ServiceName, props.ServiceProps.SharedProps.Env),
 	})
 
 	productStockUpdatedEventQueue := sharedconstructs.NewResiliantQueue(scope, "ProductStockUpdatedEventQueue", &sharedconstructs.ResiliantQueueProps{
-		SharedProps: props.SharedProps,
+		SharedProps: props.ServiceProps.SharedProps,
 		QueueName:   "ProductStockUpdatedEventQueue",
 	})
 
@@ -42,7 +41,7 @@ func NewProductAclService(scope constructs.Construct, id string, props *ProductA
 	environmentVariables["STOCK_LEVEL_UPDATED_TOPIC_ARN"] = jsii.String(*productStockUpdatedTopic.TopicArn())
 
 	publicEventPublisherFunction := sharedconstructs.NewInstrumentedFunction(scope, "ProductAcl", &sharedconstructs.InstrumentedFunctionProps{
-		SharedProps:          props.SharedProps,
+		SharedProps:          props.ServiceProps.SharedProps,
 		FunctionName:         "ProductAcl",
 		Entry:                "../src/product-acl/inventory-stock-updated-event-handler/",
 		EnvironmentVariables: environmentVariables,
@@ -55,12 +54,12 @@ func NewProductAclService(scope constructs.Construct, id string, props *ProductA
 	}))
 
 	productCreatedRule := awsevents.NewRule(scope, jsii.String("Product-StockUpdated"), &awsevents.RuleProps{
-		EventBus: props.SharedEventBus,
+		EventBus: props.ServiceProps.SubscriberEventBus,
 	})
 
 	productCreatedRule.AddEventPattern(&awsevents.EventPattern{
 		DetailType: jsii.Strings("inventory.stockUpdated.v1"),
-		Source:     jsii.Strings(fmt.Sprintf("%s.inventory", props.SharedProps.Env)),
+		Source:     jsii.Strings(fmt.Sprintf("%s.inventory", props.ServiceProps.SharedProps.Env)),
 	})
 	productCreatedRule.AddTarget(awseventstargets.NewSqsQueue(productStockUpdatedEventQueue.Queue, &awseventstargets.SqsQueueProps{}))
 

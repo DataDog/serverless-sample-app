@@ -43,7 +43,6 @@ jobs:
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "tf-${{ env.sha_short }}"
-          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_2_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "eu-west-2"
@@ -66,7 +65,6 @@ jobs:
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "tf-${{ env.sha_short }}"
-          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_2_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "eu-west-2"

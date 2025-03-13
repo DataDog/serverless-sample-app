@@ -20,8 +20,7 @@ import (
 )
 
 type ProductApiProps struct {
-	sharedconstructs.SharedProps
-	JwtSecretAccessKeyParameter awsssm.IStringParameter
+	ServiceProps ProductServiceProps
 }
 
 type ProductApi struct {
@@ -37,7 +36,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	productDeletedTopic := awssns.NewTopic(scope, jsii.String("ProductDeletedTopic"), &awssns.TopicProps{})
 
 	table := awsdynamodb.NewTable(scope, jsii.String("ProductsTable"), &awsdynamodb.TableProps{
-		TableName:   jsii.Sprintf("%s-Products-%s", props.SharedProps.ServiceName, props.SharedProps.Env),
+		TableName:   jsii.Sprintf("%s-Products-%s", props.ServiceProps.SharedProps.ServiceName, props.ServiceProps.SharedProps.Env),
 		TableClass:  awsdynamodb.TableClass_STANDARD,
 		BillingMode: awsdynamodb.BillingMode_PAY_PER_REQUEST,
 		PartitionKey: &awsdynamodb.Attribute{
@@ -48,7 +47,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	})
 
 	api := awsapigateway.NewRestApi(scope, jsii.String("ProductApi"), &awsapigateway.RestApiProps{
-		RestApiName: jsii.Sprintf("%s-Api-%s", props.SharedProps.ServiceName, props.SharedProps.Env),
+		RestApiName: jsii.Sprintf("%s-Api-%s", props.ServiceProps.SharedProps.ServiceName, props.ServiceProps.SharedProps.Env),
 		DefaultCorsPreflightOptions: &awsapigateway.CorsOptions{
 			AllowOrigins: jsii.Strings("*"),
 			AllowHeaders: jsii.Strings("*"),
@@ -61,10 +60,10 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	environmentVariables["PRODUCT_CREATED_TOPIC_ARN"] = jsii.String(*productCreatedTopic.TopicArn())
 	environmentVariables["PRODUCT_UPDATED_TOPIC_ARN"] = jsii.String(*productUpdatedTopic.TopicArn())
 	environmentVariables["PRODUCT_DELETED_TOPIC_ARN"] = jsii.String(*productDeletedTopic.TopicArn())
-	environmentVariables["JWT_SECRET_PARAM_NAME"] = props.JwtSecretAccessKeyParameter.ParameterName()
+	environmentVariables["JWT_SECRET_PARAM_NAME"] = props.ServiceProps.JwtSecretAccessKeyParam.ParameterName()
 
 	listProductsFunction := sharedconstructs.NewInstrumentedFunction(scope, "ListProductsFunction", &sharedconstructs.InstrumentedFunctionProps{
-		SharedProps:          props.SharedProps,
+		SharedProps:          props.ServiceProps.SharedProps,
 		Entry:                "../src/product-api/list-products/",
 		FunctionName:         "ListProducts",
 		EnvironmentVariables: environmentVariables,
@@ -74,17 +73,17 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	productCreatedTopic.GrantPublish(listProductsFunction.Function)
 
 	createProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "CreateProductFunction", &sharedconstructs.InstrumentedFunctionProps{
-		SharedProps:          props.SharedProps,
+		SharedProps:          props.ServiceProps.SharedProps,
 		Entry:                "../src/product-api/create-product/",
 		FunctionName:         "CreateProduct",
 		EnvironmentVariables: environmentVariables,
 	})
 	table.GrantReadWriteData(createProductFunction.Function)
 	productCreatedTopic.GrantPublish(createProductFunction.Function)
-	props.JwtSecretAccessKeyParameter.GrantRead(createProductFunction.Function)
+	props.ServiceProps.JwtSecretAccessKeyParam.GrantRead(createProductFunction.Function)
 
 	getProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "GetProductFunction", &sharedconstructs.InstrumentedFunctionProps{
-		SharedProps:          props.SharedProps,
+		SharedProps:          props.ServiceProps.SharedProps,
 		Entry:                "../src/product-api/get-product/",
 		FunctionName:         "GetProduct",
 		EnvironmentVariables: environmentVariables,
@@ -93,24 +92,24 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	table.GrantReadData(getProductFunction.Function)
 
 	updateProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "UpdateProductFunction", &sharedconstructs.InstrumentedFunctionProps{
-		SharedProps:          props.SharedProps,
+		SharedProps:          props.ServiceProps.SharedProps,
 		Entry:                "../src/product-api/update-product/",
 		FunctionName:         "UpdateProduct",
 		EnvironmentVariables: environmentVariables,
 	})
 	table.GrantReadWriteData(updateProductFunction.Function)
 	productUpdatedTopic.GrantPublish(updateProductFunction.Function)
-	props.JwtSecretAccessKeyParameter.GrantRead(updateProductFunction.Function)
+	props.ServiceProps.JwtSecretAccessKeyParam.GrantRead(updateProductFunction.Function)
 
 	deleteProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "DeleteProductFunction", &sharedconstructs.InstrumentedFunctionProps{
-		SharedProps:          props.SharedProps,
+		SharedProps:          props.ServiceProps.SharedProps,
 		Entry:                "../src/product-api/delete-product/",
 		FunctionName:         "DeleteProdut",
 		EnvironmentVariables: environmentVariables,
 	})
 	table.GrantReadWriteData(deleteProductFunction.Function)
 	productDeletedTopic.GrantPublish(deleteProductFunction.Function)
-	props.JwtSecretAccessKeyParameter.GrantRead(deleteProductFunction.Function)
+	props.ServiceProps.JwtSecretAccessKeyParam.GrantRead(deleteProductFunction.Function)
 
 	productResource := api.Root().AddResource(jsii.String("product"), &awsapigateway.ResourceOptions{})
 
@@ -124,7 +123,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	productIdResource.AddMethod(jsii.String("DELETE"), awsapigateway.NewLambdaIntegration(deleteProductFunction.Function, &awsapigateway.LambdaIntegrationOptions{}), &awsapigateway.MethodOptions{})
 
 	awsssm.NewStringParameter(scope, jsii.String("ProductApiEndpoint"), &awsssm.StringParameterProps{
-		ParameterName: jsii.Sprintf("/%s/%s/api-endpoint", props.SharedProps.Env, props.SharedProps.ServiceName),
+		ParameterName: jsii.Sprintf("/%s/%s/api-endpoint", props.ServiceProps.SharedProps.Env, props.ServiceProps.SharedProps.ServiceName),
 		StringValue:   api.Url(),
 	})
 

@@ -54,3 +54,8 @@ variable "enable_cloudwatch_logging" {
   default = false
   type    = bool
 }
+
+variable "additional_policy_attachments" {
+  type = list(string)
+  default = []
+}

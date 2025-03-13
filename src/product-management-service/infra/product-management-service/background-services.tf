@@ -50,7 +50,7 @@ module "product_api_stock_updated_worker" {
   service_name   = "ProductManagementService"
   source         = "../modules/lambda-function"
   entry_point    = "../src/product-api/handle-stock-updated"
-  function_name  = "StockUpdatedHandlerFunction"
+  function_name  = "StockUpdated"
   lambda_handler = "index.handler"
   environment_variables = {
     TABLE_NAME : aws_dynamodb_table.product_api.name
@@ -59,16 +59,10 @@ module "product_api_stock_updated_worker" {
   dd_site               = var.dd_site
   app_version = var.app_version
   env = var.env
-}
-
-
-resource "aws_iam_role_policy_attachment" "stock_updated_allow_dynamo_read_permission" {
-  role       = module.product_api_stock_updated_worker.function_role_name
-  policy_arn = aws_iam_policy.dynamo_db_read.arn
-}
-resource "aws_iam_role_policy_attachment" "stock_updated_allow_dynamo_write_permission" {
-  role       = module.product_api_stock_updated_worker.function_role_name
-  policy_arn = aws_iam_policy.dynamo_db_write.arn
+  additional_policy_attachments = [
+    aws_iam_policy.dynamo_db_read.arn,
+    aws_iam_policy.dynamo_db_write.arn
+  ]
 }
 
 resource "aws_lambda_permission" "stock_updated_changed_sns" {

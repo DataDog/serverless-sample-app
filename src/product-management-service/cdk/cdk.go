@@ -8,9 +8,7 @@ import (
 
 	"github.com/DataDog/datadog-cdk-constructs-go/ddcdkconstruct"
 	"github.com/aws/aws-cdk-go/awscdk/v2"
-	"github.com/aws/aws-cdk-go/awscdk/v2/awsevents"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssecretsmanager"
-	"github.com/aws/aws-cdk-go/awscdk/v2/awsssm"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 )
@@ -85,36 +83,27 @@ func NewProductManagementService(scope constructs.Construct, id string, props *P
 		Datadog:     datadog,
 	}
 
-	// mockedResources := services.NewMockedSharedResources(stack, "MockedSharedResources", &services.MockedSharedResourceProps{
-	// 	SharedProps: sharedProps,
-	// })
-
-	jwtSecretAccessKey := awsssm.StringParameter_FromStringParameterName(stack, jsii.String("JwtSecretKeyParameter"), jsii.Sprintf("/%s/shared/secret-access-key", env))
-	eventBusParam := awsssm.StringParameter_FromStringParameterName(stack, jsii.String("EventBusNameParam"), jsii.Sprintf("/%s/shared/event-bus-name", env))
-	sharedEventBus := awsevents.EventBus_FromEventBusName(stack, jsii.String("SharedEventBus"), eventBusParam.StringValue())
+	serviceProps := services.NewProductServiceProps(stack, sharedProps)
 
 	productApi := services.NewProductApi(stack, "ProductApi", &services.ProductApiProps{
-		SharedProps:                 sharedProps,
-		JwtSecretAccessKeyParameter: jwtSecretAccessKey,
+		ServiceProps: serviceProps,
 	})
 
 	productAcl := services.NewProductAclService(stack, "ProductAclService", &services.ProductAclServiceProps{
-		SharedProps:    sharedProps,
-		SharedEventBus: sharedEventBus,
+		ServiceProps: serviceProps,
 	})
 
 	services.NewProductBackgroundServices(stack, "ProductBackgroundServices", &services.ProductBackgroundServiceProps{
-		SharedProps:              sharedProps,
+		ServiceProps:             serviceProps,
 		ProductStockUpdatedTopic: productAcl.ProductStockUpdatedTopic,
 		ProductTable:             productApi.Table,
 	})
 
 	services.NewProductPublicEventPublisherService(stack, "ProductPublicEventPublisher", &services.ProductPublicEventPublisherServiceProps{
-		SharedProps:         sharedProps,
+		ServiceProps:        serviceProps,
 		ProductCreatedTopic: productApi.ProductCreatedTopic,
 		ProductUpdatedTopic: productApi.ProductUpdatedTopic,
 		ProductDeletedTopic: productApi.ProductDeletedTopic,
-		SharedEventBus:      sharedEventBus,
 	})
 
 	return stack

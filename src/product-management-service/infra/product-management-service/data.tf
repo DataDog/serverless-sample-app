@@ -8,28 +8,24 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-data "aws_ssm_parameter" "eb_name" {
-  name = "/${var.env}/shared/event-bus-name"
-}
-
-data "aws_ssm_parameter" "secret_access_key_param" {
-  name = "/${var.env}/shared/secret-access-key"
-}
-
 data "aws_iam_policy_document" "allow_jwt_secret_key_ssm_read" {
   statement {
     actions = ["ssm:DescribeParameters",
       "ssm:GetParameter",
       "ssm:GetParameterHistory",
       "ssm:GetParameters"]
-    resources = ["arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/shared/secret-access-key"]
+    resources = [
+        var.env == "dev" || var.env == "prod" ? "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/shared/secret-access-key" : "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/ProductManagementService/secret-access-key"
+    ]
   }
 }
 
 data "aws_iam_policy_document" "eb_publish" {
   statement {
-    actions   = ["events:PutEvents"]
-    resources = ["arn:aws:events:*:${data.aws_caller_identity.current.account_id}:event-bus/${data.aws_ssm_parameter.eb_name.value}"]
+    actions   = ["events:PutEvents", "events:DescribeEventBus"]
+    resources = [
+        var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_arn[0].value : aws_cloudwatch_event_bus.product_service_bus.arn
+    ]
   }
 }
 
@@ -68,21 +64,6 @@ data "aws_iam_policy_document" "sns_publish_deleted" {
   statement {
     actions   = ["sns:Publish"]
     resources = ["arn:aws:sns:*:${data.aws_caller_identity.current.account_id}:${aws_sns_topic.product_deleted.name}"]
-  }
-}
-
-data "aws_iam_policy_document" "product_acl_queue_policy" {
-  statement {
-    sid    = "AllowEBPost"
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["events.amazonaws.com"]
-    }
-
-    actions   = ["sqs:SendMessage"]
-    resources = [aws_sqs_queue.public_event_acl_queue.arn]
   }
 }
 

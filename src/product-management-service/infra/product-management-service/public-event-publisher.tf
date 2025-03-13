@@ -28,34 +28,28 @@ module "product_public_event_publisher" {
   service_name   = "ProductManagementService"
   source         = "../modules/lambda-function"
   entry_point = "../src/product-event-publisher/public-event-publisher"
-  function_name  = "ProductPublicEventPublisher"
+  function_name  = "EventPublisher"
   lambda_handler = "index.handler"
   environment_variables = {
     PRODUCT_CREATED_TOPIC_ARN : aws_sns_topic.product_created.arn
     PRODUCT_UPDATED_TOPIC_ARN : aws_sns_topic.product_updated.arn
     PRODUCT_DELETED_TOPIC_ARN : aws_sns_topic.product_deleted.arn
-    EVENT_BUS_NAME : data.aws_ssm_parameter.eb_name.value
+    EVENT_BUS_NAME : var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.product_service_bus.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
   app_version = var.app_version
   env = var.env
+  additional_policy_attachments = [
+    aws_iam_policy.eb_publish.arn,
+    aws_iam_policy.event_publisher_sqs_receive_policy.arn
+  ]
 }
 
 resource "aws_lambda_event_source_mapping" "public_event_publisher" {
   event_source_arn = aws_sqs_queue.public_event_publisher_queue.arn
   function_name    = module.product_public_event_publisher.function_arn
   function_response_types = ["ReportBatchItemFailures"]
-}
-
-resource "aws_iam_role_policy_attachment" "product_created_handler_publish_permission" {
-  role       = module.product_public_event_publisher.function_role_name
-  policy_arn = aws_iam_policy.eb_publish.arn
-}
-
-resource "aws_iam_role_policy_attachment" "event_publisher_sqs_receive_permission" {
-  role       = module.product_public_event_publisher.function_role_name
-  policy_arn = aws_iam_policy.event_publisher_sqs_receive_policy.arn
 }
 
 resource "aws_lambda_permission" "product_created_sns" {

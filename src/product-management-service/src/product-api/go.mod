@@ -16,7 +16,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sns v1.34.1
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.57.2
 	github.com/golang-jwt/jwt/v5 v5.2.1
-	github.com/google/uuid v1.6.0
 	go.opentelemetry.io/otel v1.35.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.72.1
 )
@@ -73,6 +72,7 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.9 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.7 // indirect

@@ -22,9 +22,26 @@ resource "aws_sns_topic" "product_stock_level_updated" {
   name = "ProductManagementService-stock-updated-${var.env}"
 }
 
-resource "aws_sqs_queue_policy" "allow_eb_publish" {
-  queue_url = aws_sqs_queue.public_event_acl_queue.id
-  policy    = data.aws_iam_policy_document.product_acl_queue_policy.json
+module "shared_bus_stock_updated_subscription" {
+  source        = "../modules/shared_bus_to_domain"
+  rule_name = "ProductManagement_StockUpdated_Rule"
+  env           = var.env
+  shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : ""
+  domain_bus_arn = aws_cloudwatch_event_bus.product_service_bus.arn
+  domain_bus_name = aws_cloudwatch_event_bus.product_service_bus.name
+  queue_arn = aws_sqs_queue.public_event_acl_queue.arn
+  queue_name = aws_sqs_queue.public_event_acl_queue.name
+  queue_id = aws_sqs_queue.public_event_acl_queue.id
+  event_pattern  = <<EOF
+{
+  "detail-type": [
+    "inventory.stockUpdated.v1"
+  ],
+  "source": [
+    "${var.env}.inventory"
+  ]
+}
+EOF
 }
 
 module "product_acl_function" {
@@ -40,6 +57,10 @@ module "product_acl_function" {
   dd_site = var.dd_site
   app_version = var.app_version
   env = var.env
+  additional_policy_attachments = [
+    aws_iam_policy.sqs_receive_policy.arn,
+    aws_iam_policy.sns_publish_stock_updated.arn
+  ]
 }
 
 resource "aws_lambda_event_source_mapping" "acl_event_source_mapping" {
@@ -48,34 +69,3 @@ resource "aws_lambda_event_source_mapping" "acl_event_source_mapping" {
   function_response_types = ["ReportBatchItemFailures"]
 }
 
-resource "aws_iam_role_policy_attachment" "acl_sqs_receive_permission" {
-  role       = module.product_acl_function.function_role_name
-  policy_arn = aws_iam_policy.sqs_receive_policy.arn
-}
-
-resource "aws_iam_role_policy_attachment" "product_created_handler_sns_publish" {
-  role       = module.product_acl_function.function_role_name
-  policy_arn = aws_iam_policy.sns_publish_stock_updated.arn
-}
-
-resource "aws_cloudwatch_event_rule" "event_rule" {
-  name           = "ProductAclRule-StockUpdated"
-  event_bus_name = data.aws_ssm_parameter.eb_name.value
-  event_pattern  = <<EOF
-{
-  "detail-type": [
-    "inventory.stockUpdated.v1"
-  ],
-  "source": [
-    "${var.env}.inventory"
-  ]
-}
-EOF
-}
-
-resource "aws_cloudwatch_event_target" "sqs_target" {
-  rule           = aws_cloudwatch_event_rule.event_rule.name
-  target_id      = aws_sqs_queue.public_event_acl_queue.name
-  arn            = aws_sqs_queue.public_event_acl_queue.arn
-  event_bus_name = data.aws_ssm_parameter.eb_name.value
-}
