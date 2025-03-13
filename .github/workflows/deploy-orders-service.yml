@@ -42,7 +42,7 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
-          ENV: ${{ env.sha_short }}
+          ENV: "tf-${{ env.sha_short }}"
           DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_2_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
@@ -55,7 +55,7 @@ jobs:
       - name: Integration test dev
         shell: bash
         env:
-          ENV: ${{ env.sha_short }}
+          ENV: "tf-${{ env.sha_short }}"
           AWS_REGION: "eu-west-2"
         run: |
           cd src/order-service
@@ -131,7 +131,7 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
-          ENV: cdk-${{ env.sha_short }}
+          ENV: "cdk-${{ env.sha_short }}"
           DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
@@ -141,7 +141,7 @@ jobs:
       - name: Integration test dev
         shell: bash
         env:
-          ENV: ${{ env.sha_short }}
+          ENV: "cdk-${{ env.sha_short }}"
           AWS_REGION: "eu-west-1"
         run: |
           cd src/order-service
@@ -151,7 +151,7 @@ jobs:
         if: always()
         env:
           COMMIT_HASH: ${{ env.sha_short }}
-          ENV: ${{ env.sha_short }}
+          ENV: "cdk-${{ env.sha_short }}"
           DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
@@ -221,7 +221,7 @@ jobs:
       - name: Integration test dev
         shell: bash
         env:
-          ENV: ${{ env.sha_short }}
+          ENV: "sam-${{ env.sha_short }}"
           AWS_REGION: "eu-central-1"
         run: |
           cd src/order-service
@@ -231,14 +231,14 @@ jobs:
         if: always()
         env:
           COMMIT_HASH: ${{ env.sha_short }}
-          ENV: ${{ env.sha_short }}
+          ENV: "sam-${{ env.sha_short }}"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "eu-central-1"
         run: |
           cd src/order-service
           make sam-destroy
-      - name: Deploy to devAWS
+      - name: Deploy to dev
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
