@@ -26,7 +26,7 @@ integration-test:
 	cd src/integration-tests; go test
 
 cleanup:
-	rm -r out -f
+	test -d out && rm -rf out || true
 
 pre-build:
 	mkdir out
@@ -40,7 +40,7 @@ pre-build:
 	mkdir out/EventPublisher
 	mkdir out/ProductAcl
 
-build: pre-build package-api-functions package-product-acl package-api-worker-functions package-event-publisher-functions
+build: cleanup pre-build package-api-functions package-product-acl package-api-worker-functions package-event-publisher-functions
 
 package-api-functions: package-GetProductFunction package-CreateProductFunction package-DeleteProductFunction package-UpdateProductFunction package-ListProductsFunction
 
