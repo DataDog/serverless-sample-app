@@ -16,7 +16,7 @@ jobs:
   deploy-tf:
     runs-on: ubuntu-latest
     concurrency:
-      group: tf-order-service
+      group: tf-networked
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -111,7 +111,7 @@ jobs:
   deploy-cdk:
     runs-on: ubuntu-latest
     concurrency:
-      group: cdk-order-service
+      group: cdk-networked
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -204,7 +204,7 @@ jobs:
   deploy-sam:
     runs-on: ubuntu-latest
     concurrency:
-      group: sam-order-service
+      group: sam-networked
     steps:
       - name: Checkout
         uses: actions/checkout@v4
