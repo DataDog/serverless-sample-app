@@ -13,8 +13,7 @@ import { sign } from "jsonwebtoken";
 let apiDriver: ApiDriver;
 let bearerToken: string = "";
 
-// Running tests that span the full end to end, across multiple backend services is not a best practice, this test is to make sure the example app works when updated.
-describe("end-to-end-tests", () => {
+describe("integration-tests", () => {
   beforeAll(async () => {
     if (
       process.env.API_ENDPOINT !== undefined &&
