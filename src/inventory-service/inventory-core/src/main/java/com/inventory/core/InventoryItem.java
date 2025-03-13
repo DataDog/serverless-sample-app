@@ -24,6 +24,7 @@ public class InventoryItem {
         this.currentStockLevel = -1.0;
         this.reservedStockLevel = 0.0;
         this.reservedStockOrders = new ArrayList<>();
+        this.reservedStockOrders.add("");
     }
 
     public InventoryItem(String productId, Double currentStockLevel, Double reservedStockLevel, ArrayList<String> reservedStockOrders) {
@@ -34,12 +35,9 @@ public class InventoryItem {
     }
 
     static InventoryItem Create(String productId, Double currentStockLevel) {
-        InventoryItem inventoryItem = new InventoryItem();
-        inventoryItem.productId = productId;
-        inventoryItem.currentStockLevel = currentStockLevel;
-        inventoryItem.reservedStockLevel = 0.0;
-        inventoryItem.reservedStockOrders = new ArrayList<>();
-        return inventoryItem;
+        var orders = new ArrayList<String>();
+        orders.add("");
+        return new InventoryItem(productId, currentStockLevel, 0.0, orders);
     }
 
     public String getProductId() {

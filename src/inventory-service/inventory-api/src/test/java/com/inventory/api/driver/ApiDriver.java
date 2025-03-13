@@ -149,9 +149,35 @@ public class ApiDriver {
         }
     }
 
-    public void injectOrderCreatedEvent(String productId) throws JsonProcessingException {
+    public void injectOrderCompletedEvent(String orderNumber) throws JsonProcessingException {
+        OrderCompletedEventV1 event = new OrderCompletedEventV1();
+        event.setOrderNumber(orderNumber);
+
+        CloudEventWrapper<OrderCompletedEventV1> cloudEvent = new CloudEventWrapper<>();
+        cloudEvent.setData(event);
+
+        String message = objectMapper.writeValueAsString(cloudEvent);
+        String detailType = "orders.orderCompleted.v1";
+        String source = String.format("%s.orders", System.getenv("ENV"));
+
+        PutEventsRequestEntry entry = PutEventsRequestEntry.builder()
+                .detail(message)
+                .detailType(detailType)
+                .eventBusName(busName)
+                .source(source)
+                .build();
+
+        PutEventsRequest request = PutEventsRequest.builder().entries(entry).build();
+        PutEventsResponse response = eventBridgeClient.putEvents(request);
+
+        if (response.failedEntryCount() > 0) {
+            throw new RuntimeException("Failed to publish event");
+        }
+    }
+
+    public void injectOrderCreatedEvent(String productId, String orderNumber) throws JsonProcessingException {
         OrderCreatedEventV1 event = new OrderCreatedEventV1();
-        event.setOrderNumber("1234");
+        event.setOrderNumber(orderNumber);
         event.setProducts(List.of(productId));
 
         CloudEventWrapper<OrderCreatedEventV1> cloudEvent = new CloudEventWrapper<>();

@@ -29,6 +29,7 @@ public class InventoryServiceStack extends Stack {
         super(scope, id, props);
 
         var ddApiKey = System.getenv("DD_API_KEY");
+        var ddSite = System.getenv("DD_SITE") == null ? "datadoghq.com" : System.getenv("DD_SITE");
 
         if (ddApiKey == null || ddApiKey.isEmpty()) {
             throw new RuntimeException("DD_API_KEY not set");
@@ -44,10 +45,10 @@ public class InventoryServiceStack extends Stack {
                         .secretStringValue(new SecretValue(ddApiKey))
                         .build());
 
-        SharedProps sharedProps = new SharedProps(serviceName, env, version, ddApiKeySecret);
+        SharedProps sharedProps = new SharedProps(serviceName, env, version, ddApiKeySecret, ddSite);
         InventoryServiceProps serviceProps = new InventoryServiceProps(this, "InventoryServiceProps", sharedProps);
 
-        var api = new InventoryApiContainer(this, "InventoryApi", new InventoryApiContainerProps(sharedProps, serviceProps.getSharedEventBus(), serviceProps.getJwtAccessKeyParameter()));
+        var api = new InventoryApiContainer(this, "InventoryApi", new InventoryApiContainerProps(serviceProps));
 
         var acl = new InventoryAcl(this, "InventoryACL", new InventoryAclProps(sharedProps, serviceProps.getPublisherEventBus(), serviceProps.getInventoryEventBus(), api.getTable()));
 

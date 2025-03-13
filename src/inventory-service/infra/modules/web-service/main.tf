@@ -87,7 +87,7 @@ resource "aws_ecs_task_definition" "main" {
         logDriver = "awsfirelens"
         options = {
           Name           = "datadog"
-          Host           = "http-intake.logs.datadoghq.eu"
+          Host           = "http-intake.logs.${var.dd_site}"
           TLS            = "on"
           dd_service     = var.service_name
           dd_source      = "expressjs",

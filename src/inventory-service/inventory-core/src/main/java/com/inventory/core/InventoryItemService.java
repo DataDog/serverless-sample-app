@@ -72,7 +72,7 @@ public class InventoryItemService {
 
             if (existingInventoryItem == null) {
                 span.setTag("product.notFound", "true");
-                return new HandlerResponse<>(null, List.of("Product not found"), false);
+                existingInventoryItem = InventoryItem.Create(request.getProductId(), request.getStockLevel());
             }
 
             var currentStockLevel = existingInventoryItem.getCurrentStockLevel();

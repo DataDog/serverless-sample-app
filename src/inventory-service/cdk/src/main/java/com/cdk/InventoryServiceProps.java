@@ -14,6 +14,7 @@ import java.util.List;
 
 public class InventoryServiceProps extends Construct {
     private final IEventBus inventoryEventBus;
+    private final SharedProps sharedProps;
     private IEventBus sharedEventBus;
     private IStringParameter jwtAccessKeyParameter;
     private List<String> integrationEnvironments = List.of("dev","prod");
@@ -44,6 +45,7 @@ public class InventoryServiceProps extends Construct {
                     .stringValue("This is a sample secret key that should not be used in production`")
                     .build());
         }
+        this.sharedProps = sharedProps;
     }
 
     public IEventBus getInventoryEventBus() {
@@ -68,5 +70,9 @@ public class InventoryServiceProps extends Construct {
 
     public List<String> getIntegrationEnvironments() {
         return integrationEnvironments;
+    }
+
+    public SharedProps getSharedProps() {
+        return sharedProps;
     }
 }

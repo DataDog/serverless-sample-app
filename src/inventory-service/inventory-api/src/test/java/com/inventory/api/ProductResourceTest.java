@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inventory.api.driver.ApiDriver;
 import com.inventory.api.driver.UpdateStockLevelCommand;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.http.crt.AwsCrtHttpClient;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
@@ -17,13 +17,13 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 class ProductResourceTest {
-    ApiDriver apiDriver;
-    ObjectMapper objectMapper;
+    static ApiDriver apiDriver;
+    static ObjectMapper objectMapper;
     static final int WORKFLOW_MINIMUM_EXECUTION=30000;
-    static final int ORDER_CREATED_PROCESSING_DELAY=30000;
+    static final int EVENT_PROCESSING_DELAY =30000;
 
-    @BeforeEach
-    public void setup() {
+    @BeforeAll
+    public static void setup() {
         objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         SsmClient ssmClient = SsmClient.builder()
@@ -76,10 +76,24 @@ class ProductResourceTest {
         Assertions.assertEquals(10.0, stockLevel.getData().getCurrentStockLevel());
     }
 
+    @Test
+    public void test_product_stock_levels_can_be_updated_for_an_unknown_product() throws IOException, ExecutionException, InterruptedException {
+        var randomProductId = UUID.randomUUID().toString();
+
+        var updateStockLevelResult = apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
+
+        Assertions.assertEquals(200, updateStockLevelResult.statusCode());
+
+        var stockLevel = apiDriver.getProductStockLevel(randomProductId);
+
+        Assertions.assertNotNull(stockLevel.getData());
+        Assertions.assertEquals(10.0, stockLevel.getData().getCurrentStockLevel());
+    }
 
     @Test
     public void test_stock_levels_are_decreased_when_order_created() throws IOException, ExecutionException, InterruptedException {
         var randomProductId = UUID.randomUUID().toString();
+        var randomOrderNumber = UUID.randomUUID().toString();
 
         apiDriver.injectProductCreatedEvent(randomProductId);
 
@@ -96,13 +110,38 @@ class ProductResourceTest {
 
         Assertions.assertEquals(10.0, stockLevel.getData().getCurrentStockLevel());
 
-        apiDriver.injectOrderCreatedEvent(randomProductId);
+        apiDriver.injectOrderCreatedEvent(randomProductId, randomOrderNumber);
 
-        Thread.sleep(ORDER_CREATED_PROCESSING_DELAY);
+        Thread.sleep(EVENT_PROCESSING_DELAY);
 
         stockLevel = apiDriver.getProductStockLevel(randomProductId);
 
         Assertions.assertEquals(9, stockLevel.getData().getCurrentStockLevel());
         Assertions.assertEquals(1, stockLevel.getData().getReservedStockLevel());
+    }
+
+    @Test
+    public void test_stock_levels_are_decreased_when_order_completed() throws IOException, ExecutionException, InterruptedException {
+        var randomProductId = UUID.randomUUID().toString();
+        var randomOrderNumber = UUID.randomUUID().toString();
+
+        apiDriver.injectProductCreatedEvent(randomProductId);
+
+        Thread.sleep(WORKFLOW_MINIMUM_EXECUTION);
+
+        var updateStockLevelResult = apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
+
+        apiDriver.injectOrderCreatedEvent(randomProductId, randomOrderNumber);
+
+        Thread.sleep(EVENT_PROCESSING_DELAY);
+
+        apiDriver.injectOrderCompletedEvent(randomOrderNumber);
+
+        Thread.sleep(EVENT_PROCESSING_DELAY);
+
+        var stockLevel = apiDriver.getProductStockLevel(randomProductId);
+
+        Assertions.assertEquals(9, stockLevel.getData().getCurrentStockLevel());
+        Assertions.assertEquals(0, stockLevel.getData().getReservedStockLevel());
     }
 }

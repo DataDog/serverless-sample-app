@@ -6,10 +6,11 @@
 
 package com.cdk.inventory.api;
 
+import com.cdk.InventoryServiceProps;
 import com.cdk.constructs.SharedProps;
 import software.amazon.awscdk.StackProps;
 import software.amazon.awscdk.services.events.IEventBus;
 import software.amazon.awscdk.services.ssm.IStringParameter;
 
-public record InventoryApiContainerProps(SharedProps sharedProps, IEventBus sharedEventBus, IStringParameter jwtAccessKeyParameter) implements StackProps {
+public record InventoryApiContainerProps(InventoryServiceProps serviceProps) implements StackProps {
 }

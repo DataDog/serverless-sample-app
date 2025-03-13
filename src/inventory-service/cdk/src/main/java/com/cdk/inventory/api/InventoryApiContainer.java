@@ -66,14 +66,14 @@ public class InventoryApiContainer extends Construct {
         Map<String, String> environmentVariables = new HashMap<>();
         environmentVariables.put("DD_LOGS_INJECTION", "true");
         environmentVariables.put("TABLE_NAME", table.getTableName());
-        environmentVariables.put("EVENT_BUS_NAME", props.sharedEventBus().getEventBusName());
+        environmentVariables.put("EVENT_BUS_NAME", props.serviceProps().getPublisherEventBus().getEventBusName());
         environmentVariables.put("TEAM", "inventory");
         environmentVariables.put("DOMAIN", "inventory");
-        environmentVariables.put("ENV", props.sharedProps().env());
-        environmentVariables.put("DD_SERVICE", props.sharedProps().service());
-        environmentVariables.put("DD_ENV", props.sharedProps().env());
-        environmentVariables.put("DD_VERSION", props.sharedProps().version());
-        environmentVariables.put("JWT_SECRET_PARAM_NAME", props.jwtAccessKeyParameter().getParameterName());
+        environmentVariables.put("ENV", props.serviceProps().getSharedProps().env());
+        environmentVariables.put("DD_SERVICE", props.serviceProps().getSharedProps().service());
+        environmentVariables.put("DD_ENV", props.serviceProps().getSharedProps().env());
+        environmentVariables.put("DD_VERSION", props.serviceProps().getSharedProps().version());
+        environmentVariables.put("JWT_SECRET_PARAM_NAME", props.serviceProps().getJwtAccessKeyParameter().getParameterName());
         environmentVariables.put("QUARKUS_HTTP_CORS_HEADERS", "Accept,Authorization,Content-Type");
         environmentVariables.put("QUARKUS_HTTP_CORS_METHODS", "GET,POST,OPTIONS,PUT,DELETE");
         environmentVariables.put("QUARKUS_HTTP_CORS_ORIGINS", "*");
@@ -95,13 +95,13 @@ public class InventoryApiContainer extends Construct {
                         .logDriver(new FireLensLogDriver(FireLensLogDriverProps.builder()
                                 .options(Map.of(
                                         "Name", "datadog",
-                                        "Host", "http-intake.logs.datadoghq.eu",
+                                        "Host", String.format("http-intake.logs.%s", props.serviceProps().getSharedProps().ddSite()),
                                         "TLS", "on",
-                                        "dd_service", props.sharedProps().service(),
+                                        "dd_service", props.serviceProps().getSharedProps().service(),
                                         "dd_source", "expressjs",
                                         "dd_message_key", "log",
                                         "provider", "ecs",
-                                        "apikey", props.sharedProps().ddApiKeySecret().getSecretValue().unsafeUnwrap()
+                                        "apikey", props.serviceProps().getSharedProps().ddApiKeySecret().getSecretValue().unsafeUnwrap()
                                 ))
                                 .build()))
                         .build())
@@ -130,16 +130,16 @@ public class InventoryApiContainer extends Construct {
                 .build());
 
         table.grantReadWriteData(taskRole);
-        props.sharedEventBus().grantPutEventsTo(taskRole);
-        props.jwtAccessKeyParameter().grantRead(taskRole);
+        props.serviceProps().getPublisherEventBus().grantPutEventsTo(taskRole);
+        props.serviceProps().getJwtAccessKeyParameter().grantRead(taskRole);
         
         taskRole.addToPolicy(PolicyStatement.Builder.create()
                 .effect(Effect.ALLOW)
                 .resources(List.of("*"))
                 .actions(List.of("events:ListEventBuses"))
                 .build());
-        props.sharedProps().ddApiKeySecret().grantRead(taskRole);
-        props.sharedProps().ddApiKeySecret().grantRead(executionRole);
+        props.serviceProps().getSharedProps().ddApiKeySecret().grantRead(taskRole);
+        props.serviceProps().getSharedProps().ddApiKeySecret().grantRead(executionRole);
 
         application.getTargetGroup().configureHealthCheck(HealthCheck.builder()
                 .port("8080")
@@ -151,9 +151,9 @@ public class InventoryApiContainer extends Construct {
                 .healthyThresholdCount(2)
                 .build());
         
-        String env  = props.sharedProps().env();
-        String service = props.sharedProps().service();
-        String version = props.sharedProps().version();
+        String env  = props.serviceProps().getSharedProps().env();
+        String service = props.serviceProps().getSharedProps().service();
+        String version = props.serviceProps().getSharedProps().version();
 
         Map<String, String> datadogEnvironmentVariables = new HashMap<>();
         datadogEnvironmentVariables.put("DD_SITE", "datadoghq.eu");
@@ -179,12 +179,12 @@ public class InventoryApiContainer extends Construct {
                 .containerName("datadog-agent")
                 .environment(datadogEnvironmentVariables)
                 .secrets(Map.of(
-                        "DD_API_KEY", Secret.fromSecretsManager(props.sharedProps().ddApiKeySecret())
+                        "DD_API_KEY", Secret.fromSecretsManager(props.serviceProps().getSharedProps().ddApiKeySecret())
                 ))
                 .build());
 
         StringParameter apiEndpoint = new StringParameter(this, "ApiEndpoint", StringParameterProps.builder()
-                .parameterName(String.format("/%s/%s/api-endpoint", props.sharedProps().env(), props.sharedProps().service()))
+                .parameterName(String.format("/%s/%s/api-endpoint", props.serviceProps().getSharedProps().env(), props.serviceProps().getSharedProps().service()))
                 .stringValue(String.format("http://%s", application.getLoadBalancer().getLoadBalancerDnsName()))
                 .build());
 
@@ -199,10 +199,10 @@ public class InventoryApiContainer extends Construct {
 
     private RestApi createApiGatewayForAlb(InventoryApiContainerProps props, ApplicationLoadBalancedFargateService application) {
         RestApi api = RestApi.Builder.create(this, "OrdersApi")
-                .restApiName(String.format("%s-Orders-Api-%s", props.sharedProps().service(), props.sharedProps().env()))
+                .restApiName(String.format("%s-Orders-Api-%s", props.serviceProps().getSharedProps().service(), props.serviceProps().getSharedProps().env()))
                 .description("API Gateway for Orders Service")
                 .deployOptions(StageOptions.builder()
-                        .stageName(props.sharedProps().env())
+                        .stageName(props.serviceProps().getSharedProps().env())
                         .build())
                 .defaultCorsPreflightOptions(CorsOptions.builder()
                         .allowOrigins(Cors.ALL_ORIGINS)

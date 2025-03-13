@@ -5,15 +5,15 @@
 # Copyright 2024 Datadog, Inc.
 #
 
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Transform:
   - AWS::Serverless-2016-10-31
   - Name: DatadogServerless
     Parameters:
-      stackName: !Ref "AWS::StackName"
+      stackName: !Ref AWS::StackName
       apiKey: !Ref DDApiKey
-      javaLayerVersion: "18"
-      extensionLayerVersion: "73"
+      javaLayerVersion: '18'
+      extensionLayerVersion: '74'
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -23,11 +23,21 @@ Description: A sample SAM template for deploying Lambda functions.
 
 Conditions:
   IsIntegratedEnvironment: !Or
-    - !Equals [ "dev", !Ref Env ]
-    - !Equals [ "prod", !Ref Env ]
+    - !Equals
+      - dev
+      - !Ref Env
+    - !Equals
+      - prod
+      - !Ref Env
   IsNotIntegratedEnvironment: !And
-    - !Not [!Equals [!Ref Env, prod]]
-    - !Not [!Equals [!Ref Env, dev]]
+    - !Not
+      - !Equals
+        - !Ref Env
+        - prod
+    - !Not
+      - !Equals
+        - !Ref Env
+        - dev
 
 Parameters:
   ServiceName:
@@ -51,28 +61,28 @@ Globals:
     MemorySize: 2048
     Environment:
       Variables:
-        TEAM: "inventory"
-        DOMAIN: "inventory"
+        TEAM: inventory
+        DOMAIN: inventory
         ENV: !Ref Env
-        DD_LOGS_INJECTION: "true"
+        DD_LOGS_INJECTION: 'true'
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
-        POWERTOOLS_LOG_LEVEL: 'INFO'
+        POWERTOOLS_LOG_LEVEL: INFO
         AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
     Architectures:
       - x86_64
 
 Resources:
   DDApiKeySecret:
-    Type: 'AWS::SecretsManager::Secret'
+    Type: AWS::SecretsManager::Secret
     Properties:
-      Name: !Sub "/${Env}/${ServiceName}/datadog-api-key"
-      Description: "The Datadog API key"
+      Name: !Sub /${Env}/${ServiceName}/datadog-api-key
+      Description: The Datadog API key
       SecretString: !Ref DDApiKey
 
   InventoryServiceEventBus:
     Type: AWS::Events::EventBus
     Properties:
-      Name: !Sub "${ServiceName}-Bus-${Env}"
+      Name: !Sub ${ServiceName}-Bus-${Env}
 
   InventoryBusNameParameter:
     Type: AWS::SSM::Parameter
@@ -94,7 +104,7 @@ Resources:
     Properties:
       Name: !Sub /${Env}/${ServiceName}/secret-access-key
       Type: String
-      Value: "This is a sample secret key that should not be used in production`"
+      Value: This is a sample secret key that should not be used in production`
 
   InventoryProductCreatedPublicEventHandler:
     Type: AWS::Serverless::Function
@@ -113,14 +123,14 @@ Resources:
           Properties:
             Queue: !GetAtt InventoryProductCreatedEventQueue.Arn
       Policies:
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Deny
               Action:
@@ -131,7 +141,7 @@ Resources:
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt NewProductAddedTopic.TopicName
     Metadata:
-      SkipBuild: True
+      SkipBuild: true
 
   InventoryOrderCreatedPublicEventHandler:
     Type: AWS::Serverless::Function
@@ -146,7 +156,7 @@ Resources:
           MAIN_CLASS: com.inventory.acl.FunctionConfiguration
           EVENT_BUS_NAME: !If
             - IsIntegratedEnvironment
-            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Sub '{{resolve:ssm:/${Env}/shared/event-bus-name:1}}'
             - !Ref InventoryServiceEventBus
       Events:
         IntegrationQueue:
@@ -154,14 +164,14 @@ Resources:
           Properties:
             Queue: !GetAtt InventoryOrderCreatedEventQueue.Arn
       Policies:
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Deny
               Action:
@@ -174,10 +184,16 @@ Resources:
         - EventBridgePutEventsPolicy:
             EventBusName: !If
               - IsIntegratedEnvironment
-              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Sub '{{resolve:ssm:/${Env}/shared/event-bus-name:1}}'
               - !Ref InventoryServiceEventBus
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - events:ListEventBuses
+              Resource: '*'
     Metadata:
-      SkipBuild: True
+      SkipBuild: true
 
   InventoryOrderCompletedPublicEventHandler:
     Type: AWS::Serverless::Function
@@ -192,7 +208,7 @@ Resources:
           MAIN_CLASS: com.inventory.acl.FunctionConfiguration
           EVENT_BUS_NAME: !If
             - IsIntegratedEnvironment
-            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Sub '{{resolve:ssm:/${Env}/shared/event-bus-name:1}}'
             - !Ref InventoryServiceEventBus
       Events:
         IntegrationQueue:
@@ -200,14 +216,14 @@ Resources:
           Properties:
             Queue: !GetAtt InventoryOrderCompletedEventQueue.Arn
       Policies:
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Deny
               Action:
@@ -220,30 +236,33 @@ Resources:
         - EventBridgePutEventsPolicy:
             EventBusName: !If
               - IsIntegratedEnvironment
-              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Sub '{{resolve:ssm:/${Env}/shared/event-bus-name:1}}'
               - !Ref InventoryServiceEventBus
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - events:ListEventBuses
+              Resource: '*'
     Metadata:
-      SkipBuild: True
- 
+      SkipBuild: true
+
   NewProductAddedTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub "${ServiceName}-NewProductAdded-${Env}"
+      TopicName: !Sub ${ServiceName}-NewProductAdded-${Env}
 
   InventoryProductCreatedEventDLQ:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "${ServiceName}-ProductCreatedDLQ-${Env}"
+      QueueName: !Sub ${ServiceName}-ProductCreatedDLQ-${Env}
 
   InventoryProductCreatedEventQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "${ServiceName}-ProductCreatedQueue-${Env}"
+      QueueName: !Sub ${ServiceName}-ProductCreatedQueue-${Env}
       RedrivePolicy:
-        deadLetterTargetArn:
-          Fn::GetAtt:
-            - "InventoryProductCreatedEventDLQ"
-            - "Arn"
+        deadLetterTargetArn: !GetAtt InventoryProductCreatedEventDLQ.Arn
         maxReceiveCount: 3
 
   ProductCreatedEventRule:
@@ -254,42 +273,39 @@ Resources:
       State: ENABLED
       EventPattern:
         source:
-          - !Sub "${Env}.products"
+          - !Sub ${Env}.products
         detail-type:
-          - "product.productCreated.v1"
+          - product.productCreated.v1
       Targets:
         - Id: ProductCreatedEventQueue
           Arn: !GetAtt InventoryProductCreatedEventQueue.Arn
 
   SnsToQueuePolicy:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
+    Properties:
       Queues:
         - !Ref InventoryProductCreatedEventQueue
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
         Statement:
           - Sid: allow-eb-send-message-messages
             Effect: Allow
             Principal:
-              Service: "events.amazonaws.com"
+              Service: events.amazonaws.com
             Resource: !GetAtt InventoryProductCreatedEventQueue.Arn
             Action: SQS:SendMessage
 
   InventoryOrderCreatedEventDLQ:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "InventoryOrderCreatedEventDLQ-${Env}"
+      QueueName: !Sub InventoryOrderCreatedEventDLQ-${Env}
 
   InventoryOrderCreatedEventQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "InventoryOrderCreatedEventQueue-${Env}"
+      QueueName: !Sub InventoryOrderCreatedEventQueue-${Env}
       RedrivePolicy:
-        deadLetterTargetArn:
-          Fn::GetAtt:
-            - "InventoryOrderCreatedEventDLQ"
-            - "Arn"
+        deadLetterTargetArn: !GetAtt InventoryOrderCreatedEventDLQ.Arn
         maxReceiveCount: 3
 
   OrderCreatedEventRule:
@@ -300,9 +316,9 @@ Resources:
       State: ENABLED
       EventPattern:
         source:
-          - !Sub "${Env}.orders"
+          - !Sub ${Env}.orders
         detail-type:
-          - "orders.orderCreated.v1"
+          - orders.orderCreated.v1
       Targets:
         - Id: OrderCreatedEventQueue
           Arn: !GetAtt InventoryOrderCreatedEventQueue.Arn
@@ -318,24 +334,21 @@ Resources:
           - Sid: allow-eb-send-message-messages
             Effect: Allow
             Principal:
-              Service: "events.amazonaws.com"
+              Service: events.amazonaws.com
             Resource: !GetAtt InventoryOrderCreatedEventQueue.Arn
             Action: SQS:SendMessage
 
   InventoryOrderCompletedEventDLQ:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "InventoryOrderCompletedEventDLQ-${Env}"
+      QueueName: !Sub InventoryOrderCompletedEventDLQ-${Env}
 
   InventoryOrderCompletedEventQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "InventoryOrderCompletedEventQueue-${Env}"
+      QueueName: !Sub InventoryOrderCompletedEventQueue-${Env}
       RedrivePolicy:
-        deadLetterTargetArn:
-          Fn::GetAtt:
-            - "InventoryOrderCompletedEventDLQ"
-            - "Arn"
+        deadLetterTargetArn: !GetAtt InventoryOrderCompletedEventDLQ.Arn
         maxReceiveCount: 3
 
   OrderCompletedEventRule:
@@ -346,12 +359,12 @@ Resources:
       State: ENABLED
       EventPattern:
         source:
-          - !Sub "${Env}.orders"
+          - !Sub ${Env}.orders
         detail-type:
-          - "orders.orderCompleted.v1"
+          - orders.orderCompleted.v1
       Targets:
-        - Id: OrderCreatedEventQueue
-          Arn: !GetAtt InventoryOrderCreatedEventQueue.Arn
+        - Id: OrderCompletedEventQueue
+          Arn: !GetAtt InventoryOrderCompletedEventQueue.Arn
 
   EBToOrderCompletedQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -364,7 +377,7 @@ Resources:
           - Sid: allow-eb-send-message-messages
             Effect: Allow
             Principal:
-              Service: "events.amazonaws.com"
+              Service: events.amazonaws.com
             Resource: !GetAtt InventoryOrderCompletedEventQueue.Arn
             Action: SQS:SendMessage
 
@@ -385,7 +398,7 @@ Resources:
           Properties:
             Topic: !Ref NewProductAddedTopic
       Policies:
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
@@ -394,48 +407,48 @@ Resources:
         - StepFunctionsExecutionPolicy:
             StateMachineName: !GetAtt InventoryOrderingService.Name
     Metadata:
-      SkipBuild: True
+      SkipBuild: true
 
-  InventoryOrderingServiceLogGroup: 
+  InventoryOrderingServiceLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
+    Properties:
       RetentionInDays: 1
-      LogGroupName: !Sub "/aws/vendedlogs/states/${ServiceName}-InventoryOrderingServiceLogGroup-${Env}"
+      LogGroupName: !Sub /aws/vendedlogs/states/${ServiceName}-InventoryOrderingServiceLogGroup-${Env}
 
   InventoryOrderingService:
     Type: AWS::Serverless::StateMachine
     Properties:
-      Name: !Sub "${ServiceName}-InventoryOrderingServiceLogGroup-${Env}"
-      DefinitionUri: cdk/src/main/java/com/cdk/inventory/ordering/workflows/workflow.setStock.asl.json
+      Name: !Sub ${ServiceName}-InventoryOrderingServiceLogGroup-${Env}
       DefinitionSubstitutions:
         TableName: !Ref InventoryApiTable
       Policies:
-        - Version: "2012-10-17"
+        - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
-                - "logs:CreateLogDelivery"
-                - "logs:CreateLogStream"
-                - "logs:GetLogDelivery"
-                - "logs:UpdateLogDelivery"
-                - "logs:DeleteLogDelivery"
-                - "logs:ListLogDeliveries"
-                - "logs:PutLogEvents"
-                - "logs:PutResourcePolicy"
-                - "logs:DescribeResourcePolicies"
-                - "logs:DescribeLogGroups"
-              Resource: "*"
+                - logs:CreateLogDelivery
+                - logs:CreateLogStream
+                - logs:GetLogDelivery
+                - logs:UpdateLogDelivery
+                - logs:DeleteLogDelivery
+                - logs:ListLogDeliveries
+                - logs:PutLogEvents
+                - logs:PutResourcePolicy
+                - logs:DescribeResourcePolicies
+                - logs:DescribeLogGroups
+              Resource: '*'
         - DynamoDBWritePolicy:
             TableName: !Ref InventoryApiTable
       Logging:
         IncludeExecutionData: true
         Level: ALL
         Destinations:
-           - CloudWatchLogsLogGroup: 
+          - CloudWatchLogsLogGroup:
               LogGroupArn: !GetAtt InventoryOrderingServiceLogGroup.Arn
       Tags:
-        DD_ENHANCED_METRICS: "true"
-        DD_TRACE_ENABLED: "true"
+        DD_ENHANCED_METRICS: 'true'
+        DD_TRACE_ENABLED: 'true'
+      DefinitionUri: cdk/src/main/java/com/cdk/inventory/ordering/workflows/workflow.setStock.asl.json
 
   InventoryApiTable:
     Type: AWS::DynamoDB::Table
@@ -449,28 +462,32 @@ Resources:
         - AttributeName: PK
           KeyType: HASH
 
-  VPC: 
+  VPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: 10.0.0.0/16
-  
+
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.0.0/24
-      AvailabilityZone: !Select [0, !GetAZs '']
-  
-  PublicSubnet2: 
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+
+  PublicSubnet2:
     Type: AWS::EC2::Subnet
-    Properties: 
+    Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.1.0/24
-      AvailabilityZone: !Select [1, !GetAZs '']
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
-  
+
   VPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
@@ -481,22 +498,22 @@ Resources:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
-  
-  PublicRoute: 
+
+  PublicRoute:
     Type: AWS::EC2::Route
     DependsOn: VPCGatewayAttachment
     Properties:
       RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: '0.0.0.0/0'
+      DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
   PublicSubnet1RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation  
+    Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet1
       RouteTableId: !Ref PublicRouteTable
 
-  PublicSubnet2RouteTableAssociation:  
+  PublicSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet2
@@ -508,7 +525,7 @@ Resources:
       GroupDescription: Allow incoming HTTP traffic
       VpcId: !Ref VPC
       SecurityGroupIngress:
-        - CidrIp: 0.0.0.0/0 
+        - CidrIp: 0.0.0.0/0
           IpProtocol: tcp
           FromPort: 80
           ToPort: 80
@@ -519,12 +536,12 @@ Resources:
       GroupDescription: Allow incoming HTTP traffic
       VpcId: !Ref VPC
       SecurityGroupIngress:
-        - CidrIp: 0.0.0.0/0 
+        - CidrIp: 0.0.0.0/0
           IpProtocol: tcp
           FromPort: 8080
           ToPort: 8080
           Description: Allow incoming HTTP traffic from ALB
-        - CidrIpv6: ::/0
+        - CidrIpv6: '::/0'
           IpProtocol: tcp
           FromPort: 8080
           ToPort: 8080
@@ -581,9 +598,9 @@ Resources:
       Tags: []
       EnableECSManagedTags: true
     DependsOn:
-      - ALBListener        
+      - ALBListener
 
-  ECSALBTargetGroup:  
+  ECSALBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: !Sub ${ServiceName}-tg-${Env}
@@ -593,7 +610,7 @@ Resources:
       Matcher:
         HttpCode: 200-499
       HealthCheckPath: /health
-      HealthCheckPort: "traffic-port"
+      HealthCheckPort: traffic-port
       HealthCheckProtocol: HTTP
       HealthyThresholdCount: 2
       UnhealthyThresholdCount: 5
@@ -612,7 +629,7 @@ Resources:
         - !Ref PublicSubnet2
       SecurityGroups:
         - !Ref ALBSecurityGroup
-  
+
   ALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -645,7 +662,7 @@ Resources:
                 Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: "*"
+                Resource: '*'
         - PolicyName: cloudwatch-logs-policy
           PolicyDocument:
             Version: 2012-10-17
@@ -656,7 +673,7 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                   - logs:DescribeLogStreams
-                Resource: "*"
+                Resource: '*'
         - PolicyName: allow-secrets-retrieve
           PolicyDocument:
             Version: 2012-10-17
@@ -686,18 +703,18 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - "dynamodb:BatchGetItem"
-                  - "dynamodb:BatchWriteItem"
-                  - "dynamodb:ConditionCheckItem"
-                  - "dynamodb:DeleteItem"
-                  - "dynamodb:DescribeTable"
-                  - "dynamodb:GetItem"
-                  - "dynamodb:GetRecords"
-                  - "dynamodb:GetShardIterator"
-                  - "dynamodb:PutItem"
-                  - "dynamodb:Query"
-                  - "dynamodb:Scan"
-                  - "dynamodb:UpdateItem"
+                  - dynamodb:BatchGetItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:ConditionCheckItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:DescribeTable
+                  - dynamodb:GetItem
+                  - dynamodb:GetRecords
+                  - dynamodb:GetShardIterator
+                  - dynamodb:PutItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:UpdateItem
                 Resource: !GetAtt InventoryApiTable.Arn
         - PolicyName: allow-eb-publish
           PolicyDocument:
@@ -705,9 +722,9 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - "events:PutEvents"
-                  - "events:ListEventBuses"
-                Resource: "*"
+                  - events:PutEvents
+                  - events:ListEventBuses
+                Resource: '*'
         - PolicyName: allow-secrets-retrieve
           PolicyDocument:
             Version: 2012-10-17
@@ -718,26 +735,26 @@ Resources:
                 Resource: !Ref DDApiKeySecret
         - PolicyName: allow-ssm-access-key-retrieve
           PolicyDocument:
-            Version: "2012-10-17"
+            Version: '2012-10-17'
             Statement:
               - Effect: Allow
                 Action:
-                  - "ssm:DescribeParameters"
-                  - "ssm:GetParameter"
-                  - "ssm:GetParameterHistory"
-                  - "ssm:GetParameters"
+                  - ssm:DescribeParameters
+                  - ssm:GetParameter
+                  - ssm:GetParameterHistory
+                  - ssm:GetParameters
                 Resource: !If
                   - IsIntegratedEnvironment
-                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
-                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+                  - !Sub arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key
+                  - !Sub arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key
 
   ECSTaskDef:
     Type: AWS::ECS::TaskDefinition
     Properties:
       RequiresCompatibilities:
         - FARGATE
-      Cpu: "256"
-      Memory: "512"
+      Cpu: '256'
+      Memory: '512'
       NetworkMode: awsvpc
       Family: inventory-api-definition
       ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
@@ -749,29 +766,23 @@ Resources:
         - Name: InventoryApi
           Image: public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-inventory-java:latest
           Environment:
-            - 
-              Name: TABLE_NAME
+            - Name: TABLE_NAME
               Value: !Ref InventoryApiTable
-            -
-              Name: EVENT_BUS_NAME
+            - Name: EVENT_BUS_NAME
               Value: !If
                 - IsIntegratedEnvironment
-                - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+                - !Sub '{{resolve:ssm:/${Env}/shared/event-bus-name:1}}'
                 - !Ref InventoryServiceEventBus
-            -
-              Name: JWT_SECRET_PARAM_NAME
+            - Name: JWT_SECRET_PARAM_NAME
               Value: !If
                 - IsIntegratedEnvironment
                 - !Sub /${Env}/shared/secret-access-key
                 - !Sub /${Env}/${ServiceName}/secret-access-key
-            - 
-              Name: TEAM
-              Value: "inventory"
-            - 
-              Name: DOMAIN
-              Value: "inventory"
-            -
-              Name: ENV
+            - Name: TEAM
+              Value: inventory
+            - Name: DOMAIN
+              Value: inventory
+            - Name: ENV
               Value: !Ref Env
           PortMappings:
             - ContainerPort: 8080
@@ -783,53 +794,41 @@ Resources:
           LogConfiguration:
             LogDriver: awsfirelens
             Options:
-              Name: "datadog"
-              Host: "http-intake.logs.datadoghq.eu"
-              TLS: "on"
+              Name: datadog
+              Host: !Sub http-intake.logs.${DDSite}
+              TLS: 'on'
               dd_service: InventoryManagementService
-              dd_source: "quarkus"
-              dd_message_key: "log"
-              provider: "ecs"
+              dd_source: quarkus
+              dd_message_key: log
+              provider: ecs
               apikey: !Ref DDApiKey
         - Name: DatadogAgent
           Image: public.ecr.aws/datadog/agent:latest
           Environment:
-            - 
-              Name: DD_SITE
-              Value: "datadoghq.eu"
-            -
-              Name: ECS_FARGATE
-              Value: "true"
-            - 
-              Name: DD_LOGS_ENABLED
-              Value: "false"
-            - 
-              Name: DD_PROCESS_AGENT_ENABLED
-              Value: "true"
-            -
-              Name: DD_APM_ENABLED
-              Value: "true"
-            -
-              Name: DD_APM_NON_LOCAL_TRAFFIC
-              Value: "true"
-            -
-              Name: DD_DOGSTATSD_NON_LOCAL_TRAFFIC
-              Value: "true"
-            -
-              Name: DD_ECS_TASK_COLLECTION_ENABLED
-              Value: "true"
-            -
-              Name: DD_ENV
+            - Name: DD_SITE
+              Value: !Ref DDSite
+            - Name: ECS_FARGATE
+              Value: 'true'
+            - Name: DD_LOGS_ENABLED
+              Value: 'false'
+            - Name: DD_PROCESS_AGENT_ENABLED
+              Value: 'true'
+            - Name: DD_APM_ENABLED
+              Value: 'true'
+            - Name: DD_APM_NON_LOCAL_TRAFFIC
+              Value: 'true'
+            - Name: DD_DOGSTATSD_NON_LOCAL_TRAFFIC
+              Value: 'true'
+            - Name: DD_ECS_TASK_COLLECTION_ENABLED
+              Value: 'true'
+            - Name: DD_ENV
               Value: !Ref Env
-            -
-              Name: DD_SERVICE
+            - Name: DD_SERVICE
               Value: !Ref ServiceName
-            -
-              Name: DD_VERSION
+            - Name: DD_VERSION
               Value: !Ref CommitHash
-            -
-              Name: DD_APM_IGNORE_RESOURCES
-              Value: "GET /"
+            - Name: DD_APM_IGNORE_RESOURCES
+              Value: GET /
           Secrets:
             - Name: DD_API_KEY
               ValueFrom: !Ref DDApiKeySecret
@@ -845,8 +844,7 @@ Resources:
           FirelensConfiguration:
             Type: fluentbit
             Options:
-              enable-ecs-log-metadata: "true"
-
+              enable-ecs-log-metadata: 'true'
 
   InventoryServiceEventBusToSharedEventBusRole:
     Type: AWS::IAM::Role
@@ -869,21 +867,22 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - "events:PutEvents"
-                Resource: [!GetAtt InventoryServiceEventBus.Arn]
+                  - events:PutEvents
+                Resource:
+                  - !GetAtt InventoryServiceEventBus.Arn
 
   SharedEventBusProductCreatedEventRule:
     Type: AWS::Events::Rule
     Condition: IsIntegratedEnvironment
     Properties:
-      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventBusName: !Sub '{{resolve:ssm:/${Env}/shared/event-bus-name:1}}'
       Name: inventory-product-created
       State: ENABLED
       EventPattern:
         source:
-          - !Sub "${Env}.products"
+          - !Sub ${Env}.products
         detail-type:
-          - "product.productCreated.v1"
+          - product.productCreated.v1
       Targets:
         - Id: ProductCreatedEventQueue
           Arn: !GetAtt InventoryServiceEventBus.Arn
@@ -893,14 +892,14 @@ Resources:
     Type: AWS::Events::Rule
     Condition: IsIntegratedEnvironment
     Properties:
-      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventBusName: !Sub '{{resolve:ssm:/${Env}/shared/event-bus-name:1}}'
       Name: inventory-order-created
       State: ENABLED
       EventPattern:
         source:
-          - !Sub "${Env}.orders"
+          - !Sub ${Env}.orders
         detail-type:
-          - "orders.orderCreated.v1"
+          - orders.orderCreated.v1
       Targets:
         - Id: OrderCreatedEventQueue
           Arn: !GetAtt InventoryServiceEventBus.Arn
@@ -910,14 +909,14 @@ Resources:
     Type: AWS::Events::Rule
     Condition: IsIntegratedEnvironment
     Properties:
-      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventBusName: !Sub '{{resolve:ssm:/${Env}/shared/event-bus-name:1}}'
       Name: inventory-order-completed
       State: ENABLED
       EventPattern:
         source:
-          - !Sub "${Env}.orders"
+          - !Sub ${Env}.orders
         detail-type:
-          - "orders.orderCompleted.v1"
+          - orders.orderCompleted.v1
       Targets:
         - Id: InventoryEventBus
           Arn: !GetAtt InventoryServiceEventBus.Arn
@@ -928,4 +927,4 @@ Resources:
     Properties:
       Name: !Sub /${Env}/${ServiceName}/api-endpoint
       Type: String
-      Value: !Sub "http://${ECSALB.DNSName}"
+      Value: !Sub http://${ECSALB.DNSName}
