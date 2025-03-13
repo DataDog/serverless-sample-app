@@ -1,12 +1,12 @@
 name: Deploy Loyalty Service
 
 on:
-    push:
-      paths:
-        - src/loyalty-point-service/**
-      branches:
-        - 'service-per-lang'
-    workflow_dispatch:
+  push:
+    paths:
+      - src/loyalty-point-service/**
+    branches:
+      - "service-per-lang"
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -16,10 +16,9 @@ jobs:
   deploy-tf:
     runs-on: ubuntu-latest
     concurrency:
-        group: tf-loyalty-service
+      group: tf-loyalty-service
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -44,10 +43,43 @@ jobs:
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/loyalty-point-service
           make build
+      - name: Deploy to ephermal environment
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "tf-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/loyalty-point-service
+          make tf-apply
+      - name: Integration test ephermal environment
+        shell: bash
+        env:
+          ENV: "tf-${{ env.sha_short }}"
+          AWS_REGION: "eu-west-2"
+        run: |
+          cd src/loyalty-point-service
+          make integration-test
+      - name: Destroy ephermal environment
+        shell: bash
+        if: always()
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "tf-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/loyalty-point-service
+          make tf-destroy
       - name: Terraform apply
         shell: bash
         env:
@@ -60,14 +92,14 @@ jobs:
         run: |
           cd src/loyalty-point-service
           make tf-apply
-      # - name: Integration test dev
-      #   shell: bash
-      #   env:
-      #     ENV: "dev"
-      #     AWS_REGION: "eu-west-2"
-      #   run: |
-      #     cd src/loyalty-point-service
-      #     make integration-test
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "eu-west-2"
+        run: |
+          cd src/loyalty-point-service
+          make integration-test
       - name: Terraform destroy
         shell: bash
         if: always()
@@ -85,10 +117,9 @@ jobs:
   deploy-cdk:
     runs-on: ubuntu-latest
     concurrency:
-        group: cdk-loyalty-service
+      group: cdk-loyalty-service
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
         uses: actions/setup-node@v3
@@ -114,11 +145,40 @@ jobs:
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/loyalty-point-service
           make build
-      - name: Deploy to AWS
+      - name: Deploy to ephermal environment
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "cdk-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          cd src/loyalty-point-service
+          make cdk-deploy
+      - name: Integration test ephermal environment
+        shell: bash
+        env:
+          ENV: "cdk-${{ env.sha_short }}"
+          AWS_REGION: "eu-west-1"
+        run: |
+          cd src/loyalty-point-service
+          make integration-test
+      - name: Destroy ephermal environment
+        shell: bash
+        if: always()
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "cdk-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          cd src/loyalty-point-service
+          make cdk-destroy
+      - name: Deploy to dev
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -128,15 +188,15 @@ jobs:
         run: |
           cd src/loyalty-point-service
           make cdk-deploy
-      # - name: Integration test dev
-      #   shell: bash
-      #   env:
-      #     ENV: "dev"
-      #     AWS_REGION: "eu-west-1"
-      #   run: |
-      #     cd src/loyalty-point-service
-      #     make integration-test
-      - name: Destroy
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "eu-west-1"
+        run: |
+          cd src/loyalty-point-service
+          make integration-test
+      - name: Destroy dev
         shell: bash
         if: always()
         env:
@@ -151,10 +211,9 @@ jobs:
   deploy-sam:
     runs-on: ubuntu-latest
     concurrency:
-        group: sam-loyalty-service
+      group: sam-loyalty-service
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
         uses: actions/setup-node@v3
@@ -166,7 +225,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "us-east-1"
+          aws-region: "eu-central-1"
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -178,30 +237,61 @@ jobs:
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/loyalty-point-service
           make build
-      - name: Deploy to AWS
+      - name: Deploy to ephermal environment
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "sam-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/loyalty-point-service
+          make sam
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "sam-${{ env.sha_short }}"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/loyalty-point-service
+          make integration-test
+      - name: Destroy dev
+        shell: bash
+        if: always()
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "sam-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/loyalty-point-service
+          make sam-destroy
+      - name: Deploy to dev
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/loyalty-point-service
           make sam
-      # - name: Integration test dev
-      #   shell: bash
-      #   env:
-      #     ENV: "dev"
-      #     AWS_REGION: "us-east-1"
-      #   run: |
-      #     cd src/loyalty-point-service
-      #     make integration-test
-      - name: Destroy
+      - name: Integration test dev
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/loyalty-point-service
+          make integration-test
+      - name: Destroy dev
         shell: bash
         if: always()
         env:
@@ -209,7 +299,7 @@ jobs:
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/loyalty-point-service
           make sam-destroy
