@@ -433,7 +433,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      FunctionName: !Sub SAM-${ServiceName}-AclInventoryStockUpdated-${Env}
+      FunctionName: !Sub SAM-${ServiceName}-StockUpdated-${Env}
       Environment:
         Variables:
           STOCK_LEVEL_UPDATED_TOPIC_ARN: !Ref StockUpdatedTopic
