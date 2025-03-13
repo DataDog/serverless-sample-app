@@ -35,6 +35,14 @@ public class InstrumentedFunction : Construct
                 "Function handler cannot be greater than 128 chars. https://docs.aws.amazon.com/lambda/latest/api/API_CreateFunction.html#lambda-CreateFunction-request-Handler");
         var functionName = $"{props.Shared.ServiceName}-{props.FunctionName}-{props.Shared.Env}";
 
+        if (functionName.Length > 64)
+        {
+            var extraCharacters = functionName.Length - 64;
+
+            functionName =
+                $"{props.Shared.ServiceName}-{props.FunctionName.Substring(0, props.FunctionName.Length - extraCharacters)}-{props.Shared.Env}";
+        }
+
         var defaultEnvironmentVariables = new Dictionary<string, string>()
         {
             { "POWERTOOLS_SERVICE_NAME", props.Shared.ServiceName },
