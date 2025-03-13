@@ -53,10 +53,12 @@ describe("end-to-end-tests", () => {
       `API endpoint under test is: ${apiEndpointParameter.Parameter!.Value!}`
     );
 
-    apiDriver = new ApiDriver(
-      apiEndpointParameter.Parameter!.Value!,
-      bearerToken
-    );
+    let apiEndpoint = apiEndpointParameter.Parameter!.Value!;
+    if (apiEndpoint.endsWith("/")) {
+      apiEndpoint = apiEndpoint.slice(0, -1);
+    }
+
+    apiDriver = new ApiDriver(apiEndpoint, bearerToken);
   });
 
   it("should be able to generate pricing", async () => {

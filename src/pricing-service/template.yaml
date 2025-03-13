@@ -108,7 +108,7 @@ Resources:
             - !Sub /${Env}/${ServiceName}/secret-access-key
       Events:
         GeneratePricing:
-          Type: HttpApi
+          Type: Api
           Properties: 
             Path: /pricing
             Method: post
@@ -364,11 +364,4 @@ Resources:
     Properties:
       Name: !Sub /${Env}/${ServiceName}/api-endpoint
       Type: String
-      Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
-
-Outputs:
-  PricingApiEndpoint:
-    Description: Pricing API Endpoint
-    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
-    Export:
-      Name: PricingAPIEndpoint
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"

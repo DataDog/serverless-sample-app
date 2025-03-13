@@ -51,15 +51,15 @@ export class PricingApiStack extends cdk.Stack {
       datadogConfiguration,
     };
 
-    const loyaltyServiceProps = new PricingServiceProps(this, sharedProps);
+    const pricingServiceProps = new PricingServiceProps(this, sharedProps);
 
     const api = new Api(this, "PricingApi", {
-      serviceProps: loyaltyServiceProps,
+      serviceProps: pricingServiceProps,
       ddApiKeySecret: ddApiKey,
-      jwtSecret: loyaltyServiceProps.getJwtSecret(),
+      jwtSecret: pricingServiceProps.getJwtSecret(),
     });
     const acl = new PricingEventHandlers(this, "PricingEventHandlers", {
-      serviceProps: loyaltyServiceProps,
+      serviceProps: pricingServiceProps,
       ddApiKeySecret: ddApiKey,
     });
 

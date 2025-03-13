@@ -25,8 +25,8 @@ module "shared_bus_stock_reserved_subscription" {
   rule_name       = "PricingService_ProductCreated_Rule"
   env             = var.env
   shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[count.index].value : ""
-  domain_bus_arn  = aws_cloudwatch_event_bus.loyalty_service_bus.arn
-  domain_bus_name = aws_cloudwatch_event_bus.loyalty_service_bus.name
+  domain_bus_arn  = aws_cloudwatch_event_bus.pricing_service_bus.arn
+  domain_bus_name = aws_cloudwatch_event_bus.pricing_service_bus.name
   queue_arn       = aws_sqs_queue.product_created_queue.arn
   queue_name      = aws_sqs_queue.product_created_queue.name
   queue_id        = aws_sqs_queue.product_created_queue.id
@@ -49,7 +49,7 @@ module "handle_product_created_lambda" {
   function_name  = "HandleProductCreated"
   lambda_handler = "index.handler"
   environment_variables = {
-    "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
+    "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.pricing_service_bus.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -86,8 +86,8 @@ module "shared_bus_product_updated_subscription" {
   rule_name       = "PricingService_ProductUpdated_Rule"
   env             = var.env
   shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[count.index].value : ""
-  domain_bus_arn  = aws_cloudwatch_event_bus.loyalty_service_bus.arn
-  domain_bus_name = aws_cloudwatch_event_bus.loyalty_service_bus.name
+  domain_bus_arn  = aws_cloudwatch_event_bus.pricing_service_bus.arn
+  domain_bus_name = aws_cloudwatch_event_bus.pricing_service_bus.name
   queue_arn       = aws_sqs_queue.product_updated_queue.arn
   queue_name      = aws_sqs_queue.product_updated_queue.name
   queue_id        = aws_sqs_queue.product_updated_queue.id
@@ -110,7 +110,7 @@ module "handle_product_updated_lambda" {
   function_name  = "HandleProductUpdated"
   lambda_handler = "index.handler"
   environment_variables = {
-    "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
+    "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.pricing_service_bus.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
