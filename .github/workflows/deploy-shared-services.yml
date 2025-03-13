@@ -1,12 +1,12 @@
 name: Deploy Shared Services
 
 on:
-    push:
-      paths:
-        - src/shared-infra/**
-      branches:
-          - 'service-per-lang'
-    workflow_dispatch:
+  push:
+    paths:
+      - src/shared-infra/**
+    branches:
+      - "service-per-lang"
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -16,10 +16,9 @@ jobs:
   deploy-tf:
     runs-on: ubuntu-latest
     concurrency:
-        group: tf-shared-services
+      group: tf-shared-services
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -38,7 +37,6 @@ jobs:
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_2_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "eu-west-2"
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
@@ -50,10 +48,9 @@ jobs:
   deploy-cdk:
     runs-on: ubuntu-latest
     concurrency:
-        group: cdk-shared-services
+      group: cdk-shared-services
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
         uses: actions/setup-node@v3
@@ -77,20 +74,19 @@ jobs:
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
         run: |
           cd src/shared-infra
           npm i
           make cdk
+
   deploy-sam:
     runs-on: ubuntu-latest
     concurrency:
-        group: sam-shared-services
+      group: sam-shared-services
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
         uses: actions/setup-node@v3
@@ -102,7 +98,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "us-east-1"
+          aws-region: "eu-central-1"
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -112,9 +108,8 @@ jobs:
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
         run: |
           cd src/shared-infra
@@ -147,7 +142,6 @@ jobs:
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "us-east-2"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
