@@ -11,12 +11,6 @@ struct EventBusName(String);
 
 #[derive(Deserialize)]
 pub struct UserDTO {
-    #[serde(rename = "userId")]
-    user_id: String,
-    #[serde(rename = "firstName")]
-    first_name: String,
-    #[serde(rename = "lastName")]
-    last_name: String,
     #[serde(rename = "emailAddress")]
     email_address: String,
     #[serde(rename = "orderCount")]
