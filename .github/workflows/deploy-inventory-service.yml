@@ -60,6 +60,9 @@ jobs:
         run: |
           cd src/inventory-service
           make tf-apply
+      - name: Sleep for 60 seconds
+        run: sleep 60s
+        shell: bash
       - name: Integration test ephermal environment
         shell: bash
         env:
@@ -93,6 +96,9 @@ jobs:
         run: |
           cd src/inventory-service
           make tf-apply
+      - name: Sleep for 60 seconds
+        run: sleep 60s
+        shell: bash
       - name: Integration test dev
         shell: bash
         env:
