@@ -365,7 +365,7 @@ Resources:
             Resource: !GetAtt OrderCompletedQueue.Arn
             Action: SQS:SendMessage
 
-################################################      
+################################################
 ######## Public Event Subscriptions ############
 ################################################
   SharedEventBusToLoyaltyServiceEventBusRole:
