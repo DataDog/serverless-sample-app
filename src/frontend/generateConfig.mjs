@@ -19,7 +19,7 @@ async function updateConfig() {
     );
     const userApiEndpoint = await getParameterValue(
       client,
-      "/dev/UserManagementService/api-endpoint"
+      "/dev/UserManagement/api-endpoint"
     );
     const pricingApiEndpoint = await getParameterValue(
       client,
