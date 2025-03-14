@@ -12,7 +12,7 @@ Transform:
 Parameters:
   ServiceName:
     Type: String
-    Default: UserManagementService
+    Default: UserManagement
   Env:
     Type: String
     Default: local
@@ -49,6 +49,15 @@ Globals:
       AllowHeaders: "'*'"
       AllowOrigin: "'*'"
 
+Conditions:
+  IsNonProdEnvironment: !Not [!Equals [!Ref Env, prod]]
+  IsIntegratedEnvironment: !Or
+    - !Equals [ "dev", !Ref Env ]
+    - !Equals [ "prod", !Ref Env ]
+  IsNotIntegratedEnvironment: !And
+    - !Not [!Equals [!Ref Env, prod]]
+    - !Not [!Equals [!Ref Env, dev]]
+
 Resources:
   DDApiKeySecret:
     Type: "AWS::SecretsManager::Secret"
@@ -56,6 +65,33 @@ Resources:
       Name: !Sub "/${Env}/${ServiceName}/datadog-api-key"
       Description: "The Datadog API key"
       SecretString: !Ref DDApiKey
+
+  UserManagementEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub "${ServiceName}-Bus-${Env}"
+
+  UserBusNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/event-bus-name
+      Type: String
+      Value: !Ref UserManagementEventBus
+
+  UserBusArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/event-bus-arn
+      Type: String
+      Value: !GetAtt UserManagementEventBus.Arn
+
+  UsersSecretAccessKeyParameter:
+    Type: AWS::SSM::Parameter
+    Condition: IsNotIntegratedEnvironment
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/secret-access-key
+      Type: String
+      Value: "This is a sample secret key that should not be used in production`"
 
   CreateUserFunction:
     Type: AWS::Serverless::Function
@@ -65,8 +101,10 @@ Resources:
       FunctionName: !Sub SAM-${ServiceName}-CreateUser-${Env}
       Environment:
         Variables:
-          USER_CREATED_TOPIC_ARN: !Ref UserCreatedTopic
-          EVENT_BUS_NAME: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+          EVENT_BUS_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Ref UserManagementEventBus
       Events:
         GetProduct:
           Type: Api
@@ -96,10 +134,11 @@ Resources:
                 - logs:CreateLogStream
                 - logs:PutLogEvents
               Resource: arn:aws:logs:*:*:*
-        - SNSPublishMessagePolicy:
-            TopicName: !GetAtt UserCreatedTopic.TopicName
         - EventBridgePutEventsPolicy:
-            EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref UserManagementEventBus
     Metadata:
       BuildMethod: rust-cargolambda
       Binary: create-user
@@ -112,7 +151,10 @@ Resources:
       FunctionName: !Sub SAM-${ServiceName}-Login-${Env}
       Environment:
         Variables:
-          JWT_SECRET_PARAM_NAME: !Sub "/${Env}/shared/secret-access-key"
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
           TOKEN_EXPIRATION: 86400 # 1 day in seconds
       Events:
         GetProduct:
@@ -151,7 +193,10 @@ Resources:
                 - "ssm:GetParameter"
                 - "ssm:GetParameterHistory"
                 - "ssm:GetParameters"
-              Resource: !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
     Metadata:
       BuildMethod: rust-cargolambda
       Binary: login
@@ -164,7 +209,10 @@ Resources:
       FunctionName: !Sub SAM-${ServiceName}-GetUserDetails-${Env}
       Environment:
         Variables:
-          JWT_SECRET_PARAM_NAME: !Sub "/${Env}/shared/secret-access-key"
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
           TOKEN_EXPIRATION: 86400 # 1 day in seconds
       Events:
         GetProduct:
@@ -202,17 +250,24 @@ Resources:
                 - "ssm:GetParameter"
                 - "ssm:GetParameterHistory"
                 - "ssm:GetParameters"
-              Resource: !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
     Metadata:
       BuildMethod: rust-cargolambda
       Binary: get-user-details
+  
+  ################################################
+  ############# Background Workers ###############
+  ################################################
 
   OrderCompletedFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/user-management/lambdas/handle_order_completed_for_user/
       Handler: handle-order-completed
-      FunctionName: !Sub SAM-RustOrderCompleted-${Env}
+      FunctionName: !Sub ${ServiceName}-OrderCompleted-${Env}
       Events:
         IntegrationQueue:
           Type: SQS
@@ -250,7 +305,7 @@ Resources:
   OrderCompletedEventRule:
     Type: AWS::Events::Rule
     Properties:
-      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventBusName: !Ref UserManagementEventBus
       Name: user-service-order-completed
       State: ENABLED
       EventPattern:
@@ -276,11 +331,67 @@ Resources:
               Service: "events.amazonaws.com"
             Resource: !GetAtt OrderCompletedQueue.Arn
             Action: SQS:SendMessage
-
-  UserCreatedTopic:
-    Type: AWS::SNS::Topic
+            
+  ################################################      
+  ######## Public Event Subscriptions ############
+  ################################################
+  SharedEventBusToUserManagementEventBusRole:
+    Type: AWS::IAM::Role
+    Condition: IsIntegratedEnvironment
     Properties:
-      TopicName: !Sub "${ServiceName}-UserCreated-${Env}"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: allow-eb-publish
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "events:PutEvents"
+                Resource: [!GetAtt UserManagementEventBus.Arn]
+
+  SharedEventBusUserCreatedEventRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: shared-loyalty-user-created
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.orders"
+        detail-type:
+          - "orders.orderCompleted.v1"
+      Targets:
+        - Id: UserManagementEventBus
+          Arn: !GetAtt UserManagementEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToUserManagementEventBusRole.Arn
+  
+  SharedEventBusOrderCompletedEventRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: shared-loyalty-order-completed
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.orders"
+        detail-type:
+          - "orders.orderCompleted.v1"
+      Targets:
+        - Id: UserManagementEventBus
+          Arn: !GetAtt UserManagementEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToUserManagementEventBusRole.Arn
 
   UserTable:
     Type: AWS::DynamoDB::Table

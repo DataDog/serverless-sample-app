@@ -5,9 +5,16 @@
 // Copyright 2024 Datadog, Inc.
 //
 
+resource "aws_ssm_parameter" "user_service_access_key" {
+  count = var.env == "dev" || var.env == "prod" ? 0 : 1
+  name  = "/${var.env}/UserManagement/secret-access-key"
+  type  = "String"
+  value = "This is a sample secret key that should not be used in production`"
+}
+
 module "api_gateway" {
   source            = "../../modules/api-gateway"
-  api_name          = "UserManagementService-${var.env}"
+  api_name          = "UserManagement-${var.env}"
   stage_name        = var.env
   stage_auto_deploy = true
   env               = var.env
@@ -34,45 +41,26 @@ module "login_resource" {
   rest_api_id        = module.api_gateway.api_id
 }
 
-resource "aws_sns_topic" "user_created" {
-  name = "UserCreated-${var.env}"
-}
-
 module "register_user_function" {
-  service_name   = "UserManagementService"
+  service_name   = "UserManagement"
   source         = "../../modules/lambda-function"
   zip_file       = "../out/registerUserFunction/registerUserFunction.zip"
   function_name  = "RegisterUser"
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.user_management_table.name
-    "USER_CREATED_TOPIC_ARN" : aws_sns_topic.user_created.arn
-    "EVENT_BUS_NAME": data.aws_ssm_parameter.eb_name.value
+    "EVENT_BUS_NAME": var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.user_service_bus.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   app_version           = var.app_version
   env                   = var.env
-}
-
-resource "aws_iam_role_policy_attachment" "register_user_function_dynamo_db_read" {
-  role       = module.register_user_function.function_role_name
-  policy_arn = aws_iam_policy.dynamo_db_read.arn
-}
-
-resource "aws_iam_role_policy_attachment" "register_user_function_dynamo_db_write" {
-  role       = module.register_user_function.function_role_name
-  policy_arn = aws_iam_policy.dynamo_db_write.arn
-}
-
-resource "aws_iam_role_policy_attachment" "register_user_function_sns_publish" {
-  role       = module.register_user_function.function_role_name
-  policy_arn = aws_iam_policy.sns_publish_create.arn
-}
-
-resource "aws_iam_role_policy_attachment" "register_user_function_eb_publish" {
-  role       = module.register_user_function.function_role_name
-  policy_arn = aws_iam_policy.eb_publish.arn
+  additional_policy_attachments = [
+    aws_iam_policy.dynamo_db_read.arn,
+    aws_iam_policy.dynamo_db_write.arn,
+    aws_iam_policy.eb_publish.arn,
+    aws_iam_policy.allow_jwt_secret_access.arn
+  ]
 }
 
 module "register_user_function_api" {
@@ -88,30 +76,24 @@ module "register_user_function_api" {
 }
 
 module "login_function" {
-  service_name   = "UserManagementService"
+  service_name   = "UserManagement"
   source         = "../../modules/lambda-function"
   zip_file       = "../out/loginFunction/loginFunction.zip"
   function_name  = "Login"
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.user_management_table.name
-    "JWT_SECRET_PARAM_NAME": "/${var.env}/shared/secret-access-key"
-    "TOKEN_EXPIRATION": 86400
+    "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/UserManagement/secret-access-key"
+    "TOKEN_EXPIRATION" : 86400
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   app_version           = var.app_version
   env                   = var.env
-}
-
-resource "aws_iam_role_policy_attachment" "login_function_dynamo_db_read" {
-  role       = module.login_function.function_role_name
-  policy_arn = aws_iam_policy.dynamo_db_read.arn
-}
-
-resource "aws_iam_role_policy_attachment" "login_function_jwt_param_read" {
-  role       = module.login_function.function_role_name
-  policy_arn = aws_iam_policy.allow_jwt_secret_access.arn
+  additional_policy_attachments = [
+    aws_iam_policy.dynamo_db_read.arn,
+    aws_iam_policy.allow_jwt_secret_access.arn
+  ]
 }
 
 module "login_function_api" {
@@ -127,32 +109,25 @@ module "login_function_api" {
 }
 
 module "get_user_details_function" {
-  service_name   = "UserManagementService"
+  service_name   = "UserManagement"
   source         = "../../modules/lambda-function"
   zip_file       = "../out/getUserDetailsFunction/getUserDetailsFunction.zip"
   function_name  = "GetUserDetails"
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.user_management_table.name
-    "JWT_SECRET_PARAM_NAME": "/${var.env}/shared/secret-access-key"
-    "TOKEN_EXPIRATION": 86400
+    "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/UserManagement/secret-access-key"
+    "TOKEN_EXPIRATION" : 86400
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
   app_version           = var.app_version
   env                   = var.env
+  additional_policy_attachments = [
+    aws_iam_policy.dynamo_db_read.arn,
+    aws_iam_policy.allow_jwt_secret_access.arn
+  ]
 }
-
-resource "aws_iam_role_policy_attachment" "get_user_details_function_dynamo_db_read" {
-  role       = module.get_user_details_function.function_role_name
-  policy_arn = aws_iam_policy.dynamo_db_read.arn
-}
-
-resource "aws_iam_role_policy_attachment" "get_user_details_function_jwt_param_read" {
-  role       = module.get_user_details_function.function_role_name
-  policy_arn = aws_iam_policy.allow_jwt_secret_access.arn
-}
-
 
 module "get_user_details_function_api" {
   source            = "../../modules/api-gateway-lambda-integration"
@@ -194,7 +169,7 @@ resource "aws_api_gateway_stage" "rest_api_stage" {
 }
 
 resource "aws_ssm_parameter" "api_endpoint" {
-  name  = "/${var.env}/UserManagementService/api-endpoint"
+  name  = "/${var.env}/UserManagement/api-endpoint"
   type  = "String"
   value = aws_api_gateway_stage.rest_api_stage.invoke_url
 }

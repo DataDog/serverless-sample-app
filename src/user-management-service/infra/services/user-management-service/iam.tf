@@ -18,12 +18,6 @@ resource "aws_iam_policy" "dynamo_db_write" {
   policy = data.aws_iam_policy_document.dynamo_db_write.json
 }
 
-resource "aws_iam_policy" "sns_publish_create" {
-  name   = "TF_Users-sns_publish-${var.env}"
-  path   = "/"
-  policy = data.aws_iam_policy_document.sns_publish_create.json
-}
-
 resource "aws_iam_policy" "eb_publish" {
   name   = "TF_Users-db_publish-${var.env}"
   path   = "/"

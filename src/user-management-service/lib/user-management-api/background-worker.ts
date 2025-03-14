@@ -5,67 +5,71 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
-import { SharedProps } from "../constructs/sharedFunctionProps";
 import { InstrumentedLambdaFunction } from "../constructs/lambdaFunction";
 import { IFunction } from "aws-cdk-lib/aws-lambda";
-import { IEventBus, Rule } from "aws-cdk-lib/aws-events";
 import { ResiliantQueue } from "../constructs/resiliantQueue";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { SqsQueue } from "aws-cdk-lib/aws-events-targets";
-import {ITable} from "aws-cdk-lib/aws-dynamodb";
+import { ITable } from "aws-cdk-lib/aws-dynamodb";
+import { UserManagementServiceProps } from "./userManagementServiceProps";
 
 export interface UserManagementBackgroundWorkersProps {
-    sharedProps: SharedProps;
-    ddApiKeySecret: ISecret;
-    userManagementTable: ITable;
-    sharedEventBus: IEventBus;
+  serviceProps: UserManagementServiceProps;
+  userManagementTable: ITable;
 }
 
 export class UserManagementBackgroundWorkers extends Construct {
-    orderCompletedHandlerFunction: IFunction;
+  orderCompletedHandlerFunction: IFunction;
 
-    constructor(scope: Construct, id: string, props: UserManagementBackgroundWorkersProps) {
-        super(scope, id);
+  constructor(
+    scope: Construct,
+    id: string,
+    props: UserManagementBackgroundWorkersProps
+  ) {
+    super(scope, id);
 
-        const orderCompletedPublicEventQueue = new ResiliantQueue(
-            this,
-            "OrderCompletedEventQueue",
-            {
-                sharedProps: props.sharedProps,
-                queueName: `${props.sharedProps.serviceName}-OrderCompletedQueue`,
-            }
-        ).queue;
+    const orderCompletedPublicEventQueue = new ResiliantQueue(
+      this,
+      "OrderCompletedEventQueue",
+      {
+        sharedProps: props.serviceProps.sharedProps,
+        queueName: `${props.serviceProps.sharedProps.serviceName}-OrderCompletedQueue`,
+      }
+    ).queue;
 
-        this.orderCompletedHandlerFunction = new InstrumentedLambdaFunction(
-            this,
-            "UserManagementOrderCompletedHandler",
-            {
-                sharedProps: props.sharedProps,
-                functionName: "OrderCompletedHandler",
-                handler: "index.handler",
-                environment: {
-                    TABLE_NAME: props.userManagementTable.tableName
-                },
-                manifestPath: "./src/user-management/lambdas/handle_order_completed_for_user/Cargo.toml"
-            }
-        ).function;
-        props.userManagementTable.grantReadWriteData(this.orderCompletedHandlerFunction);
+    this.orderCompletedHandlerFunction = new InstrumentedLambdaFunction(
+      this,
+      "UserManagementOrderCompletedHandler",
+      {
+        sharedProps: props.serviceProps.sharedProps,
+        functionName: "OrderCompletedHandler",
+        handler: "index.handler",
+        environment: {
+          TABLE_NAME: props.userManagementTable.tableName,
+        },
+        manifestPath:
+          "./src/user-management/lambdas/handle_order_completed_for_user/Cargo.toml",
+      }
+    ).function;
+    props.userManagementTable.grantReadWriteData(
+      this.orderCompletedHandlerFunction
+    );
 
-        this.orderCompletedHandlerFunction.addEventSource(
-            new SqsEventSource(orderCompletedPublicEventQueue, {
-                reportBatchItemFailures: true,
-            })
-        );
+    this.orderCompletedHandlerFunction.addEventSource(
+      new SqsEventSource(orderCompletedPublicEventQueue, {
+        reportBatchItemFailures: true,
+      })
+    );
 
-        const rule = new Rule(this, "UserManagement-OrderCompleted", {
-            eventBus: props.sharedEventBus,
-        });
-        rule.addEventPattern({
-            detailType: ["orders.orderCompleted.v1"],
-            source: [`${props.sharedProps.environment}.orders`],
-        });
-        rule.addTarget(new SqsQueue(orderCompletedPublicEventQueue));
-    }
+    const rule = props.serviceProps.addSubscriptionRule(
+      this,
+      "UserManagement-OrderCompleted",
+      {
+        detailType: ["orders.orderCompleted.v1"],
+        source: [`${props.serviceProps.sharedProps.environment}.orders`],
+      }
+    );
+    rule.addTarget(new SqsQueue(orderCompletedPublicEventQueue));
+  }
 }

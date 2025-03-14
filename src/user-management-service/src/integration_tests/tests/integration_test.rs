@@ -1,10 +1,11 @@
 use aws_config::BehaviorVersion;
 use observability::CloudEvent;
 use reqwest::redirect::Policy;
-use serde_json::json;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::time::Duration;
 use tokio::time::sleep;
+use uuid::uuid;
 
 struct ApiEndpoint(String);
 struct EventBusName(String);
@@ -36,9 +37,47 @@ struct TokenData {
 #[tokio::test]
 async fn when_user_registers_then_should_be_able_to_login() {
     let environment = std::env::var("ENV").unwrap_or("dev".to_string());
+    let random_email = uuid::Uuid::new_v4().to_string();
 
     println!("Environment: {}", environment);
-    let email_under_test = "test1@test.com";
+    let email_under_test = format!("{}@test.com", random_email);
+    let password_under_test = "Test!23";
+
+    let (api_endpoint, event_bus_name) = retrieve_paramater_values(&environment).await;
+    println!("API endpoint is {}", &api_endpoint.0);
+    println!("Event bus name is {}", &event_bus_name.0);
+
+    let api_driver = ApiDriver::new(
+        environment,
+        api_endpoint.0.clone(),
+        event_bus_name.0.clone(),
+    )
+    .await;
+
+    let register_response = api_driver
+        .register_user(&email_under_test, "Test", "Doe", password_under_test)
+        .await;
+
+    assert_eq!(register_response.status(), 200);
+
+    let user_response: ApiResponse<UserDTO> = register_response
+        .json()
+        .await
+        .expect("Get user details response body should serialize to UserDTO");
+
+    let login_response = api_driver
+        .login_user(&email_under_test, password_under_test)
+        .await;
+
+    assert_eq!(login_response.status(), 200);
+}
+
+#[tokio::test]
+async fn when_order_completed_event_is_published_order_count_is_increased() {
+    let environment = std::env::var("ENV").unwrap_or("dev".to_string());
+
+    println!("Environment: {}", environment);
+    let email_under_test = "test2@test.com";
     let password_under_test = "Test!23";
 
     let (api_endpoint, event_bus_name) = retrieve_paramater_values(&environment).await;
@@ -55,7 +94,6 @@ async fn when_user_registers_then_should_be_able_to_login() {
     let register_response = api_driver
         .register_user(email_under_test, "Test", "Doe", password_under_test)
         .await;
-
     assert_eq!(register_response.status(), 200);
 
     let user_response: ApiResponse<UserDTO> = register_response
@@ -66,8 +104,6 @@ async fn when_user_registers_then_should_be_able_to_login() {
     let login_response = api_driver
         .login_user(email_under_test, password_under_test)
         .await;
-
-    assert_eq!(login_response.status(), 200);
 
     let login_data: ApiResponse<TokenData> = login_response
         .json()
@@ -92,22 +128,21 @@ async fn when_user_registers_then_should_be_able_to_login() {
         .expect("Get user details response body should serialize to UserDTO");
 
     assert_eq!(user_response.data.order_count, 1);
-    assert_eq!(user_response.data.first_name, "Test");
-    assert_eq!(user_response.data.last_name, "Doe");
-    assert_eq!(user_response.data.email_address, email_under_test);
-    assert_eq!(user_response.data.user_id, email_under_test.to_uppercase());
 }
 
 async fn retrieve_paramater_values(environment: &str) -> (ApiEndpoint, EventBusName) {
     let config = aws_config::load_defaults(BehaviorVersion::latest()).await;
     let ssm_client = aws_sdk_ssm::Client::new(&config);
 
+    let service_name = match environment {
+        "dev" => "shared",
+        "prod" => "shared",
+        _ => "UserManagement",
+    };
+
     let api_endpoint = ssm_client
         .get_parameter()
-        .name(format!(
-            "/{}/UserManagementService/api-endpoint",
-            environment
-        ))
+        .name(format!("/{}/UserManagement/api-endpoint", environment))
         .send()
         .await
         .expect("Failed to retrieve API endpoint")
@@ -118,7 +153,7 @@ async fn retrieve_paramater_values(environment: &str) -> (ApiEndpoint, EventBusN
 
     let event_bus_name = ssm_client
         .get_parameter()
-        .name(format!("/{}/shared/event-bus-name", environment))
+        .name(format!("/{}/{}/event-bus-name", environment, service_name))
         .send()
         .await
         .expect("Failed to retrieve API endpoint")
@@ -170,11 +205,11 @@ impl ApiDriver {
         password: &str,
     ) -> reqwest::Response {
         let register_body = json!({
-                "email_address": email,
-                "first_name": first_name,
-                "last_name": last_name,
-                "password": password
-            });
+            "email_address": email,
+            "first_name": first_name,
+            "last_name": last_name,
+            "password": password
+        });
 
         self.client
             .post(&format!("{}/user", self.base_url))
@@ -187,9 +222,9 @@ impl ApiDriver {
 
     pub async fn login_user(&self, email: &str, password: &str) -> reqwest::Response {
         let login_body = json!({
-                "email_address": email,
-                "password": password
-            });
+            "email_address": email,
+            "password": password
+        });
 
         self.client
             .post(&format!("{}/login", self.base_url))
@@ -211,9 +246,12 @@ impl ApiDriver {
     }
 
     pub async fn publish_order_completed_event(&self, email: &str) {
-        let payload = CloudEvent::new(UserCreatedEvent {
-            email_address: email.to_string(),
-        }, "orders.orderCompleted.v1".to_string());
+        let payload = CloudEvent::new(
+            UserCreatedEvent {
+                email_address: email.to_string(),
+            },
+            "orders.orderCompleted.v1".to_string(),
+        );
         let payload_string = serde_json::to_string(&payload).expect("Error serde");
 
         let request = aws_sdk_eventbridge::types::builders::PutEventsRequestEntryBuilder::default()

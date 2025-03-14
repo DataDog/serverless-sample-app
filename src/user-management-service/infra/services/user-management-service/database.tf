@@ -6,9 +6,9 @@
 //
 
 resource "aws_dynamodb_table" "user_management_table" {
-  name           = "UserManagementService-Users-${var.env}"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "PK"
+  name         = "UserManagement-Users-${var.env}"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "PK"
 
   attribute {
     name = "PK"

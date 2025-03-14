@@ -13,7 +13,7 @@ plugins:
   - serverless-plugin-resource-tagging
 
 custom:
-  serviceName: UserManagementService
+  serviceName: UserManagement
   datadog:
     apiKeySecretArn: ${param:DD_API_KEY_SECRET_ARN}
     site: ${param:DD_SITE}
@@ -151,11 +151,11 @@ resources:
 
     SnsToQueuePolicy:
       Type: AWS::SQS::QueuePolicy
-      Properties: 
+      Properties:
         Queues:
           - !Ref OrderCompletedQueue
-        PolicyDocument: 
-          Version: '2012-10-17'
+        PolicyDocument:
+          Version: "2012-10-17"
           Statement:
             - Sid: allow-eb-send-message-messages
               Effect: Allow
@@ -163,7 +163,7 @@ resources:
                 Service: "events.amazonaws.com"
               Resource: !GetAtt OrderCompletedQueue.Arn
               Action: SQS:SendMessage
-    
+
     UserCreatedTopic:
       Type: AWS::SNS::Topic
       Properties:

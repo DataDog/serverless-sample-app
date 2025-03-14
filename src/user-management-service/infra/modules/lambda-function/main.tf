@@ -65,6 +65,12 @@ resource "aws_iam_role_policy_attachment" "secrets_retrieval_policy_attachment" 
   policy_arn = aws_iam_policy.dd_api_secret_policy.arn
 }
 
+resource "aws_iam_role_policy_attachment" "additional_policy_attachments" {
+  count      = length(var.additional_policy_attachments)
+  role       = aws_iam_role.lambda_function_role.id
+  policy_arn = var.additional_policy_attachments[count.index]
+}
+
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
   name              = "/aws/lambda/TF-UserManagement-${var.function_name}-${var.env}"
   retention_in_days = 7
@@ -101,5 +107,5 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 73
+  datadog_extension_layer_version = 74
 }

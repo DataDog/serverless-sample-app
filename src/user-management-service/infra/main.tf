@@ -8,7 +8,7 @@
 # Deploying multiple independent services from a single TF file is not recommended, this is for demonstration purposes only
 
 resource "aws_secretsmanager_secret" "dd_api_key_secret" {
-  name = "/${var.env}/UserManagementService/sls-sample-dd-api-key-secret"
+  name                    = "/${var.env}/UserManagement/sls-sample-dd-api-key-secret"
   recovery_window_in_days = 0
 }
 

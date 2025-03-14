@@ -8,22 +8,12 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-data "aws_ssm_parameter" "eb_name" {
-  name = "/${var.env}/shared/event-bus-name"
-}
-
-data "aws_ssm_parameter" "eb_arn" {
-  name = "/${var.env}/shared/event-bus-arn"
-}
-
-data "aws_ssm_parameter" "secret_access_key_param" {
-  name = "/${var.env}/shared/secret-access-key"
-}
-
 data "aws_iam_policy_document" "allow_eb_put_events" {
   statement {
     actions   = ["events:PutEvents"]
-    resources = [data.aws_ssm_parameter.eb_arn.value]
+    resources = [
+        var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_arn[0].value : aws_cloudwatch_event_bus.user_service_bus.arn
+    ]
   }
 }
 
@@ -41,13 +31,6 @@ data "aws_iam_policy_document" "dynamo_db_write" {
               "dynamodb:BatchWriteItem",
               "dynamodb:DeleteItem"]
     resources = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.user_management_table.name}", "arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${aws_dynamodb_table.user_management_table.name}/*"]
-  }
-}
-
-data "aws_iam_policy_document" "sns_publish_create" {
-  statement {
-    actions   = ["sns:Publish"]
-    resources = ["arn:aws:sns:*:${data.aws_caller_identity.current.account_id}:${aws_sns_topic.user_created.name}"]
   }
 }
 
@@ -81,6 +64,8 @@ data "aws_iam_policy_document" "allow_jwt_secret_key_ssm_read" {
       "ssm:GetParameter",
       "ssm:GetParameterHistory",
       "ssm:GetParameters"]
-    resources = ["arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/shared/secret-access-key"]
+    resources = [
+        var.env == "dev" || var.env == "prod" ? "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/shared/secret-access-key" : "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/UserManagement/secret-access-key"
+    ]
   }
 }

@@ -22,12 +22,10 @@ import { IStringParameter } from "aws-cdk-lib/aws-ssm";
 import { SnsTopic } from "aws-cdk-lib/aws-events-targets";
 import { ITopic, Topic } from "aws-cdk-lib/aws-sns";
 import { IEventBus } from "aws-cdk-lib/aws-events";
+import { UserManagementServiceProps } from "./userManagementServiceProps";
 
 export interface UserManagementApiProps {
-  sharedProps: SharedProps;
-  ddApiKeySecret: ISecret;
-  jwtSecretKeyParameter: IStringParameter;
-  sharedEventBus: IEventBus;
+  serviceProps: UserManagementServiceProps;
 }
 
 export class UserManagementApi extends Construct {
@@ -41,7 +39,7 @@ export class UserManagementApi extends Construct {
     super(scope, id);
 
     this._table = new Table(this, "UserManagementTable", {
-      tableName: `${props.sharedProps.serviceName}-Users-${props.sharedProps.environment}`,
+      tableName: `${props.serviceProps.sharedProps.serviceName}-Users-${props.serviceProps.sharedProps.environment}`,
       tableClass: TableClass.STANDARD,
       billingMode: BillingMode.PAY_PER_REQUEST,
       partitionKey: {
@@ -52,14 +50,14 @@ export class UserManagementApi extends Construct {
     });
 
     const registerUserIntegration = this.buildRegisterUserFunction(
-      props.sharedProps,
-      props.sharedEventBus
+      props.serviceProps.sharedProps,
+      props.serviceProps.getPublisherBus()
     );
     const loginIntegration = this.buildLoginFunction(props);
     const getUserDetailsIntegration = this.buildGetUserDetailsFunction(props);
 
     this.api = new RestApi(this, "UserManagementApi", {
-      restApiName: `${props.sharedProps.serviceName}-Api-${props.sharedProps.environment}`,
+      restApiName: `${props.serviceProps.sharedProps.serviceName}-Api-${props.serviceProps.sharedProps.environment}`,
       defaultCorsPreflightOptions: {
         allowOrigins: ["*"],
         allowHeaders: ["*"],
@@ -109,19 +107,20 @@ export class UserManagementApi extends Construct {
       this,
       "GetUserDetailsFunction",
       {
-        sharedProps: props.sharedProps,
+        sharedProps: props.serviceProps.sharedProps,
         functionName: "GetUserDetails",
         handler: "bootstrap",
         environment: {
           TABLE_NAME: this._table.tableName,
-          JWT_SECRET_PARAM_NAME: props.jwtSecretKeyParameter.parameterName,
+          JWT_SECRET_PARAM_NAME:
+            props.serviceProps.getJwtSecret().parameterName,
         },
         manifestPath:
           "./src/user-management/lambdas/get_user_details/Cargo.toml",
       }
     );
 
-    props.jwtSecretKeyParameter.grantRead(lambdaFunction.function);
+    props.serviceProps.getJwtSecret().grantRead(lambdaFunction.function);
     this._table.grantReadData(lambdaFunction.function);
 
     const lambdaIntegration = new LambdaIntegration(lambdaFunction.function);
@@ -134,18 +133,19 @@ export class UserManagementApi extends Construct {
       this,
       "LoginFunction",
       {
-        sharedProps: props.sharedProps,
+        sharedProps: props.serviceProps.sharedProps,
         functionName: "Login",
         handler: "bootstrap",
         environment: {
           TABLE_NAME: this._table.tableName,
-          JWT_SECRET_PARAM_NAME: props.jwtSecretKeyParameter.parameterName,
+          JWT_SECRET_PARAM_NAME:
+            props.serviceProps.getJwtSecret().parameterName,
         },
         manifestPath: "./src/user-management/lambdas/login/Cargo.toml",
       }
     );
 
-    props.jwtSecretKeyParameter.grantRead(lambdaFunction.function);
+    props.serviceProps.getJwtSecret().grantRead(lambdaFunction.function);
 
     const lambdaIntegration = new LambdaIntegration(lambdaFunction.function);
     this._table.grantReadData(lambdaFunction.function);
