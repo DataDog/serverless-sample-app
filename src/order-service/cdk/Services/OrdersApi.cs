@@ -78,6 +78,12 @@ public class OrdersApi : Construct
                 Level = LogLevel.ALL
             }
         });
+        Tags.Of(OrdersWorkflow).Add("env", props.SharedProps.Env);
+        Tags.Of(OrdersWorkflow).Add("service", props.SharedProps.ServiceName);
+        Tags.Of(OrdersWorkflow).Add("version", props.SharedProps.Version);
+        Tags.Of(OrdersWorkflow).Add("DD_TRACE_ENABLED", "true");
+        Tags.Of(OrdersWorkflow).Add("DD_ENHANCED_METRICS", "true");
+        
         props.ServiceProps.PublisherBus.GrantPutEventsTo(OrdersWorkflow);
         OrdersTable.GrantWriteData(OrdersWorkflow);
         confirmOrderHandler.GrantInvoke(OrdersWorkflow);

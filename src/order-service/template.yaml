@@ -153,6 +153,9 @@ Resources:
       Tags:
         DD_ENHANCED_METRICS: "true"
         DD_TRACE_ENABLED: "true"
+        env: !Ref Env
+        service: !Ref ServiceName
+        version: !Ref CommitHash
 
   HandleInventoryStockReserved:
     Type: AWS::Serverless::Function

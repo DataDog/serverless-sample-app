@@ -79,6 +79,9 @@ resource "aws_sfn_state_machine" "order_workflow_state_machine" {
     NoStockLambda = module.no_stock_handler.function_arn
   })
   tags = {
+    env: var.env
+    service: "OrdersService"
+    version: var.app_version
     DD_ENHANCED_METRICS : "true"
     DD_TRACE_ENABLED : "true"
   }
