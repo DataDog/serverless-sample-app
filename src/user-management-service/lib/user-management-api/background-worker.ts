@@ -43,7 +43,7 @@ export class UserManagementBackgroundWorkers extends Construct {
       "UserManagementOrderCompletedHandler",
       {
         sharedProps: props.serviceProps.sharedProps,
-        functionName: "OrderCompletedHandler",
+        functionName: "OrderCompleted",
         handler: "index.handler",
         environment: {
           TABLE_NAME: props.userManagementTable.tableName,

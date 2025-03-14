@@ -6,11 +6,11 @@
 //
 
 resource "aws_sqs_queue" "order_completed_dlq" {
-  name = "UserManagement-OrderCompletedDLQ-${var.env}"
+  name = "${var.service_name}-OrderCompletedDLQ-${var.env}"
 }
 
 resource "aws_sqs_queue" "order_completed_queue" {
-  name                      = "UserManagement-OrderCompletedQueue-${var.env}"
+  name                      = "${var.service_name}-OrderCompletedQueue-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.order_completed_dlq.arn
@@ -25,7 +25,7 @@ resource "aws_sqs_queue_policy" "allow_eb_publish" {
 
 module "shared_bus_order_completed_subscription" {
   source          = "../../modules/shared_bus_to_domain"
-  rule_name       = "UserManagement_OrderCompleted_Rule"
+  rule_name       = "${var.service_name}_OrderCompleted_Rule"
   env             = var.env
   shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : ""
   domain_bus_arn  = aws_cloudwatch_event_bus.user_service_bus.arn
@@ -46,7 +46,7 @@ EOF
 }
 
 module "order_completed_handler" {
-  service_name   = "UserManagement"
+  service_name   = var.service_name
   source         = "../../modules/lambda-function"
   zip_file       = "../out/handleOrderCompletedFunction/handleOrderCompletedFunction.zip"
   function_name  = "HandleOrderCompletedEvent"

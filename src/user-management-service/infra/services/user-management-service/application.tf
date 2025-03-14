@@ -7,14 +7,14 @@
 
 resource "aws_ssm_parameter" "user_service_access_key" {
   count = var.env == "dev" || var.env == "prod" ? 0 : 1
-  name  = "/${var.env}/UserManagement/secret-access-key"
+  name  = "/${var.env}/${var.service_name}/secret-access-key"
   type  = "String"
   value = "This is a sample secret key that should not be used in production`"
 }
 
 module "api_gateway" {
   source            = "../../modules/api-gateway"
-  api_name          = "UserManagement-${var.env}"
+  api_name          = "${var.service_name}-API-${var.env}"
   stage_name        = var.env
   stage_auto_deploy = true
   env               = var.env
@@ -42,7 +42,7 @@ module "login_resource" {
 }
 
 module "register_user_function" {
-  service_name   = "UserManagement"
+  service_name   = var.service_name
   source         = "../../modules/lambda-function"
   zip_file       = "../out/registerUserFunction/registerUserFunction.zip"
   function_name  = "RegisterUser"
@@ -76,14 +76,14 @@ module "register_user_function_api" {
 }
 
 module "login_function" {
-  service_name   = "UserManagement"
+  service_name   = var.service_name
   source         = "../../modules/lambda-function"
   zip_file       = "../out/loginFunction/loginFunction.zip"
   function_name  = "Login"
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.user_management_table.name
-    "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/UserManagement/secret-access-key"
+    "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
     "TOKEN_EXPIRATION" : 86400
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
@@ -109,14 +109,14 @@ module "login_function_api" {
 }
 
 module "get_user_details_function" {
-  service_name   = "UserManagement"
+  service_name   = var.service_name
   source         = "../../modules/lambda-function"
   zip_file       = "../out/getUserDetailsFunction/getUserDetailsFunction.zip"
   function_name  = "GetUserDetails"
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.user_management_table.name
-    "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/UserManagement/secret-access-key"
+    "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
     "TOKEN_EXPIRATION" : 86400
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
@@ -169,7 +169,7 @@ resource "aws_api_gateway_stage" "rest_api_stage" {
 }
 
 resource "aws_ssm_parameter" "api_endpoint" {
-  name  = "/${var.env}/UserManagement/api-endpoint"
+  name  = "/${var.env}/${var.service_name}/api-endpoint"
   type  = "String"
   value = aws_api_gateway_stage.rest_api_stage.invoke_url
 }

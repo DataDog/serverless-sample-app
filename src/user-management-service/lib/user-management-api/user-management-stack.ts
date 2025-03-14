@@ -22,11 +22,11 @@ export class UserManagementStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const service = "UserManagement";
+    const service = "Users";
     const env = process.env.ENV ?? "dev";
     const version = process.env["COMMIT_HASH"] ?? "latest";
-    const team = "UserManagement";
-    const domain = "UserManagement";
+    const team = "Users";
+    const domain = "Users";
 
     const ddApiKey = new Secret(this, "DDApiKeySecret", {
       secretName: `/${env}/${service}/dd-api-key`,

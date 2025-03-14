@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::time::Duration;
 use tokio::time::sleep;
-use uuid::uuid;
 
 struct ApiEndpoint(String);
 struct EventBusName(String);
@@ -43,7 +42,7 @@ async fn when_user_registers_then_should_be_able_to_login() {
     let email_under_test = format!("{}@test.com", random_email);
     let password_under_test = "Test!23";
 
-    let (api_endpoint, event_bus_name) = retrieve_paramater_values(&environment).await;
+    let (api_endpoint, event_bus_name) = retrieve_parameter_values(&environment).await;
     println!("API endpoint is {}", &api_endpoint.0);
     println!("Event bus name is {}", &event_bus_name.0);
 
@@ -60,7 +59,7 @@ async fn when_user_registers_then_should_be_able_to_login() {
 
     assert_eq!(register_response.status(), 200);
 
-    let user_response: ApiResponse<UserDTO> = register_response
+    register_response
         .json()
         .await
         .expect("Get user details response body should serialize to UserDTO");
@@ -80,7 +79,7 @@ async fn when_order_completed_event_is_published_order_count_is_increased() {
     let email_under_test = "test2@test.com";
     let password_under_test = "Test!23";
 
-    let (api_endpoint, event_bus_name) = retrieve_paramater_values(&environment).await;
+    let (api_endpoint, event_bus_name) = retrieve_parameter_values(&environment).await;
     println!("API endpoint is {}", &api_endpoint.0);
     println!("Event bus name is {}", &event_bus_name.0);
 
@@ -130,19 +129,19 @@ async fn when_order_completed_event_is_published_order_count_is_increased() {
     assert_eq!(user_response.data.order_count, 1);
 }
 
-async fn retrieve_paramater_values(environment: &str) -> (ApiEndpoint, EventBusName) {
+async fn retrieve_parameter_values(environment: &str) -> (ApiEndpoint, EventBusName) {
     let config = aws_config::load_defaults(BehaviorVersion::latest()).await;
     let ssm_client = aws_sdk_ssm::Client::new(&config);
 
     let service_name = match environment {
         "dev" => "shared",
         "prod" => "shared",
-        _ => "UserManagement",
+        _ => "Users",
     };
 
     let api_endpoint = ssm_client
         .get_parameter()
-        .name(format!("/{}/UserManagement/api-endpoint", environment))
+        .name(format!("/{}/Users/api-endpoint", environment))
         .send()
         .await
         .expect("Failed to retrieve API endpoint")

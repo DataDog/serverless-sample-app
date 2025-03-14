@@ -32,13 +32,6 @@ pushd src/loyalty-point-service
 cdk deploy --require-approval never &>../../deployment-logs/loyalty-point-service.log &
 popd
 
-pushd src/pricing-service
-cdk deploy --require-approval never &>../../deployment-logs/pricing-service.log &
-popd
-
-# Wait for all background jobs to complete
-#wait
-
 # Print deployment status
 echo "Deployment complete. Check logs in deployment-logs directory"
 ls -l deployment-logs/

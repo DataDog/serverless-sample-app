@@ -12,7 +12,7 @@ Transform:
 Parameters:
   ServiceName:
     Type: String
-    Default: UserManagement
+    Default: Users
   Env:
     Type: String
     Default: local
