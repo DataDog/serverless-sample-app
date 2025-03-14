@@ -39,9 +39,9 @@ export class ApiDriver {
       id,
       time: new Date().toISOString(),
       datacontenttype: "application/json",
-      data: JSON.stringify({
+      data: {
         userId: userId,
-      }),
+      },
     };
 
     const putEventsCommand = {
@@ -74,10 +74,10 @@ export class ApiDriver {
       id,
       time: new Date().toISOString(),
       datacontenttype: "application/json",
-      data: JSON.stringify({
+      data: {
         userId: userId,
         orderNumber: orderNumber,
-      }),
+      },
     };
 
     const putEventsCommand = {

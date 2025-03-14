@@ -38,9 +38,9 @@ export const handler = async (event: SQSEvent): Promise<string> => {
     let messageProcessingSpan: Span | undefined = undefined;
 
     try {
-      const evtWrapper: EventBridgeMessageWrapper<CloudEvent<string>> =
-        JSON.parse(message.body);
-      const evtData: UserCreatedEventV1 = JSON.parse(evtWrapper.detail.data!);
+      const evtWrapper: EventBridgeMessageWrapper<
+        CloudEvent<UserCreatedEventV1>
+      > = JSON.parse(message.body);
 
       messageProcessingSpan = startProcessSpanWithSemanticConventions(
         evtWrapper.detail,
@@ -54,7 +54,7 @@ export const handler = async (event: SQSEvent): Promise<string> => {
 
       await updatePointsCommandHandler.handle({
         orderNumber: "new-user",
-        userId: evtData!.userId,
+        userId: evtWrapper.detail.data!.userId,
         pointsToAdd: 100,
       });
     } catch (error) {
