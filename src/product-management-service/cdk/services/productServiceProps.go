@@ -48,8 +48,8 @@ func NewProductServiceProps(stack awscdk.Stack, sharedProps sharedconstructs.Sha
 
 		return ProductServiceProps{
 			SharedProps:             sharedProps,
-			ProductEventBus:         sharedEventBus,
-			SharedEventBus:          productServiceEventBus,
+			ProductEventBus:         productServiceEventBus,
+			SharedEventBus:          sharedEventBus,
 			JwtSecretAccessKeyParam: jwtSecretAccessKey,
 		}
 	} else {
