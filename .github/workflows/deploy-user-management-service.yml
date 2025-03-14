@@ -1,12 +1,12 @@
 name: Deploy User Management Service
 
 on:
-    push:
-      paths:
-        - src/user-management-service/**
-      branches:
-          - 'service-per-lang'
-    workflow_dispatch:
+  push:
+    paths:
+      - src/user-management-service/**
+    branches:
+      - "service-per-lang"
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -16,10 +16,9 @@ jobs:
   deploy-tf:
     runs-on: ubuntu-latest
     concurrency:
-        group: tf-user-management
+      group: tf-user-management
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -46,16 +45,49 @@ jobs:
           DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/user-management-service
           make build
-      - name: Terraform apply
+      - name: Deploy to ephermal environment
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "tf-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/user-management-service
+          make tf-apply
+      - name: Integration test ephermal environment
+        shell: bash
+        env:
+          ENV: "tf-${{ env.sha_short }}"
+          AWS_REGION: "eu-west-2"
+        run: |
+          cd src/user-management-service
+          make integration-test
+      - name: Destroy ephermal environment
+        if: always()
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "tf-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-west-2"
+          TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
+        run: |
+          cd src/user-management-service
+          make build
+          make tf-destroy
+      - name: Deploy dev
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_2_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "eu-west-2"
@@ -71,13 +103,12 @@ jobs:
         run: |
           cd src/user-management-service
           make integration-test
-      - name: Terraform destroy
+      - name: Destroy dev
         if: always()
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_2_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "eu-west-2"
@@ -87,14 +118,12 @@ jobs:
           make build
           make tf-destroy
 
-
   deploy-cdk:
     runs-on: ubuntu-latest
     concurrency:
-        group: cdk-user-management
+      group: cdk-user-management
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
         uses: actions/setup-node@v3
@@ -118,12 +147,42 @@ jobs:
         shell: bash
         run: |
           echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
-      - name: Deploy to AWS
+      - name: Deploy to ephermal environment
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "cdk-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          cd src/user-management-service
+          npm i
+          make cdk-deploy
+      - name: Integration test ephermal environment
+        shell: bash
+        env:
+          ENV: "cdk-${{ env.sha_short }}"
+          AWS_REGION: "eu-west-1"
+        run: |
+          cd src/user-management-service
+          make integration-test
+      - name: Destroy ephermal environment
+        if: always()
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "cdk-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+        run: |
+          cd src/user-management-service
+          npm i
+          make cdk-destroy
+      - name: Deploy to dev
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
         run: |
@@ -138,13 +197,12 @@ jobs:
         run: |
           cd src/user-management-service
           make integration-test
-      - name: Destroy
+      - name: Destroy dev
         if: always()
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
         run: |
@@ -155,10 +213,9 @@ jobs:
   deploy-sam:
     runs-on: ubuntu-latest
     concurrency:
-        group: sam-user-management
+      group: sam-user-management
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
         uses: actions/setup-node@v3
@@ -175,20 +232,50 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "us-east-1"
+          aws-region: "eu-central-1"
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
           echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
-      - name: Deploy to AWS
+      - name: Deploy to ephermal environment
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "sam-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/user-management-service
+          make sam
+      - name: Integration test ephermal environment
+        shell: bash
+        env:
+          ENV: "sam-${{ env.sha_short }}"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/user-management-service
+          make integration-test
+      - name: Destroy ephermal environment
+        if: always()
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "sam-${{ env.sha_short }}"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/user-management-service
+          make sam-destroy
+      - name: Deploy to dev
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/user-management-service
           make sam
@@ -196,89 +283,86 @@ jobs:
         shell: bash
         env:
           ENV: "dev"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/user-management-service
           make integration-test
-      - name: Destroy
+      - name: Destroy dev
         if: always()
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-1"
+          AWS_REGION: "eu-central-1"
         run: |
           cd src/user-management-service
           make sam-destroy
 
-
-  deploy-sls-framework:
-    name: deploy
-    runs-on: ubuntu-latest
-    concurrency:
-        group: sls-user-management
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: "22"
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-      - uses: mlugg/setup-zig@v1
-      - name: Install Cargo Lambda
-        run: |
-          cargo install cargo-lambda
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@master
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "us-east-2"
-      - name: Install Serverless Framework
-        run: |
-          npm install -g serverless@3.40.0
-      - name: Set Commit Hash Environment Variables
-        shell: bash
-        run: |
-          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
-      - name: Deploy to AWS
-        shell: bash
-        env:
-          COMMIT_HASH: ${{ env.sha_short }}
-          ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
-          DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-2"
-        run: |
-          cd src/user-management-service
-          npm i
-          make build
-          make serverless-framework
-      - name: Integration test dev
-        shell: bash
-        env:
-          ENV: "dev"
-          AWS_REGION: "us-east-2"
-        run: |
-          cd src/user-management-service
-          make integration-test
-      - name: Destroy
-        shell: bash
-        if: always()
-        env:
-          COMMIT_HASH: ${{ env.sha_short }}
-          ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
-          DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
-          AWS_REGION: "us-east-2"
-        run: |
-          cd src/user-management-service
-          npm i
-          make build
-          make serverless-framework-destroy
-
+  # deploy-sls-framework:
+  #   name: deploy
+  #   runs-on: ubuntu-latest
+  #   concurrency:
+  #     group: sls-user-management
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Set up Node
+  #       uses: actions/setup-node@v3
+  #       with:
+  #         node-version: "22"
+  #     - uses: actions-rust-lang/setup-rust-toolchain@v1
+  #     - uses: mlugg/setup-zig@v1
+  #     - name: Install Cargo Lambda
+  #       run: |
+  #         cargo install cargo-lambda
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@master
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+  #         role-session-name: GitHub_to_AWS_via_FederatedOIDC
+  #         aws-region: "us-east-2"
+  #     - name: Install Serverless Framework
+  #       run: |
+  #         npm install -g serverless@3.40.0
+  #     - name: Set Commit Hash Environment Variables
+  #       shell: bash
+  #       run: |
+  #         echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+  #     - name: Deploy to AWS
+  #       shell: bash
+  #       env:
+  #         COMMIT_HASH: ${{ env.sha_short }}
+  #         ENV: "dev"
+  #         DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
+  #         DD_API_KEY: ${{secrets.DD_API_KEY}}
+  #         DD_SITE: "datadoghq.eu"
+  #         AWS_REGION: "us-east-2"
+  #       run: |
+  #         cd src/user-management-service
+  #         npm i
+  #         make build
+  #         make serverless-framework
+  #     - name: Integration test dev
+  #       shell: bash
+  #       env:
+  #         ENV: "dev"
+  #         AWS_REGION: "us-east-2"
+  #       run: |
+  #         cd src/user-management-service
+  #         make integration-test
+  #     - name: Destroy
+  #       shell: bash
+  #       if: always()
+  #       env:
+  #         COMMIT_HASH: ${{ env.sha_short }}
+  #         ENV: "dev"
+  #         DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
+  #         DD_API_KEY: ${{secrets.DD_API_KEY}}
+  #         DD_SITE: "datadoghq.eu"
+  #         AWS_REGION: "us-east-2"
+  #       run: |
+  #         cd src/user-management-service
+  #         npm i
+  #         make build
+  #         make serverless-framework-destroy
