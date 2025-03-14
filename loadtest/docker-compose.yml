@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  loadtest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - ENV=${ENV}
+      - PRODUCT_API_ENDPOINT=${PRODUCT_API_ENDPOINT}
+      - USER_API_ENDPOINT=${USER_API_ENDPOINT}
+      - ORDER_API_ENDPOINT=${ORDER_API_ENDPOINT}
+      - INVENTORY_API_ENDPOINT=${INVENTORY_API_ENDPOINT}
+      - LOYALTY_API_ENDPOINT=${LOYALTY_API_ENDPOINT}

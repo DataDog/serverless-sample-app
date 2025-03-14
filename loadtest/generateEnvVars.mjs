@@ -35,26 +35,15 @@ async function updateConfig() {
       `/${env}/InventoryService/api-endpoint`
     );
 
-    // Create config object
-    const config = {
-      PRODUCT_API_ENDPOINT: productApiEndpoint,
-      USER_API_ENDPOINT: userApiEndpoint,
-      INVENTORY_API_ENDPOINT: inventoryApiEndpoint,
-      ORDER_API_ENDPOINT: orderApiEndpoint,
-      LOYALTY_API_ENDPOINT: loyaltyApiEndpoint,
-      PRICING_API_ENDPOINT: "",
-      DD_CLIENT_TOKEN: "",
-      DD_APPLICATION_ID: "",
-      DD_SITE: "",
-    };
+    const envVars = [
+      `export PRODUCT_API_ENDPOINT="${productApiEndpoint}"`,
+      `export USER_API_ENDPOINT="${userApiEndpoint}"`,
+      `export INVENTORY_API_ENDPOINT="${inventoryApiEndpoint}"`,
+      `export ORDER_API_ENDPOINT="${orderApiEndpoint}"`,
+      `export LOYALTY_API_ENDPOINT="${loyaltyApiEndpoint}"`,
+    ].join("\n");
 
-    // Convert config to string format
-    const configContent = `export default ${JSON.stringify(config, null, 4)};`;
-
-    // Write to config.js
-    await fs.writeFile(path.resolve("./src/config.js"), configContent);
-
-    console.log("Config file updated successfully");
+    console.log(envVars);
   } catch (error) {
     console.error("Error updating config:", error);
     process.exit(1);
@@ -68,8 +57,6 @@ async function getParameterValue(client, parameterName) {
 
   while (Date.now() - startTime < timeout) {
     try {
-      console.log(`Retrieving parameter: ${parameterName}`);
-
       const getParameterCommand = {
         Name: parameterName,
         WithDecryption: true,
@@ -79,18 +66,11 @@ async function getParameterValue(client, parameterName) {
       const response = await client.send(command);
       return response.Parameter.Value.replace(/\/+$/, "");
     } catch (error) {
-      console.error(
-        `Error fetching parameter ${parameterName}:`,
-        error.message
-      );
-
       if (Date.now() - startTime + interval >= timeout) {
         throw new Error(
           `Timeout reached while trying to fetch ${parameterName}`
         );
       }
-
-      console.log(`Retrying in 30 seconds...`);
       await new Promise((resolve) => setTimeout(resolve, interval));
     }
   }

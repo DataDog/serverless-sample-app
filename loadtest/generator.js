@@ -1,15 +1,55 @@
 const crypto = require("crypto");
 
 module.exports = {
-  generateProduct: function (context, events, done) {
-    context.vars.Name = crypto.randomUUID();
+  generateEmailAddress: function (context, events, done) {
+    context.vars.Email = `${crypto.randomUUID()}@example.com`;
+    context.vars.Password = `Test!23`;
 
-    const min = -0;
-    const max = 99;
-    const diff = max - min;
+    return done();
+  },
+  setOrderProducts: function (context, events, done) {
+    const randomIndex = Math.round(
+      Math.random() * context.vars.products.length
+    );
+    context.vars.OrderProducts = [context.vars.products[randomIndex].productId];
 
-    context.vars.Price = Math.random() * diff + min;
-    context.vars.UpdatedPrice = Math.random() * diff + min;
+    return done();
+  },
+  setOutOfStockProductId: function (context, events, done) {
+    const zeroStockProducts = context.vars.products.filter(
+      (product) => product.stockLevel === 0
+    );
+
+    if (zeroStockProducts.length === 0) {
+      return done();
+    }
+
+    const randomIndex = Math.round(Math.random() * zeroStockProducts.length);
+    context.vars.ProductId = zeroStockProducts[randomIndex].productId;
+
+    return done();
+  },
+  getLatestConfirmedOrder: function (context, events, done) {
+    if (
+      !context.vars.confirmedOrders ||
+      context.vars.confirmedOrders.length === 0
+    ) {
+      return done();
+    }
+
+    context.vars.ConfirmedOrderId = context.vars.confirmedOrders[0].orderId;
+    context.vars.ConfirmedOrderUserId = context.vars.confirmedOrders[0].userId;
+
+    return done();
+  },
+  generateRestockAmount: function (context, events, done) {
+    if (context.vars.currentStockLevel > 0) {
+      context.vars.NewStockLevel = context.vars.currentStockLevel;
+      return done();
+    }
+
+    const randomStockLevel = Math.round(Math.random() * 10);
+    context.vars.NewStockLevel = randomStockLevel;
 
     return done();
   },

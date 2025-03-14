@@ -1,7 +1,7 @@
 config:
-  target: "{{ $processEnvironment.API_ENDPOINT }}"
+  target: "https://"
   http:
-    timeout : 60
+    timeout: 60
   processor: "generator.js"
   phases:
     - duration: 30
@@ -46,30 +46,106 @@ config:
       arrivalRate: 1
 
 scenarios:
-  - name: "Product end to end"
+  - name: "User create order"
     flow:
-      - function: "generateProduct"
+      - function: "generateEmailAddress"
       - post:
-          url: "/product"
+          url: "{{ $processEnvironment.USER_API_ENDPOINT }}/user"
           headers:
             Content-Type: "application/json"
           json:
-            name: "{{ Name }}"
-            price: "{{ Price }}"
+            email_address: "{{ Email }}"
+            first_name: "Test"
+            last_name: "User"
+            password: "{{ Password }}"
+      - post:
+          url: "{{ $processEnvironment.USER_API_ENDPOINT }}/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email_address: "{{ Email }}"
+            password: "{{ Password }}"
           capture:
-            - json: "$.data.productId"
-              as: Id
+            json: "$.data.token"
+            as: jwt
       - get:
-          url: "/product/{{ Id }}"
-      - think: 3
-      - put:
-          url: "/product"
+          url: "{{ $processEnvironment.PRODUCT_API_ENDPOINT }}/product"
+          capture:
+            json: "$.data"
+            as: products
+      - function: setOrderProducts
+      - post:
+          url: "{{ $processEnvironment.ORDER_API_ENDPOINT }}/orders"
+          headers:
+            Content-Type: "application/json"
+            Authorization: "Bearer {{jwt}}"
+          json:
+            products: "{{ OrderProducts }}"
+          capture:
+            json: "$.data.orderId"
+            as: OrderId
+  - name: "Admin complete order"
+    flow:
+      - post:
+          url: "{{ $processEnvironment.USER_API_ENDPOINT }}/login"
           headers:
             Content-Type: "application/json"
           json:
-            id: "{{ Id }}"
-            name: "{{ Name }}"
-            price: "{{ UpdatedPrice }}"
-      - think: 10
-      - delete:
-          url: "/product/{{ Id }}"
+            email_address: "admin@serverless-sample.com"
+            password: "Admin!23"
+          capture:
+            json: "$.data.token"
+            as: adminJwt
+      - get:
+          url: "{{ $processEnvironment.ORDER_API_ENDPOINT }}/orders/confirmed"
+          headers:
+            Authorization: "Bearer {{adminJwt}}"
+          capture:
+            json: "$"
+            as: confirmedOrders
+      - function: getLatestConfirmedOrder
+      - post:
+          url: "{{ $processEnvironment.ORDER_API_ENDPOINT }}/orders/{{ ConfirmedOrderId }}/complete"
+          headers:
+            Content-Type: "application/json"
+            Authorization: "Bearer {{adminJwt}}"
+          json:
+            orderId: "{{ ConfirmedOrderId }}"
+            userId: "{{ ConfirmedOrderUserId }}"
+
+  - name: "Admin re-stock products"
+    flow:
+      - post:
+          url: "{{ $processEnvironment.USER_API_ENDPOINT }}/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email_address: "admin@serverless-sample.com"
+            password: "Admin!23"
+          capture:
+            json: "$.data.token"
+            as: adminJwt
+      - get:
+          url: "{{ $processEnvironment.PRODUCT_API_ENDPOINT }}/product"
+          capture:
+            json: "$.data"
+            as: products
+      - function: setOutOfStockProductId
+      - get:
+          url: "{{ $processEnvironment.INVENTORY_API_ENDPOINT }}/inventory/{{ ProductId }}"
+          ifTrue: 'ProductId'
+          headers:
+            Authorization: "Bearer {{adminJwt}}"
+          capture:
+            json: "$.data.currentStockLevel"
+            as: currentStockLevel
+      - function: generateRestockAmount
+      - post:
+          url: "{{ $processEnvironment.INVENTORY_API_ENDPOINT }}/inventory"
+          ifTrue: 'ProductId'
+          headers:
+            Content-Type: "application/json"
+            Authorization: "Bearer {{adminJwt}}"
+          json:
+            productId: "{{ProductId}}"
+            stockLevel: "{{NewStockLevel}}"

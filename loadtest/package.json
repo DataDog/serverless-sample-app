@@ -1,0 +1,7 @@
+{
+  "scripts": {},
+  "devDependencies": {
+    "@aws-sdk/client-ssm": "^3.759.0"
+  },
+  "dependencies": {}
+}
