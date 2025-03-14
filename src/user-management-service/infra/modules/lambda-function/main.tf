@@ -6,7 +6,7 @@
 //
 
 resource "aws_iam_role" "lambda_function_role" {
-  name = "TF-UserManagement-${var.function_name}-lambda-role-${var.env}"
+  name = "TF-${var.service_name}-${var.function_name}-role-${var.env}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [

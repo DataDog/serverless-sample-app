@@ -59,7 +59,7 @@ async fn when_user_registers_then_should_be_able_to_login() {
 
     assert_eq!(register_response.status(), 200);
 
-    register_response
+    let _: ApiResponse<UserDTO> = register_response
         .json()
         .await
         .expect("Get user details response body should serialize to UserDTO");
