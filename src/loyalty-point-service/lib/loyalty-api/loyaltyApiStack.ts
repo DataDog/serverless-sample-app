@@ -8,7 +8,7 @@
 import * as cdk from "aws-cdk-lib";
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
-import { Datadog } from "datadog-cdk-constructs-v2";
+import { DatadogLambda } from "datadog-cdk-constructs-v2";
 import { SharedProps } from "../constructs/sharedFunctionProps";
 import { Api } from "./api";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
@@ -29,7 +29,7 @@ export class LoyaltyApiStack extends cdk.Stack {
       secretStringValue: new cdk.SecretValue(process.env.DD_API_KEY!),
     });
 
-    const datadogConfiguration = new Datadog(this, "Datadog", {
+    const datadogConfiguration = new DatadogLambda(this, "Datadog", {
       nodeLayerVersion: 121,
       extensionLayerVersion: 73,
       site: process.env.DD_SITE ?? "datadoghq.com",
