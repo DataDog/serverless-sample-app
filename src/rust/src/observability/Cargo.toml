@@ -17,4 +17,4 @@ opentelemetry-http = {workspace = true}
 opentelemetry-stdout = {workspace = true}
 opentelemetry-semantic-conventions = {workspace = true}
 tracing-opentelemetry = {workspace = true}
-serde = { version = "1.0.217", features = ["derive"] }
+serde = { version = "1.0.219", features = ["derive"] }
