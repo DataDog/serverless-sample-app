@@ -9,7 +9,7 @@ product-acl-core = { path = "../../core" }
 lambda_runtime = "0.13.0"
 aws_lambda_events = "0.16.0"
 aws-config = { version = "1.5", features = ["behavior-version-latest"] }
-aws-sdk-sns = "1.46"
+aws-sdk-sns = "1.62"
 
 serde_json = {workspace = true}
 tokio = {workspace = true}

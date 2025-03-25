@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 observability = {path = "../../observability"}
-aws-sdk-sns = "1.46"
+aws-sdk-sns = "1.62"
 uuid = {version = "1.15.1", features = ["v4"]}
 async-trait = "0.1"
 
