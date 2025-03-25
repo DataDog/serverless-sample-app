@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 observability = {path = "../../observability"}
-aws-sdk-eventbridge = "1.63"
+aws-sdk-eventbridge = "1.64"
 async-trait = "0.1"
 aws-sdk-dynamodb = "1.49"
 

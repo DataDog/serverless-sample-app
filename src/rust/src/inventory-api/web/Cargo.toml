@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 observability = {path = "../../observability"}
 inventory_api_core = {path = "../core"}
-aws-sdk-eventbridge = "1.63"
+aws-sdk-eventbridge = "1.64"
 aws-sdk-dynamodb = "1.49"
 aws-config = { version = "1.5", features = ["behavior-version-latest"] }
 async-trait = "0.1.86"

@@ -9,7 +9,7 @@ observability = {path = "../../../observability"}
 lambda_runtime = "0.13.0"
 aws_lambda_events = "0.16.0"
 aws-config = { version = "1.5", features = ["behavior-version-latest"] }
-aws-sdk-eventbridge = "1.63"
+aws-sdk-eventbridge = "1.64"
 serde = { version = "1.0.217", features = ["derive"] }
 
 serde_json = {workspace = true}
