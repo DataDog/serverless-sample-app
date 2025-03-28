@@ -7,12 +7,13 @@
 
 import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
-import { SharedProps } from "../constructs/sharedFunctionProps";
-import { InstrumentedLambdaFunction } from "../constructs/lambdaFunction";
-import { RemovalPolicy } from "aws-cdk-lib";
+import { Duration } from "aws-cdk-lib";
 import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
 import { IStringParameter } from "aws-cdk-lib/aws-ssm";
 import { PricingServiceProps } from "./pricingServiceProps";
+import { Runtime, Code } from "aws-cdk-lib/aws-lambda";
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import { Alias } from "aws-cdk-lib/aws-kms";
 
 export interface ApiProps {
   serviceProps: PricingServiceProps;
@@ -48,25 +49,46 @@ export class Api extends Construct {
   }
 
   buildCalculatePricingFunction(props: ApiProps): LambdaIntegration {
-    const calculatePricingFunction = new InstrumentedLambdaFunction(
+    // The function uses ESBuild, this path is to a custom command that runs the build
+    const pathToBuildFile = "./src/pricing-api/adapters/buildCalculatePricingFunction.js";
+    const pathToOutputFile = "./out/calculatePricingFunction";
+
+    const code = Code.fromCustomCommand(pathToOutputFile, [
+      "node",
+      pathToBuildFile,
+    ]);
+
+    const calculatePricingFuncion = new NodejsFunction(
       this,
       "CalculatePricingFunction",
       {
-        sharedProps: props.serviceProps.getSharedProps(),
-        functionName: "CalculatePricing",
+        runtime: Runtime.NODEJS_22_X,
+        functionName: `CDK-CalculatePricing-${
+          props.serviceProps.getSharedProps().environment
+        }`,
+        code: code,
         handler: "index.handler",
+        memorySize: 512,
+        timeout: Duration.seconds(29),
         environment: {
-          JWT_SECRET_PARAM_NAME: props.jwtSecret.parameterName,
+          ENV: props.serviceProps.getSharedProps().environment,
         },
-        buildDef: "./src/pricing-api/adapters/buildCalculatePricingFunction.js",
-        outDir: "./out/calculatePricingFunction",
-        onFailure: undefined,
+        bundling: {
+          platform: "node",
+          esbuildArgs: {
+            "--bundle": "true",
+          },
+          target: "node22",
+        },
       }
     );
+
+    const kmsAlias = Alias.fromAliasName(this, "SSMAlias", "aws/ssm");
+    kmsAlias.grantDecrypt(calculatePricingFuncion);
+
     const calculatePricingIntegration = new LambdaIntegration(
-      calculatePricingFunction.function
+      calculatePricingFuncion
     );
-    props.jwtSecret.grantRead(calculatePricingFunction.function);
 
     return calculatePricingIntegration;
   }
