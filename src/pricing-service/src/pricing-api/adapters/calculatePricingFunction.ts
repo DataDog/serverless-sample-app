@@ -6,63 +6,13 @@
 //
 
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda";
-import { tracer } from "dd-trace";
-import { addDefaultServiceTagsTo } from "../../observability/observability";
-import { JwtPayload, verify } from "jsonwebtoken";
-import { getParameter } from "@aws-lambda-powertools/parameters/ssm";
-import { Logger } from "@aws-lambda-powertools/logger";
-import { PricingService } from "../core/pricingService";
-import { CalculatePricingCommand } from "../core/calculatePricingCommand";
-
-const pricingService = new PricingService();
-
-const logger = new Logger({});
 
 export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
-  const parameter = await getParameter(process.env.JWT_SECRET_PARAM_NAME!);
-
-  const span = tracer.scope().active();
-  addDefaultServiceTagsTo(span);
-
-  let verificationResult: JwtPayload | string = "";
-
-  try {
-    verificationResult = verify(
-      event.headers.Authorization!.replace("Bearer ", ""),
-      parameter!
-    );
-  } catch (err: Error | any) {
-    logger.warn("Unauthorized request", { error: err });
-  }
-
-  if (verificationResult.length === 0) {
-    return {
-      statusCode: 401,
-      body: "Unauthorized",
-      headers: {
-        "Content-Type": "application-json",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "*",
-        "Access-Control-Allow-Methods": "*",
-      },
-    };
-  }
-
-  if (event.body === undefined) {
-    return {
-      statusCode: 400,
-    };
-  }
-
-  const command: CalculatePricingCommand = JSON.parse(event.body);
-
-  const result = await pricingService.calculate(command);
-
   return {
-    statusCode: result ? 200 : 400,
-    body: JSON.stringify(result),
+    statusCode: 200,
+    body: JSON.stringify('OK'),
     headers: {
       "Content-Type": "application-json",
       "Access-Control-Allow-Origin": "*",

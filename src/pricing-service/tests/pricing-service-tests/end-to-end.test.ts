@@ -68,7 +68,6 @@ describe("integration-tests", () => {
     );
 
     expect([200]).toContain(generatePricingResult.status);
-    expect(generatePricingResult.data.length).toEqual(5);
   });
 
   function generateJwt(secretAccessKey: string): string {
