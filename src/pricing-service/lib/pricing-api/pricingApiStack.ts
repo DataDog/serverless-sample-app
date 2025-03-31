@@ -52,5 +52,10 @@ export class PricingApiStack extends cdk.Stack {
       parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/api-endpoint`,
       stringValue: api.api.url,
     });
+
+    const output = new cdk.CfnOutput(this, "ApiEndpointOutput", {
+      exportName: "PricingServiceApiEndpoint",
+      value: `${api.api.url}pricing`,
+    });
   }
 }

@@ -80,7 +80,7 @@ resource "aws_cloudwatch_log_group" "lambda_log_group" {
 
 module "aws_lambda_function" {
   source  = "DataDog/lambda-datadog/aws"
-  version = "2.0.0"
+  version = "3.0.0"
 
   filename                 = var.publish_directory
   function_name            = "TfDotnet-${var.function_name}-${var.env}"
@@ -109,6 +109,6 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 74
-  datadog_dotnet_layer_version      = 18
+  datadog_extension_layer_version = 76
+  datadog_dotnet_layer_version      = 19
 }
