@@ -8,7 +8,7 @@ on:
       - "main"
   pull_request:
     paths:
-      - src/inventory-service/**
+      - src/user-management-service/**
     branches:
       - "main"
     types: [opened, synchronize, reopened]
