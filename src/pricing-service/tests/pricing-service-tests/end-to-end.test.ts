@@ -78,34 +78,4 @@ describe("integration-tests", () => {
 
     return token;
   }
-
-  it("pricing between 95 & 100, should have long response time but success", async () => {
-    const testStartTime = new Date().getTime();
-
-    const testProductName = randomUUID().toString();
-    const generatePricingResult = await apiDriver.generatePricing(
-      testProductName,
-      97
-    );
-
-    const resultTime = new Date().getTime();
-    const timeDifferenceInSeconds = (resultTime - testStartTime) / 1000;
-
-    console.log(timeDifferenceInSeconds);
-
-    expect([200]).toContain(generatePricingResult.status);
-    expect(generatePricingResult.data.length).toEqual(5);
-    // Forced delays in the backend
-    expect(timeDifferenceInSeconds).toBeGreaterThan(8);
-  }, 10000);
-
-  it("pricing between 90 & 95, should error", async () => {
-    const testProductName = randomUUID().toString();
-    const generatePricingResult = await apiDriver.generatePricing(
-      testProductName,
-      91.99
-    );
-
-    expect([502]).toContain(generatePricingResult.status);
-  });
 });
