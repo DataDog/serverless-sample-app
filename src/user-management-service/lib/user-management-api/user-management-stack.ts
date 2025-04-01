@@ -8,7 +8,7 @@
 import * as cdk from "aws-cdk-lib";
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
-import { Datadog } from "datadog-cdk-constructs-v2";
+import { DatadogLambda } from "datadog-cdk-constructs-v2";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { SharedProps } from "../constructs/sharedFunctionProps";
 import { UserManagementApi } from "./api";
@@ -33,8 +33,8 @@ export class UserManagementStack extends cdk.Stack {
       secretStringValue: new cdk.SecretValue(process.env.DD_API_KEY!),
     });
 
-    const datadogConfiguration = new Datadog(this, "Datadog", {
-      extensionLayerVersion: 74,
+    const datadogConfiguration = new DatadogLambda(this, "Datadog", {
+      extensionLayerVersion: 76,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
       service,

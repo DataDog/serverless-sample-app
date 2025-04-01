@@ -75,9 +75,9 @@ public class InstrumentedFunction : Construct
                 Layers =
                 [
                     LayerVersion.FromLayerVersionArn(this, "DDExtension",
-                        $"arn:aws:lambda:{Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1"}:464622532012:layer:Datadog-Extension-ARM:74"),
+                        $"arn:aws:lambda:{Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1"}:464622532012:layer:Datadog-Extension-ARM:76"),
                     LayerVersion.FromLayerVersionArn(this, "DDTrace",
-                        $"arn:aws:lambda:{Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1"}:464622532012:layer:dd-trace-dotnet-ARM:18")
+                        $"arn:aws:lambda:{Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1"}:464622532012:layer:dd-trace-dotnet-ARM:19")
                 ]
             });
 

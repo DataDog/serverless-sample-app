@@ -5,7 +5,13 @@ on:
     paths:
       - src/user-management-service/**
     branches:
-      - "service-per-lang"
+      - "main"
+  pull_request:
+    paths:
+      - src/user-management-service/**
+    branches:
+      - "main"
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:

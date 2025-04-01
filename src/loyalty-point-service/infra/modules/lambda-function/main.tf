@@ -115,6 +115,6 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 73
+  datadog_extension_layer_version = 76
   datadog_node_layer_version = 121
 }

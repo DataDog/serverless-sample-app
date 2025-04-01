@@ -90,7 +90,7 @@ resource "aws_cloudwatch_log_group" "lambda_log_group" {
 
 module "aws_lambda_function" {
   source  = "DataDog/lambda-datadog/aws"
-  version = "2.0.0"
+  version = "3.0.0"
 
   s3_bucket = var.s3_bucket_name
   s3_key = aws_s3_object.object.key
@@ -125,8 +125,8 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 74
-  datadog_java_layer_version      = 18
+  datadog_extension_layer_version = 76
+  datadog_java_layer_version      = 19
 }
 
 resource "aws_lambda_alias" "SnapStartAlias" {
