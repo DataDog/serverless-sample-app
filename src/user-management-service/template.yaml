@@ -358,30 +358,13 @@ Resources:
                 Action:
                   - "events:PutEvents"
                 Resource: [!GetAtt UserManagementEventBus.Arn]
-
-  SharedEventBusUserCreatedEventRule:
-    Type: AWS::Events::Rule
-    Condition: IsIntegratedEnvironment
-    Properties:
-      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-      Name: shared-loyalty-user-created
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.orders"
-        detail-type:
-          - "orders.orderCompleted.v1"
-      Targets:
-        - Id: UserManagementEventBus
-          Arn: !GetAtt UserManagementEventBus.Arn
-          RoleArn: !GetAtt SharedEventBusToUserManagementEventBusRole.Arn
   
   SharedEventBusOrderCompletedEventRule:
     Type: AWS::Events::Rule
     Condition: IsIntegratedEnvironment
     Properties:
       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-      Name: shared-loyalty-order-completed
+      Name: shared-users-order-completed
       State: ENABLED
       EventPattern:
         source:

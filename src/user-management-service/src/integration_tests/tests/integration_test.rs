@@ -68,9 +68,10 @@ async fn when_user_registers_then_should_be_able_to_login() {
 #[tokio::test]
 async fn when_order_completed_event_is_published_order_count_is_increased() {
     let environment = std::env::var("ENV").unwrap_or("dev".to_string());
+    let random_email = uuid::Uuid::new_v4().to_string();
 
     println!("Environment: {}", environment);
-    let email_under_test = "test2@test.com";
+    let email_under_test = format!("{}@test.com", random_email);
     let password_under_test = "Test!23";
 
     let (api_endpoint, event_bus_name) = retrieve_parameter_values(&environment).await;
@@ -85,7 +86,7 @@ async fn when_order_completed_event_is_published_order_count_is_increased() {
     .await;
 
     let register_response = api_driver
-        .register_user(email_under_test, "Test", "Doe", password_under_test)
+        .register_user(&email_under_test, "Test", "Doe", password_under_test)
         .await;
     assert_eq!(register_response.status(), 200);
 
@@ -95,7 +96,7 @@ async fn when_order_completed_event_is_published_order_count_is_increased() {
         .expect("Get user details response body should serialize to UserDTO");
 
     let login_response = api_driver
-        .login_user(email_under_test, password_under_test)
+        .login_user(&email_under_test, password_under_test)
         .await;
 
     let login_data: ApiResponse<TokenData> = login_response
@@ -104,7 +105,7 @@ async fn when_order_completed_event_is_published_order_count_is_increased() {
         .expect("Get user details response body should serialize to UserDTO");
 
     api_driver
-        .publish_order_completed_event(email_under_test)
+        .publish_order_completed_event(&email_under_test)
         .await;
 
     sleep(Duration::from_secs(2)).await;
