@@ -45,7 +45,6 @@ Globals:
         ENV: !Ref Env
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
         POWERTOOLS_LOG_LEVEL: 'INFO'
-        DD_LOGS_INJECTION: "true"
         DOMAIN: "pricing"
     Architectures:
       - x86_64
@@ -100,37 +99,12 @@ Resources:
       CodeUri: ./out/calculatePricingFunction/calculatePricingFunction.zip
       Handler: index.handler
       FunctionName: !Sub ${ServiceName}-CalculatePricing-${Env}
-      Environment:
-        Variables:
-          JWT_SECRET_PARAM_NAME: !If
-            - IsIntegratedEnvironment
-            - !Sub /${Env}/shared/secret-access-key
-            - !Sub /${Env}/${ServiceName}/secret-access-key
       Events:
         GeneratePricing:
           Type: Api
           Properties: 
             Path: /pricing
             Method: post
-      Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecret
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - "ssm:DescribeParameters"
-                - "ssm:GetParameter"
-                - "ssm:GetParameterHistory"
-                - "ssm:GetParameters"
-              Resource: !If
-                - IsIntegratedEnvironment
-                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
-                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
 
 ################################################
 ############# Background Workers ###############
@@ -365,3 +339,8 @@ Resources:
       Name: !Sub /${Env}/${ServiceName}/api-endpoint
       Type: String
       Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+
+Outputs:
+  PricingApiEndpoint:
+    Description: The API endpoint of the pricing service
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/pricing"

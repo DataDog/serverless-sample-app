@@ -56,6 +56,7 @@ module "calculate_pricing_lambda_api" {
   api_resource_path = module.pricing_resource.path_part
   env               = var.env
 }
+
 resource "aws_api_gateway_deployment" "rest_api_deployment" {
   rest_api_id = module.api_gateway.api_id
   depends_on  = [module.calculate_pricing_lambda_api]
