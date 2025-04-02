@@ -8,7 +8,9 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "jest --no-cache",
+    "test:unit": "jest --testPathPattern=tests/unit",
+    "test:integration": "jest --testPathPattern=tests/integration",
+    "test": "jest",
     "cdk": "cdk",
     "dev:sst": "sst dev --stage=personal",
     "build:sst": "sst build --stage=dev",

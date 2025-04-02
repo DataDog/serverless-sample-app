@@ -57,8 +57,15 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
 
       await createProductHandler.handle(evtWrapper.detail.data!);
     } catch (error: unknown) {
-      logger.error(JSON.stringify(error));
-      messageProcessingSpan?.logEvent("error", error);
+      const e = error as Error;
+      const stack = e.stack!.split("\n").slice(1, 4).join("\n");
+      messageProcessingSpan?.addTags({
+        "error.stack": stack,
+        "error.message": e.message,
+        "error.type": "Error",
+      });
+      logger.error(e.message);
+      logger.error(stack);
 
       // Rethrow error to pass back to Lambda runtime
       messageProcessingSpan?.finish();

@@ -23,6 +23,10 @@ export class PricingService {
   }
 
   public async calculate(command: CalculatePricingCommand): Promise<PricingResult[]> {
+    if (command.price < 0) {
+      throw new Error("Price cannot be negative");
+    }
+
     await this.issueSimulator(command.price);
 
     const pricingResults: PricingResult[] = [

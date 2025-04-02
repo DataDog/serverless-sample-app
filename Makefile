@@ -9,4 +9,4 @@ cdk-deploy-local:
 		-e ENV=dev \
 		-e DD_API_KEY="${DD_API_KEY}" \
 		-e DD_SITE="${DD_SITE}" \
-		serverless-sample-app-build-image
+		public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-build-image:latest

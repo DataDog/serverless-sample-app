@@ -25,6 +25,13 @@ export class ProductCreatedEventHandler {
   }
 
   async handle(evt: ProductCreatedEvent): Promise<void> {
+    // if (evt.productId === undefined) {
+    //   throw new Error("Product ID is undefined");
+    // }
+    // if (evt.price === undefined) {
+    //   throw new Error("Price is undefined");
+    // }
+
     const span = tracer.scope().active();
 
     span?.addTags({

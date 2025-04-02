@@ -73,7 +73,7 @@ resource "aws_iam_role_policy_attachment" "additional_policy_attachments" {
 }
 
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
-  name              = "/aws/lambda/tf-node-${var.function_name}-${var.env}"
+  name              = "/aws/lambda/tf-${var.function_name}-${var.env}"
   retention_in_days = 7
   lifecycle {
     prevent_destroy = false

@@ -43,13 +43,13 @@ resource "aws_iam_policy" "sqs_receive_policy" {
 }
 
 resource "aws_iam_policy" "sns_publish_stock_updated" {
-  name   = "TF_${var.service_name}-publish-${var.env}"
+  name   = "TF_${var.service_name}-pub-stock-update-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.sns_publish_stock_updated.json
 }
 
 resource "aws_iam_policy" "sns_publish_price_calculated" {
-  name   = "TF_${var.service_name}-publish-${var.env}"
+  name   = "TF_${var.service_name}-pub-price-calc-${var.env}"
   path   = "/"
   policy = data.aws_iam_policy_document.sns_publish_price_calculated.json
 }

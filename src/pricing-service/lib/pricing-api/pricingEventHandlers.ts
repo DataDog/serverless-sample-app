@@ -84,17 +84,17 @@ export class PricingEventHandlers extends Construct {
       }
     );
 
-    handleProductCreatedFunction.addToRolePolicy(
-      new PolicyStatement({
-        actions: [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-        ],
-        resources: ["arn:aws:logs:*:*:*"],
-        effect: Effect.DENY,
-      })
-    );
+    // handleProductCreatedFunction.addToRolePolicy(
+    //   new PolicyStatement({
+    //     actions: [
+    //       "logs:CreateLogGroup",
+    //       "logs:CreateLogStream",
+    //       "logs:PutLogEvents",
+    //     ],
+    //     resources: ["arn:aws:logs:*:*:*"],
+    //     effect: Effect.DENY,
+    //   })
+    // );
 
     props.serviceProps
       .getSharedProps()
@@ -172,17 +172,17 @@ export class PricingEventHandlers extends Construct {
       }
     );
 
-    handleProductUpdatedFunction.addToRolePolicy(
-      new PolicyStatement({
-        actions: [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-        ],
-        resources: ["arn:aws:logs:*:*:*"],
-        effect: Effect.DENY,
-      })
-    );
+    // handleProductUpdatedFunction.addToRolePolicy(
+    //   new PolicyStatement({
+    //     actions: [
+    //       "logs:CreateLogGroup",
+    //       "logs:CreateLogStream",
+    //       "logs:PutLogEvents",
+    //     ],
+    //     resources: ["arn:aws:logs:*:*:*"],
+    //     effect: Effect.DENY,
+    //   })
+    // );
 
     props.serviceProps
       .getSharedProps()

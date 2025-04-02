@@ -34,6 +34,16 @@ export class ProductUpdatedEventHandler {
   }
 
   async handle(evt: ProductUpdatedEvent): Promise<void> {
+    // if (evt.productId === undefined) {
+    //   throw new Error("Product ID is undefined");
+    // }
+    // if (evt.previous === undefined || evt.previous.price === undefined) {
+    //   throw new Error("Previous is undefined");
+    // }
+    // if (evt.new === undefined || evt.new.price === undefined) {
+    //   throw new Error("New is undefined");
+    // }
+    
     const mainSpan = tracer.scope().active();
     mainSpan?.addTags({
       "pricing.previousPrice": evt.previous.price,

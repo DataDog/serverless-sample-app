@@ -19,8 +19,11 @@ cdk-deploy: build
 cdk-destroy:
 	cdk destroy --all --force
 
+unit-test:
+	npm run test:unit
+
 integration-test:
-	npm run test
+	npm run test:integration
 
 build:
 	./package.sh
