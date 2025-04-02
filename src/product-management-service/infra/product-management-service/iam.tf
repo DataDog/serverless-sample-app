@@ -60,12 +60,6 @@ resource "aws_iam_policy" "eb_publish" {
   policy = data.aws_iam_policy_document.eb_publish.json
 }
 
-resource "aws_iam_policy" "event_publisher_sqs_receive_policy" {
-  name   = "TF_${var.service_name}-eb-sqs-${var.env}"
-  path   = "/"
-  policy = data.aws_iam_policy_document.event_publisher_sqs_receive.json
-}
-
 resource "aws_iam_policy" "allow_jwt_secret_access" {
   name   = "TF_${var.service_name}-get-jwt-${var.env}"
   path   = "/"

@@ -42,7 +42,7 @@ module "product_public_event_publisher" {
   env = var.env
   additional_policy_attachments = [
     aws_iam_policy.eb_publish.arn,
-    aws_iam_policy.event_publisher_sqs_receive_policy.arn
+    aws_iam_policy.sqs_receive.arn
   ]
 }
 

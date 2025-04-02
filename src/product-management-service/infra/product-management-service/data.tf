@@ -72,7 +72,11 @@ data "aws_iam_policy_document" "sqs_receive" {
     actions = ["sqs:ReceiveMessage",
       "sqs:DeleteMessage",
     "sqs:GetQueueAttributes"]
-    resources = ["arn:aws:sqs:*:${data.aws_caller_identity.current.account_id}:${aws_sqs_queue.public_event_acl_queue.name}"]
+    resources = [
+      aws_sqs_queue.public_event_acl_queue.arn,
+      aws_sqs_queue.public_pricing_updated_queue.arn,
+      aws_sqs_queue.public_event_publisher_queue.arn,
+    ]
   }
 }
 
@@ -87,15 +91,6 @@ data "aws_iam_policy_document" "sns_publish_price_calculated" {
   statement {
     actions   = ["sns:Publish"]
     resources = ["arn:aws:sns:*:${data.aws_caller_identity.current.account_id}:${aws_sns_topic.product_price_calculated.name}"]
-  }
-}
-
-data "aws_iam_policy_document" "event_publisher_sqs_receive" {
-  statement {
-    actions = ["sqs:ReceiveMessage",
-      "sqs:DeleteMessage",
-    "sqs:GetQueueAttributes"]
-    resources = [aws_sqs_queue.public_event_acl_queue.arn, aws_sqs_queue.public_pricing_updated_queue.arn]
   }
 }
 
