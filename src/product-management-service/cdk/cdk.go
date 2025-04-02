@@ -22,27 +22,27 @@ func main() {
 		localEnv = "dev"
 	}
 
-	NewProductManagementService(app, "ProductManagementService", &ProductManagementServiceStackProps{
+	NewProductService(app, "ProductService", &ProductServiceStackProps{
 		StackProps: awscdk.StackProps{
-			StackName: jsii.Sprintf("ProductManagementService-%s", localEnv),
+			StackName: jsii.Sprintf("ProductService-%s", localEnv),
 		},
 	})
 
 	app.Synth(nil)
 }
 
-type ProductManagementServiceStackProps struct {
+type ProductServiceStackProps struct {
 	awscdk.StackProps
 }
 
-func NewProductManagementService(scope constructs.Construct, id string, props *ProductManagementServiceStackProps) awscdk.Stack {
+func NewProductService(scope constructs.Construct, id string, props *ProductServiceStackProps) awscdk.Stack {
 	var sprops awscdk.StackProps
 	if props != nil {
 		sprops = props.StackProps
 	}
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
-	serviceName := "ProductManagementService"
+	serviceName := "ProductService"
 	env := os.Getenv("ENV")
 	if len(env) <= 0 {
 		env = "dev"

@@ -15,7 +15,7 @@ data "aws_iam_policy_document" "allow_jwt_secret_key_ssm_read" {
       "ssm:GetParameterHistory",
       "ssm:GetParameters"]
     resources = [
-        var.env == "dev" || var.env == "prod" ? "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/shared/secret-access-key" : "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/ProductManagementService/secret-access-key"
+        var.env == "dev" || var.env == "prod" ? "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/shared/secret-access-key" : "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/${var.var.service_name}/secret-access-key"
     ]
   }
 }

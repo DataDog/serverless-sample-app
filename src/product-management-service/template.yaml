@@ -22,7 +22,7 @@ Conditions:
 Parameters:
   ServiceName:
     Type: String
-    Default: ProductManagementService
+    Default: ProductService
   Env:
     Type: String
     Default: dev

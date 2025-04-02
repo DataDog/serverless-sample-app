@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"os"
+
+	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
@@ -68,11 +69,12 @@ type ApiDriver struct {
 }
 
 func NewApiDriver(env string, ssmClient ssm.Client, eventBridgeClient eventbridge.Client) *ApiDriver {
-	paramName := fmt.Sprintf("/%s/ProductManagementService/api-endpoint", env)
+	serviceName := "ProductService"
+
+	paramName := fmt.Sprintf("/%s/%s/api-endpoint", env, serviceName)
 	shouldDecrypt := true
 
 	isIntegratedEnvironment := env == "dev" || env == "prod"
-	serviceName := "ProductManagementService"
 
 	if isIntegratedEnvironment {
 		serviceName = "shared"
