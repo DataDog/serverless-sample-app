@@ -5,6 +5,11 @@
 // Copyright 2024 Datadog, Inc.
 //
 
+variable "service_name" {
+  type        = string
+  description = "The name of the service"
+}
+
 variable "dd_api_key_secret_arn" {
   type        = string
   description = "The ARN of the Datadog API key secret"

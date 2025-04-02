@@ -7,14 +7,14 @@
 
 resource "aws_ssm_parameter" "product_service_access_key" {
   count = var.env == "dev" || var.env == "prod" ? 0 : 1
-  name  = "/${var.env}/ProductManagementService/secret-access-key"
+  name  = "/${var.env}/${var.service_name}/secret-access-key"
   type  = "String"
   value = "This is a sample secret key that should not be used in production`"
 }
 
 module "api_gateway" {
   source            = "../modules/api-gateway"
-  api_name          = "ProductManagementServiceApi"
+  api_name          = "${var.service_name}Api"
   stage_name        = var.env
   stage_auto_deploy = true
   env               = var.env
@@ -39,7 +39,7 @@ resource "aws_sns_topic" "product_created" {
 }
 
 module "create_product_lambda" {
-  service_name   = "ProductManagementService"
+  service_name   = "${var.service_name}"
   source         = "../modules/lambda-function"
   entry_point    = "../src/product-api/create-product"
   function_name  = "CreateProduct"
@@ -47,7 +47,7 @@ module "create_product_lambda" {
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "PRODUCT_CREATED_TOPIC_ARN" : aws_sns_topic.product_created.arn
-    "JWT_SECRET_PARAM_NAME": var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/ProductManagementService/secret-access-key"
+    "JWT_SECRET_PARAM_NAME": var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -72,7 +72,7 @@ module "create_product_lambda_api" {
   env = var.env
 }
 module "list_products_lambda" {
-  service_name   = "ProductManagementService"
+  service_name   = "${var.service_name}"
   source         = "../modules/lambda-function"
   entry_point    = "../src/product-api/list-products"
   function_name  = "ListProducts"
@@ -105,7 +105,7 @@ module "list_products_lambda_api" {
 }
 
 module "get_product_lambda" {
-  service_name   = "ProductManagementService"
+  service_name   = "${var.service_name}"
   source         = "../modules/lambda-function"
   entry_point    = "../src/product-api/get-product"
   function_name  = "GetProduct"
@@ -140,7 +140,7 @@ resource "aws_sns_topic" "product_updated" {
 }
 
 module "update_product_lambda" {
-  service_name   = "ProductManagementService"
+  service_name   = "${var.service_name}"
   source         = "../modules/lambda-function"
   entry_point    = "../src/product-api/update-product"
   function_name  = "UpdateProduct"
@@ -148,7 +148,7 @@ module "update_product_lambda" {
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "PRODUCT_UPDATED_TOPIC_ARN" : aws_sns_topic.product_updated.arn
-    "JWT_SECRET_PARAM_NAME": var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/ProductManagementService/secret-access-key"
+    "JWT_SECRET_PARAM_NAME": var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -179,7 +179,7 @@ resource "aws_sns_topic" "product_deleted" {
 }
 
 module "delete_product_lambda" {
-  service_name   = "ProductManagementService"
+  service_name   = "${var.service_name}"
   source         = "../modules/lambda-function"
   entry_point    = "../src/product-api/delete-product"
   function_name  = "DeleteProduct"
@@ -187,7 +187,7 @@ module "delete_product_lambda" {
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "PRODUCT_DELETED_TOPIC_ARN" : aws_sns_topic.product_deleted.arn
-    "JWT_SECRET_PARAM_NAME": var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/ProductManagementService/secret-access-key"
+    "JWT_SECRET_PARAM_NAME": var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -245,7 +245,7 @@ resource "aws_api_gateway_stage" "rest_api_stage" {
 }
 
 resource "aws_ssm_parameter" "api_endpoint" {
-  name  = "/${var.env}/ProductManagementService/api-endpoint"
+  name  = "/${var.env}/${var.service_name}/api-endpoint"
   type  = "String"
   value = aws_api_gateway_stage.rest_api_stage.invoke_url
 }

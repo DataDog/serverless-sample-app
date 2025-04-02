@@ -6,7 +6,7 @@
 //
 
 resource "aws_dynamodb_table" "product_api" {
-  name           = "ProductManagementService-Products-${var.env}"
+  name           = "${var.service_name}-Products-${var.env}"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "PK"
 

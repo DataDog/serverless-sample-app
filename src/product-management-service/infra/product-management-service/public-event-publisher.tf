@@ -7,11 +7,11 @@
 //
 
 resource "aws_sqs_queue" "public_event_publisher_dlq" {
-  name = "ProductManagementService-event-publisher-dlq-${var.env}"
+  name = "${var.service_name}-event-publisher-dlq-${var.env}"
 }
 
 resource "aws_sqs_queue" "public_event_publisher_queue" {
-  name                      = "ProductManagementService-event-publisher-queue-${var.env}"
+  name                      = "${var.service_name}-event-publisher-queue-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.public_event_publisher_dlq.arn
@@ -25,7 +25,7 @@ resource "aws_sqs_queue_policy" "allow_sns_publish" {
 }
 
 module "product_public_event_publisher" {
-  service_name   = "ProductManagementService"
+  service_name   = "${var.service_name}"
   source         = "../modules/lambda-function"
   entry_point = "../src/product-event-publisher/public-event-publisher"
   function_name  = "EventPublisher"

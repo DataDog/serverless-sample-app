@@ -10,7 +10,7 @@ resource "aws_sqs_queue" "public_event_acl_dlq" {
 }
 
 resource "aws_sqs_queue" "public_event_acl_queue" {
-  name                      = "Products-stock-updated-acl-${var.env}"
+  name                      = "${var.service_name}-stock-updated-acl-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.public_event_acl_dlq.arn
@@ -19,12 +19,12 @@ resource "aws_sqs_queue" "public_event_acl_queue" {
 }
 
 resource "aws_sns_topic" "product_stock_level_updated" {
-  name = "Products-stock-updated-${var.env}"
+  name = "${var.service_name}-stock-updated-${var.env}"
 }
 
 module "shared_bus_stock_updated_subscription" {
   source        = "../modules/shared_bus_to_domain"
-  rule_name = "ProductManagement_StockUpdated_Rule"
+  rule_name = "${var.service_name}_StockUpdated_Rule"
   env           = var.env
   shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : ""
   domain_bus_arn = aws_cloudwatch_event_bus.product_service_bus.arn
@@ -45,7 +45,7 @@ EOF
 }
 
 module "product_acl_function" {
-  service_name   = "ProductManagementService"
+  service_name   = var.service_name
   source         = "../modules/lambda-function"
   entry_point = "../src/product-acl/inventory-stock-updated-event-handler"
   function_name  = "InventoryStockUpdatedACL"
@@ -70,11 +70,11 @@ resource "aws_lambda_event_source_mapping" "acl_event_source_mapping" {
 }
 
 resource "aws_sqs_queue" "public_pricing_updated_dlq" {
-  name = "ProductManagementService-pricing-updated-dlq-${var.env}"
+  name = "${var.service_name}-pricing-updated-dlq-${var.env}"
 }
 
 resource "aws_sqs_queue" "public_pricing_updated_queue" {
-  name                      = "ProductManagementService-pricing-updated-${var.env}"
+  name                      = "${var.service_name}-pricing-updated-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.public_pricing_updated_dlq.arn
@@ -83,12 +83,12 @@ resource "aws_sqs_queue" "public_pricing_updated_queue" {
 }
 
 resource "aws_sns_topic" "product_price_calculated" {
-  name = "ProductManagementService-price-calculated-${var.env}"
+  name = "${var.service_name}-price-calculated-${var.env}"
 }
 
 module "shared_bus_pricing_updated_subscription" {
   source        = "../modules/shared_bus_to_domain"
-  rule_name = "ProductManagement_PricingUpdated_Rule"
+  rule_name = "${var.service_name}_PricingUpdated_Rule"
   env           = var.env
   shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : ""
   domain_bus_arn = aws_cloudwatch_event_bus.product_service_bus.arn
@@ -109,7 +109,7 @@ EOF
 }
 
 module "product_pricing_updated_acl_function" {
-  service_name   = "ProductManagementService"
+  service_name   = "${var.service_name}"
   source         = "../modules/lambda-function"
   entry_point = "../src/product-acl/pricing-changed-handler"
   function_name  = "PricingChangedACL"

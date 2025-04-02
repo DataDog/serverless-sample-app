@@ -6,7 +6,7 @@
 //
 
 resource "aws_secretsmanager_secret" "dd_api_key_secret" {
-  name = "/${var.env}/ProductManagementService/sls-sample-dd-api-key-secret"
+  name                    = "/${var.env}/ProductService/sls-sample-dd-api-key-secret"
   recovery_window_in_days = 0
 }
 
@@ -16,6 +16,7 @@ resource "aws_secretsmanager_secret_version" "dd_api_key_secret_version" {
 }
 
 module "product-management-service" {
+  service_name          = "ProductService"
   source                = "./product-management-service"
   dd_api_key_secret_arn = aws_secretsmanager_secret.dd_api_key_secret.arn
   dd_site               = var.dd_site

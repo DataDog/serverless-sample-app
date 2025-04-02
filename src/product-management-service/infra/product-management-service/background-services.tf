@@ -6,7 +6,7 @@
 //
 
 module "product_api_pricing_worker" {
-  service_name   = "ProductManagementService"
+  service_name   = var.service_name
   source         = "../modules/lambda-function"
   entry_point    = "../src/product-api/handle-pricing-changed"
   function_name  = "PriceCalculatedHandlerFunction"
@@ -39,7 +39,7 @@ resource "aws_sns_topic_subscription" "price_calculated_sns_topic_subscription" 
 }
 
 module "product_api_stock_updated_worker" {
-  service_name   = "ProductManagementService"
+  service_name   = var.service_name
   source         = "../modules/lambda-function"
   entry_point    = "../src/product-api/handle-stock-updated"
   function_name  = "StockUpdated"

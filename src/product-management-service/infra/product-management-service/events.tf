@@ -1,15 +1,15 @@
 resource "aws_cloudwatch_event_bus" "product_service_bus" {
-  name = "ProductManagementService-bus-${var.env}"
+  name = "${var.service_name}-bus-${var.env}"
 }
 
 resource "aws_ssm_parameter" "event_bus_name" {
-  name  = "/${var.env}/ProductManagementService/event-bus-name"
+  name  = "/${var.env}/${var.service_name}/event-bus-name"
   type  = "String"
   value = aws_cloudwatch_event_bus.product_service_bus.name
 }
 
 resource "aws_ssm_parameter" "event_bus_arn" {
-  name  = "/${var.env}/ProductManagementService/event-bus-arn"
+  name  = "/${var.env}/${var.service_name}/event-bus-arn"
   type  = "String"
   value = aws_cloudwatch_event_bus.product_service_bus.arn
 }
