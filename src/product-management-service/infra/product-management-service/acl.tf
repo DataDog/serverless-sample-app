@@ -6,11 +6,11 @@
 //
 
 resource "aws_sqs_queue" "public_event_acl_dlq" {
-  name = "ProductManagementService-acl-dlq-${var.env}"
+  name = "Products-stock-updated-acl-dlq-${var.env}"
 }
 
 resource "aws_sqs_queue" "public_event_acl_queue" {
-  name                      = "ProductManagementService-acl-${var.env}"
+  name                      = "Products-stock-updated-acl-${var.env}"
   receive_wait_time_seconds = 10
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.public_event_acl_dlq.arn
@@ -19,7 +19,7 @@ resource "aws_sqs_queue" "public_event_acl_queue" {
 }
 
 resource "aws_sns_topic" "product_stock_level_updated" {
-  name = "ProductManagementService-stock-updated-${var.env}"
+  name = "Products-stock-updated-${var.env}"
 }
 
 module "shared_bus_stock_updated_subscription" {
@@ -48,7 +48,7 @@ module "product_acl_function" {
   service_name   = "ProductManagementService"
   source         = "../modules/lambda-function"
   entry_point = "../src/product-acl/inventory-stock-updated-event-handler"
-  function_name  = "ProductAcl"
+  function_name  = "InventoryStockUpdatedACL"
   lambda_handler = "index.handler"
   environment_variables = {
     STOCK_LEVEL_UPDATED_TOPIC_ARN : aws_sns_topic.product_stock_level_updated.arn
@@ -112,7 +112,7 @@ module "product_pricing_updated_acl_function" {
   service_name   = "ProductManagementService"
   source         = "../modules/lambda-function"
   entry_point = "../src/product-acl/pricing-changed-handler"
-  function_name  = "ProductPricingUpdatedAcl"
+  function_name  = "PricingChangedACL"
   lambda_handler = "index.handler"
   environment_variables = {
     PRICE_CALCULATED_TOPIC_ARN : aws_sns_topic.product_price_calculated.arn
