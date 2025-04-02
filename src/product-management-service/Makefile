@@ -25,6 +25,9 @@ cdk-destroy:
 integration-test:
 	cd src/integration-tests; go test
 
+unit-test:
+	cd src/core; go test
+
 cleanup:
 	test -d out && rm -rf out || true
 
