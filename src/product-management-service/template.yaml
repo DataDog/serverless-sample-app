@@ -493,7 +493,7 @@ Resources:
     Metadata:
       BuildMethod: makefile
 
-  ProductApiPricingChangedWorker:
+  ProductPricingUpdatedACLHandler:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: .

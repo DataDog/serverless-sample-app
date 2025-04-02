@@ -9,7 +9,7 @@ module "product_api_pricing_worker" {
   service_name   = var.service_name
   source         = "../modules/lambda-function"
   entry_point    = "../src/product-api/handle-pricing-changed"
-  function_name  = "PriceCalculatedHandlerFunction"
+  function_name  = "ProductApiPricingChangedWorker"
   lambda_handler = "index.handler"
   environment_variables = {
     TABLE_NAME : aws_dynamodb_table.product_api.name
