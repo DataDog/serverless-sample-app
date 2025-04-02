@@ -72,8 +72,8 @@ export class PricingApiStack extends cdk.Stack {
       stringValue: api.api.url,
     });
 
-    const output = new cdk.CfnOutput(this, "ApiEndpointOutput", {
-      exportName: "PricingServiceApiEndpoint",
+    const output = new cdk.CfnOutput(this, `PricingServiceApiEndpoint-${env}`, {
+      exportName: `PricingServiceApiEndpoint-${env}`,
       value: `${api.api.url}pricing`,
     });
   }
