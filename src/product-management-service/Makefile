@@ -36,6 +36,7 @@ pre-build:
 	mkdir out/DeleteProduct
 	mkdir out/UpdateProduct
 	mkdir out/StockUpdated
+	mkdir out/PriceCalculatedHandlerFunction
 	mkdir out/PricingChanged
 	mkdir out/EventPublisher
 	mkdir out/InventoryStockUpdatedACL
