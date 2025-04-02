@@ -39,13 +39,13 @@ pre-build:
 	mkdir out/ProductApiPricingChangedWorker
 	mkdir out/EventPublisher
 	mkdir out/InventoryStockUpdatedACL
-	mkdir out/ProductPricingUpdatedACLHandler
+	mkdir out/PriceUpdatedACLHandler
 
 build: cleanup pre-build package-api-functions package-product-acl package-api-worker-functions package-event-publisher-functions
 
 package-api-functions: package-GetProductFunction package-CreateProductFunction package-DeleteProductFunction package-UpdateProductFunction package-ListProductsFunction
 
-package-product-acl: package-InventoryStockUpdatedACL package-ProductPricingUpdatedACLHandler
+package-product-acl: package-InventoryStockUpdatedACL package-PriceUpdatedACLHandler
 
 package-api-worker-functions: package-ProductApiPricingChangedWorker package-ProductApiStockUpdatedWorker
 
@@ -83,9 +83,9 @@ package-InventoryStockUpdatedACL:
 	cd src/product-acl;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap inventory-stock-updated-event-handler/main.go;cp bootstrap ../../out/InventoryStockUpdatedACL/bootstrap
 	zip -r -j out/InventoryStockUpdatedACL/InventoryStockUpdatedACL.zip out/InventoryStockUpdatedACL/bootstrap
 
-package-ProductPricingUpdatedACLHandler:
-	cd src/product-acl;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap pricing-changed-handler/main.go;cp bootstrap ../../out/ProductPricingUpdatedACLHandler/bootstrap
-	zip -r -j out/ProductPricingUpdatedACLHandler/ProductPricingUpdatedACLHandler.zip out/ProductPricingUpdatedACLHandler/bootstrap
+package-PriceUpdatedACLHandler:
+	cd src/product-acl;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap pricing-changed-handler/main.go;cp bootstrap ../../out/PriceUpdatedACLHandler/bootstrap
+	zip -r -j out/PriceUpdatedACLHandler/PriceUpdatedACLHandler.zip out/PriceUpdatedACLHandler/bootstrap
 
 package-ProductPublicEventPublisher:
 	cd src/product-event-publisher;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap public-event-publisher/main.go;cp bootstrap ../../out/EventPublisher/bootstrap
@@ -121,6 +121,6 @@ build-ProductPublicEventPublisher:
 build-ProductInventoryStockUpdatedHandler:
 	cd src/product-acl;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap inventory-stock-updated-event-handler/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
 
-build-ProductPricingUpdatedACLHandler:
+build-PriceUpdatedACLHandler:
 	cd src/product-acl;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap pricing-changed-handler/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
 

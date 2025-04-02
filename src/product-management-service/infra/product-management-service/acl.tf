@@ -112,7 +112,7 @@ module "product_pricing_updated_acl_function" {
   service_name   = "${var.service_name}"
   source         = "../modules/lambda-function"
   entry_point = "../src/product-acl/pricing-changed-handler"
-  function_name  = "ProductPricingUpdatedACLHandler"
+  function_name  = "PriceUpdatedACLHandler"
   lambda_handler = "index.handler"
   environment_variables = {
     PRICE_CALCULATED_TOPIC_ARN : aws_sns_topic.product_price_calculated.arn
