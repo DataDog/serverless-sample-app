@@ -7,25 +7,49 @@
 
 package core
 
-import "context"
+import (
+	"context"
+	core "github.com/datadog/serverless-sample-product-core"
+)
 
 type PublicInventoryStockUpdatedEventV1 struct {
 	ProductId     string  `json:"productId"`
 	NewStockLevel float32 `json:"newStockLevel"`
 }
 
+type PublicPricingUpdatedEventV1 struct {
+	ProductId     string          `json:"productId"`
+	PriceBrackets []PriceBrackets `json:"priceBrackets"`
+}
+
+type PriceBrackets struct {
+	Price    float32 `json:"price"`
+	Quantity int     `json:"quantity"`
+}
+
 type PrivateEventPublisher interface {
-	PublishStockUpdatedEvent(ctx context.Context, evt StockUpdatedEvent)
+	PublishStockUpdatedEvent(ctx context.Context, evt core.StockUpdatedEvent)
+	PublishPricingChangedEvent(ctx context.Context, evt core.PriceCalculatedEvent)
 }
 
-type StockUpdatedEvent struct {
-	ProductId  string  `json:"productId"`
-	StockLevel float32 `json:"stockLevel"`
-}
-
-func FromPublicInventoryStockUpdatedEvent(evt PublicInventoryStockUpdatedEventV1) StockUpdatedEvent {
-	return StockUpdatedEvent{
+func FromPublicInventoryStockUpdatedEvent(evt PublicInventoryStockUpdatedEventV1) core.StockUpdatedEvent {
+	return core.StockUpdatedEvent{
 		ProductId:  evt.ProductId,
 		StockLevel: evt.NewStockLevel,
+	}
+}
+
+func FromPublicPricingUpdatedEvent(evt PublicPricingUpdatedEventV1) core.PriceCalculatedEvent {
+	priceBrackets := make([]core.ProductPriceBreakdown, len(evt.PriceBrackets))
+	for i, pb := range evt.PriceBrackets {
+		priceBrackets[i] = core.ProductPriceBreakdown{
+			Price:    pb.Price,
+			Quantity: pb.Quantity,
+		}
+	}
+
+	return core.PriceCalculatedEvent{
+		ProductId:     evt.ProductId,
+		PriceBrackets: priceBrackets,
 	}
 }

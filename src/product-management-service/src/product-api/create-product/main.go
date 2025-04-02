@@ -12,9 +12,9 @@ import (
 	"encoding/json"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	core "github.com/datadog/serverless-sample-product-core"
 	"os"
 	"product-api/internal/adapters"
-	"product-api/internal/core"
 	"product-api/internal/utils"
 
 	"github.com/aws/aws-lambda-go/events"

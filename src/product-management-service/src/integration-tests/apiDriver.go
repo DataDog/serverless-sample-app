@@ -30,6 +30,16 @@ type PublicInventoryStockUpdatedEventV1 struct {
 	PreviousStockLevel float64 `json:"previousStockLevel"`
 }
 
+type PublicPricingUpdatedEventV1 struct {
+	ProductId     string          `json:"productId"`
+	PriceBrackets []PriceBrackets `json:"priceBrackets"`
+}
+
+type PriceBrackets struct {
+	Price    float32 `json:"price"`
+	Quantity int     `json:"quantity"`
+}
+
 type CreateProductCommand struct {
 	Name  string  `json:"name"`
 	Price float64 `json:"price"`
@@ -42,10 +52,11 @@ type UpdateProductCommand struct {
 }
 
 type ProductDTO struct {
-	ProductId  string  `json:"productId"`
-	Name       string  `json:"name"`
-	Price      float64 `json:"price"`
-	StockLevel float64 `json:"stockLevel"`
+	ProductId      string          `json:"productId"`
+	Name           string          `json:"name"`
+	Price          float64         `json:"price"`
+	PriceBreakdown []PriceBrackets `json:"pricingBrackets"`
+	StockLevel     float64         `json:"stockLevel"`
 }
 
 type ApiDriver struct {
@@ -230,6 +241,46 @@ func (a *ApiDriver) InjectProductStockUpdatedEvent(t *testing.T, productId strin
 
 	detailType := "inventory.stockUpdated.v1"
 	source := fmt.Sprintf("%s.inventory", os.Getenv("ENV"))
+
+	t.Logf("Publishing event to event bus %s with detail type %s and source %s", a.busName, detailType, source)
+
+	entiries := []types.PutEventsRequestEntry{
+		{
+			Detail:       &message,
+			DetailType:   &detailType,
+			EventBusName: &a.busName,
+			Source:       &source,
+		},
+	}
+
+	input := &eventbridge.PutEventsInput{
+		Entries: entiries,
+	}
+
+	_, err := a.eventBridgeClient.PutEvents(context.TODO(), input)
+
+	if err != nil {
+		t.Fatalf("Failure publishing, error: %s", err)
+	}
+}
+
+func (a *ApiDriver) InjectPricingChangedEvent(t *testing.T, productId string) {
+	// Create the SNS message
+	stockUpdatedEvent := PublicPricingUpdatedEventV1{
+		ProductId: productId,
+		PriceBrackets: []PriceBrackets{
+			{
+				Price:    10,
+				Quantity: 1,
+			},
+		},
+	}
+	var tracedMessage = observability.NewCloudEvent(context.TODO(), "pricing.pricingCalculated.v1", stockUpdatedEvent)
+	evtData, _ := json.Marshal(tracedMessage)
+	message := string(evtData)
+
+	detailType := "pricing.pricingCalculated.v1"
+	source := fmt.Sprintf("%s.pricing", os.Getenv("ENV"))
 
 	t.Logf("Publishing event to event bus %s with detail type %s and source %s", a.busName, detailType, source)
 

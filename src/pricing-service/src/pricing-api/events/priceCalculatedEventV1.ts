@@ -7,7 +7,7 @@
 
 export interface PriceCalculatedEventV1 {
   productId: string;
-  priceBrackers: {
+  priceBrackets: {
     quantity: number;
     price: number;
   }[];

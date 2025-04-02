@@ -426,6 +426,38 @@ Resources:
     Metadata:
       BuildMethod: makefile
 
+  ProductApiPricingChangedWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: bootstrap
+      FunctionName: !Sub SAM-${ServiceName}-PricingChanged-${Env}
+      Events:
+        PriceCalculatedTopic:
+          Type: SNS
+          Properties:
+            Topic: !Ref PriceCalculatedTopic
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProductApiTable
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+    Metadata:
+      BuildMethod: makefile
+
   ProductInventoryStockUpdatedHandler:
     Type: AWS::Serverless::Function
     Properties:
@@ -461,10 +493,50 @@ Resources:
     Metadata:
       BuildMethod: makefile
 
+  ProductPricingUpdatedHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: bootstrap
+      FunctionName: !Sub SAM-${ServiceName}-ACLPricingUpdated-${Env}
+      Environment:
+        Variables:
+          PRICE_CALCULATED_TOPIC_ARN: !Ref PriceCalculatedTopic
+      Events:
+        IntegrationQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ProductPricingUpdatedEventQueue.Arn
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt PriceCalculatedTopic.TopicName
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+    Metadata:
+      BuildMethod: makefile
+
   StockUpdatedTopic:
     Type: AWS::SNS::Topic
     Properties:
       TopicName: !Sub "${ServiceName}-ProductStockUpdated-${Env}"
+
+  PriceCalculatedTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${ServiceName}-ProductPriceCalculated-${Env}"
 
   ProductStockUpdatedDLQ:
     Type: AWS::SQS::Queue
@@ -495,6 +567,37 @@ Resources:
             Principal:
               Service: "events.amazonaws.com"
             Resource: !GetAtt ProductStockUpdatedEventQueue.Arn
+            Action: SQS:SendMessage
+
+  ProductPricingUpdatedDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-PricingUpdatedDLQ-${Env}"
+
+  ProductPricingUpdatedEventQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-PricingUpdatedEventQueue-${Env}"
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - "ProductPricingUpdatedDLQ"
+            - "Arn"
+        maxReceiveCount: 3
+
+  ProductPricingUpdatedSQSQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref ProductPricingUpdatedEventQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: allow-eb-send-message-messages
+            Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Resource: !GetAtt ProductPricingUpdatedEventQueue.Arn
             Action: SQS:SendMessage
 
   ################################################
@@ -541,6 +644,23 @@ Resources:
           Arn: !GetAtt ProductServiceEventBus.Arn
           RoleArn: !GetAtt SharedEventBusToProductServiceEventBusRole.Arn
 
+  SharedEventBusPricingChangedEventRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: shared-product-management-price-updated
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.pricing"
+        detail-type:
+          - "pricing.pricingCalculated.v1"
+      Targets:
+        - Id: ProductServiceEventBus
+          Arn: !GetAtt ProductServiceEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToProductServiceEventBusRole.Arn
+
   StockUpdatedEventRule:
     Type: AWS::Events::Rule
     Properties:
@@ -555,6 +675,21 @@ Resources:
       Targets:
         - Id: ProductStockUpdatedEventQueue
           Arn: !GetAtt ProductStockUpdatedEventQueue.Arn
+
+  PriceUpdatedEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref ProductServiceEventBus
+      Name: product-management-price-updated
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.pricing"
+        detail-type:
+          - "pricing.pricingCalculated.v1"
+      Targets:
+        - Id: ProductPricingUpdatedEventQueue
+          Arn: !GetAtt ProductPricingUpdatedEventQueue.Arn
 
   ProductPublicEventPublisher:
     Type: AWS::Serverless::Function

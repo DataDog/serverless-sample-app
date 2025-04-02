@@ -22,6 +22,7 @@ import (
 type ProductBackgroundServiceProps struct {
 	ServiceProps             ProductServiceProps
 	ProductStockUpdatedTopic awssns.ITopic
+	PriceCalculatedTopic     awssns.ITopic
 	ProductTable             awsdynamodb.ITable
 }
 
@@ -29,21 +30,21 @@ func NewProductBackgroundServices(scope constructs.Construct, id string, props *
 	environmentVariables := make(map[string]*string)
 	environmentVariables["TABLE_NAME"] = jsii.String(*props.ProductTable.TableName())
 
-	// handlePricingChangedFunction := sharedconstructs.NewInstrumentedFunction(scope, "ProductApiHandlerPricingChanged", &sharedconstructs.InstrumentedFunctionProps{
-	// 	SharedProps:          props.SharedProps,
-	// 	Entry:                "../src/product-api/handle-pricing-changed/",
-	// 	FunctionName:         fmt.Sprintf("ProductApiHandlePricingChanged-%s", props.SharedProps.Env),
-	// 	EnvironmentVariables: environmentVariables,
-	// })
+	handlePricingChangedFunction := sharedconstructs.NewInstrumentedFunction(scope, "ProductApiHandlerPricingChanged", &sharedconstructs.InstrumentedFunctionProps{
+		SharedProps:          props.ServiceProps.SharedProps,
+		Entry:                "../src/product-api/handle-pricing-changed/",
+		FunctionName:         fmt.Sprintf("ProductApiHandlePricingChanged-%s", props.ServiceProps.SharedProps.Env),
+		EnvironmentVariables: environmentVariables,
+	})
 
-	// props.ProductTable.GrantReadWriteData(handlePricingChangedFunction.Function)
+	props.ProductTable.GrantReadWriteData(handlePricingChangedFunction.Function)
 
-	// handlePricingChangedDLQ := awssqs.NewQueue(scope, jsii.String("HandlePricingChangedDLQ"), &awssqs.QueueProps{
-	// 	QueueName: jsii.Sprintf("HandlePricingChangedDLQ-%s", props.SharedProps.Env),
-	// })
-	// handlePricingChangedFunction.Function.AddEventSource(awslambdaeventsources.NewSnsEventSource(props.ProductPricingChangedTopic, &awslambdaeventsources.SnsEventSourceProps{
-	// 	DeadLetterQueue: handlePricingChangedDLQ,
-	// }))
+	handlePriceCalculatedDLQ := awssqs.NewQueue(scope, jsii.String("HandlePriceCalculatedDLQ"), &awssqs.QueueProps{
+		QueueName: jsii.Sprintf("HandlePriceCalculatedDLQ-%s", props.ServiceProps.SharedProps.Env),
+	})
+	handlePricingChangedFunction.Function.AddEventSource(awslambdaeventsources.NewSnsEventSource(props.PriceCalculatedTopic, &awslambdaeventsources.SnsEventSourceProps{
+		DeadLetterQueue: handlePriceCalculatedDLQ,
+	}))
 
 	handleStockUpdatedFunction := sharedconstructs.NewInstrumentedFunction(scope, "ProductStockUpdatedHandler", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,

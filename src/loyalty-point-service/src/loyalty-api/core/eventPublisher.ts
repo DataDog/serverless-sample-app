@@ -5,7 +5,7 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-import { LoyaltyPointsAddedV1 } from "../events/loyaltyPointsUpdatedV1";
+import { LoyaltyPointsAddedV1 } from "./events/loyaltyPointsUpdatedV1";
 
 export interface EventPublisher {
   publishLoyaltyPointsUpdated(evt: LoyaltyPointsAddedV1): Promise<void>;

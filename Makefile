@@ -1,3 +1,12 @@
-cdk-deploy:
-	cd src/shared-infra; cdk deploy
-	cd ../../inventory-service; cdk deploy &; bg
+cdk-deploy-local:
+	docker run -it \
+		-v "$(pwd):/serverless-sample-app" \
+		-w "/serverless-sample-app" \
+		-e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+		-e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+		-e AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
+		-e AWS_REGION="${AWS_REGION}" \
+		-e ENV=dev \
+		-e DD_API_KEY="${DD_API_KEY}" \
+		-e DD_SITE="${DD_SITE}" \
+		serverless-sample-app-build-image

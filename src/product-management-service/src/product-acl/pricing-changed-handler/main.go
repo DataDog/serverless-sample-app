@@ -58,7 +58,7 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 
 		body := []byte(eventBridgeEvent.Detail)
 
-		var evt TracedMessage[core.PublicInventoryStockUpdatedEventV1]
+		var evt TracedMessage[core.PublicPricingUpdatedEventV1]
 		json.Unmarshal(body, &evt)
 
 		sctx, err := tracer.Extract(evt.Datadog)
@@ -78,9 +78,9 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 			}
 		}
 
-		span, traceContext := tracer.StartSpanFromContext(ctx, "process inventory.stockUpdated.v1", tracer.WithSpanLinks(spanLinks))
+		span, traceContext := tracer.StartSpanFromContext(ctx, "process pricing.pricingChanged.v1", tracer.WithSpanLinks(spanLinks))
 
-		_, err = eventTranslator.HandleStockUpdated(traceContext, evt.Data)
+		_, err = eventTranslator.HandleProductPricingChanged(traceContext, evt.Data)
 
 		span.Finish()
 

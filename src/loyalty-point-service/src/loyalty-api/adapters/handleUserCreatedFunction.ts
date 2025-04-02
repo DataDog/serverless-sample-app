@@ -5,7 +5,12 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-import { SNSEvent, SQSEvent } from "aws-lambda";
+import {
+  EventBridgeEvent,
+  SQSBatchItemFailure,
+  SQSBatchResponse,
+  SQSEvent,
+} from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { Span, tracer } from "dd-trace";
 import { CloudEvent } from "cloudevents";
@@ -16,7 +21,7 @@ import {
 } from "../../observability/observability";
 import { UpdatePointsCommandHandler } from "../core/update-points/update-points-handler";
 import { DynamoDbLoyaltyPointRepository } from "./dynamoDbLoyaltyPointRepository";
-import { UserCreatedEventV1 } from "../events/userCreatedEventV1";
+import { UserCreatedEventV1 } from "../core/events/userCreatedEventV1";
 import { EventBridgeEventPublisher } from "./eventBridgeEventPublisher";
 import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
 
@@ -28,22 +33,24 @@ const updatePointsCommandHandler = new UpdatePointsCommandHandler(
 );
 const logger = new Logger({});
 
-export const handler = async (event: SQSEvent): Promise<string> => {
+export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
   const mainSpan = tracer.scope().active()!;
   mainSpan.addTags({
     "messaging.operation.type": "receive",
   });
 
+  const batchItemFailures: SQSBatchItemFailure[] = [];
+
   for (const message of event.Records) {
     let messageProcessingSpan: Span | undefined = undefined;
 
     try {
-      const evtWrapper: EventBridgeMessageWrapper<
-        CloudEvent<UserCreatedEventV1>
-      > = JSON.parse(message.body);
+      // The user management service publishes the UserCreatedEvent with the `data` property as a JSON string NOT a JSON object. It needs to be parsed in two steps.
+      const messageBody = JSON.parse(message.body);
+      const mainEventBody = JSON.parse(messageBody.detail.data);
 
       messageProcessingSpan = startProcessSpanWithSemanticConventions(
-        evtWrapper.detail,
+        messageBody.detail,
         {
           publicOrPrivate: MessagingType.PUBLIC,
           messagingSystem: "eventbridge",
@@ -54,26 +61,23 @@ export const handler = async (event: SQSEvent): Promise<string> => {
 
       await updatePointsCommandHandler.handle({
         orderNumber: "new-user",
-        userId: evtWrapper.detail.data!.userId,
+        userId: mainEventBody.userId,
         pointsToAdd: 100,
       });
     } catch (error) {
+      batchItemFailures.push({
+        itemIdentifier: message.messageId,
+      });
       logger.error(JSON.stringify(error));
       messageProcessingSpan?.logEvent("error", error);
 
-      // Rethrow error to pass back to Lambda runtime
       messageProcessingSpan?.finish();
-      throw error;
     } finally {
       messageProcessingSpan?.finish();
     }
   }
 
-  return "OK";
+  return {
+    batchItemFailures: batchItemFailures,
+  };
 };
-
-interface EventBridgeMessageWrapper<T> {
-  detail: T;
-  detailType: string;
-  source: string;
-}

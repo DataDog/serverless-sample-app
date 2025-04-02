@@ -19,8 +19,14 @@ func NewProductEventTranslator(eventPublisher PrivateEventPublisher) *ProductEve
 	}
 }
 
-func (handler *ProductEventTranslator) HandleCreated(ctx context.Context, evt PublicInventoryStockUpdatedEventV1) (string, error) {
+func (handler *ProductEventTranslator) HandleStockUpdated(ctx context.Context, evt PublicInventoryStockUpdatedEventV1) (string, error) {
 	handler.eventPublisher.PublishStockUpdatedEvent(ctx, FromPublicInventoryStockUpdatedEvent(evt))
+
+	return "OK", nil
+}
+
+func (handler *ProductEventTranslator) HandleProductPricingChanged(ctx context.Context, evt PublicPricingUpdatedEventV1) (string, error) {
+	handler.eventPublisher.PublishPricingChangedEvent(ctx, FromPublicPricingUpdatedEvent(evt))
 
 	return "OK", nil
 }

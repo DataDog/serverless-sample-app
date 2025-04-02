@@ -50,7 +50,12 @@ func TestProductEndToEndProcess(t *testing.T) {
 	apiDriver.InjectProductStockUpdatedEvent(t, product.Data.ProductId, stockLevelUnderTest)
 
 	// Wait for the event to be processed
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
+
+	apiDriver.InjectPricingChangedEvent(t, product.Data.ProductId)
+
+	// Wait for the event to be processed
+	time.Sleep(5 * time.Second)
 
 	updateProductBody := apiDriver.UpdateProduct(t, UpdateProductCommand{ProductId: product.Data.ProductId, Name: "updated-product", Price: 20.0})
 
@@ -67,6 +72,10 @@ func TestProductEndToEndProcess(t *testing.T) {
 
 	if getProduct.Data.StockLevel != stockLevelUnderTest {
 		t.Fatalf("Expected stock level to be %f, but got %f", stockLevelUnderTest, getProduct.Data.StockLevel)
+	}
+
+	if len(getProduct.Data.PriceBreakdown) <= 0 {
+		t.Fatalf("Expected at least one price bracket, but got none")
 	}
 
 	listedProducts := apiDriver.ListProducts(t)

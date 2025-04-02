@@ -12,6 +12,7 @@ popd
 
 # Service deployments in parallel
 pushd src/inventory-service/cdk
+mvn clean package -DskipTests -q
 cdk deploy --require-approval never &>../../../deployment-logs/inventory-service.log &
 popd
 
@@ -29,6 +30,8 @@ cdk deploy --require-approval never &>../../../deployment-logs/product-managemen
 popd
 
 pushd src/loyalty-point-service
+npm i
+./package.sh
 cdk deploy --require-approval never &>../../deployment-logs/loyalty-point-service.log &
 popd
 

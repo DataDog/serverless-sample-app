@@ -83,6 +83,13 @@ data "aws_iam_policy_document" "sns_publish_stock_updated" {
   }
 }
 
+data "aws_iam_policy_document" "sns_publish_price_calculated" {
+  statement {
+    actions   = ["sns:Publish"]
+    resources = ["arn:aws:sns:*:${data.aws_caller_identity.current.account_id}:${aws_sns_topic.product_price_calculated.name}"]
+  }
+}
+
 data "aws_iam_policy_document" "event_publisher_sqs_receive" {
   statement {
     actions = ["sqs:ReceiveMessage",

@@ -106,13 +106,13 @@ scenarios:
       - function: getLatestConfirmedOrder
       - post:
           url: "{{ $processEnvironment.ORDER_API_ENDPOINT }}/orders/{{ ConfirmedOrderId }}/complete"
+          ifTrue: 'ConfirmedOrderId'
           headers:
             Content-Type: "application/json"
             Authorization: "Bearer {{adminJwt}}"
           json:
             orderId: "{{ ConfirmedOrderId }}"
             userId: "{{ ConfirmedOrderUserId }}"
-
   - name: "Admin re-stock products"
     flow:
       - post:

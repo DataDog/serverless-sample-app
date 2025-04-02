@@ -5,19 +5,26 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-import { SNSClient } from "@aws-sdk/client-sns";
-import { SNSEvent, SQSEvent } from "aws-lambda";
-import { Span, tracer } from "dd-trace";
+import {
+  SQSBatchItemFailure,
+  SQSBatchResponse,
+  SQSEvent,
+  EventBridgeEvent,
+} from "aws-lambda";
+import { CloudEvent } from "cloudevents";
 import {
   ProductCreatedEvent,
   ProductCreatedEventHandler,
 } from "../core/productCreatedEventHandler";
 import { PricingService } from "../core/pricingService";
-
-import { CloudEvent } from "cloudevents";
-import { MessagingType, startProcessSpanWithSemanticConventions } from "../../observability/observability";
 import { EventBridgeEventPublisher } from "./eventBridgeEventPublisher";
 import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
+import { Logger } from "@aws-lambda-powertools/logger";
+import { Span, tracer } from "dd-trace";
+import {
+  MessagingType,
+  startProcessSpanWithSemanticConventions,
+} from "../../observability/observability";
 
 const eventBridgeClient = new EventBridgeClient();
 
@@ -25,56 +32,47 @@ const createProductHandler = new ProductCreatedEventHandler(
   new PricingService(),
   new EventBridgeEventPublisher(eventBridgeClient)
 );
+const logger = new Logger({ serviceName: process.env.DD_SERVICE });
 
-export const handler = async (event: SNSEvent): Promise<string> => {
+export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
   const mainSpan = tracer.scope().active()!;
-  mainSpan.addTags({
-    "messaging.operation.type": "receive",
-  });
+
+  const batchItemFailures: SQSBatchItemFailure[] = [];
+
   for (const message of event.Records) {
     let messageProcessingSpan: Span | undefined = undefined;
+
     try {
-      const evtWrapper: CloudEvent<ProductCreatedEvent> = JSON.parse(
-        message.Sns.Message
-      );
-      
+      const evtWrapper: EventBridgeEvent<"product.productCreated.v1",CloudEvent<ProductCreatedEvent>> = JSON.parse(message.body);
+
       messageProcessingSpan = startProcessSpanWithSemanticConventions(
-        evtWrapper,
+        evtWrapper.detail,
         {
-          publicOrPrivate: MessagingType.PRIVATE,
-          messagingSystem: "sns",
-          destinationName: message.EventSource,
+          publicOrPrivate: MessagingType.PUBLIC,
+          messagingSystem: "eventbridge",
+          destinationName: message.eventSource,
           parentSpan: mainSpan,
-          conversationId: evtWrapper.data?.productId,
         }
       );
 
-      await createProductHandler.handle(evtWrapper.data!);
-
-      messageProcessingSpan.finish();
+      await createProductHandler.handle(evtWrapper.detail.data!);
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        const e = error as Error;
-        const stack = e.stack!.split("\n").slice(1, 4).join("\n");
-        messageProcessingSpan?.addTags({
-          "error.stack": stack,
-          "error.message": error.message,
-          "error.type": "Error",
-        });
-      } else {
-        messageProcessingSpan?.addTags({
-          "error.type": "Error",
-        });
-      }
+      logger.error(JSON.stringify(error));
+      messageProcessingSpan?.logEvent("error", error);
 
+      // Rethrow error to pass back to Lambda runtime
       messageProcessingSpan?.finish();
 
-      throw error;
-
-    } finally {
+      batchItemFailures.push({
+        itemIdentifier: message.messageId,
+      });
+    }
+    finally{
       messageProcessingSpan?.finish();
     }
   }
 
-  return "OK";
+  return {
+    batchItemFailures,
+  };
 };

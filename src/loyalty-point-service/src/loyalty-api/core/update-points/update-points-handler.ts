@@ -51,7 +51,7 @@ export class UpdatePointsCommandHandler {
         loyaltyAccount = new LoyaltyPoints(command.userId, 0, []);
       }
 
-      var pointsAdded = loyaltyAccount.addPoints(
+      const pointsAdded = loyaltyAccount.addPoints(
         command.orderNumber,
         command.pointsToAdd
       );

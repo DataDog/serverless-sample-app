@@ -9,8 +9,8 @@ package utils
 
 import (
 	"encoding/json"
+	core "github.com/datadog/serverless-sample-product-core"
 	"log"
-	"product-api/internal/core"
 
 	"github.com/aws/aws-lambda-go/events"
 )

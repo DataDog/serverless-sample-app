@@ -16,7 +16,7 @@ import { CloudEvent } from "cloudevents";
 import { randomUUID } from "crypto";
 import { Logger } from "@aws-lambda-powertools/logger";
 import { MessagingType, startPublishSpanWithSemanticConventions } from "../../observability/observability";
-import { LoyaltyPointsAddedV1 } from "../events/loyaltyPointsUpdatedV1";
+import { LoyaltyPointsAddedV1 } from "../core/events/loyaltyPointsUpdatedV1";
 
 export class EventBridgeEventPublisher implements EventPublisher {
   private client: EventBridgeClient;

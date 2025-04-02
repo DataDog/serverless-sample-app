@@ -5,7 +5,12 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-import { SNSEvent, SQSEvent } from "aws-lambda";
+import {
+  EventBridgeEvent,
+  SQSBatchItemFailure,
+  SQSBatchResponse,
+  SQSEvent,
+} from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { Span, tracer } from "dd-trace";
 import { CloudEvent } from "cloudevents";
@@ -16,7 +21,7 @@ import {
 } from "../../observability/observability";
 import { UpdatePointsCommandHandler } from "../core/update-points/update-points-handler";
 import { DynamoDbLoyaltyPointRepository } from "./dynamoDbLoyaltyPointRepository";
-import { OrderCompletedEventV1 } from "../events/orderCompletedEventV1";
+import { OrderCompletedEventV1 } from "../core/events/orderCompletedEventV1";
 import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
 import { EventBridgeEventPublisher } from "./eventBridgeEventPublisher";
 
@@ -28,17 +33,20 @@ const updatePointsCommandHandler = new UpdatePointsCommandHandler(
 );
 const logger = new Logger({});
 
-export const handler = async (event: SQSEvent): Promise<string> => {
+export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
   const mainSpan = tracer.scope().active()!;
   mainSpan.addTags({
     "messaging.operation.type": "receive",
   });
 
+  const batchItemFailures: SQSBatchItemFailure[] = [];
+
   for (const message of event.Records) {
     let messageProcessingSpan: Span | undefined = undefined;
 
     try {
-      const evtWrapper: EventBridgeMessageWrapper<
+      const evtWrapper: EventBridgeEvent<
+        "order.orderCompleted.v1",
         CloudEvent<OrderCompletedEventV1>
       > = JSON.parse(message.body);
 
@@ -58,22 +66,19 @@ export const handler = async (event: SQSEvent): Promise<string> => {
         pointsToAdd: 50,
       });
     } catch (error) {
+      batchItemFailures.push({
+        itemIdentifier: message.messageId,
+      });
       logger.error(JSON.stringify(error));
       messageProcessingSpan?.logEvent("error", error);
 
-      // Rethrow error to pass back to Lambda runtime
       messageProcessingSpan?.finish();
-      throw error;
     } finally {
       messageProcessingSpan?.finish();
     }
   }
 
-  return "OK";
+  return {
+    batchItemFailures: batchItemFailures,
+  };
 };
-
-interface EventBridgeMessageWrapper<T> {
-  detail: T;
-  detailType: string;
-  source: string;
-}

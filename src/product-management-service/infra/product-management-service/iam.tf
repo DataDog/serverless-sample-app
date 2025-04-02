@@ -48,6 +48,12 @@ resource "aws_iam_policy" "sns_publish_stock_updated" {
   policy = data.aws_iam_policy_document.sns_publish_stock_updated.json
 }
 
+resource "aws_iam_policy" "sns_publish_price_calculated" {
+  name   = "TF_Products-publish-${var.env}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.sns_publish_price_calculated.json
+}
+
 resource "aws_iam_policy" "eb_publish" {
   name   = "TF_Products-eb-publish-${var.env}"
   path   = "/"

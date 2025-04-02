@@ -25,9 +25,9 @@ export class ProductCreatedEventHandler {
   }
 
   async handle(evt: ProductCreatedEvent): Promise<void> {
-    const span = tracer.scope().active()!;
+    const span = tracer.scope().active();
 
-    span.addTags({
+    span?.addTags({
       "product.id": evt.productId,
       "pricing.newPrice": evt.price,
     });
@@ -39,7 +39,7 @@ export class ProductCreatedEventHandler {
 
     this.eventPublisher.publishPriceCalculatedEvent({
       productId: evt.productId,
-      priceBrackers: priceResult.map((price) => {
+      priceBrackets: priceResult.map((price) => {
         return {
           quantity: price.quantityToOrder,
           price: price.price,

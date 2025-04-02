@@ -14,7 +14,6 @@ import { addDefaultServiceTagsTo } from "../../observability/observability";
 import { DynamoDbLoyaltyPointRepository } from "./dynamoDbLoyaltyPointRepository";
 import { JwtPayload, verify } from "jsonwebtoken";
 import { Logger } from "@aws-lambda-powertools/logger";
-import { SSMClient } from "@aws-sdk/client-ssm";
 
 const dynamoDbClient = new DynamoDBClient();
 const queryHandler = new GetProductHandler(

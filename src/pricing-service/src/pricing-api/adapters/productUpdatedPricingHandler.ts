@@ -5,22 +5,16 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-import { SNSClient } from "@aws-sdk/client-sns";
-import { SNSEvent, SQSEvent } from "aws-lambda";
-import { Span, tracer } from "dd-trace";
+import { EventBridgeEvent, SQSBatchItemFailure, SQSBatchResponse, SQSEvent } from "aws-lambda";
 import { PricingService } from "../core/pricingService";
 import {
   ProductUpdatedEvent,
   ProductUpdatedEventHandler,
 } from "../core/productUpdatedEventHandler";
 import { Logger } from "@aws-lambda-powertools/logger";
-import { CloudEvent } from "cloudevents";
-import {
-  MessagingType,
-  startProcessSpanWithSemanticConventions,
-} from "../../observability/observability";
 import { EventBridgeEventPublisher } from "./eventBridgeEventPublisher";
 import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
+import { CloudEvent } from "cloudevents";
 
 const logger = new Logger({ serviceName: process.env.DD_SERVICE });
 const eventBridgeClient = new EventBridgeClient();
@@ -30,57 +24,29 @@ const updateProductHandler = new ProductUpdatedEventHandler(
   new EventBridgeEventPublisher(eventBridgeClient)
 );
 
-export const handler = async (event: SNSEvent): Promise<string> => {
-  const mainSpan = tracer.scope().active()!;
-  mainSpan.addTags({
-    "messaging.operation.type": "receive",
-  });
-
-  logger.info("Handling pricing updated event from SNS");
+export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
+  const batchItemFailures: SQSBatchItemFailure[] = [];
 
   for (const message of event.Records) {
-    let messageProcessingSpan: Span | undefined = undefined;
     try {
-      const evtWrapper: CloudEvent<ProductUpdatedEvent> = JSON.parse(
-        message.Sns.Message
-      );
+      const evtWrapper: EventBridgeEvent<'product.productUpdated.v1', CloudEvent<ProductUpdatedEvent>> =
+              JSON.parse(message.body);
 
-      messageProcessingSpan = startProcessSpanWithSemanticConventions(
-        evtWrapper,
-        {
-          publicOrPrivate: MessagingType.PRIVATE,
-          messagingSystem: "sns",
-          destinationName: message.EventSource,
-          parentSpan: mainSpan,
-          conversationId: evtWrapper.data?.productId,
-        }
-      );
-
-      await updateProductHandler.handle(evtWrapper.data!);
-
-      messageProcessingSpan.finish();
+      await updateProductHandler.handle(evtWrapper.detail.data!);
     } catch (error: unknown) {
       if (error instanceof Error) {
         const e = error as Error;
-        const stack = e.stack!.split("\n").slice(1, 4).join("\n");
-        messageProcessingSpan?.addTags({
-          "error.stack": stack,
-          "error.message": error.message,
-          "error.type": "Error",
-        });
-      } else {
-        messageProcessingSpan?.addTags({
-          "error.type": "Error",
-        });
+        logger.error(e.message);
+        logger.error(e.stack ?? "");
       }
 
-      // Rethrow error to pass back to Lambda runtime
-      messageProcessingSpan?.finish();
-      throw error;
-    } finally {
-      messageProcessingSpan?.finish();
+      batchItemFailures.push({
+        itemIdentifier: message.messageId,
+      });
     }
   }
 
-  return "OK";
+  return {
+    batchItemFailures,
+  };
 };

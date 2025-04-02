@@ -96,6 +96,7 @@ func NewProductManagementService(scope constructs.Construct, id string, props *P
 	services.NewProductBackgroundServices(stack, "ProductBackgroundServices", &services.ProductBackgroundServiceProps{
 		ServiceProps:             serviceProps,
 		ProductStockUpdatedTopic: productAcl.ProductStockUpdatedTopic,
+		PriceCalculatedTopic:     productAcl.PriceCalculatedTopic,
 		ProductTable:             productApi.Table,
 	})
 

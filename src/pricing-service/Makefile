@@ -13,7 +13,7 @@ sam:
 sam-destroy:
 	sam delete --stack-name PricingService-${ENV} --no-prompts
 
-cdk-deploy:
+cdk-deploy: build
 	cdk deploy --all --require-approval never --concurrency 3 --region ${AWS_REGION} --tags DD_PRESERVE_STACK=true
 
 cdk-destroy:

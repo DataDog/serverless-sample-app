@@ -25,11 +25,15 @@ type ProductAclServiceProps struct {
 
 type ProductAcl struct {
 	ProductStockUpdatedTopic awssns.Topic
+	PriceCalculatedTopic     awssns.Topic
 }
 
 func NewProductAclService(scope constructs.Construct, id string, props *ProductAclServiceProps) ProductAcl {
 	productStockUpdatedTopic := awssns.NewTopic(scope, jsii.String("ProductProductAddedTopic"), &awssns.TopicProps{
 		TopicName: jsii.Sprintf("%s-InventoryStockUpdated-%s", props.ServiceProps.SharedProps.ServiceName, props.ServiceProps.SharedProps.Env),
+	})
+	productPriceCalculatedTopic := awssns.NewTopic(scope, jsii.String("ProductPriceCalculatedTopic"), &awssns.TopicProps{
+		TopicName: jsii.Sprintf("%s-PriceCalculated-%s", props.ServiceProps.SharedProps.ServiceName, props.ServiceProps.SharedProps.Env),
 	})
 
 	productStockUpdatedEventQueue := sharedconstructs.NewResiliantQueue(scope, "ProductStockUpdatedEventQueue", &sharedconstructs.ResiliantQueueProps{
@@ -37,19 +41,25 @@ func NewProductAclService(scope constructs.Construct, id string, props *ProductA
 		QueueName:   "ProductStockUpdatedEventQueue",
 	})
 
+	productPriceCalculatedQueue := sharedconstructs.NewResiliantQueue(scope, "ProductPriceCalculatedQueue", &sharedconstructs.ResiliantQueueProps{
+		SharedProps: props.ServiceProps.SharedProps,
+		QueueName:   "ProductPriceCalculatedQueue",
+	})
+
 	environmentVariables := make(map[string]*string)
 	environmentVariables["STOCK_LEVEL_UPDATED_TOPIC_ARN"] = jsii.String(*productStockUpdatedTopic.TopicArn())
+	environmentVariables["PRICE_CALCULATED_TOPIC_ARN"] = jsii.String(*productPriceCalculatedTopic.TopicArn())
 
-	publicEventPublisherFunction := sharedconstructs.NewInstrumentedFunction(scope, "ProductAcl", &sharedconstructs.InstrumentedFunctionProps{
+	inventoryStockUpdatedAclFunction := sharedconstructs.NewInstrumentedFunction(scope, "InventoryStockUpdatedACL", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,
-		FunctionName:         "ProductAcl",
+		FunctionName:         "InventoryStockUpdatedACL",
 		Entry:                "../src/product-acl/inventory-stock-updated-event-handler/",
 		EnvironmentVariables: environmentVariables,
 	})
 
-	productStockUpdatedTopic.GrantPublish(publicEventPublisherFunction.Function)
+	productStockUpdatedTopic.GrantPublish(inventoryStockUpdatedAclFunction.Function)
 
-	publicEventPublisherFunction.Function.AddEventSource(awslambdaeventsources.NewSqsEventSource(productStockUpdatedEventQueue.Queue, &awslambdaeventsources.SqsEventSourceProps{
+	inventoryStockUpdatedAclFunction.Function.AddEventSource(awslambdaeventsources.NewSqsEventSource(productStockUpdatedEventQueue.Queue, &awslambdaeventsources.SqsEventSourceProps{
 		ReportBatchItemFailures: jsii.Bool(true),
 	}))
 
@@ -65,6 +75,31 @@ func NewProductAclService(scope constructs.Construct, id string, props *ProductA
 	productCreatedRule.AddEventPattern(stockUpdatedPattern)
 	productCreatedRule.AddTarget(awseventstargets.NewSqsQueue(productStockUpdatedEventQueue.Queue, &awseventstargets.SqsQueueProps{}))
 
+	productPricingChangedAclFunction := sharedconstructs.NewInstrumentedFunction(scope, "PricingChangedACLFunction", &sharedconstructs.InstrumentedFunctionProps{
+		SharedProps:          props.ServiceProps.SharedProps,
+		FunctionName:         "PricingUpdatedACL",
+		Entry:                "../src/product-acl/pricing-changed-handler/",
+		EnvironmentVariables: environmentVariables,
+	})
+
+	productPriceCalculatedTopic.GrantPublish(productPricingChangedAclFunction.Function)
+
+	productPricingChangedAclFunction.Function.AddEventSource(awslambdaeventsources.NewSqsEventSource(productPriceCalculatedQueue.Queue, &awslambdaeventsources.SqsEventSourceProps{
+		ReportBatchItemFailures: jsii.Bool(true),
+	}))
+
+	priceCalculatedRule := awsevents.NewRule(scope, jsii.String("Product-PriceUpdated"), &awsevents.RuleProps{
+		EventBus: props.ServiceProps.ProductEventBus,
+	})
+
+	priceCalculatedPattern := &awsevents.EventPattern{
+		DetailType: jsii.Strings("pricing.pricingCalculated.v1"),
+		Source:     jsii.Strings(fmt.Sprintf("%s.pricing", props.ServiceProps.SharedProps.Env)),
+	}
+
+	priceCalculatedRule.AddEventPattern(priceCalculatedPattern)
+	priceCalculatedRule.AddTarget(awseventstargets.NewSqsQueue(productPriceCalculatedQueue.Queue, &awseventstargets.SqsQueueProps{}))
+
 	// If the shared bus exists create the subscription on the shared bus as well
 	if props.ServiceProps.SharedEventBus != nil {
 		sharedProductCreatedRule := awsevents.NewRule(scope, jsii.String("SharedProduct-StockUpdated"), &awsevents.RuleProps{
@@ -72,9 +107,16 @@ func NewProductAclService(scope constructs.Construct, id string, props *ProductA
 		})
 		sharedProductCreatedRule.AddEventPattern(stockUpdatedPattern)
 		sharedProductCreatedRule.AddTarget(awseventstargets.NewEventBus(props.ServiceProps.ProductEventBus, &awseventstargets.EventBusProps{}))
+
+		sharedPriceUpdatedRule := awsevents.NewRule(scope, jsii.String("SharedProduct-PricingUpdated"), &awsevents.RuleProps{
+			EventBus: props.ServiceProps.SharedEventBus,
+		})
+		sharedPriceUpdatedRule.AddEventPattern(priceCalculatedPattern)
+		sharedPriceUpdatedRule.AddTarget(awseventstargets.NewEventBus(props.ServiceProps.ProductEventBus, &awseventstargets.EventBusProps{}))
 	}
 
 	return ProductAcl{
 		ProductStockUpdatedTopic: productStockUpdatedTopic,
+		PriceCalculatedTopic:     productPriceCalculatedTopic,
 	}
 }

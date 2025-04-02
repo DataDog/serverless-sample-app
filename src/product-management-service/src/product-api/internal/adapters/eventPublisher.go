@@ -11,9 +11,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	core "github.com/datadog/serverless-sample-product-core"
 	"log"
 	"os"
-	"product-api/internal/core"
 
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"go.opentelemetry.io/otel/propagation"

@@ -14,6 +14,7 @@ import { PricingServiceProps } from "./pricingServiceProps";
 import { Runtime, Code } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Alias } from "aws-cdk-lib/aws-kms";
+import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 export interface ApiProps {
   serviceProps: PricingServiceProps;
@@ -50,7 +51,8 @@ export class Api extends Construct {
 
   buildCalculatePricingFunction(props: ApiProps): LambdaIntegration {
     // The function uses ESBuild, this path is to a custom command that runs the build
-    const pathToBuildFile = "./src/pricing-api/adapters/buildCalculatePricingFunction.js";
+    const pathToBuildFile =
+      "./src/pricing-api/adapters/buildCalculatePricingFunction.js";
     const pathToOutputFile = "./out/calculatePricingFunction";
 
     const code = Code.fromCustomCommand(pathToOutputFile, [
@@ -82,6 +84,22 @@ export class Api extends Construct {
         },
       }
     );
+
+    calculatePricingFuncion.addToRolePolicy(
+      new PolicyStatement({
+        actions: [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+        ],
+        resources: ["arn:aws:logs:*:*:*"],
+        effect: Effect.DENY,
+      })
+    );
+
+    props.serviceProps
+      .getSharedProps()
+      .datadogConfiguration?.addLambdaFunctions([calculatePricingFuncion]);
 
     const kmsAlias = Alias.fromAliasName(this, "SSMAlias", "aws/ssm");
     kmsAlias.grantDecrypt(calculatePricingFuncion);

@@ -10,8 +10,8 @@ package adapters
 import (
 	"context"
 	"fmt"
+	core "github.com/datadog/serverless-sample-product-core"
 	"log"
-	"product-api/internal/core"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"

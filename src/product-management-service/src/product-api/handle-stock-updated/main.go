@@ -10,11 +10,12 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"os"
 
+	core "github.com/datadog/serverless-sample-product-core"
 	"product-api/internal/adapters"
-	"product-api/internal/core"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -50,6 +51,8 @@ func functionHandler(ctx context.Context, request events.SNSEvent) {
 	for index := range request.Records {
 		record := request.Records[index]
 
+		fmt.Printf("SNS message body is %s", record.SNS.Message)
+
 		body := []byte(record.SNS.Message)
 
 		var evt TracedMessage[core.StockUpdatedEvent]
@@ -68,10 +71,11 @@ func functionHandler(ctx context.Context, request events.SNSEvent) {
 			},
 		}
 
-		span, context := tracer.StartSpanFromContext(ctx, "process.message", tracer.WithSpanLinks(spanLinks))
-		defer span.Finish()
+		span, traceContext := tracer.StartSpanFromContext(ctx, "process stockUpdated", tracer.WithSpanLinks(spanLinks))
 
-		_, err = handler.Handle(context, evt.Data)
+		_, err = handler.Handle(traceContext, evt.Data)
+
+		span.Finish()
 
 		if err != nil {
 			println(err.Error())
