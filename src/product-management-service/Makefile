@@ -123,7 +123,7 @@ build-ProductApiPricingChangedWorker:
 build-ProductPublicEventPublisher:
 	cd src/product-event-publisher;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap public-event-publisher/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
 
-build-InventoryStockUpdatedACL:
+build-ProductInventoryStockUpdatedHandler:
 	cd src/product-acl;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap inventory-stock-updated-event-handler/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
 
 build-PricingChangedACL:
