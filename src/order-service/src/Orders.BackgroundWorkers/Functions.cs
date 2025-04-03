@@ -10,11 +10,47 @@ using Microsoft.Extensions.Logging;
 using Orders.BackgroundWorkers.ExternalEvents;
 using Orders.Core;
 using Orders.Core.Adapters;
+using Polly;
+using Polly.Retry;
 
 namespace Orders.BackgroundWorkers;
 
-public class Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
+public class Functions
 {
+    private readonly IOrderWorkflow _orderWorkflow;
+    private readonly ILogger<Functions> _logger;
+    private readonly ResiliencePipeline _workflowResiliencePipeline;
+    private const int MAX_PROCESSING_TIME_MS = 10000; // 10 seconds max processing time per message
+
+    public Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
+    {
+        _orderWorkflow = orderWorkflow;
+        _logger = logger;
+        
+        var maxRetryAttempts = 2;
+        
+        // Create resilience pipeline for workflow operations
+        _workflowResiliencePipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new RetryStrategyOptions
+            {
+                ShouldHandle = new PredicateBuilder()
+                    .Handle<TimeoutException>()
+                    .Handle<System.Net.Http.HttpRequestException>(),
+                MaxRetryAttempts = maxRetryAttempts,
+                BackoffType = DelayBackoffType.Exponential,
+                Delay = TimeSpan.FromMilliseconds(200),
+                OnRetry = args =>
+                {
+                    _logger.LogWarning(args.Outcome.Exception, 
+                        "Workflow operation failed. Retrying {RetryCount}/{MaxRetryCount}", 
+                        args.AttemptNumber, maxRetryAttempts);
+                    return ValueTask.CompletedTask;
+                }
+            })
+            .AddTimeout(TimeSpan.FromMilliseconds(MAX_PROCESSING_TIME_MS / 2))
+            .Build();
+    }
+
     [LambdaFunction]
     public async Task<SQSBatchResponse> HandleStockReserved(SQSEvent evt)
     {
@@ -22,42 +58,46 @@ public class Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
         evt.AddToTelemetry();
         
         var batchItemFailures = new List<SQSBatchResponse.BatchItemFailure>();
+        var processingTasks = new List<Task<bool>>();
 
         foreach (var record in evt.Records)
         {
-            IScope? processingSpan = null;
-            try
+            var task = ProcessStockReservedMessageAsync(record, activeSpan);
+            processingTasks.Add(task);
+        }
+        
+        // Process all messages with a timeout
+        var timeoutTask = Task.Delay(MAX_PROCESSING_TIME_MS);
+        var completedTask = await Task.WhenAny(Task.WhenAll(processingTasks), timeoutTask);
+        
+        if (completedTask == timeoutTask)
+        {
+            _logger.LogError("Batch processing timed out after {Timeout}ms", MAX_PROCESSING_TIME_MS);
+            
+            // Add all records that haven't completed as failures
+            for (int i = 0; i < processingTasks.Count; i++)
             {
-                var evtData = JsonSerializer.Deserialize<EventBridgeMessageWrapper<EventWrapper<StockReservedEvent>>>(record.Body);
-
-                if (evtData?.Detail?.Data is null)
+                if (!processingTasks[i].IsCompleted)
                 {
-                    logger.LogWarning("Deserialized event data is null from message body {MessageBody}", record.Body);
-                    batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure(){ItemIdentifier = record.MessageId});
-                    continue;
+                    batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure
+                    {
+                        ItemIdentifier = evt.Records[i].MessageId
+                    });
                 }
-                
-                processingSpan = Tracer.Instance.StartActive($"process {evtData.Detail.Type}", new SpanCreationSettings
+            }
+        }
+        else
+        {
+            // Add failures for any task that returned false
+            for (int i = 0; i < processingTasks.Count; i++)
+            {
+                if (!processingTasks[i].Result)
                 {
-                    Parent = activeSpan?.Context,
-                });
-                record.AddToTelemetry();
-                evtData.Detail?.AddToTelemetry();
-                evtData.Detail!.Data.OrderNumber.AddToTelemetry("order.id");
-                
-                await orderWorkflow.StockReservationSuccessful(evtData.Detail!.Data.ConversationId);
-
-                processingSpan?.Close();
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, e.Message);
-                processingSpan?.Span.SetException(e);
-                batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure(){ItemIdentifier = record.MessageId});
-            }
-            finally
-            {
-                processingSpan?.Close();
+                    batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure
+                    {
+                        ItemIdentifier = evt.Records[i].MessageId
+                    });
+                }
             }
         }
         
@@ -67,6 +107,50 @@ public class Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
         };
     }
     
+    private async Task<bool> ProcessStockReservedMessageAsync(SQSEvent.SQSMessage record, ISpan? parentSpan)
+    {
+        IScope? processingSpan = null;
+        
+        try
+        {
+            var evtData = JsonSerializer.Deserialize<EventBridgeMessageWrapper<EventWrapper<StockReservedEvent>>>(record.Body);
+
+            if (evtData?.Detail?.Data is null)
+            {
+                _logger.LogWarning("Deserialized event data is null from message body {MessageBody}", record.Body);
+                return false;
+            }
+            
+            processingSpan = Tracer.Instance.StartActive($"process {evtData.Detail.Type}", new SpanCreationSettings
+            {
+                Parent = parentSpan?.Context,
+            });
+            record.AddToTelemetry();
+            evtData.Detail?.AddToTelemetry();
+            evtData.Detail!.Data.OrderNumber.AddToTelemetry("order.id");
+            
+            var result = await _workflowResiliencePipeline.ExecuteAsync(
+                async ct => 
+                {
+                    await _orderWorkflow.StockReservationSuccessful(evtData.Detail!.Data.ConversationId);
+                    return true;
+                },
+                CancellationToken.None);
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error processing stock reserved message: {ErrorMessage}", e.Message);
+            processingSpan?.Span.SetException(e);
+            return false;
+        }
+        finally
+        {
+            processingSpan?.Close();
+        }
+    }
+    
     [LambdaFunction]
     public async Task<SQSBatchResponse> HandleReservationFailed(SQSEvent evt)
     {
@@ -74,50 +158,98 @@ public class Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
         evt.AddToTelemetry();
         
         var batchItemFailures = new List<SQSBatchResponse.BatchItemFailure>();
+        var processingTasks = new List<Task<bool>>();
 
         foreach (var record in evt.Records)
         {
-            IScope? processingSpan = null;
+            var task = ProcessReservationFailedMessageAsync(record, activeSpan);
+            processingTasks.Add(task);
+        }
+        
+        // Process all messages with a timeout
+        var timeoutTask = Task.Delay(MAX_PROCESSING_TIME_MS);
+        var completedTask = await Task.WhenAny(Task.WhenAll(processingTasks), timeoutTask);
+        
+        if (completedTask == timeoutTask)
+        {
+            _logger.LogError("Batch processing timed out after {Timeout}ms", MAX_PROCESSING_TIME_MS);
             
-            try
+            // Add all records that haven't completed as failures
+            for (int i = 0; i < processingTasks.Count; i++)
             {
-                var evtData = JsonSerializer.Deserialize<EventBridgeMessageWrapper<EventWrapper<StockReservationFailedEvent>>>(record.Body);
-
-                if (evtData?.Detail?.Data is null)
+                if (!processingTasks[i].IsCompleted)
                 {
-                    logger.LogWarning("Deserialized event data is null from message body {MessageBody}", record.Body);
-                    batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure(){ItemIdentifier = record.MessageId});
-                    continue;
+                    batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure
+                    {
+                        ItemIdentifier = evt.Records[i].MessageId
+                    });
                 }
-                
-                processingSpan = Tracer.Instance.StartActive($"process {evtData.Detail.Type}", new SpanCreationSettings
-                {
-                    Parent = activeSpan?.Context,
-                });
-                
-                record.AddToTelemetry();
-                evtData.Detail?.AddToTelemetry();
-                
-                evtData.Detail!.Data.OrderNumber.AddToTelemetry("order.id");
-                await orderWorkflow.StockReservationFailed(evtData.Detail!.Data.ConversationId);
-
-                processingSpan.Close();
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, e.Message);
-                processingSpan?.Span?.SetTag("error.type", e.GetType().Name);
-                batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure(){ItemIdentifier = record.MessageId});
-            }
-            finally
-            {
-                processingSpan?.Close();
             }
         }
-
+        else
+        {
+            // Add failures for any task that returned false
+            for (int i = 0; i < processingTasks.Count; i++)
+            {
+                if (!processingTasks[i].Result)
+                {
+                    batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure
+                    {
+                        ItemIdentifier = evt.Records[i].MessageId
+                    });
+                }
+            }
+        }
+        
         return new SQSBatchResponse()
         {
             BatchItemFailures = batchItemFailures
         };
+    }
+    
+    private async Task<bool> ProcessReservationFailedMessageAsync(SQSEvent.SQSMessage record, ISpan? parentSpan)
+    {
+        IScope? processingSpan = null;
+        
+        try
+        {
+            var evtData = JsonSerializer.Deserialize<EventBridgeMessageWrapper<EventWrapper<StockReservationFailedEvent>>>(record.Body);
+
+            if (evtData?.Detail?.Data is null)
+            {
+                _logger.LogWarning("Deserialized event data is null from message body {MessageBody}", record.Body);
+                return false;
+            }
+            
+            processingSpan = Tracer.Instance.StartActive($"process {evtData.Detail.Type}", new SpanCreationSettings
+            {
+                Parent = parentSpan?.Context,
+            });
+            
+            record.AddToTelemetry();
+            evtData.Detail?.AddToTelemetry();
+            
+            evtData.Detail!.Data.OrderNumber.AddToTelemetry("order.id");
+            
+            var result = await _workflowResiliencePipeline.ExecuteAsync(
+                async ct => 
+                {
+                    await _orderWorkflow.StockReservationFailed(evtData.Detail!.Data.ConversationId);
+                    return true;
+                },
+                CancellationToken.None);
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error processing reservation failed message: {ErrorMessage}", e.Message);
+            processingSpan?.Span?.SetTag("error.type", e.GetType().Name);
+            return false;
+        }
+        finally
+        {
+            processingSpan?.Close();
+        }
     }
 }

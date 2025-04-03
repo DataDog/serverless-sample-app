@@ -3,24 +3,16 @@
 // Copyright 2025 Datadog, Inc.
 
 using System.Text;
-using Amazon;
-using Amazon.DynamoDBv2;
-using Amazon.EventBridge;
-using Amazon.EventBridge.Model;
-using Amazon.Internal;
 using Amazon.SimpleSystemsManagement;
 using Amazon.SimpleSystemsManagement.Model;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Serilog;
-using Serilog.Formatting.Compact;
-using ILogger = Serilog.ILogger;
 
 namespace Orders.Api;
 
 public static class ServiceExtensions
 {
-    public static IServiceCollection AddCustomJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
+    public static async Task<IServiceCollection> AddCustomJwtAuthenticationAsync(this IServiceCollection services, IConfiguration configuration)
     {
         var env = configuration["ENV"];
         var secretKey = configuration["Auth:Key"];
@@ -29,14 +21,16 @@ public static class ServiceExtensions
         {
             var ssmClient = new AmazonSimpleSystemsManagementClient();
             
-            secretKey = ssmClient.GetParameterAsync(new GetParameterRequest
+            var paramResult = await ssmClient.GetParameterAsync(new GetParameterRequest
             {
                 Name = configuration["JWT_SECRET_PARAM_NAME"],
                 WithDecryption = true
-            }).Result.Parameter.Value;   
+            });
+            
+            secretKey = paramResult.Parameter.Value;   
         }
 
-        Console.WriteLine($"Using AWS access key: {secretKey}");
+        Console.WriteLine($"Using JWT secret: [REDACTED]");
 
         if (secretKey is null)
         {

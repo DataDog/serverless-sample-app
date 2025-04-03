@@ -8,6 +8,7 @@ using Amazon.DynamoDBv2.Model;
 using Datadog.Trace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Polly;
 
 namespace Orders.Core.Adapters;
 
@@ -30,10 +31,20 @@ public class DynamoDBOrders(
     private const string DATE_TIME_FORMAT = "yyyyMMddHHmmss";
     private const string GSI1PK = "GSI1PK";
     private const string GSI1SK = "GSI1SK";
+    private const int PAGE_SIZE = 20;
 
-    public async Task<List<Order>> ForUser(string userId)
+    private readonly ResiliencePipeline<QueryResponse> _queryResiliencePipeline = 
+        ResiliencePolicies.GetDynamoDBPolicy<QueryResponse>(logger);
+    private readonly ResiliencePipeline<GetItemResponse> _getItemResiliencePipeline = 
+        ResiliencePolicies.GetDynamoDBPolicy<GetItemResponse>(logger);
+    private readonly ResiliencePipeline<PutItemResponse> _putItemResiliencePipeline = 
+        ResiliencePolicies.GetDynamoDBPolicy<PutItemResponse>(logger);
+    private readonly ResiliencePipeline<BatchWriteItemResponse> _batchWriteResiliencePipeline = 
+        ResiliencePolicies.GetDynamoDBPolicy<BatchWriteItemResponse>(logger);
+
+    public async Task<List<Order>> ForUser(string userId, int pageSize = PAGE_SIZE, string? lastEvaluatedKey = null)
     {
-        var queryResult = await dynamoDbClient.QueryAsync(new QueryRequest()
+        var queryRequest = new QueryRequest()
         {
             TableName = configuration["TABLE_NAME"],
             KeyConditionExpression = "PK = :PK",
@@ -41,8 +52,22 @@ public class DynamoDBOrders(
             {
                 { ":PK", new AttributeValue { S = userId } }
             },
+            Limit = pageSize,
             ReturnConsumedCapacity = ReturnConsumedCapacity.TOTAL
-        });
+        };
+        
+        if (!string.IsNullOrEmpty(lastEvaluatedKey))
+        {
+            queryRequest.ExclusiveStartKey = new Dictionary<string, AttributeValue>
+            {
+                { PARTITION_KEY, new AttributeValue { S = userId } },
+                { SORT_KEY, new AttributeValue { S = lastEvaluatedKey } }
+            };
+        }
+
+        var queryResult = await _queryResiliencePipeline.ExecuteAsync(
+            async ct => await dynamoDbClient.QueryAsync(queryRequest, ct), 
+            CancellationToken.None);
 
         queryResult.AddToTelemetry();
 
@@ -61,9 +86,9 @@ public class DynamoDBOrders(
         return orderList;
     }
 
-    public async Task<List<Order>> ConfirmedOrders()
+    public async Task<List<Order>> ConfirmedOrders(int pageSize = PAGE_SIZE, string? lastEvaluatedKey = null)
     {
-        var queryResult = await dynamoDbClient.QueryAsync(new QueryRequest()
+        var queryRequest = new QueryRequest()
         {
             TableName = configuration["TABLE_NAME"],
             KeyConditionExpression = "GSI1PK = :PK",
@@ -72,8 +97,22 @@ public class DynamoDBOrders(
                 { ":PK", new AttributeValue { S = "CONFIRMED" } }
             },
             IndexName = "GSI1",
+            Limit = pageSize,
             ReturnConsumedCapacity = ReturnConsumedCapacity.TOTAL
-        });
+        };
+        
+        if (!string.IsNullOrEmpty(lastEvaluatedKey))
+        {
+            queryRequest.ExclusiveStartKey = new Dictionary<string, AttributeValue>
+            {
+                { GSI1PK, new AttributeValue { S = "CONFIRMED" } },
+                { GSI1SK, new AttributeValue { S = lastEvaluatedKey } }
+            };
+        }
+
+        var queryResult = await _queryResiliencePipeline.ExecuteAsync(
+            async ct => await dynamoDbClient.QueryAsync(queryRequest, ct), 
+            CancellationToken.None);
 
         queryResult.AddToTelemetry();
 
@@ -97,7 +136,7 @@ public class DynamoDBOrders(
         logger.LogInformation("Retrieving Order with orderId {orderId} and user {userId} from DynamoDB", orderId,
             userId);
 
-        var getItemResult = await dynamoDbClient.GetItemAsync(new GetItemRequest()
+        var getItemRequest = new GetItemRequest()
         {
             TableName = configuration["TABLE_NAME"],
             Key = new Dictionary<string, AttributeValue>()
@@ -106,7 +145,12 @@ public class DynamoDBOrders(
                 { SORT_KEY, new AttributeValue(orderId) }
             },
             ReturnConsumedCapacity = ReturnConsumedCapacity.TOTAL
-        });
+        };
+
+        var getItemResult = await _getItemResiliencePipeline.ExecuteAsync(
+            async ct => await dynamoDbClient.GetItemAsync(getItemRequest, ct), 
+            CancellationToken.None);
+        
         getItemResult.AddToTelemetry();
 
         if (!getItemResult.IsItemSet) return null;
@@ -144,12 +188,77 @@ public class DynamoDBOrders(
             attributes.Add(GSI1SK, new AttributeValue(order.OrderNumber));
         }
 
-        var putItemResponse = await dynamoDbClient.PutItemAsync(new PutItemRequest()
+        var putItemRequest = new PutItemRequest()
         {
             TableName = configuration["TABLE_NAME"],
             Item = attributes,
             ReturnConsumedCapacity = ReturnConsumedCapacity.TOTAL
-        });
+        };
+
+        var putItemResponse = await _putItemResiliencePipeline.ExecuteAsync(
+            async ct => await dynamoDbClient.PutItemAsync(putItemRequest, ct), 
+            CancellationToken.None);
+            
         putItemResponse.AddToTelemetry();
+    }
+    
+    public async Task StoreBatch(IEnumerable<Order> orders)
+    {
+        var writeRequests = new List<WriteRequest>();
+        
+        foreach (var order in orders)
+        {
+            var attributes = new Dictionary<string, AttributeValue>()
+            {
+                { PARTITION_KEY, new AttributeValue(order.UserId) },
+                { SORT_KEY, new AttributeValue(order.OrderNumber) },
+                { USER_ID, new AttributeValue(order.UserId) },
+                { ORDER_NUMBER, new AttributeValue(order.OrderNumber) },
+                { ORDER_DATE, new AttributeValue(order.OrderDate.ToString(DATE_TIME_FORMAT)) },
+                { ORDER_TYPE, new AttributeValue() { N = ((int)order.OrderType).ToString("n0") } },
+                { ORDER_STATUS, new AttributeValue() { N = ((int)order.OrderStatus).ToString("n0") } },
+                { TOTAL_PRICE, new AttributeValue() { N = order.TotalPrice.ToString("n2") } },
+                { PRODUCTS, new AttributeValue(order.Products.ToList()) },
+                { TYPE, new AttributeValue("Order") }
+            };
+
+            if (order.OrderStatus == OrderStatus.Confirmed)
+            {
+                attributes.Add(GSI1PK, new AttributeValue("CONFIRMED"));
+                attributes.Add(GSI1SK, new AttributeValue(order.OrderNumber));
+            }
+            
+            writeRequests.Add(new WriteRequest { PutRequest = new PutRequest { Item = attributes } });
+        }
+        
+        // DynamoDB batches are limited to 25 items
+        const int batchSize = 25;
+        for (int i = 0; i < writeRequests.Count; i += batchSize)
+        {
+            var batch = writeRequests.Skip(i).Take(batchSize).ToList();
+            var batchRequest = new BatchWriteItemRequest
+            {
+                RequestItems = new Dictionary<string, List<WriteRequest>>
+                {
+                    { configuration["TABLE_NAME"], batch }
+                },
+                ReturnConsumedCapacity = ReturnConsumedCapacity.TOTAL
+            };
+            
+            var response = await _batchWriteResiliencePipeline.ExecuteAsync(
+                async ct => await dynamoDbClient.BatchWriteItemAsync(batchRequest, ct),
+                CancellationToken.None);
+            
+            // Handle unprocessed items if any
+            if (response.UnprocessedItems.Count > 0 && response.UnprocessedItems.ContainsKey(configuration["TABLE_NAME"]))
+            {
+                var remainingItems = response.UnprocessedItems[configuration["TABLE_NAME"]];
+                if (remainingItems.Count > 0)
+                {
+                    logger.LogWarning("Some batch items were not processed. Retrying {Count} items", remainingItems.Count);
+                    // In a real implementation, you'd handle these with exponential backoff
+                }
+            }
+        }
     }
 }

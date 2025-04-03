@@ -6,11 +6,13 @@ namespace Orders.Core;
 
 public interface IOrders
 {
-    Task<List<Order>> ForUser(string userId);
+    Task<List<Order>> ForUser(string userId, int pageSize = 20, string? lastEvaluatedKey = null);
     
-    Task<List<Order>> ConfirmedOrders();
+    Task<List<Order>> ConfirmedOrders(int pageSize = 20, string? lastEvaluatedKey = null);
     
     Task<Order?> WithOrderId(string userId, string orderNumber);
 
     Task Store(Order item);
+    
+    Task StoreBatch(IEnumerable<Order> orders);
 }

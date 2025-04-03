@@ -16,8 +16,16 @@ try
         .AddEnvironmentVariables();
 
     builder.Services
-        .AddCore(builder.Configuration)
-        .AddCustomJwtAuthentication(builder.Configuration);
+        .AddCore(builder.Configuration);
+    
+    // Use async authentication setup to avoid blocking calls
+    await builder.Services.AddCustomJwtAuthenticationAsync(builder.Configuration);
+    
+    // Add response compression for improved performance
+    builder.Services.AddResponseCompression(options =>
+    {
+        options.EnableForHttps = true;
+    });
     
     builder.Services.AddCors(options =>
     {
@@ -35,13 +43,24 @@ try
 
     var app = builder.Build();
     
+    app.UseResponseCompression();
+    
     app.UseCors("CorsPolicy");
 
     app.UseAuthentication();
 
     app.UseAuthorization();
 
-    app.MapGet("/health", () => Results.Ok("Healthy!"));
+    // Add health check endpoint with more detailed status
+    app.MapGet("/health", () => 
+    {
+        return Results.Ok(new 
+        { 
+            Status = "Healthy",
+            Timestamp = DateTime.UtcNow
+        });
+    });
+    
     app.MapGet("/orders", GetUserOrdersHandler.Handle);
     app.MapGet("/orders/confirmed", ConfirmedOrdersHandler.Handle);
     app.MapGet("/orders/{OrderId}", GetOrderDetailsHandler.Handle);
