@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-lambda-go v1.47.0
 	github.com/google/uuid v1.6.0
 	go.opentelemetry.io/otel v1.35.0
-	gopkg.in/DataDog/dd-trace-go.v1 v1.72.1
+	gopkg.in/DataDog/dd-trace-go.v1 v1.72.2
 )
 
 require (

@@ -6,7 +6,7 @@ replace github.com/datadog/serverless-sample-observability v0.0.0 => ../observab
 
 require (
 	github.com/stretchr/testify v1.10.0
-	gopkg.in/DataDog/dd-trace-go.v1 v1.72.1
+	gopkg.in/DataDog/dd-trace-go.v1 v1.72.2
 )
 
 require (
