@@ -18,8 +18,8 @@ npm install -g aws-cdk
 cdk --help
 
 echo "Installing AWS SAM CLI"
-wget https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-arm64.zip 
-unzip aws-sam-cli-linux-arm64.zip -d sam-installation
+wget https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip 
+unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
 ./sam-installation/install
 sam --version
 
@@ -28,6 +28,7 @@ apt install -y dotnet-sdk-8.0
 export DOTNET_ROOT=$HOME/.dotnet
 export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
 dotnet --version
+dotnet tool install -g Amazon.Lambda.Tools
 
 echo "Installing Java"
 wget -O - https://apt.corretto.aws/corretto.key | gpg --dearmor -o /usr/share/keyrings/corretto-keyring.gpg && \
