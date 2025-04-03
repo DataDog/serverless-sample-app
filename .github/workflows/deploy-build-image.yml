@@ -1,4 +1,4 @@
-name: Deploy Inventory Service
+name: Deploy Build Image
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
           load: true
           tags: ${{ secrets.BUILD_IMAGE_NAME }}:latest
           context: ./build-image
-          file: Dockerfile
+          file: ./build-image/Dockerfile
       - uses: aws-actions/amazon-ecr-login@v2
         name: Login to Amazon ECR
         id: login-ecr
