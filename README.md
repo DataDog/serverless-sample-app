@@ -29,15 +29,7 @@ Once deployed, the system demonstrates the full end to end observability Datadog
 
 ### Product Management Service
 
-**Runtime: GoLang**
-
-**AWS Services Used: API Gateway, Lambda, DynamoDB, SNS, SQS, EventBridge**
-
 The product service manages the product catalogue, and items that are available to the frontend. It is made up of 3 independent services.
-
-1. The `ProductAPI` provides CRUD (Create, Read, Update, Delete) API provides the ability to manage product information. On all CRUD requests, private events are published onto internal SNS topics for downstream processing. The API has one additional Lambda function reacting to `PricingChanged` events published by the `PricingService`.
-2. The `ProductAcl` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes events published by external services, translates them to internal events and processes them
-3. The `ProductEventPublisher` acts as a translation layer between private and public events. It takes the `ProductCreated`, `ProductUpdated` and `ProductDeleted` events and translates them into the respective events for downstream processing.
 
 ### Inventory Service
 

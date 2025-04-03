@@ -1,4 +1,4 @@
-module product-acl
+module productacl
 
 go 1.23.1
 

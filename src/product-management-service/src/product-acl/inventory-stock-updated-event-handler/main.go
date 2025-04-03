@@ -5,14 +5,16 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-package main
+package productacl
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"product-acl/internal/adapters"
-	"product-acl/internal/core"
+
+	adapters "productacl/internal/adapters"
+	core "productacl/internal/core"
+	"productacl/internal/utils"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 
@@ -38,11 +40,6 @@ var (
 	eventTranslator = *core.NewProductEventTranslator(adapters.NewSnsEventPublisher(*snsClient))
 )
 
-type TracedMessage[T any] struct {
-	Data    T                     `json:"data"`
-	Datadog tracer.TextMapCarrier `json:"_datadog"`
-}
-
 func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventResponse, error) {
 	failures := []events.SQSBatchItemFailure{}
 
@@ -58,7 +55,7 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 
 		body := []byte(eventBridgeEvent.Detail)
 
-		var evt TracedMessage[core.PublicInventoryStockUpdatedEventV1]
+		var evt utils.TracedMessage[core.PublicInventoryStockUpdatedEventV1]
 		json.Unmarshal(body, &evt)
 
 		sctx, err := tracer.Extract(evt.Datadog)

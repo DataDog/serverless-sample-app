@@ -5,7 +5,7 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-package core
+package productaclcore
 
 import "context"
 
