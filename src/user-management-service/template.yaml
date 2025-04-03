@@ -52,8 +52,8 @@ Globals:
 Conditions:
   IsNonProdEnvironment: !Not [!Equals [!Ref Env, prod]]
   IsIntegratedEnvironment: !Or
-    - !Equals [ "dev", !Ref Env ]
-    - !Equals [ "prod", !Ref Env ]
+    - !Equals ["dev", !Ref Env]
+    - !Equals ["prod", !Ref Env]
   IsNotIntegratedEnvironment: !And
     - !Not [!Equals [!Ref Env, prod]]
     - !Not [!Equals [!Ref Env, dev]]
@@ -257,7 +257,7 @@ Resources:
     Metadata:
       BuildMethod: rust-cargolambda
       Binary: get-user-details
-  
+
   ################################################
   ############# Background Workers ###############
   ################################################
@@ -268,6 +268,9 @@ Resources:
       CodeUri: ./src/user-management/lambdas/handle_order_completed_for_user/
       Handler: handle-order-completed
       FunctionName: !Sub ${ServiceName}-OrderCompleted-${Env}
+      Environment:
+        Variables:
+          USE_SPAN_LINK: "true"
       Events:
         IntegrationQueue:
           Type: SQS
@@ -331,8 +334,8 @@ Resources:
               Service: "events.amazonaws.com"
             Resource: !GetAtt OrderCompletedQueue.Arn
             Action: SQS:SendMessage
-            
-  ################################################      
+
+  ################################################
   ######## Public Event Subscriptions ############
   ################################################
   SharedEventBusToUserManagementEventBusRole:
@@ -358,7 +361,7 @@ Resources:
                 Action:
                   - "events:PutEvents"
                 Resource: [!GetAtt UserManagementEventBus.Arn]
-  
+
   SharedEventBusOrderCompletedEventRule:
     Type: AWS::Events::Rule
     Condition: IsIntegratedEnvironment

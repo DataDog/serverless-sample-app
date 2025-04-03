@@ -47,6 +47,7 @@ export class UserManagementBackgroundWorkers extends Construct {
         handler: "index.handler",
         environment: {
           TABLE_NAME: props.userManagementTable.tableName,
+          USE_SPAN_LINK: "true",
         },
         manifestPath:
           "./src/user-management/lambdas/handle_order_completed_for_user/Cargo.toml",

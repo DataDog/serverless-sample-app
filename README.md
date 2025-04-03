@@ -81,6 +81,7 @@ If you wish to deploy the entire application there is a custom Docker image avai
     ```
 4. Deploy CDK implementation of app
     ```sh
+    source ~/.profile
     ./cdk-deploy-all.sh
     ```
 5. Once deployment is complete exit the interactive shell by typing `exit`
@@ -112,6 +113,12 @@ Once you are finished testing, run the below commands to delete resources from y
         -e DD_API_KEY="${DD_API_KEY}" \
         -e DD_SITE="${DD_SITE}" \
         public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-build-image:latest
+    ```
+
+2. Delete resources
+    ```sh
+    source ~/.profile
+    ./cdk-destroy.sh
     ```
 
 ## Frontend

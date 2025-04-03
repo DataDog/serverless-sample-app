@@ -9,6 +9,7 @@ import {
   AttributeType,
   BillingMode,
   ITable,
+  StreamViewType,
   Table,
   TableClass,
 } from "aws-cdk-lib/aws-dynamodb";
@@ -19,6 +20,12 @@ import { RemovalPolicy } from "aws-cdk-lib";
 import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
 import { IStringParameter } from "aws-cdk-lib/aws-ssm";
 import { LoyaltyServiceProps } from "./loyaltyServiceProps";
+import {
+  DynamoEventSource,
+  SqsDlq,
+} from "aws-cdk-lib/aws-lambda-event-sources";
+import { StartingPosition } from "aws-cdk-lib/aws-lambda";
+import { Queue } from "aws-cdk-lib/aws-sqs";
 
 export interface ApiProps {
   serviceProps: LoyaltyServiceProps;
@@ -28,7 +35,7 @@ export interface ApiProps {
 
 export class Api extends Construct {
   api: RestApi;
-  table: ITable;
+  table: Table;
 
   constructor(scope: Construct, id: string, props: ApiProps) {
     super(scope, id);
@@ -44,7 +51,36 @@ export class Api extends Construct {
         type: AttributeType.STRING,
       },
       removalPolicy: RemovalPolicy.DESTROY,
+      stream: StreamViewType.NEW_AND_OLD_IMAGES,
     });
+
+    const loyaltyPointsUpdatedFailureDlq = new Queue(
+      this,
+      "LoyaltyPointsUpdatedFailureDLQ",
+      {
+        queueName: `${
+          props.serviceProps.getSharedProps().serviceName
+        }-LoyaltyPointsUpdatedFailureDLQ-${
+          props.serviceProps.getSharedProps().environment
+        }`,
+      }
+    );
+
+    const loyaltyPointsUpdatedFunction =
+      this.buildHandleLoyaltyPointsUpdatedFunction(props);
+    loyaltyPointsUpdatedFunction.function.addEventSource(
+      new DynamoEventSource(this.table, {
+        startingPosition: StartingPosition.LATEST,
+        batchSize: 5,
+        bisectBatchOnError: true,
+        onFailure: new SqsDlq(loyaltyPointsUpdatedFailureDlq),
+        retryAttempts: 2,
+      })
+    );
+    this.table.grantStreamRead(loyaltyPointsUpdatedFunction.function);
+    props.serviceProps
+      .getPublisherBus()
+      .grantPutEventsTo(loyaltyPointsUpdatedFunction.function);
 
     const getPointsIntegration = this.buildGetLoyaltyAccountFunction(props);
     const spendPointsIntegration = this.buildSpendPointsFunction(props);
@@ -105,8 +141,8 @@ export class Api extends Construct {
         handler: "index.handler",
         environment: {
           TABLE_NAME: this.table.tableName,
-          EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
           JWT_SECRET_PARAM_NAME: props.jwtSecret.parameterName,
+          DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${this.table.tableName}": ["PK"]}`,
         },
         buildDef:
           "./src/loyalty-api/adapters/buildSpendLoyaltyPointsFunction.js",
@@ -119,10 +155,37 @@ export class Api extends Construct {
     );
     this.table.grantReadWriteData(spendPointsFunction.function);
     props.jwtSecret.grantRead(spendPointsFunction.function);
-    props.serviceProps
-      .getPublisherBus()
-      .grantPutEventsTo(spendPointsFunction.function);
 
     return spendPointsIntegration;
+  }
+
+  buildHandleLoyaltyPointsUpdatedFunction(
+    props: ApiProps
+  ): InstrumentedLambdaFunction {
+    const loyaltyPointsUpdatedFunction = new InstrumentedLambdaFunction(
+      this,
+      "HandleLoyaltyPointsUpdatedFunction",
+      {
+        sharedProps: props.serviceProps.getSharedProps(),
+        functionName: "HandleLoyaltyPointsUpdated",
+        handler: "index.handler",
+        environment: {
+          TABLE_NAME: this.table.tableName,
+          EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
+        },
+        buildDef:
+          "./src/loyalty-api/adapters/buildHandleLoyaltyPointsUpdated.js",
+        outDir: "./out/handleLoyaltyPointsUpdated",
+        onFailure: undefined,
+      }
+    );
+
+    this.table.grantReadWriteData(loyaltyPointsUpdatedFunction.function);
+    props.jwtSecret.grantRead(loyaltyPointsUpdatedFunction.function);
+    props.serviceProps
+      .getPublisherBus()
+      .grantPutEventsTo(loyaltyPointsUpdatedFunction.function);
+
+    return loyaltyPointsUpdatedFunction;
   }
 }

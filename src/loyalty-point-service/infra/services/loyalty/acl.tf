@@ -49,7 +49,7 @@ module "handle_user_created_lambda" {
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.loyalty_table.name
-    "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
+    "DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS": "{\"${aws_dynamodb_table.loyalty_table.id}\": [\"PK\"]}"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -112,7 +112,7 @@ module "handle_order_completed_lambda" {
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.loyalty_table.name
-    "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
+    "DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS": "{\"${aws_dynamodb_table.loyalty_table.id}\": [\"PK\"]}"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site

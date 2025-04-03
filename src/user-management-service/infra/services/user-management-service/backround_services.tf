@@ -53,6 +53,7 @@ module "order_completed_handler" {
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.user_management_table.name
+    "USE_SPAN_LINK" : "true"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site

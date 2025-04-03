@@ -18,14 +18,11 @@ import { DynamoDbLoyaltyPointRepository } from "./dynamoDbLoyaltyPointRepository
 import { JwtPayload, verify } from "jsonwebtoken";
 import { getParameter } from "@aws-lambda-powertools/parameters/ssm";
 import { Logger } from "@aws-lambda-powertools/logger";
-import { EventBridgeEventPublisher } from "./eventBridgeEventPublisher";
 
 const dynamoDbClient = new DynamoDBClient();
-const eventBridgeClient = new EventBridgeClient();
 
 const spendPointsHandler = new SpendPointsCommandHandler(
-  new DynamoDbLoyaltyPointRepository(dynamoDbClient),
-  new EventBridgeEventPublisher(eventBridgeClient)
+  new DynamoDbLoyaltyPointRepository(dynamoDbClient)
 );
 const logger = new Logger({});
 

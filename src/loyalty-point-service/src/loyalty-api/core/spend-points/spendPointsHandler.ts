@@ -21,14 +21,11 @@ const logger = new Logger({});
 
 export class SpendPointsCommandHandler {
   private repository: loyaltyPointRepository;
-  private eventPublisher: EventPublisher;
 
   constructor(
     repository: loyaltyPointRepository,
-    eventPublisher: EventPublisher
   ) {
     this.repository = repository;
-    this.eventPublisher = eventPublisher;
   }
 
   public async handle(
@@ -62,10 +59,6 @@ export class SpendPointsCommandHandler {
       }
 
       await this.repository.save(loyaltyAccount);
-      await this.eventPublisher.publishLoyaltyPointsUpdated({
-        userId: loyaltyAccount.userId,
-        newPointsTotal: loyaltyAccount.currentPoints,
-      });
 
       return {
         data: {

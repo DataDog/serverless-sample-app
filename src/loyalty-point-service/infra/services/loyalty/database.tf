@@ -6,9 +6,11 @@
 //
 
 resource "aws_dynamodb_table" "loyalty_table" {
-  name           = "LoyaltyService-accounts-${var.env}"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "PK"
+  name             = "LoyaltyService-accounts-${var.env}"
+  billing_mode     = "PAY_PER_REQUEST"
+  hash_key         = "PK"
+  stream_enabled   = true
+  stream_view_type = "NEW_AND_OLD_IMAGES"
 
   attribute {
     name = "PK"

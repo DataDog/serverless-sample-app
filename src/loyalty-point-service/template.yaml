@@ -173,16 +173,13 @@ Resources:
       FunctionName: !Sub SpendLoyaltyPointsFunction-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: !If
-            - IsIntegratedEnvironment
-            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-            - !Ref LoyaltyServiceEventBus
           JWT_SECRET_PARAM_NAME: !If
             - IsIntegratedEnvironment
             - !Sub /${Env}/shared/secret-access-key
             - !Sub /${Env}/${ServiceName}/secret-access-key
+          DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
       Events:
-        GetProduct:
+        SpendPoints:
           Type: Api
           Properties: 
             Path: /loyalty
@@ -191,11 +188,6 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName:
               !Ref LoyaltyAccountTable
-        - EventBridgePutEventsPolicy:
-            EventBusName: !If
-              - IsIntegratedEnvironment
-              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-              - !Ref LoyaltyServiceEventBus
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -215,6 +207,47 @@ Resources:
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
 
+  HandleLoyaltyPointsUpdatedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/handleLoyaltyPointsUpdated/handleLoyaltyPointsUpdated.zip
+      Handler: index.handler
+      FunctionName: !Sub HandleLoyaltyPointsUpdated-${Env}
+      Environment:
+        Variables:
+          DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
+          EVENT_BUS_NAME: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref LoyaltyServiceEventBus
+      Events:
+        DDBEvent:
+          Type: DynamoDB
+          Properties:
+            Stream: 
+              !GetAtt LoyaltyAccountTable.StreamArn   # This must be the name of a DynamoDB table declared in the same template file
+            StartingPosition: LATEST
+            BatchSize: 5
+            Enabled: true
+      Policies:
+        - EventBridgePutEventsPolicy:
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref LoyaltyServiceEventBus
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Ref LoyaltyAccountTable
+        - DynamoDBStreamReadPolicy:
+            TableName:
+              !Ref LoyaltyAccountTable
+            StreamName: "*"
+        - EventBridgePutEventsPolicy:
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref LoyaltyServiceEventBus
+
 ################################################
 ############# Background Workers ###############
 ################################################
@@ -227,10 +260,7 @@ Resources:
       FunctionName: !Sub HandleUserCreated-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: !If
-            - IsIntegratedEnvironment
-            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-            - !Ref LoyaltyServiceEventBus
+          DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
       Events:
         UserCreatedQueue:
           Type: SQS
@@ -300,10 +330,7 @@ Resources:
       FunctionName: !Sub HandleOrderCompleted-${Env}
       Environment:
         Variables:
-          EVENT_BUS_NAME: !If
-            - IsIntegratedEnvironment
-            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-            - !Ref LoyaltyServiceEventBus
+          DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
       Events:
         OrderCompletedQueue:
           Type: SQS
@@ -313,11 +340,6 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName:
               !Ref LoyaltyAccountTable
-        - EventBridgePutEventsPolicy:
-            EventBusName: !If
-              - IsIntegratedEnvironment
-              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-              - !Ref LoyaltyServiceEventBus
 
   OrderCompletedDLQ:
     Type: AWS::SQS::Queue
@@ -437,6 +459,8 @@ Resources:
       KeySchema:
         - AttributeName: PK
           KeyType: HASH
+      StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
 
   ApiEndpoint:
     Type: AWS::SSM::Parameter

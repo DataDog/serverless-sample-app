@@ -10,10 +10,10 @@ const esbuild = require("esbuild");
 
 esbuild
   .build({
-    entryPoints: ["./src/loyalty-api/adapters/handleOrderCompletedFunction.ts"],
+    entryPoints: ["./src/loyalty-api/adapters/handleLoyaltyPointsUpdated.ts"],
     bundle: true,
     minify: true,
-    outfile: "out/handleOrderCompletedFunction/index.js",
+    outfile: "out/handleLoyaltyPointsUpdated/index.js",
     plugins: [ddPlugin],
     platform: "node", // allows built-in modules to be required
     target: ["node22"],

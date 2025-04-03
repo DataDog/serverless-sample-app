@@ -11,7 +11,6 @@ import { Logger } from "@aws-lambda-powertools/logger";
 import { loyaltyPointRepository } from "../loyaltyPointRepository";
 import { LoyaltyPointsDTO } from "../loyaltyPointsDTO";
 import { LoyaltyPoints } from "../loyaltyPoints";
-import { EventPublisher } from "../eventPublisher";
 
 export class UpdatePointsCommand {
   userId: string;
@@ -23,11 +22,9 @@ const logger = new Logger({});
 
 export class UpdatePointsCommandHandler {
   private repository: loyaltyPointRepository;
-  private eventPublisher: EventPublisher;
 
   constructor(
     repository: loyaltyPointRepository,
-    eventPublisher: EventPublisher
   ) {
     this.repository = repository;
   }
@@ -58,10 +55,6 @@ export class UpdatePointsCommandHandler {
 
       if (pointsAdded) {
         await this.repository.save(loyaltyAccount);
-        await this.eventPublisher.publishLoyaltyPointsUpdated({
-          userId: loyaltyAccount.userId,
-          newPointsTotal: loyaltyAccount.currentPoints,
-        });
       }
 
       return {

@@ -69,7 +69,7 @@ module "spend_loyalty_points_lambda" {
   environment_variables = {
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/LoyaltyService/secret-access-key"
     "TABLE_NAME" : aws_dynamodb_table.loyalty_table.name
-    "EVENT_BUS_NAME": var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
+    "DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS": "{\"${aws_dynamodb_table.loyalty_table.id}\": [\"PK\"]}"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
@@ -116,6 +116,31 @@ resource "aws_api_gateway_stage" "rest_api_stage" {
   deployment_id = aws_api_gateway_deployment.rest_api_deployment.id
   rest_api_id   = module.api_gateway.api_id
   stage_name    = var.env
+}
+
+module "loyalty_points_updated_handler" {
+  service_name   = "LoyaltyService"
+  source         = "../../modules/lambda-function"
+  zip_file       = "../out/handleLoyaltyPointsUpdated/handleLoyaltyPointsUpdated.zip"
+  function_name  = "HandleLoyaltyPointsUpdated"
+  lambda_handler = "index.handler"
+  environment_variables = {
+    "EVENT_BUS_NAME": var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
+  }
+  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
+  app_version = var.app_version
+  env = var.env
+  additional_policy_attachments = [
+    aws_iam_policy.dynamo_db_read.arn,
+    aws_iam_policy.get_jwt_ssm_parameter.arn
+  ]
+}
+
+resource "aws_lambda_event_source_mapping" "dynamo_db_stream_esm" {
+  event_source_arn  = aws_dynamodb_table.loyalty_table.stream_arn
+  function_name     = module.loyalty_points_updated_handler.function_arn
+  starting_position = "LATEST"
 }
 
 resource "aws_ssm_parameter" "api_endpoint" {

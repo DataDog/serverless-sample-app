@@ -28,8 +28,7 @@ import { EventBridgeEventPublisher } from "./eventBridgeEventPublisher";
 const dynamoDbClient = new DynamoDBClient();
 const eventBridgeClient = new EventBridgeClient();
 const updatePointsCommandHandler = new UpdatePointsCommandHandler(
-  new DynamoDbLoyaltyPointRepository(dynamoDbClient),
-  new EventBridgeEventPublisher(eventBridgeClient)
+  new DynamoDbLoyaltyPointRepository(dynamoDbClient)
 );
 const logger = new Logger({});
 

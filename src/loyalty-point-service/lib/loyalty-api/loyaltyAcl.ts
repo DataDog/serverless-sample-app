@@ -13,13 +13,13 @@ import { IQueue } from "aws-cdk-lib/aws-sqs";
 import { ResiliantQueue } from "../constructs/resiliantQueue";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { SqsQueue } from "aws-cdk-lib/aws-events-targets";
-import { ITable } from "aws-cdk-lib/aws-dynamodb";
+import { ITable, Table } from "aws-cdk-lib/aws-dynamodb";
 import { LoyaltyServiceProps } from "./loyaltyServiceProps";
 
 export interface LoyaltyACLServiceProps {
   serviceProps: LoyaltyServiceProps;
   ddApiKeySecret: ISecret;
-  loyaltyTable: ITable
+  loyaltyTable: Table
 }
 
 export class LoyaltyACL extends Construct {
@@ -53,16 +53,15 @@ export class LoyaltyACL extends Construct {
         functionName: "HandleUserCreated",
         handler: "index.handler",
         environment: {
-          EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
           TABLE_NAME: props.loyaltyTable.tableName,
+          DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${props.loyaltyTable.tableName}": ["PK"]}`,
         },
         buildDef:
           "./src/loyalty-api/adapters/buildHandleUserCreatedFunction.js",
         outDir: "./out/handleUserCreatedFunction",
-        onFailure: undefined
+        onFailure: undefined,
       }
     ).function;
-    props.serviceProps.getPublisherBus().grantPutEventsTo(this.handleUserCreatedFunction);
     props.loyaltyTable.grantReadWriteData(this.handleUserCreatedFunction);
 
     this.handleUserCreatedFunction.addEventSource(
@@ -96,16 +95,15 @@ export class LoyaltyACL extends Construct {
         functionName: "HandleOrderCompleted",
         handler: "index.handler",
         environment: {
-          EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
           TABLE_NAME: props.loyaltyTable.tableName,
+          DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${props.loyaltyTable.tableName}": ["PK"]}`,
         },
         buildDef:
           "./src/loyalty-api/adapters/buildHandleOrderCompletedFunction.js",
         outDir: "./out/handleOrderCompletedFunction",
-        onFailure: undefined
+        onFailure: undefined,
       }
     ).function;
-    props.serviceProps.getPublisherBus().grantPutEventsTo(this.handleOrderCompletedFunction);
     props.loyaltyTable.grantReadWriteData(this.handleOrderCompletedFunction);
 
     this.handleOrderCompletedFunction.addEventSource(
