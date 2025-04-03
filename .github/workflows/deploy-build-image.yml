@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  deploy-tf:
+  build-and-push-build-image:
     runs-on: ubuntu-latest
     concurrency:
       group: build-image
@@ -38,8 +38,10 @@ jobs:
           context: ./build-image
           file: ./build-image/Dockerfile
       - uses: aws-actions/amazon-ecr-login@v2
-        name: Login to Amazon ECR
-        id: login-ecr
+        name: Login to Amazon ECR Public
+        id: login-ecr-public
+        with:
+          registry-type: public
       - name: Tag With Commit Hash
         run: docker tag ${{secrets.BUILD_IMAGE_NAME}}:latest ${{secrets.BUILD_IMAGE_ECR_REPOSITORY}}/${{secrets.BUILD_IMAGE_NAME}}:${{ env.sha_short }}
       - name: Tag With LatestCommit Hash
