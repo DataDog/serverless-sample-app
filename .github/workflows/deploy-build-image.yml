@@ -1,0 +1,50 @@
+name: Deploy Inventory Service
+
+on:
+  push:
+    paths:
+      - build-image/**
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-tf:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: build-image
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: "us-east-1"
+      - name: Declare some variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      -
+        name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          push: false
+          load: true
+          tags: ${{ secrets.BUILD_IMAGE_NAME }}:latest
+          context: ./build-image
+          file: Dockerfile
+      - uses: aws-actions/amazon-ecr-login@v2
+        name: Login to Amazon ECR
+        id: login-ecr
+      - name: Tag With Commit Hash
+        run: docker tag ${{secrets.BUILD_IMAGE_NAME}}:latest ${{secrets.BUILD_IMAGE_ECR_REPOSITORY}}/${{secrets.BUILD_IMAGE_NAME}}:${{ env.sha_short }}
+      - name: Tag With LatestCommit Hash
+        run: docker tag ${{secrets.BUILD_IMAGE_NAME}}:latest ${{secrets.BUILD_IMAGE_ECR_REPOSITORY}}/${{secrets.BUILD_IMAGE_NAME}}:latest
+      - name: Push Commit Hash to Registry
+        run: docker push ${{secrets.BUILD_IMAGE_ECR_REPOSITORY}}/${{secrets.BUILD_IMAGE_NAME}}:${{ env.sha_short }}
+      - name: Push Latest image to Registry
+        run: docker push ${{secrets.BUILD_IMAGE_ECR_REPOSITORY}}/${{secrets.BUILD_IMAGE_NAME}}:latest
