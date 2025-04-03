@@ -15,7 +15,7 @@ require (
 )
 
 require (
-	github.com/DataDog/appsec-internal-go v1.10.0 // indirect
+	github.com/DataDog/appsec-internal-go v1.11.1 // indirect
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.62.3 // indirect
 	github.com/DataDog/datadog-agent/pkg/proto v0.58.0 // indirect
 	github.com/DataDog/datadog-agent/pkg/remoteconfig/state v0.62.3 // indirect
