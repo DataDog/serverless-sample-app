@@ -164,10 +164,10 @@ export class Api extends Construct {
   ): InstrumentedLambdaFunction {
     const loyaltyPointsUpdatedFunction = new InstrumentedLambdaFunction(
       this,
-      "HandleLoyaltyPointsUpdatedFunction",
+      "HandleLoyaltyUpdateFunction",
       {
         sharedProps: props.serviceProps.getSharedProps(),
-        functionName: "HandleLoyaltyPointsUpdated",
+        functionName: "HandleLoyaltyUpdate",
         handler: "index.handler",
         environment: {
           TABLE_NAME: this.table.tableName,
