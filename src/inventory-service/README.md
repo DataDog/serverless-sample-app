@@ -1,12 +1,30 @@
-# Java Implementation
+# Inventory Service
 
-This README contains relevant instructions for deploying the sample application with each of the available IaC tools. As well as details on any Java specific implementation details when instrumenting with Datadog.
+**Runtime: Java**
 
-The Java sample code uses [Spring Cloud Functions](https://spring.io/projects/spring-cloud-function) to enable SpringBoot features inside a serverless environment. Spring Cloud Functions could be substituted for [Micronaut](https://micronaut.io/) or [Quarkus](https://quarkus.io/) and the IaC code would stay the same.
+**AWS Services Used: Application Load Balancer, ECS, Fargate, Lambda, SQS, DynamoDB, EventBridge, StepFunctions**
 
-## Testing
+![Architecture Diagram](../../img/inventory-service-arch.png)
 
-To generate load against your application, see the documentation on running a [load test](../../README.md#load-tests)
+The inventory service manages stock levels, and allows admin users to update the stock of products. It is made up of 3 independent services.
+
+1. The `InventoryAPI` allows all users to retrieve the stock level for a given product, and allows admin users to update the stock level of a given product
+2. The `InventoryACL` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes events published by external services, translates them to internal events and processes them
+3. The `InventoryOrderingService` reacts to `NewProductAdded` events and starts the stock ordering workflow
+
+The Java examples use the [Quarkus](https://quarkus.io/) for a high-performance, modern & cloud native Java runtime.
+
+> [!IMPORTANT]  
+> The Datadog Lambda extension sends logs directly to Datadog without the need for CloudWatch. The examples in this repository disable Cloudwatch Logs for all Lambda functions.
+
+## Deployment
+
+Ensure you have set the below environment variables before starting deployment:
+
+- `DD_API_KEY`: Your current DD_API_KEY
+- `DD_SITE`: The Datadog Site to use
+- `AWS_REGION`: The AWS region you want to deploy to
+- `ENV`: The environment suffix you want to deploy to, this defaults to `dev`
 
 ## AWS CDK
 
@@ -14,8 +32,8 @@ When using Java as your language of choice with the AWS CDK, you need to manuall
 
 ```java
 List<ILayerVersion> layers = new ArrayList<>(2);
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:15",System.getenv("AWS_REGION"))));
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:66", System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:19",System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:76", System.getenv("AWS_REGION"))));
 
 var builder = Function.Builder.create(this, props.routingExpression())
     // Remove for brevity
@@ -36,34 +54,28 @@ lambdaEnvironment.put("DD_CAPTURE_LAMBDA_PAYLOAD", "true");
 lambdaEnvironment.put("DD_LOGS_INJECTION", "true");
 ```
 
-The Datadog extension retrieves your Datadog API key from a Secrets Manager secret. For this to work, ensure you create a secret in your account containing your API key and set the `DD_API_KEY_SECRET_ARN` and `DD_SITE` environment variable before deployment. Eensure that you give your Lambda function permission to access the AWS Secrets Manager secret
-
 ```java
 props.sharedProps().ddApiKeySecret().grantRead(this.function);
 ```
 
 ### Deploy
 
-To simplify deployment, all of the different microservices are managed in the same CDK project. This **is not recommended** in real applications, but simplifies the deployment for demonstration purposes.
+The Datadog extension retrieves your Datadog API key from a Secrets Manager secret, this secret is created as part of the stack deployment.
 
-Each microservice is implemented as a seperate CloudFormation Stack, and there are no direct dependencies between stacks. Each stack stores relevant resource ARN's (SNS Topic ARN etc) in SSM Parameter Store, and the other stacks dynamically load the ARN's:
+If you are using secrets manager in production, you should create your secret separately from your application.
 
-```java
-String productCreatedArn = StringParameter.valueForStringParameter(this, "/java/product-api/product-created-topic");
-ITopic productCreatedTopic = Topic.fromTopicArn(this, "ProductCreatedTopic", productCreatedArn);
-```
-
-You first need to compile your Java application code, before running `cdk deploy`. Run the below commands in order to deploy.
+To deploy all stacks and resources, run:
 
 ```sh
-export DD_API_KEY_SECRET_ARN=<YOUR SECRET ARN>
-export DD_SITE=<YOUR PREFERRED DATADOG SITE>
-mvn clean package
 cd cdk
 cdk deploy --all --require-approval never
 ```
 
-If you wish to deploy individual stacks, you can do that by running the respective command below:
+Alternatively, if you have `make` installed you can simply run:
+
+``sh
+make cdk-deploy
+``
 
 ### Cleanup
 
@@ -77,38 +89,41 @@ cdk destroy --all
 
 The AWS SAM example leverages the Datadog CloudFormation Macro. The macro auto-instruments your Lambda functions at the point of deployment. Ensure you have followed the [installation instructions](https://docs.datadoghq.com/serverless/libraries_integrations/macro/) before continuing with the SAM deployment.
 
-Ensure you have set the below environment variables before starting deployment:
-
-- `DD_API_KEY_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
-- `DD_SITE`: The Datadog Site to use
-- `AWS_REGION`: The AWS region you want to deploy to
-
-Once both environment variables are set, use the below `sh` script to deploy all backend services. You can deploy individual services as well if required. Due to the SSM parameters holding SNS Topic ARN's, the order of deployment is important.
+```yaml
+Transform:
+  - AWS::Serverless-2016-10-31
+  - Name: DatadogServerless
+    Parameters:
+      stackName: !Ref "AWS::StackName"
+      apiKey: !Ref DDApiKey
+      dotnetLayerVersion: "19"
+      extensionLayerVersion: "76"
+      service: !Ref ServiceName
+      env: !Ref Env
+      version: !Ref CommitHash
+      site: !Ref DDSite
+      captureLambdaPayload: true
+```
 
 ### Deploy
 
-The `template.yaml` file contains an example of using a nested stack to deploy all 6 backend services in a single command. This **is not** recommended for production use cases, instead preferring independent deployments. For the purposes of this demonstration, a single template makes test deployments easier.
+```sh
+sam build
+sam deploy --stack-name InventoryService-${ENV} --parameter-overrides ParameterKey=DDApiKey,ParameterValue=${DD_API_KEY} ParameterKey=DDSite,ParameterValue=${DD_SITE} ParameterKey=Env,ParameterValue=${ENV} ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --resolve-s3 --region ${AWS_REGION}
+```
 
-The `CodeUri` property in the SAM template directly references a compiled `jar` file. Ensure you run `mvn clean package` before deploying a new version.
+Alternatively, you can run
 
 ```sh
-mvn clean package
-sam build
-sam deploy --stack-name JavaTracing --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_API_KEY_SECRET_ARN" ParameterKey=DDSite,ParameterValue="$DD_SITE" --resolve-s3 --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $AWS_REGION
+make sam
 ```
 
 ### Cleanup
 
-Use the below `sh` script to cleanup resources deployed with AWS SAM.
+Use the below script to cleanup resources deployed with AWS SAM.
 
 ```sh
-sam delete --stack-name JavaInventoryOrderingService --region $AWS_REGION --no-prompts &&
-sam delete --stack-name JavaInventoryAcl --region $AWS_REGION --no-prompts &&
-sam delete --stack-name JavaProductApiWorkerStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name JavaProductPublicEventPublisherStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name JavaProductPricingServiceStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name JavaProductApiStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name JavaSharedStack --region $AWS_REGION --no-prompts
+sam delete --stack-name DotnetTracing --region $AWS_REGION --no-prompts
 ```
 
 ## Terraform
@@ -126,19 +141,25 @@ The [Datadog Lambda Terraform module](https://github.com/DataDog/terraform-aws-l
 ```terraform
 module "aws_lambda_function" {
   source  = "DataDog/lambda-datadog/aws"
-  version = "1.3.0"
+  version = "3.0.0"
 
-  filename                 = var.jar_file
-  function_name            = var.function_name
+  s3_bucket = var.s3_bucket_name
+  s3_key = aws_s3_object.object.key
+  s3_object_version = aws_s3_object.object.version_id
+  function_name            = "TF-${var.service_name}-${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
-  handler                  = "org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest"
+  handler                  = var.lambda_handler
   runtime                  = "java21"
   memory_size              = var.memory_size
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
   source_code_hash         = base64sha256(filebase64(var.jar_file))
   timeout                  = var.timeout
+  publish                  = var.enable_snap_start
+  snap_start_apply_on      = var.enable_snap_start ? "PublishedVersions" : "None"
 
   environment_variables = merge(tomap({
+    "DOMAIN": "inventory"
+    "TEAM": "inventory"
     "MAIN_CLASS" : "${var.package_name}.FunctionConfiguration"
     "DD_SITE" : var.dd_site
     "DD_SERVICE" : var.service_name
@@ -146,37 +167,32 @@ module "aws_lambda_function" {
     "ENV" : var.env
     "DD_VERSION" : var.app_version
     "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
-    "DD_CAPTURE_LAMBDA_PAYLOAD": "true"
-    "DD_LOGS_INJECTION": "true"
-    "spring_cloud_function_definition" : var.lambda_handler}),
+    "DD_CAPTURE_LAMBDA_PAYLOAD" : "true"
+    "DD_SERVERLESS_APPSEC_ENABLED": "true"
+    "DD_IAST_ENABLED": "true"
+    "DD_LOGS_INJECTION" : "true"
+    "spring_cloud_function_definition" : var.routing_expression
+    "QUARKUS_LAMBDA_HANDLER": var.routing_expression}),
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 66
-  datadog_java_layer_version      = 15
+  datadog_extension_layer_version = 76
+  datadog_java_layer_version      = 19
 }
 ```
 
 ### Deploy
 
-To deploy, first create a file named `infra/dev.tfvars`. In your tfvars file, you need to add your the AWS Secrets Manager ARN for the secret containing your Datadog API Key.
-
-```tf
-dd_api_key_secret_arn="<DD_API_KEY_SECRET_ARN>"
-dd_site="<YOUR PREFERRED DATADOG SITE>
-region="<YOUR PREFERRED AWS_REGION>"
-```
-
-You can optionally provide an S3 backend to use as your state store, to do this set the below environment variables and run `terraform init`
+The root of the repository contains a  Makefile, this will compile all the Java code, generate the ZIP files and run `terraform apply`. To deploy the Terraform example, simply run:
 
 ```sh
-export AWS_REGION=<YOUR PREFERRED AWS_REGION>
 export TF_STATE_BUCKET_NAME=<THE NAME OF THE S3 BUCKET>
-export ENV=<ENVIRONMENT NAME>
-make tf-java-local
+make tf-apply
 ```
 
-Alternatively, comment out the S3 backend section in [`providers.tf'](./infra/providers.tf).
+The `make tf-apply` command will compile and package your Lambda functions one by one, and then run `terraform apply --var-file dev.tfvars`.
+
+The example expects an S3 backend to use as your state store. Alternatively, comment out the S3 backend section in [`providers.tf'](./infra/providers.tf).
 
 ```tf
 terraform {
@@ -186,9 +202,7 @@ terraform {
       version = "~> 5.61"
     }
   }
-#  backend "s3" {
-#    key    = "java/terraform.tfstate"
-#  }
+#  backend "s3" {}
 }
 
 provider "aws" {
@@ -196,75 +210,22 @@ provider "aws" {
 }
 ```
 
-There's a single `main.tf` that contains all 7 backend services as modules. This is **not** recommended in production, and you should deploy backend services independenly. However, to simplify this demo deployment a single file is used.
+And re-run the apply command.
 
-The root of the repository contains a `deploy.sh` file, this will compile all your Java code, generate the ZIP files and run `terraform apply`. To deploy the Terraform example, simply run:
-
-```sh
-./deploy.sh
+```
+make tf-apply-local
 ```
 
 ### Cleanup
 
-To cleanup all Terraform resources run:
+To clean-up all Terraform resources run:
 
 ```sh
-cd infra
-terraform destroy --var-file dev.tfvars
+make tf-destroy
 ```
 
 ## Serverless Framework
 
-Datadog provides a [plugin](https://www.serverless.com/plugins/serverless-plugin-datadog) to simply configuration of your serverless applications when using the [serverless framework](https://www.serverless.com/). Inside your `serverless.yml` add a `custom.datadog` block. The available configuration options are available in the [documentation](https://www.serverless.com/plugins/serverless-plugin-datadog#configuration-parameters).
+The Serverless Framework is not supporting future runtimes in V3. Due to the changes in licensing for the serverless framework in V4 onwards, this repo **does not** include examples for V4.
 
-> **IMPORTANT** Ensure you add permissions to `secretsmanager:GetSecretValue` for the Secrets Manager secret holding your Datadog API key
-
-```yaml
-custom:
-  datadog:
-    apiKeySecretArn: ${param:DD_API_KEY_SECRET_ARN}
-    site: ${param:DD_SITE}
-    env: ${sls:stage}
-    service: ${self:custom.serviceName}
-    version: 66
-    # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
-    captureLambdaPayload: true
-    propagateUpstreamTrace: true
-```
-
-### Deploy
-
-Ensure you have set the below environment variables before starting deployment:
-
-- `DD_API_KEY_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
-- `DD_SITE`: The Datadog Site to use
-- `AWS_REGION`: The AWS region you want to deploy to
-
-Once set, use the below commands to deploy each of the individual backend services on by one. You will need to package your Java application before deploy.
-
-```sh
-mvn clean package &&
-serverless deploy --stage dev --region=${AWS_REGION} --config serverless-shared.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-pricing-service.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api-worker.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-product-event-publisher.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-acl.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-ordering-service.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-analytics-service.yml
-```
-
-### Cleanup
-
-The same commands can be used to cleanup all resources, but replacing `deploy` with `remove`.
-
-```sh
-serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-analytics-service.yml &&
-serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-ordering-service.yml &&
-serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-acl.yml &&
-serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-product-event-publisher.yml &&
-serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api-worker.yml &&
-serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-pricing-service.yml &&
-serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api.yml &&
-serverless remove --stage dev --region=${AWS_REGION} --config serverless-shared.yml
-```
+See this [GitHub issue for further comments](https://github.com/serverless/serverless/issues/12367).

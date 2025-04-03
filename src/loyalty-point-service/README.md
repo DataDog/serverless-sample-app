@@ -1,6 +1,13 @@
-# NodeJS Implementation
+# Loyalty Point Service
 
-This README contains relevant instructions for deploying the sample application with each of the available IaC tools. As well as details on any Node specific implementation details when instrumenting with Datadog.
+**Runtime: NodeJS**
+
+**AWS Services Used: API Gateway, Lambda, SQS, DynamoDB, EventBridge**
+
+The loyalty account service tracks the status of a users loyalty account, and manages how many loyalty points a user has. It allows users to retrieve the current state of their loyalty account, and reacts to OrderCompleted events to add additional points to a loyalty account.
+
+1. The `Api` provides various endpoints to get a users loyalty account, as well as an additional endpoint to spend their points
+2. The `LoyaltyACL` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes events published by external services, translates them to internal events and processes them
 
 ## Testing
 

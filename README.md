@@ -16,7 +16,6 @@ This repository contains source code for demonstrating best practices for observ
 | AWS CDK              | [Y](./src/loyalty-point-service/README.md#aws-cdk)              |        | [Y](./src/order-service/README.md#aws-cdk)              | [Y](./src/inventory-service/README.md#aws-cdk)              | [Y](./src/product-management-service/README.md#aws-cdk)   | [Y](./src/user-management-service/README.md#aws-cdk)   |
 | AWS SAM              | [Y](./src/loyalty-point-service/README.md#aws-sam)              |        | [Y](./src/order-service/README.md#aws-sam)              | [Y](./src/inventory-service/README.md#aws-sam)              | [Y](./src/product-management-service/README.md#aws-sam)   | [Y](./src/user-management-service/README.md#aws-sam)   |
 | Terraform            | [Y](./src/loyalty-point-service/README.md#terraform)            |        | [Y](./src/order-service/README.md#terraform)            | [Y](./src/inventory-service/README.md#terraform)            | [Y](./src/product-management-service/README.md#terraform) | [Y](./src/user-management-service/README.md#terraform) |
-| Serverless Framework | [Y](./src/loyalty-point-service/README.md#serverless-framework) |        | [N](./src/order-service/README.md#serverless-framework) | [Y](./src/inventory-service/README.md#serverless-framework) |                                                           |                                                        |
 | SST v2               | [Y](./src/loyalty-point-service/README.md#serverless-stack-sst) |        |                                                         |                                                             |                                                           |                                                        |
 
 ## End to End Tracing Output
@@ -33,15 +32,7 @@ The product service manages the product catalogue, and items that are available 
 
 ### Inventory Service
 
-**Runtime: Java**
-
-**AWS Services Used: Application Load Balancer, ECS, Fargate, Lambda, SQS, DynamoDB, EventBridge, StepFunctions**
-
 The inventory service manages stock levels, and allows admin users to update the stock of products. It is made up of 3 independent services.
-
-1. The `InventoryAPI` allows all users to retrieve the stock level for a given product, and allows admin users to update the stock level of a given product
-2. The `InventoryACL` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes events published by external services, translates them to internal events and processes them
-3. The `InventoryOrderingService` reacts to `NewProductAdded` events and starts the stock ordering workflow
 
 ### Order Service
 
@@ -49,47 +40,117 @@ The order services allows users to place orders, and traces the flow of an order
 
 ### User Management Service
 
-**Runtime: Rust**
-
-**AWS Services Used: API Gateway, Lambda, SQS, DynamoDB, EventBridge**
-
 The user management services manages everything related to user accounts. It allows users to register and login, generating a JWT that is used by other services to authenticate. It also tracks the number of orders a user has placed. It is made up of 2 independent services
-
-1. The `Api` provides various API endpoints to register new users, login and retrieve details about a given user
-2. The `BackgroundWorker` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes events published by external services, translates them to internal events and processes them
 
 ### Loyalty Account Service
 
-**Runtime: NodeJS**
-
-**AWS Services Used: API Gateway, Lambda, SQS, DynamoDB, EventBridge**
-
 The loyalty account service tracks the status of a users loyalty account, and manages how many loyalty points a user has. It allows users to retrieve the current state of their loyalty account, and reacts to OrderCompleted events to add additional points to a loyalty account.
-
-1. The `Api` provides various endpoints to get a users loyalty account, as well as an additional endpoint to spend their points
-2. The `LoyaltyACL` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes events published by external services, translates them to internal events and processes them
 
 ### Pricing Service
 
-**Runtime: NodeJS**
-
-**AWS Services Used: API Gateway, Lambda, SQS, DynamoDB, EventBridge**
-
 The pricing service generates custom pricing breakdowns that are available to premium users.
 
-1. The `Api` provides a single endpoint to generate pricing for a specific product synchronously
-2. The `PricingEventHandlers` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes Product Created and Updated events, generates pricing, and then publishes a PricingGenerated event back onto the event bus
+## Deployment
+
+If you wish to deploy the entire application there is a custom Docker image available, based on Ubuntu, with all the required pre-reqs to allow you to deploy the application.
+
+1. Set environment variables
+    ```sh
+    export AWS_ACCESS_KEY_ID=
+    export AWS_SECRET_ACCESS_KEY=
+    export AWS_SESSION_TOKEN=
+    export AWS_REGION=
+    export ENV=
+    export DD_API_KEY=
+    export DD_SITE=
+    ```
+2. Navigate to the repository root.
+3. Run docker image in interactive mode
+    ```sh
+    docker run -it \
+        -v "$(pwd):/serverless-sample-app" \
+        -w "/serverless-sample-app" \
+        -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+        -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+        -e AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
+        -e AWS_REGION="${AWS_REGION}" \
+        -e ENV=${ENV} \
+        -e DD_API_KEY="${DD_API_KEY}" \
+        -e DD_SITE="${DD_SITE}" \
+        public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-build-image:latest
+    ```
+4. Deploy CDK implementation of app
+    ```sh
+    ./cdk-deploy-all.sh
+    ```
+5. Once deployment is complete exit the interactive shell by typing `exit`
+6. Open your AWS console and check that all CloudFormation stacks deployments are complete
+
+    There should be 7 stacks in total:
+    - SharedResourcesStack
+    - OrdersService
+    - InventoryService
+    - UserManagementApi
+    - ProductService
+    - LoyaltyService
+    - PricingService
+
+### Delete Resources
+
+Once you are finished testing, run the below commands to delete resources from your AWS account.
+
+1. Run docker image in interactive mode
+    ```sh
+    docker run -it \
+        -v "$(pwd):/serverless-sample-app" \
+        -w "/serverless-sample-app" \
+        -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+        -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+        -e AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
+        -e AWS_REGION="${AWS_REGION}" \
+        -e ENV=${ENV} \
+        -e DD_API_KEY="${DD_API_KEY}" \
+        -e DD_SITE="${DD_SITE}" \
+        public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-build-image:latest
+    ```
+
+## Frontend
+
+You can run the front-end application from your local machine by running the following commands
+
+1. Generate local config file containining the relevant API endpoints
+    ```sh
+    cd src/frontend
+    npm i
+    node generateConfig.mjs
+    ```
+2. Startup the local front-end application
+    ```sh
+    npm run start
+    ```
+3. Navigate to [http://localhost:8080/login](http://localhost:8080/login) to login
+
+On first run, you'll need to Register a new user. When the first user is registered, an admin user is also created. The admin credentials are
+
+U: admin@serverless-sample.com
+P: Admin!23
 
 ## Load Tests
 
 The repository also includes load-test configuration using [Artillery](https://www.artillery.io). You can use this to generate load into the product service, and view the downstream data in Datadog.
 
-**NOTE** The load test runs for roughly 3 minutes, and will generate load into both your AWS and Datadog accounts. Use with caution to avoid billing. As an alternative, a [Postman Collection](./serverless-sample-app.postman_collection.json) is available that you can use to run test manually. Or you can use the integration tests documented in the respective languages folder.
+> [!CAUTION]
+> Running the load test will generate requests against both your AWS resources and your Datadog account. This may incur costs. Please use with care!
 
-To execute the loadtests, first ensure [Artillery is installed](https://www.artillery.io/docs/get-started/get-artillery). You will also need to set the `API_ENDPOINT` environment variable.
+To execute the loadtests, first ensure [Artillery is installed](https://www.artillery.io/docs/get-started/get-artillery).
 
-```sh
-cd loadtest
-export API_ENDPOINT=
-artillery run loadtest.yml
-```
+1. Generate local config file containining the relevant API endpoints
+    ```sh
+    cd loadtest
+    npm i
+    eval "$(node generateEnvVars.mjs)"
+    ```
+2. Startup the local front-end application
+    ```sh
+    artillery run loadtest.yml
+    ```

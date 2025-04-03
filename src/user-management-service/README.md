@@ -1,4 +1,13 @@
-# Rust Implementation
+# User Management Service
+
+**Runtime: Rust**
+
+**AWS Services Used: API Gateway, Lambda, SQS, DynamoDB, EventBridge**
+
+The user management services manages everything related to user accounts. It allows users to register and login, generating a JWT that is used by other services to authenticate. It also tracks the number of orders a user has placed. It is made up of 2 independent services
+
+1. The `Api` provides various API endpoints to register new users, login and retrieve details about a given user
+2. The `BackgroundWorker` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes events published by external services, translates them to internal events and processes them
 
 The Rust implementation uses Open Telemetry for all of the tracing, which means trace propagation through SNS/SQS/EventBridge needs to be done manually. Both from a producer and a consumer perspective. All of the logic to propagate traces is held in a shared [`observability`](./src/observability/) crate. All of the logic is contained in the [`TracedMessage`](./src/observability/src/lib.rs) struct.
 

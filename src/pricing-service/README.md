@@ -1,6 +1,13 @@
-# NodeJS Implementation
+# Pricing Service
 
-This README contains relevant instructions for deploying the sample application with each of the available IaC tools. As well as details on any Node specific implementation details when instrumenting with Datadog.
+**Runtime: NodeJS**
+
+**AWS Services Used: API Gateway, Lambda, SQS, DynamoDB, EventBridge**
+
+The pricing service generates custom pricing breakdowns that are available to premium users.
+
+1. The `Api` provides a single endpoint to generate pricing for a specific product synchronously
+2. The `PricingEventHandlers` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes Product Created and Updated events, generates pricing, and then publishes a PricingGenerated event back onto the event bus
 
 ## Testing
 

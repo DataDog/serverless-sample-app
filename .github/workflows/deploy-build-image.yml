@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - build-image/**
+      - cdk-deploy-all.sh
+      - cdk-destroy.sh
   workflow_dispatch:
 
 permissions:
