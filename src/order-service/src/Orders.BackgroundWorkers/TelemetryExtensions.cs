@@ -5,12 +5,10 @@
 using System.Text;
 using System.Text.Json;
 using Amazon.Lambda.SQSEvents;
-using Amazon.SimpleNotificationService.Model;
 using AWS.Lambda.Powertools.Logging;
 using Datadog.Trace;
 using NJsonSchema;
 using Orders.BackgroundWorkers.ExternalEvents;
-using StatsdClient;
 
 namespace Orders.BackgroundWorkers;
 
