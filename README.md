@@ -45,14 +45,7 @@ The inventory service manages stock levels, and allows admin users to update the
 
 ### Order Service
 
-**Runtime: .NET**
-
-**AWS Services Used: Application Load Balancer, ECS, Fargate, Lambda, SQS, DynamoDB, EventBridge, StepFunctions**
-
 The order services allows users to place orders, and traces the flow of an order through the system using a Step Function workflow. It is made up of 2 independent services
-
-1. The `Orders.Api` provides various API endpoints to create, update and manage orders as they flow through the system
-2. The `Orders.BackgroundWorkers` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes events published by external services, translates them to internal events and processes them
 
 ### User Management Service
 

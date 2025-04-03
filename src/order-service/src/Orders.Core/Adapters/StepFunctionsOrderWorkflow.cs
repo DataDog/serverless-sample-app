@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Orders.Core.Adapters;
 
-public class StepFunctionsOrderWorkflow(ILogger<StepFunctionsOrderWorkflow> logger, IConfiguration configuration, AmazonStepFunctionsClient stepFunctionsClient) : IOrderWorkflow
+public class StepFunctionsOrderWorkflow(IConfiguration configuration, AmazonStepFunctionsClient stepFunctionsClient) : IOrderWorkflow
 {
     public async Task StartWorkflowFor(Order order)
     {

@@ -16,10 +16,12 @@ namespace Orders.BackgroundWorkers;
 public class Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
 {
     [LambdaFunction]
-    public async Task HandleStockReserved(SQSEvent evt)
+    public async Task<SQSBatchResponse> HandleStockReserved(SQSEvent evt)
     {
         var activeSpan = Tracer.Instance.ActiveScope?.Span;
         evt.AddToTelemetry();
+        
+        var batchItemFailures = new List<SQSBatchResponse.BatchItemFailure>();
 
         foreach (var record in evt.Records)
         {
@@ -27,6 +29,13 @@ public class Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
             try
             {
                 var evtData = JsonSerializer.Deserialize<EventBridgeMessageWrapper<EventWrapper<StockReservedEvent>>>(record.Body);
+
+                if (evtData?.Detail?.Data is null)
+                {
+                    logger.LogWarning("Deserialized event data is null from message body {MessageBody}", record.Body);
+                    batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure(){ItemIdentifier = record.MessageId});
+                    continue;
+                }
                 
                 processingSpan = Tracer.Instance.StartActive($"process {evtData.Detail.Type}", new SpanCreationSettings
                 {
@@ -34,11 +43,8 @@ public class Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
                 });
                 record.AddToTelemetry();
                 evtData.Detail?.AddToTelemetry();
-                
-                if (evtData is null)
-                    throw new ArgumentException("Event payload does not serialize to a `StockReservedEvent`");
-
                 evtData.Detail!.Data.OrderNumber.AddToTelemetry("order.id");
+                
                 await orderWorkflow.StockReservationSuccessful(evtData.Detail!.Data.ConversationId);
 
                 processingSpan?.Close();
@@ -47,20 +53,27 @@ public class Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
             {
                 logger.LogError(e, e.Message);
                 processingSpan?.Span.SetException(e);
-                throw;
+                batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure(){ItemIdentifier = record.MessageId});
             }
             finally
             {
                 processingSpan?.Close();
             }
         }
+        
+        return new SQSBatchResponse()
+        {
+            BatchItemFailures = batchItemFailures
+        };
     }
     
     [LambdaFunction]
-    public async Task HandleReservationFailed(SQSEvent evt)
+    public async Task<SQSBatchResponse> HandleReservationFailed(SQSEvent evt)
     {
         var activeSpan = Tracer.Instance.ActiveScope?.Span;
         evt.AddToTelemetry();
+        
+        var batchItemFailures = new List<SQSBatchResponse.BatchItemFailure>();
 
         foreach (var record in evt.Records)
         {
@@ -69,6 +82,13 @@ public class Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
             try
             {
                 var evtData = JsonSerializer.Deserialize<EventBridgeMessageWrapper<EventWrapper<StockReservationFailedEvent>>>(record.Body);
+
+                if (evtData?.Detail?.Data is null)
+                {
+                    logger.LogWarning("Deserialized event data is null from message body {MessageBody}", record.Body);
+                    batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure(){ItemIdentifier = record.MessageId});
+                    continue;
+                }
                 
                 processingSpan = Tracer.Instance.StartActive($"process {evtData.Detail.Type}", new SpanCreationSettings
                 {
@@ -77,9 +97,6 @@ public class Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
                 
                 record.AddToTelemetry();
                 evtData.Detail?.AddToTelemetry();
-                
-                if (evtData is null)
-                    throw new ArgumentException("Event payload does not serialize to a `StockReservationFailedEvent`");
                 
                 evtData.Detail!.Data.OrderNumber.AddToTelemetry("order.id");
                 await orderWorkflow.StockReservationFailed(evtData.Detail!.Data.ConversationId);
@@ -90,12 +107,17 @@ public class Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
             {
                 logger.LogError(e, e.Message);
                 processingSpan?.Span?.SetTag("error.type", e.GetType().Name);
-                throw;
+                batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure(){ItemIdentifier = record.MessageId});
             }
             finally
             {
                 processingSpan?.Close();
             }
         }
+
+        return new SQSBatchResponse()
+        {
+            BatchItemFailures = batchItemFailures
+        };
     }
 }

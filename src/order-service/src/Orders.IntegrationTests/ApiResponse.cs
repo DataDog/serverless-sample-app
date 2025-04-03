@@ -9,5 +9,5 @@ namespace Orders.IntegrationTests;
 public record ApiResponse<T>
 {
     [JsonPropertyName("data")]
-    public T Data { get; set; }
+    public T? Data { get; set; }
 }

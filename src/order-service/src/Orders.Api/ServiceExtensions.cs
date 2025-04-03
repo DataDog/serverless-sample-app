@@ -37,6 +37,11 @@ public static class ServiceExtensions
         }
 
         Console.WriteLine($"Using AWS access key: {secretKey}");
+
+        if (secretKey is null)
+        {
+            throw new ArgumentException("Invalid JWT Secret Access Key provided, application failure.");
+        }
         
         services.AddAuthentication(options =>
         {

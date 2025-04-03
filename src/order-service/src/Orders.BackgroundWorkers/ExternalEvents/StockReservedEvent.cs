@@ -9,11 +9,11 @@ namespace Orders.BackgroundWorkers.ExternalEvents;
 public record StockReservedEvent
 {
     [JsonPropertyName("orderNumber")]
-    public string OrderNumber { get; set; }
+    public string OrderNumber { get; set; } = "";
     
     [JsonPropertyName("productId")]
-    public string ProductId { get; set; }
+    public string ProductId { get; set; } = "";
     
     [JsonPropertyName("conversationId")]
-    public string ConversationId { get; set; }
+    public string ConversationId { get; set; } = "";
 }

@@ -42,7 +42,7 @@ public class HandlerFunctions(IEventStore eventStore)
                 
                 if (root.TryGetProperty(keyName, out JsonElement orderIdentifierElement))
                 {
-                    await eventStore.Store(new ReceivedEvent(orderIdentifierElement.GetString(), record.Sns.Message, record.Sns.TopicArn, DateTime.Now, record.Sns.TopicArn));
+                    await eventStore.Store(new ReceivedEvent(orderIdentifierElement.GetString() ?? "unknown", record.Sns.Message, record.Sns.TopicArn, DateTime.Now, record.Sns.TopicArn));
                 }
                 else
                 {
@@ -93,7 +93,7 @@ public class HandlerFunctions(IEventStore eventStore)
             {
                 if (dataElement.TryGetProperty(keyName, out JsonElement childOrderIdentifierElement))
                 {
-                    await eventStore.Store(new ReceivedEvent(childOrderIdentifierElement.GetString(), evt.Detail.ToJsonString(), evt.DetailType, DateTime.Now, evt.Source, conversationId));
+                    await eventStore.Store(new ReceivedEvent(childOrderIdentifierElement.GetString() ?? "unknown", evt.Detail.ToJsonString(), evt.DetailType, DateTime.Now, evt.Source, conversationId));
                 }
 
                 processingSpan.Close();
@@ -107,7 +107,7 @@ public class HandlerFunctions(IEventStore eventStore)
             // Then try to extract from a top level property
             if (root.TryGetProperty(keyName, out JsonElement orderIdentifierElement))
             {
-                await eventStore.Store(new ReceivedEvent(orderIdentifierElement.GetString(), evt.Detail.ToJsonString(), evt.DetailType, DateTime.Now, evt.Source, conversationId));
+                await eventStore.Store(new ReceivedEvent(orderIdentifierElement.GetString() ?? "unknown", evt.Detail.ToJsonString(), evt.DetailType, DateTime.Now, evt.Source, conversationId));
             }
 
             processingSpan.Close();

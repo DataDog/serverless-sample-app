@@ -9,5 +9,5 @@ namespace Orders.IntegrationTests;
 public record ProductDTO
 {
     [JsonPropertyName("productId")]
-    public string ProductId { get; set; }
+    public string ProductId { get; set; } = "";
 }

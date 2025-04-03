@@ -6,7 +6,7 @@ namespace Orders.Core.StockReservationSuccess;
 
 public class StockReservationSuccess
 {
-    public string UserId { get; set; }
+    public string UserId { get; set; } = "";
     
-    public string OrderNumber { get; set; }
+    public string OrderNumber { get; set; } = "";
 }
