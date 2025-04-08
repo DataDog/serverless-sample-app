@@ -39,10 +39,9 @@ export class ApiDriver {
       id,
       time: new Date().toISOString(),
       datacontenttype: "application/json",
-      // The user management service publishes the UserCreatedEvent with the `data` property as a JSON string NOT a JSON object.
-      data: JSON.stringify({
+      data: {
         userId: userId,
-      }),
+      },
     };
 
     const putEventsCommand = {

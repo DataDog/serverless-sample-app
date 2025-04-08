@@ -21,10 +21,11 @@ import {
 } from "../../observability/observability";
 import { UpdatePointsCommandHandler } from "../core/update-points/update-points-handler";
 import { DynamoDbLoyaltyPointRepository } from "./dynamoDbLoyaltyPointRepository";
+import { UserCreatedEventV1 } from "../core/events/userCreatedEventV1";
 
 const dynamoDbClient = new DynamoDBClient();
 const updatePointsCommandHandler = new UpdatePointsCommandHandler(
-  new DynamoDbLoyaltyPointRepository(dynamoDbClient),
+  new DynamoDbLoyaltyPointRepository(dynamoDbClient)
 );
 const logger = new Logger({});
 
@@ -40,12 +41,13 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
     let messageProcessingSpan: Span | undefined = undefined;
 
     try {
-      // The user management service publishes the UserCreatedEvent with the `data` property as a JSON string NOT a JSON object. It needs to be parsed in two steps.
-      const messageBody = JSON.parse(message.body);
-      const mainEventBody = JSON.parse(messageBody.detail.data);
+      const evtWrapper: EventBridgeEvent<
+        "order.orderCompleted.v1",
+        CloudEvent<UserCreatedEventV1>
+      > = JSON.parse(message.body);
 
       messageProcessingSpan = startProcessSpanWithSemanticConventions(
-        messageBody.detail,
+        evtWrapper.detail,
         {
           publicOrPrivate: MessagingType.PUBLIC,
           messagingSystem: "eventbridge",
@@ -56,7 +58,7 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
 
       await updatePointsCommandHandler.handle({
         orderNumber: "new-user",
-        userId: mainEventBody.userId,
+        userId: evtWrapper.detail.data!.userId,
         pointsToAdd: 100,
       });
     } catch (error) {
