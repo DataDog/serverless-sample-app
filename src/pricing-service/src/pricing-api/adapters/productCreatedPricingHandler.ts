@@ -28,6 +28,8 @@ import {
 
 const eventBridgeClient = new EventBridgeClient();
 
+// Initialize the event handler that comes from the `core` library, this seperates
+// infrastructure code (the Lambda handler) from the business logic (the event handler).
 const createProductHandler = new ProductCreatedEventHandler(
   new PricingService(),
   new EventBridgeEventPublisher(eventBridgeClient)
@@ -39,12 +41,16 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
 
   const batchItemFailures: SQSBatchItemFailure[] = [];
 
+  // SQS always retrieves messages in batches, so we need to iterate over the batch of messages to process them
   for (const message of event.Records) {
     let messageProcessingSpan: Span | undefined = undefined;
 
     try {
+      // Events use the CloudEvents specification to provide a consistent structure to all events across the entire system
+      // The SQS message body is a JSON string, so we need to parse it to get the CloudEvent
       const evtWrapper: EventBridgeEvent<"product.productCreated.v1",CloudEvent<ProductCreatedEvent>> = JSON.parse(message.body);
 
+      // A processing span is started for each message, following the OpenTelemetry semantic conventions for messaging
       messageProcessingSpan = startProcessSpanWithSemanticConventions(
         evtWrapper.detail,
         {
@@ -55,6 +61,7 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
         }
       );
 
+      // Finally, we handle the message itself using the handler initialized at the start of the file
       await createProductHandler.handle(evtWrapper.detail.data!);
     } catch (error: unknown) {
       const e = error as Error;

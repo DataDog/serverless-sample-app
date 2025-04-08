@@ -97,10 +97,6 @@ export class Api extends Construct {
       })
     );
 
-    props.serviceProps
-      .getSharedProps()
-      .datadogConfiguration?.addLambdaFunctions([calculatePricingFuncion]);
-
     const kmsAlias = Alias.fromAliasName(this, "SSMAlias", "aws/ssm");
     kmsAlias.grantDecrypt(calculatePricingFuncion);
 

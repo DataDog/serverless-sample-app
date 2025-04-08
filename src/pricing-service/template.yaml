@@ -110,228 +110,228 @@ Resources:
 ############# Background Workers ###############
 ################################################
 
-  HandleProductCreatedEventFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./out/productCreatedPricingHandler/productCreatedPricingHandler.zip
-      Handler: index.handler
-      FunctionName: !Sub ${ServiceName}-HandleProductCreated-${Env}
-      PackageType: Zip
-      Environment:
-        Variables:
-          EVENT_BUS_NAME: !If
-            - IsIntegratedEnvironment
-            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-            - !Ref PricingServiceEventBus
-      Events:
-        ProductCreatedQueue:
-          Type: SQS
-          Properties:
-            Queue: !GetAtt ProductCreatedQueue.Arn
-      Policies:
-        - EventBridgePutEventsPolicy:
-            EventBusName: !If
-              - IsIntegratedEnvironment
-              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-              - !Ref PricingServiceEventBus
+#   HandleProductCreatedEventFunction:
+#     Type: AWS::Serverless::Function
+#     Properties:
+#       CodeUri: ./out/productCreatedPricingHandler/productCreatedPricingHandler.zip
+#       Handler: index.handler
+#       FunctionName: !Sub ${ServiceName}-HandleProductCreated-${Env}
+#       PackageType: Zip
+#       Environment:
+#         Variables:
+#           EVENT_BUS_NAME: !If
+#             - IsIntegratedEnvironment
+#             - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+#             - !Ref PricingServiceEventBus
+#       Events:
+#         ProductCreatedQueue:
+#           Type: SQS
+#           Properties:
+#             Queue: !GetAtt ProductCreatedQueue.Arn
+#       Policies:
+#         - EventBridgePutEventsPolicy:
+#             EventBusName: !If
+#               - IsIntegratedEnvironment
+#               - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+#               - !Ref PricingServiceEventBus
 
-  ProductCreatedDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub "${ServiceName}-ProductCreatedDLQ-${Env}"
+#   ProductCreatedDLQ:
+#     Type: AWS::SQS::Queue
+#     Properties:
+#       QueueName: !Sub "${ServiceName}-ProductCreatedDLQ-${Env}"
 
-  ProductCreatedQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub "${ServiceName}-ProductCreated-${Env}"
-      RedrivePolicy:
-        deadLetterTargetArn:
-          Fn::GetAtt:
-            - "ProductCreatedDLQ"
-            - "Arn"
-        maxReceiveCount: 3
+#   ProductCreatedQueue:
+#     Type: AWS::SQS::Queue
+#     Properties:
+#       QueueName: !Sub "${ServiceName}-ProductCreated-${Env}"
+#       RedrivePolicy:
+#         deadLetterTargetArn:
+#           Fn::GetAtt:
+#             - "ProductCreatedDLQ"
+#             - "Arn"
+#         maxReceiveCount: 3
 
-  ProductCreatedEventRule:
-    Type: AWS::Events::Rule
-    Properties:
-      EventBusName: !Ref PricingServiceEventBus
-      Name: pricing-product-created
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.products"
-        detail-type:
-          - "product.productCreated.v1"
-      Targets:
-        - Id: ProductCreatedQueue
-          Arn: !GetAtt ProductCreatedQueue.Arn
+#   ProductCreatedEventRule:
+#     Type: AWS::Events::Rule
+#     Properties:
+#       EventBusName: !Ref PricingServiceEventBus
+#       Name: pricing-product-created
+#       State: ENABLED
+#       EventPattern:
+#         source:
+#           - !Sub "${Env}.products"
+#         detail-type:
+#           - "product.productCreated.v1"
+#       Targets:
+#         - Id: ProductCreatedQueue
+#           Arn: !GetAtt ProductCreatedQueue.Arn
 
-  EBToProductCreatedQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !Ref ProductCreatedQueue
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: allow-eb-send-message
-            Effect: Allow
-            Principal:
-              Service: "events.amazonaws.com"
-            Resource: !GetAtt ProductCreatedQueue.Arn
-            Action: SQS:SendMessage
+#   EBToProductCreatedQueuePolicy:
+#     Type: AWS::SQS::QueuePolicy
+#     Properties:
+#       Queues:
+#         - !Ref ProductCreatedQueue
+#       PolicyDocument:
+#         Version: '2012-10-17'
+#         Statement:
+#           - Sid: allow-eb-send-message
+#             Effect: Allow
+#             Principal:
+#               Service: "events.amazonaws.com"
+#             Resource: !GetAtt ProductCreatedQueue.Arn
+#             Action: SQS:SendMessage
 
-  HandleProductUpdatedEventFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./out/productUpdatedPricingHandler/productUpdatedPricingHandler.zip
-      Handler: index.handler
-      FunctionName: !Sub ${ServiceName}-HandleProductUpdated-${Env}
-      Environment:
-        Variables:
-          EVENT_BUS_NAME: !If
-            - IsIntegratedEnvironment
-            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-            - !Ref PricingServiceEventBus
-      Events:
-        ProductUpdatedQueue:
-          Type: SQS
-          Properties:
-            Queue: !GetAtt ProductUpdatedQueue.Arn
-      Policies:
-        - EventBridgePutEventsPolicy:
-            EventBusName: !If
-              - IsIntegratedEnvironment
-              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-              - !Ref PricingServiceEventBus
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Bundle: true
-        Target: "node22"
-        Sourcemap: true
-        SourcesContent: true
-        EntryPoints:
-         - ./src/pricing-api/adapters/productUpdatedPricingHandler.ts
-        External:
-          - "@datadog/native-metrics"
-          - "@datadog/pprof"
-          - '@datadog/native-appsec'
-          - '@datadog/native-iast-taint-tracking'
-          - '@datadog/native-iast-rewriter'
-          - 'graphql/language/visitor' 
-          - 'graphql/language/printer'
-          - 'graphql/utilities'
-          - '@aws-sdk/client-eventbridge'
-          - '@aws-sdk/client-ssm'
+#   HandleProductUpdatedEventFunction:
+#     Type: AWS::Serverless::Function
+#     Properties:
+#       CodeUri: ./out/productUpdatedPricingHandler/productUpdatedPricingHandler.zip
+#       Handler: index.handler
+#       FunctionName: !Sub ${ServiceName}-HandleProductUpdated-${Env}
+#       Environment:
+#         Variables:
+#           EVENT_BUS_NAME: !If
+#             - IsIntegratedEnvironment
+#             - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+#             - !Ref PricingServiceEventBus
+#       Events:
+#         ProductUpdatedQueue:
+#           Type: SQS
+#           Properties:
+#             Queue: !GetAtt ProductUpdatedQueue.Arn
+#       Policies:
+#         - EventBridgePutEventsPolicy:
+#             EventBusName: !If
+#               - IsIntegratedEnvironment
+#               - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+#               - !Ref PricingServiceEventBus
+#     Metadata:
+#       BuildMethod: esbuild
+#       BuildProperties:
+#         Minify: true
+#         Bundle: true
+#         Target: "node22"
+#         Sourcemap: true
+#         SourcesContent: true
+#         EntryPoints:
+#          - ./src/pricing-api/adapters/productUpdatedPricingHandler.ts
+#         External:
+#           - "@datadog/native-metrics"
+#           - "@datadog/pprof"
+#           - '@datadog/native-appsec'
+#           - '@datadog/native-iast-taint-tracking'
+#           - '@datadog/native-iast-rewriter'
+#           - 'graphql/language/visitor' 
+#           - 'graphql/language/printer'
+#           - 'graphql/utilities'
+#           - '@aws-sdk/client-eventbridge'
+#           - '@aws-sdk/client-ssm'
 
-  ProductUpdatedDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub "${ServiceName}-ProductUpdatedDLQ-${Env}"
+#   ProductUpdatedDLQ:
+#     Type: AWS::SQS::Queue
+#     Properties:
+#       QueueName: !Sub "${ServiceName}-ProductUpdatedDLQ-${Env}"
 
-  ProductUpdatedQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub "${ServiceName}-ProductUpdated-${Env}"
-      RedrivePolicy:
-        deadLetterTargetArn:
-          Fn::GetAtt:
-            - "ProductUpdatedDLQ"
-            - "Arn"
-        maxReceiveCount: 3
+#   ProductUpdatedQueue:
+#     Type: AWS::SQS::Queue
+#     Properties:
+#       QueueName: !Sub "${ServiceName}-ProductUpdated-${Env}"
+#       RedrivePolicy:
+#         deadLetterTargetArn:
+#           Fn::GetAtt:
+#             - "ProductUpdatedDLQ"
+#             - "Arn"
+#         maxReceiveCount: 3
 
-  ProductUpdatedEventRule:
-    Type: AWS::Events::Rule
-    Properties:
-      EventBusName: !Ref PricingServiceEventBus
-      Name: pricing-order-completed
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.products"
-        detail-type:
-          - "product.productUpdated.v1"
-      Targets:
-        - Id: ProductUpdatedQueue
-          Arn: !GetAtt ProductUpdatedQueue.Arn
+#   ProductUpdatedEventRule:
+#     Type: AWS::Events::Rule
+#     Properties:
+#       EventBusName: !Ref PricingServiceEventBus
+#       Name: pricing-order-completed
+#       State: ENABLED
+#       EventPattern:
+#         source:
+#           - !Sub "${Env}.products"
+#         detail-type:
+#           - "product.productUpdated.v1"
+#       Targets:
+#         - Id: ProductUpdatedQueue
+#           Arn: !GetAtt ProductUpdatedQueue.Arn
 
-  EBToProductUpdatedQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !Ref ProductUpdatedQueue
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: allow-eb-send-message
-            Effect: Allow
-            Principal:
-              Service: "events.amazonaws.com"
-            Resource: !GetAtt ProductUpdatedQueue.Arn
-            Action: SQS:SendMessage
+#   EBToProductUpdatedQueuePolicy:
+#     Type: AWS::SQS::QueuePolicy
+#     Properties:
+#       Queues:
+#         - !Ref ProductUpdatedQueue
+#       PolicyDocument:
+#         Version: '2012-10-17'
+#         Statement:
+#           - Sid: allow-eb-send-message
+#             Effect: Allow
+#             Principal:
+#               Service: "events.amazonaws.com"
+#             Resource: !GetAtt ProductUpdatedQueue.Arn
+#             Action: SQS:SendMessage
 
-################################################      
-######## Public Event Subscriptions ############
-################################################
-  SharedEventBusToPricingServiceEventBusRole:
-    Type: AWS::IAM::Role
-    Condition: IsIntegratedEnvironment
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - events.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      Path: /
-      Policies:
-        - PolicyName: allow-eb-publish
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "events:PutEvents"
-                Resource: [!GetAtt PricingServiceEventBus.Arn]
+# ################################################      
+# ######## Public Event Subscriptions ############
+# ################################################
+#   SharedEventBusToPricingServiceEventBusRole:
+#     Type: AWS::IAM::Role
+#     Condition: IsIntegratedEnvironment
+#     Properties:
+#       AssumeRolePolicyDocument:
+#         Version: 2012-10-17
+#         Statement:
+#           - Effect: Allow
+#             Principal:
+#               Service:
+#                 - events.amazonaws.com
+#             Action:
+#               - sts:AssumeRole
+#       Path: /
+#       Policies:
+#         - PolicyName: allow-eb-publish
+#           PolicyDocument:
+#             Version: 2012-10-17
+#             Statement:
+#               - Effect: Allow
+#                 Action:
+#                   - "events:PutEvents"
+#                 Resource: [!GetAtt PricingServiceEventBus.Arn]
 
-  SharedEventBusProductCreatedEventRule:
-    Type: AWS::Events::Rule
-    Condition: IsIntegratedEnvironment
-    Properties:
-      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-      Name: shared-pricing-user-created
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.products"
-        detail-type:
-          - "product.productCreated.v1"
-      Targets:
-        - Id: PricingServiceEventBus
-          Arn: !GetAtt PricingServiceEventBus.Arn
-          RoleArn: !GetAtt SharedEventBusToPricingServiceEventBusRole.Arn
+#   SharedEventBusProductCreatedEventRule:
+#     Type: AWS::Events::Rule
+#     Condition: IsIntegratedEnvironment
+#     Properties:
+#       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+#       Name: shared-pricing-user-created
+#       State: ENABLED
+#       EventPattern:
+#         source:
+#           - !Sub "${Env}.products"
+#         detail-type:
+#           - "product.productCreated.v1"
+#       Targets:
+#         - Id: PricingServiceEventBus
+#           Arn: !GetAtt PricingServiceEventBus.Arn
+#           RoleArn: !GetAtt SharedEventBusToPricingServiceEventBusRole.Arn
           
-  SharedEventBusProductUpdatedEventRule:
-    Type: AWS::Events::Rule
-    Condition: IsIntegratedEnvironment
-    Properties:
-      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-      Name: shared-pricing-order-completed
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.products"
-        detail-type:
-          - "product.productUpdated.v1"
-      Targets:
-        - Id: PricingServiceEventBus
-          Arn: !GetAtt PricingServiceEventBus.Arn
-          RoleArn: !GetAtt SharedEventBusToPricingServiceEventBusRole.Arn
+#   SharedEventBusProductUpdatedEventRule:
+#     Type: AWS::Events::Rule
+#     Condition: IsIntegratedEnvironment
+#     Properties:
+#       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+#       Name: shared-pricing-order-completed
+#       State: ENABLED
+#       EventPattern:
+#         source:
+#           - !Sub "${Env}.products"
+#         detail-type:
+#           - "product.productUpdated.v1"
+#       Targets:
+#         - Id: PricingServiceEventBus
+#           Arn: !GetAtt PricingServiceEventBus.Arn
+#           RoleArn: !GetAtt SharedEventBusToPricingServiceEventBusRole.Arn
           
   ApiEndpoint:
     Type: AWS::SSM::Parameter

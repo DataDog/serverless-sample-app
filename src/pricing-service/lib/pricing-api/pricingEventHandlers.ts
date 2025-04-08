@@ -84,22 +84,6 @@ export class PricingEventHandlers extends Construct {
       }
     );
 
-    // handleProductCreatedFunction.addToRolePolicy(
-    //   new PolicyStatement({
-    //     actions: [
-    //       "logs:CreateLogGroup",
-    //       "logs:CreateLogStream",
-    //       "logs:PutLogEvents",
-    //     ],
-    //     resources: ["arn:aws:logs:*:*:*"],
-    //     effect: Effect.DENY,
-    //   })
-    // );
-
-    props.serviceProps
-      .getSharedProps()
-      .datadogConfiguration?.addLambdaFunctions([handleProductCreatedFunction]);
-
     props.serviceProps
       .getPublisherBus()
       .grantPutEventsTo(handleProductCreatedFunction);
@@ -171,22 +155,6 @@ export class PricingEventHandlers extends Construct {
         },
       }
     );
-
-    // handleProductUpdatedFunction.addToRolePolicy(
-    //   new PolicyStatement({
-    //     actions: [
-    //       "logs:CreateLogGroup",
-    //       "logs:CreateLogStream",
-    //       "logs:PutLogEvents",
-    //     ],
-    //     resources: ["arn:aws:logs:*:*:*"],
-    //     effect: Effect.DENY,
-    //   })
-    // );
-
-    props.serviceProps
-      .getSharedProps()
-      .datadogConfiguration?.addLambdaFunctions([handleProductUpdatedFunction]);
 
     props.serviceProps
       .getPublisherBus()
