@@ -22,8 +22,8 @@ async fn main() -> Result<(), Error> {
         let tracer = global::tracer(env::var("DD_SERVICE").expect("DD_SERVICE is not set"));
 
         tracer
-            .in_span("handle_request", async |_cx| {
-                let mut lambda_span = trace_handler(event.context.clone());
+            .in_span("handle_request", async |cx| {
+                let mut lambda_span = trace_handler(event.context.clone(), &cx);
                 let current_span = tracing::Span::current();
 
                 let res = function_handler(&repository, current_span, event).await;

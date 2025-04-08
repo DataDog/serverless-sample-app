@@ -6,28 +6,20 @@
 //
 use lambda_http::{lambda_runtime, Request, RequestExt};
 use opentelemetry::global::BoxedSpan;
-use opentelemetry::trace::TraceContextExt;
 use opentelemetry::trace::{Span, SpanKind, Tracer};
-use opentelemetry::{global, Context, KeyValue};
+use opentelemetry::{global, KeyValue};
 use std::env;
-use tracing;
-use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 /// Create a trace for an AWS Lambda HTTP request
 ///
 /// This creates a span for the Lambda request and connects it to the
 /// current tracing context.
-pub fn trace_request(event: &Request) -> BoxedSpan {
-    let current_span = tracing::Span::current();
-
+pub fn trace_request(event: &Request, parent_context: &opentelemetry::context::Context) -> BoxedSpan {
     let tracer = global::tracer(env::var("DD_SERVICE").expect("DD_SERVICE is not set"));
     let mut handler_span = tracer
         .span_builder(String::from("aws.lambda"))
         .with_kind(SpanKind::Internal)
-        .start(&tracer);
-
-    current_span
-        .set_parent(Context::new().with_remote_span_context(handler_span.span_context().clone()));
+        .start_with_context(&tracer, parent_context);
 
     handler_span.set_attribute(KeyValue::new("service", "aws.lambda"));
     handler_span.set_attribute(KeyValue::new("operation_name", "aws.lambda"));
@@ -59,17 +51,12 @@ pub fn trace_request(event: &Request) -> BoxedSpan {
 ///
 /// This creates a span for the Lambda request and connects it to the
 /// current tracing context.
-pub fn trace_handler(context: lambda_runtime::Context) -> BoxedSpan {
-    let current_span = tracing::Span::current();
-
+pub fn trace_handler(context: lambda_runtime::Context, parent_context: &opentelemetry::context::Context) -> BoxedSpan {
     let tracer = global::tracer(env::var("DD_SERVICE").expect("DD_SERVICE is not set"));
     let mut handler_span = tracer
         .span_builder(String::from("aws.lambda"))
         .with_kind(SpanKind::Internal)
-        .start(&tracer);
-
-    current_span
-        .set_parent(Context::new().with_remote_span_context(handler_span.span_context().clone()));
+        .start_with_context(&tracer, parent_context);
 
     handler_span.set_attribute(KeyValue::new("service", "aws.lambda"));
     handler_span.set_attribute(KeyValue::new("operation_name", "aws.lambda"));

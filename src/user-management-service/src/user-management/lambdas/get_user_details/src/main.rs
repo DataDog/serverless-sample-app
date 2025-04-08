@@ -87,8 +87,8 @@ async fn main() -> Result<(), Error> {
     run(service_fn(|event: Request| async {
         let tracer = global::tracer(env::var("DD_SERVICE").expect("DD_SERVICE is not set"));
 
-        tracer.in_span("handle_request", async |_cx| {
-            let mut handler_span = trace_request(&event);
+        tracer.in_span("handle_request", async |cx| {
+            let mut handler_span = trace_request(&event, &cx);
 
             let res = function_handler(&repository, &token_generator, event).await;
 
