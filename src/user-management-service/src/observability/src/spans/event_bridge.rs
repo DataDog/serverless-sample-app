@@ -7,10 +7,9 @@
 
 use aws_lambda_events::cloudwatch_events::CloudWatchEvent;
 use opentelemetry::trace::{Span, SpanKind, Tracer};
-use opentelemetry::{global, KeyValue};
+use opentelemetry::{global, Context, KeyValue};
 use std::env;
 use std::time::SystemTime;
-use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::cloud_event::CloudEvent;
 
@@ -27,14 +26,10 @@ pub fn generate_inflight_span_for_event_bridge<T>(
         .clone()
         .unwrap_or("aws.eventbridge".to_string());
 
-    let tracer = global::tracer(bus_name.clone());
-
     let end_time = match sqs_start_time {
         Some(end_time) => end_time,
         None => SystemTime::now(),
     };
-
-    let current_span = tracing::Span::current().context();
 
     let mut span_links = vec![];
     let span_link = cloud_event.generate_span_link();
@@ -43,6 +38,8 @@ pub fn generate_inflight_span_for_event_bridge<T>(
         span_links.push(span_link);
     }
 
+    let tracer = global::tracer(bus_name.clone());
+    let current_context = Context::current();
     let mut span: global::BoxedSpan = tracer
         .span_builder(
             record
@@ -54,7 +51,7 @@ pub fn generate_inflight_span_for_event_bridge<T>(
         .with_start_time(record.time)
         .with_end_time(end_time)
         .with_links(span_links)
-        .start_with_context(&tracer, &current_span);
+        .start_with_context(&tracer, &current_context);
 
     if cloud_event.remote_span_context.is_some() {
         span.add_link(cloud_event.remote_span_context.clone().unwrap(), vec![]);
@@ -77,4 +74,6 @@ pub fn generate_inflight_span_for_event_bridge<T>(
         "peer.messaging.destination",
         bus_name.clone(),
     ));
+
+    span.end();
 }

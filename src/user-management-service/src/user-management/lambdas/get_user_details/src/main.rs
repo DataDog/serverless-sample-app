@@ -5,7 +5,7 @@ use lambda_http::{
     Error, IntoResponse, Request, RequestExt,
 };
 use opentelemetry::global::{self, ObjectSafeSpan};
-use opentelemetry::trace::Tracer;
+use opentelemetry::trace::{FutureExt, Tracer};
 use shared::response::{empty_response, json_response};
 
 use aws_config::SdkConfig;
@@ -44,7 +44,7 @@ async fn function_handler<TRepository: Repository>(
                 Ok(_) => {
                     let query = GetUserDetailsQuery::new(user_id.to_string());
 
-                    let result = query.handle(client).await;
+                    let result = query.handle(client).with_current_context().await;
 
                     match result {
                         Ok(response) => json_response(&StatusCode::OK, &response),

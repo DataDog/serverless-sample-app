@@ -1,49 +1,52 @@
+use std::env;
+
 use aws_lambda_events::sqs::{SqsEvent, SqsMessage};
 use lambda_runtime::{Error, LambdaEvent};
 use observability::CloudEvent;
+use opentelemetry::global::ObjectSafeSpan;
+use opentelemetry::trace::{FutureExt, SpanKind, Tracer};
+use opentelemetry::global;
 use shared::core::Repository;
 use shared::ports::OrderCompleted;
-use tracing::{instrument, Span};
-use tracing_opentelemetry::OpenTelemetrySpanExt;
 
-#[instrument(name = "handle_order_completed", skip(client, event))]
 pub(crate) async fn function_handler<TRepository: Repository>(
     client: &TRepository,
-    parent_span: Span,
+    current_context: &opentelemetry::context::Context,
     event: LambdaEvent<SqsEvent>,
 ) -> Result<(), Error> {
     tracing::info!("Received event: {:?}", event);
-    let current_span = Span::current();
-    current_span.set_parent(parent_span.context());
 
     for sqs_message in &event.payload.records {
-        process_message(client, &current_span, sqs_message).await?;
+        process_message(current_context, client, sqs_message)
+            .with_current_context()
+            .await?;
     }
 
     Ok(())
 }
 
-#[instrument(name = "process orders.orderCompleted.v1", skip(client, sqs_message))]
 async fn process_message<TRepository: Repository>(
+    current_context: &opentelemetry::context::Context,
     client: &TRepository,
-    parent_span: &Span,
     sqs_message: &SqsMessage,
 ) -> Result<(), Error> {
-    let current_span = Span::current();
-    current_span.set_parent(parent_span.context());
-    current_span.set_attribute(
-        "messaging.message.id",
-        sqs_message.message_id.clone().unwrap_or("".to_string()),
-    );
+    let tracer = global::tracer(env::var("DD_SERVICE").expect("DD_SERVICE is not set"));
+
+    let mut span = tracer
+        .span_builder("process order.orderCompleted.v1")
+        .with_kind(SpanKind::Internal)
+        .start_with_context(&tracer, current_context);
 
     let traced_message: CloudEvent<OrderCompleted> = sqs_message.into();
 
     let _ = match traced_message.data {
-        Some(evt) => evt.handle(client).await,
+        Some(evt) => evt.handle(client).with_current_context().await,
         None => Err(shared::ports::ApplicationError::InternalError(
             "Failure parsing message body to valid event".to_string(),
         )),
     };
+
+    span.end();
 
     Ok(())
 }

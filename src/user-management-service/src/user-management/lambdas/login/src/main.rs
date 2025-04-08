@@ -7,7 +7,7 @@ use lambda_http::{
 };
 use observability::{observability, trace_request};
 use opentelemetry::global::{self, ObjectSafeSpan};
-use opentelemetry::trace::Tracer;
+use opentelemetry::trace::{FutureExt, Tracer};
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
 use shared::ports::{handle_login, ApplicationError, LoginCommand};
@@ -29,7 +29,7 @@ async fn function_handler<TRepository: Repository>(
     match request_body {
         None => empty_response(&StatusCode::BAD_REQUEST),
         Some(command) => {
-            let result = handle_login(client, token_generator, command).await;
+            let result = handle_login(client, token_generator, command).with_current_context().await;
 
             match result {
                 Ok(response) => json_response(&StatusCode::OK, &response),
@@ -71,7 +71,7 @@ async fn main() -> Result<(), Error> {
         tracer.in_span("handle_request", async |cx| {
             let mut handler_span = trace_request(&event, &cx);
 
-            let res = function_handler(&repository, &token_generator, event).await;
+            let res = function_handler(&repository, &token_generator, event).with_current_context().await;
 
             handler_span.end();
 

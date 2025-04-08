@@ -54,7 +54,7 @@ pub fn trace_request(event: &Request, parent_context: &opentelemetry::context::C
 pub fn trace_handler(context: lambda_runtime::Context, parent_context: &opentelemetry::context::Context) -> BoxedSpan {
     let tracer = global::tracer(env::var("DD_SERVICE").expect("DD_SERVICE is not set"));
     let mut handler_span = tracer
-        .span_builder(String::from("aws.lambda"))
+        .span_builder(String::from("handle_request"))
         .with_kind(SpanKind::Internal)
         .start_with_context(&tracer, parent_context);
 

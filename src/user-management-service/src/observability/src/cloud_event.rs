@@ -137,6 +137,8 @@ where
     pub(crate) fn generate_span_context(&mut self) {
         match &self.trace_parent {
             Some(trace_parent) => {
+                info!("Generating span context from trace_parent: {}", trace_parent);
+
                 let trace_parts: Vec<&str> = trace_parent.split("-").collect();
 
                 if trace_parts.len() < 4 {
@@ -171,6 +173,7 @@ where
                 }
             }
             None => {
+                info!("No trace_parent found, skipping remote span context generation");
                 self.remote_span_context = None;
                 self.remote_context = None;
             }

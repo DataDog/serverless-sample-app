@@ -2,7 +2,7 @@ use aws_lambda_events::sqs::SqsEvent;
 use handler::function_handler;
 use lambda_runtime::{run, service_fn, Error, LambdaEvent};
 use observability::{observability, trace_handler};
-use opentelemetry::{global::{self, ObjectSafeSpan}, trace::Tracer};
+use opentelemetry::{global::{self, ObjectSafeSpan}, trace::{FutureExt, Tracer}, Context};
 use shared::adapters::DynamoDbRepository;
 use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -13,7 +13,7 @@ mod handler;
 async fn main() -> Result<(), Error> {
     observability().init();
     let table_name = env::var("TABLE_NAME").expect("TABLE_NAME is not set");
-    let config = aws_config::load_from_env().await;
+    let config = aws_config::load_from_env().with_current_context().await;
     let dynamodb_client = aws_sdk_dynamodb::Client::new(&config);
     let repository: DynamoDbRepository =
         DynamoDbRepository::new(dynamodb_client, table_name.clone());
@@ -22,18 +22,21 @@ async fn main() -> Result<(), Error> {
         let tracer = global::tracer(env::var("DD_SERVICE").expect("DD_SERVICE is not set"));
 
         tracer
-            .in_span("handle_request", async |cx| {
+            .in_span("aws.lambda", async |cx| {
                 let mut lambda_span = trace_handler(event.context.clone(), &cx);
-                let current_span = tracing::Span::current();
 
-                let res = function_handler(&repository, current_span, event).await;
+                let res = function_handler(&repository, &cx, event)
+                    .with_current_context()
+                    .await;
 
                 lambda_span.end();
 
                 res
             })
+            .with_current_context()
             .await
     }))
+    .with_current_context()
     .await
 }
 
@@ -41,7 +44,7 @@ async fn main() -> Result<(), Error> {
 mod tests {
     use super::*;
     use aws_lambda_events::sqs::{SqsEvent, SqsMessage};
-    use lambda_runtime::{Context, LambdaEvent};
+    use lambda_runtime::LambdaEvent;
     use shared::core::{Repository, RepositoryError, User};
     use std::collections::HashMap;
 
@@ -103,7 +106,7 @@ mod tests {
         };
 
         // Mock the Lambda context
-        let context = Context::default();
+        let context = lambda_runtime::Context::default();
 
         // Create a mock repository
         struct MockRepository;
@@ -119,12 +122,11 @@ mod tests {
         }
 
         let repository = MockRepository;
-
-        let mock_span = tracing::Span::current();
+        let current_context = Context::current();
 
         // Call the function handler
         let result =
-            function_handler(&repository, mock_span, LambdaEvent::new(sqs_event, context)).await;
+            function_handler(&repository, &current_context, LambdaEvent::new(sqs_event, context)).with_current_context().await;
 
         // Assert the result
         assert!(result.is_ok());

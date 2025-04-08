@@ -12,7 +12,7 @@ use lambda_http::{
     Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
 };
 use opentelemetry::global::{self, ObjectSafeSpan};
-use opentelemetry::trace::Tracer;
+use opentelemetry::trace::{FutureExt, Tracer};
 use shared::response::{empty_response, json_response};
 
 use observability::{observability, trace_request};
@@ -35,7 +35,7 @@ async fn function_handler<TRepository: Repository, TEventPublisher: EventPublish
     match request_body {
         None => empty_response(&StatusCode::BAD_REQUEST),
         Some(command) => {
-            let result = command.handle(client, event_publisher).await;
+            let result = command.handle(client, event_publisher).with_current_context().await;
 
             match result {
                 Ok(response) => json_response(&StatusCode::OK, &response),
