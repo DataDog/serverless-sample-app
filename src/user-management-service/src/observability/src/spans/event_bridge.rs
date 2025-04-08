@@ -56,7 +56,9 @@ pub fn generate_inflight_span_for_event_bridge<T>(
         .with_links(span_links)
         .start_with_context(&tracer, &current_span);
 
-    span.add_link(cloud_event.remote_span_context.clone().unwrap(), vec![]);
+    if cloud_event.remote_span_context.is_some() {
+        span.add_link(cloud_event.remote_span_context.clone().unwrap(), vec![]);
+    }
 
     span.set_attribute(KeyValue::new("operation_name", "aws.eventbrdidge"));
     span.set_attribute(KeyValue::new("resource_names", bus_name.clone()));
