@@ -11,7 +11,8 @@ use lambda_http::{
     tracing::{self, instrument},
     Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
 };
-use opentelemetry::global::ObjectSafeSpan;
+use opentelemetry::global::{self, ObjectSafeSpan};
+use opentelemetry::trace::Tracer;
 use shared::response::{empty_response, json_response};
 
 use observability::{observability, trace_request};
@@ -59,7 +60,7 @@ async fn main() -> Result<(), Error> {
 
     let event_bus_name = env::var("EVENT_BUS_NAME").expect("EVENT_BUS_NAME is not set");
     let env = env::var("ENV").expect("ENV is not set");
-    
+
     let sns_client = aws_sdk_eventbridge::Client::new(&config);
     let event_publisher = EventBridgeEventPublisher::new(sns_client, event_bus_name, env);
 
@@ -67,13 +68,19 @@ async fn main() -> Result<(), Error> {
     seed_default_user(&repository, &event_publisher).await;
 
     run(service_fn(|event: Request| async {
-        let mut handler_span = trace_request(&event);
+        let tracer = global::tracer(env::var("DD_SERVICE").expect("DD_SERVICE is not set"));
 
-        let res = function_handler(&repository, &event_publisher, event).await;
+        tracer
+            .in_span("handle_request", async |_cx| {
+                let mut handler_span = trace_request(&event);
 
-        handler_span.end();
+                let res = function_handler(&repository, &event_publisher, event).await;
 
-        res
+                handler_span.end();
+
+                res
+            })
+            .await
     }))
     .await
 }

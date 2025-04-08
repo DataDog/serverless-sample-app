@@ -4,7 +4,8 @@ use lambda_http::{
     tracing::{self, instrument},
     Error, IntoResponse, Request, RequestExt,
 };
-use opentelemetry::global::ObjectSafeSpan;
+use opentelemetry::global::{self, ObjectSafeSpan};
+use opentelemetry::trace::Tracer;
 use shared::response::{empty_response, json_response};
 
 use aws_config::SdkConfig;
@@ -84,13 +85,17 @@ async fn main() -> Result<(), Error> {
     let token_generator = TokenGenerator::new(secret, expiration);
 
     run(service_fn(|event: Request| async {
-        let mut handler_span = trace_request(&event);
+        let tracer = global::tracer(env::var("DD_SERVICE").expect("DD_SERVICE is not set"));
 
-        let res = function_handler(&repository, &token_generator, event).await;
+        tracer.in_span("handle_request", async |_cx| {
+            let mut handler_span = trace_request(&event);
 
-        handler_span.end();
+            let res = function_handler(&repository, &token_generator, event).await;
 
-        res
+            handler_span.end();
+
+            res
+        }).await
     }))
     .await
 }

@@ -2,9 +2,9 @@ use aws_lambda_events::sqs::SqsEvent;
 use handler::function_handler;
 use lambda_runtime::{run, service_fn, Error, LambdaEvent};
 use observability::{observability, trace_handler};
+use opentelemetry::{global::{self, ObjectSafeSpan}, trace::Tracer};
 use shared::adapters::DynamoDbRepository;
 use std::env;
-use opentelemetry::global::ObjectSafeSpan;
 use tracing_subscriber::util::SubscriberInitExt;
 
 mod handler;
@@ -19,15 +19,22 @@ async fn main() -> Result<(), Error> {
         DynamoDbRepository::new(dynamodb_client, table_name.clone());
 
     run(service_fn(|event: LambdaEvent<SqsEvent>| async {
-        let mut lambda_span = trace_handler(event.context.clone());
-        let current_span = tracing::Span::current();
+        let tracer = global::tracer(env::var("DD_SERVICE").expect("DD_SERVICE is not set"));
 
-        let res = function_handler(&repository, current_span, event).await;
+        tracer
+            .in_span("handle_request", async |_cx| {
+                let mut lambda_span = trace_handler(event.context.clone());
+                let current_span = tracing::Span::current();
 
-        lambda_span.end();
+                let res = function_handler(&repository, current_span, event).await;
 
-        res
-    })).await
+                lambda_span.end();
+
+                res
+            })
+            .await
+    }))
+    .await
 }
 
 #[cfg(test)]
@@ -35,8 +42,7 @@ mod tests {
     use super::*;
     use aws_lambda_events::sqs::{SqsEvent, SqsMessage};
     use lambda_runtime::{Context, LambdaEvent};
-    use shared::core::User::{Premium, Standard};
-    use shared::core::{Repository, RepositoryError, User, UserDetails};
+    use shared::core::{Repository, RepositoryError, User};
     use std::collections::HashMap;
 
     #[tokio::test]
@@ -115,9 +121,10 @@ mod tests {
         let repository = MockRepository;
 
         let mock_span = tracing::Span::current();
-        
+
         // Call the function handler
-        let result = function_handler(&repository, mock_span, LambdaEvent::new(sqs_event, context)).await;
+        let result =
+            function_handler(&repository, mock_span, LambdaEvent::new(sqs_event, context)).await;
 
         // Assert the result
         assert!(result.is_ok());

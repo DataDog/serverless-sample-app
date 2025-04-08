@@ -5,7 +5,9 @@ use lambda_http::{
     tracing::{self, instrument},
     Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
 };
-use observability::observability;
+use observability::{observability, trace_request};
+use opentelemetry::global::{self, ObjectSafeSpan};
+use opentelemetry::trace::Tracer;
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
 use shared::ports::{handle_login, ApplicationError, LoginCommand};
@@ -63,8 +65,19 @@ async fn main() -> Result<(), Error> {
 
     let token_generator = TokenGenerator::new(secret, expiration);
 
-    run(service_fn(|event| {
-        function_handler(&repository, &token_generator, event)
+    run(service_fn(|event| async {
+        let tracer = global::tracer(env::var("DD_SERVICE").expect("DD_SERVICE is not set"));
+
+        tracer.in_span("handle_request", async |_cx| {
+            let mut handler_span = trace_request(&event);
+
+            let res = function_handler(&repository, &token_generator, event).await;
+
+            handler_span.end();
+
+            res
+        })
+        .await
     }))
     .await
 }
