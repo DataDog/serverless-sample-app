@@ -43,6 +43,9 @@ var (
 )
 
 func functionHandler(ctx context.Context, request events.SNSEvent) {
+	span, _ := tracer.SpanFromContext(ctx)
+	defer span.Finish()
+
 	for index := range request.Records {
 		record := request.Records[index]
 

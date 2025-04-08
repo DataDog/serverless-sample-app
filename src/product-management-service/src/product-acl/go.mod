@@ -17,7 +17,6 @@ require github.com/aws/aws-sdk-go-v2/service/dynamodb v1.42.0 // indirect
 require (
 	github.com/DataDog/datadog-lambda-go v1.22.0
 	github.com/aws/aws-lambda-go v1.47.0
-	github.com/aws/aws-sdk-go-v2 v1.36.3
 	github.com/aws/aws-sdk-go-v2/config v1.29.12
 	github.com/datadog/serverless-sample-product-core v0.0.0
 	go.opentelemetry.io/otel v1.35.0

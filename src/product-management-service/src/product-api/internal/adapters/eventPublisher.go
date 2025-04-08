@@ -11,9 +11,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	core "github.com/datadog/serverless-sample-product-core"
 	"log"
 	"os"
+
+	core "github.com/datadog/serverless-sample-product-core"
 
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"go.opentelemetry.io/otel/propagation"
@@ -33,16 +34,11 @@ func NewSnsEventPublisher(client sns.Client) *SnsEventPublisher {
 }
 
 func (publisher SnsEventPublisher) PublishProductCreated(ctx context.Context, evt core.ProductCreatedEvent) {
-	span, _ := tracer.SpanFromContext(ctx)
-
-	carrier := propagation.MapCarrier{}
-	tracer.Inject(span.Context(), carrier)
+	_, _ = tracer.SpanFromContext(ctx)
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated", evt)
 
 	tracedMessageData, _ := json.Marshal(cloudEvent)
-
-	fmt.Println(string(tracedMessageData))
 
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRODUCT_CREATED_TOPIC_ARN")
@@ -63,10 +59,7 @@ func (publisher SnsEventPublisher) PublishProductCreated(ctx context.Context, ev
 }
 
 func (publisher SnsEventPublisher) PublishProductUpdated(ctx context.Context, evt core.ProductUpdatedEvent) {
-	span, _ := tracer.SpanFromContext(ctx)
-
-	carrier := propagation.MapCarrier{}
-	tracer.Inject(span.Context(), carrier)
+	_, _ = tracer.SpanFromContext(ctx)
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productUpdated", evt)
 
@@ -89,10 +82,7 @@ func (publisher SnsEventPublisher) PublishProductUpdated(ctx context.Context, ev
 }
 
 func (publisher SnsEventPublisher) PublishProductDeleted(ctx context.Context, evt core.ProductDeletedEvent) {
-	span, _ := tracer.SpanFromContext(ctx)
-
-	carrier := propagation.MapCarrier{}
-	tracer.Inject(span.Context(), carrier)
+	_, _ = tracer.SpanFromContext(ctx)
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productDeleted", evt)
 

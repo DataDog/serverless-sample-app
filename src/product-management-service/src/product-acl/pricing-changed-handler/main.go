@@ -11,9 +11,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	adapters "productacl/internal/adapters"
 	core "productacl/internal/core"
+
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	observability "github.com/datadog/serverless-sample-observability"
 
@@ -40,6 +41,9 @@ var (
 )
 
 func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventResponse, error) {
+	span, _ := tracer.SpanFromContext(ctx)
+	defer span.Finish()
+
 	failures := []events.SQSBatchItemFailure{}
 
 	for index := range request.Records {

@@ -18,7 +18,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	observability "github.com/datadog/serverless-sample-observability"
-	"go.opentelemetry.io/otel/propagation"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -31,17 +30,12 @@ func NewSnsEventPublisher(client sns.Client) *SnsEventPublisher {
 }
 
 func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context, evt core.StockUpdatedEvent) {
-	span, _ := tracer.SpanFromContext(ctx)
+	_, _ = tracer.SpanFromContext(ctx)
 
-	carrier := propagation.MapCarrier{}
-	tracer.Inject(span.Context(), carrier)
+	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated", evt)
 
-	tracedMessage := observability.CloudEvent[core.StockUpdatedEvent]{
-		Data:    evt,
-		Datadog: carrier,
-	}
+	tracedMessageData, _ := json.Marshal(cloudEvent)
 
-	tracedMessageData, _ := json.Marshal(tracedMessage)
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("STOCK_LEVEL_UPDATED_TOPIC_ARN")
 
@@ -60,17 +54,12 @@ func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context,
 }
 
 func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Context, evt core.PriceCalculatedEvent) {
-	span, _ := tracer.SpanFromContext(ctx)
+	_, _ = tracer.SpanFromContext(ctx)
 
-	carrier := propagation.MapCarrier{}
-	tracer.Inject(span.Context(), carrier)
+	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated", evt)
 
-	tracedMessage := observability.CloudEvent[core.PriceCalculatedEvent]{
-		Data:    evt,
-		Datadog: carrier,
-	}
+	tracedMessageData, _ := json.Marshal(cloudEvent)
 
-	tracedMessageData, _ := json.Marshal(tracedMessage)
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRICE_CALCULATED_TOPIC_ARN")
 
