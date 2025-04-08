@@ -42,9 +42,6 @@ var (
 )
 
 func functionHandler(ctx context.Context, request events.SNSEvent) {
-	span, _ := tracer.SpanFromContext(ctx)
-	defer span.Finish()
-
 	for index := range request.Records {
 		record := request.Records[index]
 
@@ -55,7 +52,7 @@ func functionHandler(ctx context.Context, request events.SNSEvent) {
 		var evt observability.CloudEvent[core.StockUpdatedEvent]
 		json.Unmarshal(body, &evt)
 
-		span := tracer.StartSpan("process product.stockUpdated")
+		span, _ := tracer.StartSpanFromContext(ctx, "process product.stockUpdated")
 
 		_, err := handler.Handle(ctx, evt.Data)
 
@@ -63,7 +60,6 @@ func functionHandler(ctx context.Context, request events.SNSEvent) {
 
 		if err != nil {
 			println(err.Error())
-			panic(err.Error())
 		}
 	}
 }

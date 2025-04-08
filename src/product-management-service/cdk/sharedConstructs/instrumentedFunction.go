@@ -34,6 +34,8 @@ func NewInstrumentedFunction(scope constructs.Construct, id string, props *Instr
 	function := InstrumentedFunction{}
 
 	defaultEnvironmentVariables := make(map[string]*string)
+	defaultEnvironmentVariables["DD_LOG_LEVEL"] = jsii.String("debug")
+	defaultEnvironmentVariables["DD_TRACE_DEBUG"] = jsii.String("true")
 	defaultEnvironmentVariables["ENV"] = jsii.String(props.SharedProps.Env)
 	defaultEnvironmentVariables["DD_FLUSH_TO_LOG"] = jsii.String("true")
 	defaultEnvironmentVariables["DD_TRACE_ENABLED"] = jsii.String("true")

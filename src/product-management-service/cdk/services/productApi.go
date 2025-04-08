@@ -104,7 +104,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	deleteProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "DeleteProductFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,
 		Entry:                "../src/product-api/delete-product/",
-		FunctionName:         "DeleteProdut",
+		FunctionName:         "DeleteProduct",
 		EnvironmentVariables: environmentVariables,
 	})
 	table.GrantReadWriteData(deleteProductFunction.Function)

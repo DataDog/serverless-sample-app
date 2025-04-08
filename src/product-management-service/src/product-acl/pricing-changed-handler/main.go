@@ -11,9 +11,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"strings"
-
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	adapters "productacl/internal/adapters"
 	core "productacl/internal/core"
 
@@ -29,8 +27,6 @@ import (
 
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 var (
@@ -61,40 +57,7 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 		var evt observability.CloudEvent[core.PublicPricingUpdatedEventV1]
 		json.Unmarshal(body, &evt)
 
-		// Parse traceparent if available
-		var spanLinks []ddtrace.SpanLink
-		if evt.TraceParent != "" {
-			fmt.Printf("Traceparent found %s", evt.TraceParent)
-			// W3C traceparent format: 00-<trace-id>-<parent-id>-<trace-flags>
-			var traceID, spanID uint64
-			parts := strings.Split(evt.TraceParent, "-")
-			if len(parts) >= 3 {
-				fmt.Print("Traceparent is valid, and has 3+ parts")
-
-				if len(parts[1]) == 32 {
-					traceID, _ = strconv.ParseUint(parts[1][16:], 16, 64)
-					fmt.Printf("Trace ID is %d", traceID)
-				}
-				// Parse span ID (64-bit)
-				if len(parts[2]) == 16 {
-					spanID, _ = strconv.ParseUint(parts[2], 16, 64)
-					fmt.Printf("Span ID is %d", traceID)
-				}
-
-				// Create span link if parsing succeeded
-				if traceID != 0 && spanID != 0 {
-					fmt.Printf("Creating span link with trace ID %d and span ID %d", traceID, spanID)
-					spanLinks = append(spanLinks, ddtrace.SpanLink{
-						TraceID: traceID,
-						SpanID:  spanID,
-					})
-				}
-			}
-		}
-
-		spanOptions := tracer.WithSpanLinks(spanLinks)
-		span := tracer.StartSpan("process pricing.pricingChanged.v1", spanOptions)
-		defer span.Finish()
+		span, _ := tracer.StartSpanFromContext(ctx, "process pricing.pricingChanged.v1")
 
 		_, err := eventTranslator.HandleProductPricingChanged(ctx, evt.Data)
 
@@ -104,6 +67,8 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 				ItemIdentifier: record.MessageId,
 			})
 		}
+
+		span.Finish()
 	}
 
 	return events.SQSEventResponse{

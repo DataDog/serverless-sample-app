@@ -53,7 +53,7 @@ func functionHandler(ctx context.Context, request events.SNSEvent) {
 		var evt observability.CloudEvent[core.PriceCalculatedEvent]
 		json.Unmarshal(body, &evt)
 
-		span := tracer.StartSpan("process product.pricingChanged")
+		span, _ := tracer.StartSpanFromContext(ctx, "process product.pricingChanged")
 
 		_, err := handler.Handle(ctx, evt.Data)
 

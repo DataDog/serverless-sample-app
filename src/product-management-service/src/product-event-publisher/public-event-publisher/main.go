@@ -11,11 +11,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	observability "github.com/datadog/serverless-sample-observability"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"os"
 	"product-event-publisher/internal/adapters"
 	"product-event-publisher/internal/core"
-
-	observability "github.com/datadog/serverless-sample-observability"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 
@@ -27,8 +27,6 @@ import (
 
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 var (
@@ -96,88 +94,37 @@ func functionHandler(ctx context.Context, request events.SQSEvent) (events.SQSEv
 }
 
 func processCreatedEvent(ctx context.Context, snsMessage events.SNSEntity) (string, error) {
+	span, _ := tracer.StartSpanFromContext(ctx, "process product.productCreated")
+	defer span.Finish()
+
 	body := []byte(snsMessage.Message)
 
 	var evt observability.CloudEvent[core.ProductCreatedEvent]
 	json.Unmarshal(body, &evt)
 
-	sctx, err := tracer.Extract(evt.Datadog)
-
-	if err != nil {
-		println(err.Error())
-	}
-
-	spanLinks := []ddtrace.SpanLink{}
-
-	if sctx != nil {
-		spanLinks = []ddtrace.SpanLink{
-			{
-				TraceID: sctx.TraceID(),
-				SpanID:  sctx.SpanID(),
-			},
-		}
-	}
-
-	span := tracer.StartSpan("process product.productCreated", tracer.WithSpanLinks(spanLinks))
-	defer span.Finish()
-
 	return handler.HandleCreated(ctx, evt.Data)
 }
 
 func processUpdatedEvent(ctx context.Context, snsMessage events.SNSEntity) (string, error) {
+	span, _ := tracer.StartSpanFromContext(ctx, "process product.productUpdated")
+	defer span.Finish()
+
 	body := []byte(snsMessage.Message)
 
 	var evt observability.CloudEvent[core.ProductUpdatedEvent]
 	json.Unmarshal(body, &evt)
 
-	sctx, err := tracer.Extract(evt.Datadog)
-
-	if err != nil {
-		println(err.Error())
-	}
-
-	spanLinks := []ddtrace.SpanLink{}
-
-	if sctx != nil {
-		spanLinks = []ddtrace.SpanLink{
-			{
-				TraceID: sctx.TraceID(),
-				SpanID:  sctx.SpanID(),
-			},
-		}
-	}
-
-	span := tracer.StartSpan("process product.productUpdated", tracer.WithSpanLinks(spanLinks))
-	defer span.Finish()
-
 	return handler.HandleUpdated(ctx, core.ProductUpdatedEvent(evt.Data))
 }
 
 func processDeletedEvent(ctx context.Context, snsMessage events.SNSEntity) (string, error) {
+	span, _ := tracer.StartSpanFromContext(ctx, "process product.productDeleted")
+	defer span.Finish()
+
 	body := []byte(snsMessage.Message)
 
 	var evt observability.CloudEvent[core.ProductDeletedEvent]
 	json.Unmarshal(body, &evt)
-
-	sctx, err := tracer.Extract(evt.Datadog)
-
-	if err != nil {
-		println(err.Error())
-	}
-
-	spanLinks := []ddtrace.SpanLink{}
-
-	if sctx != nil {
-		spanLinks = []ddtrace.SpanLink{
-			{
-				TraceID: sctx.TraceID(),
-				SpanID:  sctx.SpanID(),
-			},
-		}
-	}
-
-	span := tracer.StartSpan("process product.productDeleted", tracer.WithSpanLinks(spanLinks))
-	defer span.Finish()
 
 	return handler.HandleDeleted(ctx, evt.Data)
 }
