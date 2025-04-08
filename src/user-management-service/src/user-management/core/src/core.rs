@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use crate::utils::StringHasher;
 
@@ -174,7 +174,7 @@ impl User {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UserCreatedEvent {
     user_id: String,

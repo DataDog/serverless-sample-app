@@ -5,7 +5,7 @@ use lambda_http::{
     tracing::{self, instrument},
     Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
 };
-use observability::{observability, CloudEvent};
+use observability::observability;
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
 use shared::ports::{handle_login, ApplicationError, LoginCommand};
@@ -20,7 +20,6 @@ async fn function_handler<TRepository: Repository>(
     token_generator: &TokenGenerator,
     event: Request,
 ) -> Result<impl IntoResponse, Error> {
-    let _: Result<CloudEvent, &str> = event.headers().try_into();
     tracing::info!("Received event: {:?}", event);
 
     let request_body = event.payload::<LoginCommand>()?;

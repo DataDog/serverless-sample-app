@@ -8,6 +8,8 @@ use argon2::{
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
+use tracing::Span;
 
 #[derive(Error, Debug)]
 pub enum ApplicationError {
@@ -170,8 +172,10 @@ pub async fn handle_login<TRepo: Repository>(
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OrderCompleted {
-    email_address: String,
+    order_number: String,
+    user_id: String
 }
 
 impl OrderCompleted {
@@ -179,8 +183,11 @@ impl OrderCompleted {
         &self,
         repository: &TRepo,
     ) -> Result<(), ApplicationError> {
+        Span::current().set_attribute("user.id", self.user_id.clone());
+        Span::current().set_attribute("order.number", self.order_number.clone());
+        
         let mut user = repository
-            .get_user(&self.email_address)
+            .get_user(&self.user_id)
             .await
             .map_err(|e| {
                 return match e {

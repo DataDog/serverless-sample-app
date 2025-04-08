@@ -8,7 +8,7 @@ use opentelemetry::global::ObjectSafeSpan;
 use shared::response::{empty_response, json_response};
 
 use aws_config::SdkConfig;
-use observability::{observability, trace_request, CloudEvent};
+use observability::{observability, trace_request};
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
 use shared::ports::GetUserDetailsQuery;
@@ -22,8 +22,6 @@ async fn function_handler<TRepository: Repository>(
     token_generator: &TokenGenerator,
     event: Request,
 ) -> Result<impl IntoResponse, Error> {
-    let _: Result<CloudEvent, &str> = event.headers().try_into();
-
     tracing::info!("Received event: {:?}", event);
 
     let auth_header = event

@@ -1,3 +1,10 @@
+//
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the Apache License Version 2.0.
+// This product includes software developed at Datadog (https://www.datadoghq.com/).
+// Copyright 2024 Datadog, Inc.
+//
+
 use lambda_http::http::StatusCode;
 use lambda_http::{
     run, service_fn,
@@ -7,7 +14,7 @@ use lambda_http::{
 use opentelemetry::global::ObjectSafeSpan;
 use shared::response::{empty_response, json_response};
 
-use observability::{observability, trace_request, CloudEvent};
+use observability::{observability, trace_request};
 use shared::adapters::{DynamoDbRepository, EventBridgeEventPublisher};
 use shared::core::{EventPublisher, Repository};
 use shared::ports::CreateUserCommand;
@@ -20,8 +27,6 @@ async fn function_handler<TRepository: Repository, TEventPublisher: EventPublish
     event_publisher: &TEventPublisher,
     event: Request,
 ) -> Result<impl IntoResponse, Error> {
-    let _: Result<CloudEvent, &str> = event.headers().try_into();
-
     tracing::info!("Received event: {:?}", event);
 
     let request_body = event.payload::<CreateUserCommand>()?;

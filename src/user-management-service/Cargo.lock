@@ -1132,16 +1132,19 @@ dependencies = [
 name = "handle-order-completed"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "aws-config",
  "aws-sdk-dynamodb",
  "aws_lambda_events",
  "lambda_runtime",
  "observability",
+ "opentelemetry",
  "serde",
  "serde_json",
  "shared",
  "tokio",
  "tracing",
+ "tracing-opentelemetry",
  "tracing-subscriber",
 ]
 

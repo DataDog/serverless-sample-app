@@ -167,9 +167,17 @@ pub(crate) struct ApiDriver {
     event_bus_name: String,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct UserCreatedEvent {
-    email_address: String,
+    user_id: String,
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderCompleted {
+    order_number: String,
+    user_id: String
 }
 
 impl ApiDriver {
@@ -241,8 +249,9 @@ impl ApiDriver {
 
     pub async fn publish_order_completed_event(&self, email: &str) {
         let payload = CloudEvent::new(
-            UserCreatedEvent {
-                email_address: email.to_string(),
+            OrderCompleted {
+                user_id: email.to_string(),
+                order_number: "ORD123".to_string()
             },
             "orders.orderCompleted.v1".to_string(),
         );
