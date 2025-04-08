@@ -74,7 +74,9 @@ async fn main() -> Result<(), Error> {
             .in_span("handle_request", async |cx| {
                 let mut handler_span = trace_request(&event, &cx);
 
-                let res = function_handler(&repository, &event_publisher, event).await;
+                let res = function_handler(&repository, &event_publisher, event)
+                    .with_context(cx)
+                    .await;
 
                 handler_span.end();
 

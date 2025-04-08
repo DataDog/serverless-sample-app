@@ -87,15 +87,19 @@ async fn main() -> Result<(), Error> {
     run(service_fn(|event: Request| async {
         let tracer = global::tracer(env::var("DD_SERVICE").expect("DD_SERVICE is not set"));
 
-        tracer.in_span("handle_request", async |cx| {
-            let mut handler_span = trace_request(&event, &cx);
+        tracer
+            .in_span("handle_request", async |cx| {
+                let mut handler_span = trace_request(&event, &cx);
 
-            let res = function_handler(&repository, &token_generator, event).await;
+                let res = function_handler(&repository, &token_generator, event)
+                    .with_context(cx)
+                    .await;
 
-            handler_span.end();
+                handler_span.end();
 
-            res
-        }).await
+                res
+            })
+            .await
     }))
     .await
 }

@@ -2,7 +2,7 @@ use aws_lambda_events::sqs::SqsEvent;
 use handler::function_handler;
 use lambda_runtime::{run, service_fn, Error, LambdaEvent};
 use observability::{observability, trace_handler};
-use opentelemetry::{global::{self, ObjectSafeSpan}, trace::{FutureExt, Tracer}, Context};
+use opentelemetry::{global::{self, ObjectSafeSpan}, trace::{FutureExt, Tracer}};
 use shared::adapters::DynamoDbRepository;
 use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -25,8 +25,8 @@ async fn main() -> Result<(), Error> {
             .in_span("aws.lambda", async |cx| {
                 let mut lambda_span = trace_handler(event.context.clone(), &cx);
 
-                let res = function_handler(&repository, &cx, event)
-                    .with_current_context()
+                let res = function_handler(&repository, event)
+                    .with_context(cx.clone())
                     .await;
 
                 lambda_span.end();
@@ -122,11 +122,10 @@ mod tests {
         }
 
         let repository = MockRepository;
-        let current_context = Context::current();
 
         // Call the function handler
         let result =
-            function_handler(&repository, &current_context, LambdaEvent::new(sqs_event, context)).with_current_context().await;
+            function_handler(&repository, LambdaEvent::new(sqs_event, context)).with_current_context().await;
 
         // Assert the result
         assert!(result.is_ok());

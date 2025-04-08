@@ -71,7 +71,9 @@ async fn main() -> Result<(), Error> {
         tracer.in_span("handle_request", async |cx| {
             let mut handler_span = trace_request(&event, &cx);
 
-            let res = function_handler(&repository, &token_generator, event).with_current_context().await;
+            let res = function_handler(&repository, &token_generator, event)
+                .with_context(cx)
+                .await;
 
             handler_span.end();
 
