@@ -11,7 +11,7 @@ use opentelemetry::Context;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tracing::{self, info, Span};
+use tracing::{self, info};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use uuid::Uuid;
 

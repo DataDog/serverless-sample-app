@@ -6,7 +6,7 @@
 //
 
 use aws_lambda_events::cloudwatch_events::CloudWatchEvent;
-use opentelemetry::trace::{Link, Span, SpanKind, Tracer};
+use opentelemetry::trace::{Span, SpanKind, Tracer};
 use opentelemetry::{global, KeyValue};
 use std::env;
 use std::time::SystemTime;
