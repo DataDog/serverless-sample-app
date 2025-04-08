@@ -183,7 +183,6 @@ public class OrdersApi : Construct
         taskRole.AddManagedPolicy(
             ManagedPolicy.FromAwsManagedPolicyName("service-role/AmazonECSTaskExecutionRolePolicy"));
         
-        
 
         var application = new ApplicationLoadBalancedFargateService(this, "OrdersService",
             new ApplicationLoadBalancedFargateServiceProps
@@ -299,7 +298,7 @@ public class OrdersApi : Construct
                 { "DD_PROCESS_AGENT_ENABLED", "true" },
                 { "DD_APM_ENABLED", "true" },
                 { "DD_APM_NON_LOCAL_TRAFFIC", "true" },
-                { "DD_DOGSTATSD_NON_LOCAL_TRAFFIC", "trueprops.SharedProps" },
+                { "DD_DOGSTATSD_NON_LOCAL_TRAFFIC", "true" },
                 { "DD_ECS_TASK_COLLECTION_ENABLED", "true" },
                 { "DD_ENV", props.SharedProps.Env },
                 { "DD_SERVICE", props.SharedProps.ServiceName },

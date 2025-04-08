@@ -78,7 +78,7 @@ public class InventoryApiContainer extends Construct {
 
         ApplicationLoadBalancedFargateService application = ApplicationLoadBalancedFargateService.Builder.create(this, "InventoryApiService")
                 .cluster(cluster)
-                .desiredCount(1)
+                .desiredCount(2)
                 .runtimePlatform(RuntimePlatform.builder()
                         .cpuArchitecture(CpuArchitecture.ARM64)
                         .operatingSystemFamily(OperatingSystemFamily.LINUX)
