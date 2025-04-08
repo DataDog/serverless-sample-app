@@ -11,10 +11,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+
+	observability "github.com/datadog/serverless-sample-observability"
 	core "github.com/datadog/serverless-sample-product-core"
+
 	"product-api/internal/adapters"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -25,14 +28,8 @@ import (
 
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
-
-type TracedMessage[T any] struct {
-	Data    T                     `json:"data"`
-	Datadog tracer.TextMapCarrier `json:"_datadog"`
-}
 
 var (
 	awsCfg = func() aws.Config {
@@ -55,25 +52,12 @@ func functionHandler(ctx context.Context, request events.SNSEvent) {
 
 		body := []byte(record.SNS.Message)
 
-		var evt TracedMessage[core.StockUpdatedEvent]
+		var evt observability.CloudEvent[core.StockUpdatedEvent]
 		json.Unmarshal(body, &evt)
 
-		sctx, err := tracer.Extract(evt.Datadog)
+		span := tracer.StartSpan("process product.stockUpdated")
 
-		if err != nil {
-			println(err.Error())
-		}
-
-		spanLinks := []ddtrace.SpanLink{
-			{
-				TraceID: sctx.TraceID(),
-				SpanID:  sctx.SpanID(),
-			},
-		}
-
-		span, traceContext := tracer.StartSpanFromContext(ctx, "process stockUpdated", tracer.WithSpanLinks(spanLinks))
-
-		_, err = handler.Handle(traceContext, evt.Data)
+		_, err := handler.Handle(ctx, evt.Data)
 
 		span.Finish()
 

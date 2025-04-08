@@ -1,0 +1,67 @@
+#
+# function_length checks.
+# 
+deny_long_functions:
+  type: function_length
+  namespace: ^test_app::function_length$
+  max_lines: 5
+  severity: Warn
+
+#
+# module_usage tests
+# 
+
+deny_std_collections:
+  type: module_usage
+  name: "test_me_namespace_rule_new"
+  modules:
+    - "^test_app::module_usage$"
+  rules:
+    - type: Deny
+      denied_modules:
+        - "std::collections"
+      severity: Warn
+    - type: DenyWildcard
+      severity: Warn
+
+#
+# empty_mod tests
+# 
+
+enforce_empty_mod:
+  type: empty_mod
+  modules:
+    - "^test_app::empty_mod$"
+  severity: Warn
+
+#
+# trait_impl tests
+# 
+
+test_trait_constraint:
+  type: trait_impl
+  source_name: "test_app::trait_impl::MyTrait"
+  # ... must be named consistently
+  name_must_match: ".*MyTraitImpl$"
+  # ... and must be private
+  enforce_visibility: "Private"
+  severity: Warn
+
+# Block certain item types in specific modules
+deny_item_types:
+  type: item_type
+  modules:
+    - "^test_app::item_type$"
+  denied_items:
+    - struct
+    - enum
+    - trait
+    - module
+  severity: Warn
+
+# Result error type tests
+enforce_result_error:
+  type: result_error
+  modules:
+    - "^test_app::result_error$"
+  severity: Warn

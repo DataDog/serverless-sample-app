@@ -5,16 +5,17 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-package productacl
+package main
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 
 	adapters "productacl/internal/adapters"
 	core "productacl/internal/core"
-	"productacl/internal/utils"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 
@@ -23,6 +24,7 @@ import (
 
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
+	observability "github.com/datadog/serverless-sample-observability"
 
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
@@ -51,35 +53,49 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 		var eventBridgeEvent events.EventBridgeEvent
 		json.Unmarshal(sqsBody, &eventBridgeEvent)
 
-		fmt.Printf("EventBridge body is %s", eventBridgeEvent.Detail)
+		fmt.Println("EventBridge body is %s", eventBridgeEvent.Detail)
 
 		body := []byte(eventBridgeEvent.Detail)
 
-		var evt utils.TracedMessage[core.PublicInventoryStockUpdatedEventV1]
+		var evt observability.CloudEvent[core.PublicInventoryStockUpdatedEventV1]
 		json.Unmarshal(body, &evt)
 
-		sctx, err := tracer.Extract(evt.Datadog)
+		// Parse traceparent if available
+		var spanLinks []ddtrace.SpanLink
+		if evt.TraceParent != "" {
+			fmt.Println("Traceparent found %s", evt.TraceParent)
+			// W3C traceparent format: 00-<trace-id>-<parent-id>-<trace-flags>
+			var traceID, spanID uint64
+			parts := strings.Split(evt.TraceParent, "-")
+			if len(parts) >= 3 {
+				fmt.Println("Traceparent is valid, and has 3+ parts")
 
-		if err != nil {
-			println(err.Error())
-		}
+				if len(parts[1]) == 32 {
+					traceID, _ = strconv.ParseUint(parts[1][16:], 16, 64)
+					fmt.Println("Trace ID is %d", traceID)
+				}
+				// Parse span ID (64-bit)
+				if len(parts[2]) == 16 {
+					spanID, _ = strconv.ParseUint(parts[2], 16, 64)
+					fmt.Println("Span ID is %d", traceID)
+				}
 
-		spanLinks := []ddtrace.SpanLink{}
-
-		if sctx != nil {
-			spanLinks = []ddtrace.SpanLink{
-				{
-					TraceID: sctx.TraceID(),
-					SpanID:  sctx.SpanID(),
-				},
+				// Create span link if parsing succeeded
+				if traceID != 0 && spanID != 0 {
+					fmt.Println("Creating span link with trace ID %d and span ID %d", traceID, spanID)
+					spanLinks = append(spanLinks, ddtrace.SpanLink{
+						TraceID: traceID,
+						SpanID:  spanID,
+					})
+				}
 			}
 		}
 
-		span, traceContext := tracer.StartSpanFromContext(ctx, "process inventory.stockUpdated.v1", tracer.WithSpanLinks(spanLinks))
+		spanOptions := tracer.WithSpanLinks(spanLinks)
+		span := tracer.StartSpan("process inventory.stockUpdated.v1", spanOptions)
+		defer span.Finish()
 
-		_, err = eventTranslator.HandleStockUpdated(traceContext, evt.Data)
-
-		span.Finish()
+		_, err := eventTranslator.HandleStockUpdated(ctx, evt.Data)
 
 		if err != nil {
 			println(err.Error())

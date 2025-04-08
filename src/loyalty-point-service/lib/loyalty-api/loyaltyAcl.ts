@@ -54,7 +54,7 @@ export class LoyaltyACL extends Construct {
         handler: "index.handler",
         environment: {
           TABLE_NAME: props.loyaltyTable.tableName,
-          DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${props.loyaltyTable.tableName}": ["PK"]}`,
+          DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${props.loyaltyTable.tableName}": ["PK"]}`,
         },
         buildDef:
           "./src/loyalty-api/adapters/buildHandleUserCreatedFunction.js",
@@ -96,7 +96,7 @@ export class LoyaltyACL extends Construct {
         handler: "index.handler",
         environment: {
           TABLE_NAME: props.loyaltyTable.tableName,
-          DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${props.loyaltyTable.tableName}": ["PK"]}`,
+          DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${props.loyaltyTable.tableName}": ["PK"]}`,
         },
         buildDef:
           "./src/loyalty-api/adapters/buildHandleOrderCompletedFunction.js",

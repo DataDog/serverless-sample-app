@@ -15,8 +15,11 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 
-	core "github.com/datadog/serverless-sample-product-core"
 	"product-api/internal/adapters"
+
+	core "github.com/datadog/serverless-sample-product-core"
+
+	observability "github.com/datadog/serverless-sample-observability"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -26,14 +29,8 @@ import (
 
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
-
-type TracedMessage[T any] struct {
-	Data    T                     `json:"data"`
-	Datadog tracer.TextMapCarrier `json:"_datadog"`
-}
 
 var (
 	awsCfg = func() aws.Config {
@@ -53,25 +50,12 @@ func functionHandler(ctx context.Context, request events.SNSEvent) {
 
 		body := []byte(record.SNS.Message)
 
-		var evt TracedMessage[core.PriceCalculatedEvent]
+		var evt observability.CloudEvent[core.PriceCalculatedEvent]
 		json.Unmarshal(body, &evt)
 
-		sctx, err := tracer.Extract(evt.Datadog)
+		span := tracer.StartSpan("process product.pricingChanged")
 
-		if err != nil {
-			println(err.Error())
-		}
-
-		spanLinks := []ddtrace.SpanLink{
-			{
-				TraceID: sctx.TraceID(),
-				SpanID:  sctx.SpanID(),
-			},
-		}
-
-		span, traceContext := tracer.StartSpanFromContext(ctx, "process priceCalculated", tracer.WithSpanLinks(spanLinks))
-
-		_, err = handler.Handle(traceContext, evt.Data)
+		_, err := handler.Handle(ctx, evt.Data)
 
 		span.Finish()
 

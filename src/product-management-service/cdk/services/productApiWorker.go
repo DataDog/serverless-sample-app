@@ -9,7 +9,6 @@ package services
 
 import (
 	sharedconstructs "cdk/sharedConstructs"
-	"fmt"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambdaeventsources"
@@ -33,7 +32,7 @@ func NewProductBackgroundServices(scope constructs.Construct, id string, props *
 	handlePricingChangedFunction := sharedconstructs.NewInstrumentedFunction(scope, "ProductApiHandlerPricingChanged", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,
 		Entry:                "../src/product-api/handle-pricing-changed/",
-		FunctionName:         fmt.Sprintf("ProductApiHandlePricingChanged-%s", props.ServiceProps.SharedProps.Env),
+		FunctionName:         "HandlePricingChanged",
 		EnvironmentVariables: environmentVariables,
 	})
 
@@ -49,7 +48,7 @@ func NewProductBackgroundServices(scope constructs.Construct, id string, props *
 	handleStockUpdatedFunction := sharedconstructs.NewInstrumentedFunction(scope, "ProductStockUpdatedHandler", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,
 		Entry:                "../src/product-api/handle-stock-updated/",
-		FunctionName:         fmt.Sprintf("ProductApiHandleStockUpdated-%s", props.ServiceProps.SharedProps.Env),
+		FunctionName:         "HandleStockUpdated",
 		EnvironmentVariables: environmentVariables,
 	})
 

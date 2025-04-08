@@ -12,7 +12,7 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKey: !Ref DDApiKey
-      nodeLayerVersion: 121
+      nodeLayerVersion: 123
       extensionLayerVersion: 76
       service: !Ref ServiceName
       env: !Ref Env
@@ -177,7 +177,7 @@ Resources:
             - IsIntegratedEnvironment
             - !Sub /${Env}/shared/secret-access-key
             - !Sub /${Env}/${ServiceName}/secret-access-key
-          DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
+          DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
       Events:
         SpendPoints:
           Type: Api
@@ -215,7 +215,7 @@ Resources:
       FunctionName: !Sub HandleLoyaltyPointsUpdated-${Env}
       Environment:
         Variables:
-          DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
+          DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
           EVENT_BUS_NAME: !If
               - IsIntegratedEnvironment
               - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
@@ -260,7 +260,7 @@ Resources:
       FunctionName: !Sub HandleUserCreated-${Env}
       Environment:
         Variables:
-          DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
+          DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
       Events:
         UserCreatedQueue:
           Type: SQS
@@ -330,7 +330,7 @@ Resources:
       FunctionName: !Sub HandleOrderCompleted-${Env}
       Environment:
         Variables:
-          DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
+          DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
       Events:
         OrderCompletedQueue:
           Type: SQS

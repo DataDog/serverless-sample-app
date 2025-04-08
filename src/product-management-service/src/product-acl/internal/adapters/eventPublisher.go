@@ -13,11 +13,11 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"productacl/internal/utils"
 
 	core "github.com/datadog/serverless-sample-product-core"
 
 	"github.com/aws/aws-sdk-go-v2/service/sns"
+	observability "github.com/datadog/serverless-sample-observability"
 	"go.opentelemetry.io/otel/propagation"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
@@ -36,7 +36,7 @@ func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context,
 	carrier := propagation.MapCarrier{}
 	tracer.Inject(span.Context(), carrier)
 
-	tracedMessage := utils.TracedMessage[core.StockUpdatedEvent]{
+	tracedMessage := observability.CloudEvent[core.StockUpdatedEvent]{
 		Data:    evt,
 		Datadog: carrier,
 	}
@@ -65,7 +65,7 @@ func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Contex
 	carrier := propagation.MapCarrier{}
 	tracer.Inject(span.Context(), carrier)
 
-	tracedMessage := utils.TracedMessage[core.PriceCalculatedEvent]{
+	tracedMessage := observability.CloudEvent[core.PriceCalculatedEvent]{
 		Data:    evt,
 		Datadog: carrier,
 	}

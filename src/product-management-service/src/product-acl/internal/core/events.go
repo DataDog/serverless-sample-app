@@ -9,6 +9,7 @@ package productaclcore
 
 import (
 	"context"
+
 	core "github.com/datadog/serverless-sample-product-core"
 )
 

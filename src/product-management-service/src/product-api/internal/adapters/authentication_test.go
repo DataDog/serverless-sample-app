@@ -7,7 +7,7 @@ import (
 
 func TestAuthenticator_WhenValidAdminJWTIsPassed_ShouldReturnValidJWT(t *testing.T) {
 	secret := "e6f98ae4-507f-4596-9feb-430a98cbdd39"
-	authenticator := NewAuthenticator(secret)
+	authenticator := NewAuthenticator(context.TODO(), secret)
 
 	ctx := context.Background()
 	authHeader := "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkBzZXJ2ZXJsZXNzLXNhbXBsZS5jb20iLCJ1c2VyX3R5cGUiOiJBRE1JTiIsImV4cCI6MTczOTg5NzMyMiwiaWF0IjoxNzM5ODEwOTIyfQ.dDu1KJkl7VjV2TUprr1ag47LCHXC6acgVXI3T8FlThA"

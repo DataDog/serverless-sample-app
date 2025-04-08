@@ -11,10 +11,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"os"
 	"product-event-publisher/internal/adapters"
 	"product-event-publisher/internal/core"
+
+	observability "github.com/datadog/serverless-sample-observability"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -38,11 +41,6 @@ var (
 	handler           = core.NewProductEventTranslator(
 		adapters.NewEventBridgeEventPublisher(*eventBridgeClient))
 )
-
-type TracedMessage[T any] struct {
-	Data    T                     `json:"data"`
-	Datadog tracer.TextMapCarrier `json:"_datadog"`
-}
 
 func functionHandler(ctx context.Context, request events.SQSEvent) (events.SQSEventResponse, error) {
 	failures := []events.SQSBatchItemFailure{}
@@ -100,7 +98,7 @@ func functionHandler(ctx context.Context, request events.SQSEvent) (events.SQSEv
 func processCreatedEvent(ctx context.Context, snsMessage events.SNSEntity) (string, error) {
 	body := []byte(snsMessage.Message)
 
-	var evt TracedMessage[core.ProductCreatedEvent]
+	var evt observability.CloudEvent[core.ProductCreatedEvent]
 	json.Unmarshal(body, &evt)
 
 	sctx, err := tracer.Extract(evt.Datadog)
@@ -109,23 +107,27 @@ func processCreatedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 		println(err.Error())
 	}
 
-	spanLinks := []ddtrace.SpanLink{
-		{
-			TraceID: sctx.TraceID(),
-			SpanID:  sctx.SpanID(),
-		},
+	spanLinks := []ddtrace.SpanLink{}
+
+	if sctx != nil {
+		spanLinks = []ddtrace.SpanLink{
+			{
+				TraceID: sctx.TraceID(),
+				SpanID:  sctx.SpanID(),
+			},
+		}
 	}
 
-	span, context := tracer.StartSpanFromContext(ctx, "process.message", tracer.WithSpanLinks(spanLinks))
+	span := tracer.StartSpan("process product.productCreated", tracer.WithSpanLinks(spanLinks))
 	defer span.Finish()
 
-	return handler.HandleCreated(context, evt.Data)
+	return handler.HandleCreated(ctx, evt.Data)
 }
 
 func processUpdatedEvent(ctx context.Context, snsMessage events.SNSEntity) (string, error) {
 	body := []byte(snsMessage.Message)
 
-	var evt TracedMessage[core.ProductUpdatedEvent]
+	var evt observability.CloudEvent[core.ProductUpdatedEvent]
 	json.Unmarshal(body, &evt)
 
 	sctx, err := tracer.Extract(evt.Datadog)
@@ -134,23 +136,27 @@ func processUpdatedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 		println(err.Error())
 	}
 
-	spanLinks := []ddtrace.SpanLink{
-		{
-			TraceID: sctx.TraceID(),
-			SpanID:  sctx.SpanID(),
-		},
+	spanLinks := []ddtrace.SpanLink{}
+
+	if sctx != nil {
+		spanLinks = []ddtrace.SpanLink{
+			{
+				TraceID: sctx.TraceID(),
+				SpanID:  sctx.SpanID(),
+			},
+		}
 	}
 
-	span, context := tracer.StartSpanFromContext(ctx, "process.message", tracer.WithSpanLinks(spanLinks))
+	span := tracer.StartSpan("process product.productUpdated", tracer.WithSpanLinks(spanLinks))
 	defer span.Finish()
 
-	return handler.HandleUpdated(context, core.ProductUpdatedEvent(evt.Data))
+	return handler.HandleUpdated(ctx, core.ProductUpdatedEvent(evt.Data))
 }
 
 func processDeletedEvent(ctx context.Context, snsMessage events.SNSEntity) (string, error) {
 	body := []byte(snsMessage.Message)
 
-	var evt TracedMessage[core.ProductDeletedEvent]
+	var evt observability.CloudEvent[core.ProductDeletedEvent]
 	json.Unmarshal(body, &evt)
 
 	sctx, err := tracer.Extract(evt.Datadog)
@@ -159,17 +165,21 @@ func processDeletedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 		println(err.Error())
 	}
 
-	spanLinks := []ddtrace.SpanLink{
-		{
-			TraceID: sctx.TraceID(),
-			SpanID:  sctx.SpanID(),
-		},
+	spanLinks := []ddtrace.SpanLink{}
+
+	if sctx != nil {
+		spanLinks = []ddtrace.SpanLink{
+			{
+				TraceID: sctx.TraceID(),
+				SpanID:  sctx.SpanID(),
+			},
+		}
 	}
 
-	span, context := tracer.StartSpanFromContext(ctx, "process.message", tracer.WithSpanLinks(spanLinks))
+	span := tracer.StartSpan("process product.productDeleted", tracer.WithSpanLinks(spanLinks))
 	defer span.Finish()
 
-	return handler.HandleDeleted(context, evt.Data)
+	return handler.HandleDeleted(ctx, evt.Data)
 }
 
 func main() {

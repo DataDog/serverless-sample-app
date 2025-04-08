@@ -43,7 +43,7 @@ func NewProductPublicEventPublisherService(scope constructs.Construct, id string
 		EnvironmentVariables: environmentVariables,
 	})
 
-	props.ServiceProps.getPublisherEventBus().GrantPutEventsTo(publicEventPublisherFunction.Function)
+	props.ServiceProps.getPublisherEventBus().GrantPutEventsTo(publicEventPublisherFunction.Function, jsii.String("product-event-publisher"))
 
 	publicEventPublisherFunction.Function.AddEventSource(awslambdaeventsources.NewSqsEventSource(publicEventPublisherQueue.Queue, &awslambdaeventsources.SqsEventSourceProps{
 		ReportBatchItemFailures: jsii.Bool(true),

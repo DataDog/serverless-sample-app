@@ -142,7 +142,7 @@ export class Api extends Construct {
         environment: {
           TABLE_NAME: this.table.tableName,
           JWT_SECRET_PARAM_NAME: props.jwtSecret.parameterName,
-          DD_AWS_SDK_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${this.table.tableName}": ["PK"]}`,
+          DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${this.table.tableName}": ["PK"]}`,
         },
         buildDef:
           "./src/loyalty-api/adapters/buildSpendLoyaltyPointsFunction.js",
