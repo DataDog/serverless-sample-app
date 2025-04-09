@@ -32,7 +32,7 @@ func NewSnsEventPublisher(client sns.Client) *SnsEventPublisher {
 func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context, evt core.StockUpdatedEvent) {
 	_, _ = tracer.SpanFromContext(ctx)
 
-	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated", evt)
+	cloudEvent := observability.NewCloudEvent(ctx, "product.stockUpdated", evt)
 
 	tracedMessageData, _ := json.Marshal(cloudEvent)
 
@@ -56,7 +56,7 @@ func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context,
 func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Context, evt core.PriceCalculatedEvent) {
 	_, _ = tracer.SpanFromContext(ctx)
 
-	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated", evt)
+	cloudEvent := observability.NewCloudEvent(ctx, "product.pricingChanged", evt)
 
 	tracedMessageData, _ := json.Marshal(cloudEvent)
 

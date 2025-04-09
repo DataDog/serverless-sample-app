@@ -42,16 +42,6 @@ var (
 )
 
 func functionHandler(ctx context.Context, request events.SQSEvent) (events.SQSEventResponse, error) {
-	parentSpan, _ := tracer.SpanFromContext(ctx)
-	parentSpan.SetTag("random.tag", "random value")
-
-	fmt.Println("Trace id of parent span:", parentSpan.Context().TraceID(), "Span id of parent span:", parentSpan.Context().SpanID())
-
-	span := tracer.StartSpan("function.handler", tracer.ChildOf(parentSpan.Context()))
-	defer span.Finish()
-
-	fmt.Println("Trace id of handler span is:", span.Context().TraceID(), "Span id of handler span is:", span.Context().SpanID())
-
 	failures := []events.SQSBatchItemFailure{}
 
 	for index := range request.Records {

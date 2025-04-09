@@ -60,7 +60,7 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 		var evt observability.CloudEvent[core.PublicInventoryStockUpdatedEventV1]
 		json.Unmarshal(body, &evt)
 
-		span, _ := tracer.StartSpanFromContext(ctx, "process inventory.stockUpdated.v1")
+		span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(evt.ExtractSpanLinks()))
 
 		_, err := eventTranslator.HandleStockUpdated(ctx, evt.Data)
 
