@@ -85,18 +85,6 @@ export class Api extends Construct {
       }
     );
 
-    calculatePricingFuncion.addToRolePolicy(
-      new PolicyStatement({
-        actions: [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-        ],
-        resources: ["arn:aws:logs:*:*:*"],
-        effect: Effect.DENY,
-      })
-    );
-
     const kmsAlias = Alias.fromAliasName(this, "SSMAlias", "aws/ssm");
     kmsAlias.grantDecrypt(calculatePricingFuncion);
 
