@@ -191,7 +191,7 @@ function loadStockLevel(productId) {
       updateStockLevelElement.value = response.data.currentStockLevel;
     },
     error: function (xhr, status, error) {
-      alert("Failure loading stock: " + error);
+      console.log("Failure loading stock: " + error);
     },
     beforeSend: function (xhr) {
       xhr.setRequestHeader("Authorization", `Bearer ${jwt}`);

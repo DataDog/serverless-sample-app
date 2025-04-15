@@ -94,6 +94,10 @@ export class PricingEventHandlers extends Construct {
       })
     );
 
+    props.serviceProps
+      .getSharedProps()
+      .datadogConfiguration?.addLambdaFunctions([handleProductCreatedFunction]);
+
     const rule = props.serviceProps.addSubscriptionRule(
       this,
       `${props.serviceProps.getSharedProps().serviceName}-ProductCreated`,
@@ -159,6 +163,10 @@ export class PricingEventHandlers extends Construct {
     props.serviceProps
       .getPublisherBus()
       .grantPutEventsTo(handleProductUpdatedFunction);
+
+    props.serviceProps
+      .getSharedProps()
+      .datadogConfiguration?.addLambdaFunctions([handleProductUpdatedFunction]);
 
     handleProductUpdatedFunction.addEventSource(
       new SqsEventSource(this.productUpdatedQueue, {

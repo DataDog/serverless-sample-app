@@ -12,8 +12,8 @@ Transform:
     Parameters:
       stackName: !Ref AWS::StackName
       apiKey: !Ref DDApiKey
-      javaLayerVersion: '19'
-      extensionLayerVersion: '76'
+      javaLayerVersion: '20'
+      extensionLayerVersion: '77'
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash

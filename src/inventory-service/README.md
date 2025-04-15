@@ -33,7 +33,7 @@ When using Java as your language of choice with the AWS CDK, you need to manuall
 ```java
 List<ILayerVersion> layers = new ArrayList<>(2);
         layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:19",System.getenv("AWS_REGION"))));
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:76", System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:77", System.getenv("AWS_REGION"))));
 
 var builder = Function.Builder.create(this, props.routingExpression())
     // Remove for brevity
@@ -96,8 +96,8 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKey: !Ref DDApiKey
-      dotnetLayerVersion: "19"
-      extensionLayerVersion: "76"
+      dotnetLayerVersion: "20"
+      extensionLayerVersion: "77"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -176,7 +176,7 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 76
+  datadog_extension_layer_version = 77
   datadog_java_layer_version      = 19
 }
 ```

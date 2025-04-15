@@ -34,8 +34,8 @@ You also need to add the Datadog Lambda layers, one for the .NET tracer and one 
 ```c#
 Layers =
 [
-    LayerVersion.FromLayerVersionArn(this, "DDExtension", $"arn:aws:lambda:{Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1"}:464622532012:layer:Datadog-Extension-ARM:76"),
-    LayerVersion.FromLayerVersionArn(this, "DDTrace", $"arn:aws:lambda:{Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1"}:464622532012:layer:dd-trace-dotnet-ARM:19"),
+    LayerVersion.FromLayerVersionArn(this, "DDExtension", $"arn:aws:lambda:{Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1"}:464622532012:layer:Datadog-Extension-ARM:77"),
+    LayerVersion.FromLayerVersionArn(this, "DDTrace", $"arn:aws:lambda:{Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1"}:464622532012:layer:dd-trace-dotnet-ARM:20"),
 ],
 ```
 
@@ -97,8 +97,8 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKey: !Ref DDApiKey
-      dotnetLayerVersion: "19"
-      extensionLayerVersion: "76"
+      dotnetLayerVersion: "20"
+      extensionLayerVersion: "77"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -171,8 +171,8 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 76
-  datadog_dotnet_layer_version      = 19
+  datadog_extension_layer_version = 77
+  datadog_dotnet_layer_version      = 20
 }
 ```
 

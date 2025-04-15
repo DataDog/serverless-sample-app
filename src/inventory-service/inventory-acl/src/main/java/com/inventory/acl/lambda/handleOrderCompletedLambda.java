@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inventory.acl.adapters.EventBridgeMessageWrapper;
 import com.inventory.acl.core.ExternalEventHandler;
 import com.inventory.acl.core.events.external.OrderCompletedEventV1;
-import com.inventory.acl.core.events.external.OrderCreatedEventV1;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
