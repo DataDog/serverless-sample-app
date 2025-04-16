@@ -28,26 +28,13 @@ export class PricingApiStack extends cdk.Stack {
       secretStringValue: new cdk.SecretValue(process.env.DD_API_KEY!),
     });
 
-    const datadogConfiguration = new DatadogLambda(this, "Datadog", {
-      extensionLayerVersion: 77,
-      nodeLayerVersion: 123,
-      site: process.env.DD_SITE ?? "datadoghq.com",
-      apiKeySecret: ddApiKey,
-      service,
-      version,
-      env,
-      enableColdStartTracing: true,
-      enableDatadogTracing: true,
-      captureLambdaPayload: true,
-    });
-
     const sharedProps: SharedProps = {
       team: "pricing",
       domain: "pricing",
       environment: env,
       serviceName: service,
       version,
-      datadogConfiguration: datadogConfiguration,
+      datadogConfiguration: undefined,
     };
 
     const pricingServiceProps = new PricingServiceProps(this, sharedProps);
@@ -57,15 +44,6 @@ export class PricingApiStack extends cdk.Stack {
       ddApiKeySecret: ddApiKey,
       jwtSecret: pricingServiceProps.getJwtSecret(),
     });
-
-    const eventHandlers = new PricingEventHandlers(
-      this,
-      "PricingEventHandlers",
-      {
-        serviceProps: pricingServiceProps,
-        ddApiKeySecret: ddApiKey,
-      }
-    );
 
     const apiEndpoint = new StringParameter(this, "PricingAPIEndpoint", {
       parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/api-endpoint`,
