@@ -1,188 +1,188 @@
 {
-  "QueryLanguage": "JSONata",
-  "Comment": "A description of my state machine",
-  "StartAt": "Generate UniqueIDs",
-  "States": {
-    "Generate UniqueIDs": {
-      "Type": "Pass",
-      "Next": "Publish Order Created Event & Wait For Stock Reserved",
-      "Assign": {
-        "eventId": "{% $uuid() %}"
-      }
-    },
-    "Publish Order Created Event & Wait For Stock Reserved": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::events:putEvents.waitForTaskToken",
-      "Arguments": {
-        "Entries": [
-          {
-            "Detail": {
-              "data": {
-                "orderNumber": "{% $states.input.orderNumber %}",
-                "products": "{% $states.input.products %}"
-              },
-              "conversationId": "{% $states.context.Task.Token %}",
-              "id": "{% $eventId %}",
-              "_datadog": "{% $states.input._datadog %}"
-            },
-            "DetailType": "orders.orderCreated.v1",
-            "EventBusName": "${EventBusName}",
-            "Source": "${Env}.orders"
-          }
-        ]
-      },
-      "Next": "Confirm Order",
-      "TimeoutSeconds": 60,
-      "Catch": [
-        {
-          "ErrorEquals": [
-            "States.Timeout"
-          ],
-          "Next": "Retry Publish Order Created",
-          "Output": {
-            "userId": "{% $states.input.userId %}",
-            "orderNumber": "{% $states.input.orderNumber %}",
-            "products": "{% $states.input.products %}",
-            "_datadog": "{% $states.input._datadog %}"
-          }
+    "QueryLanguage": "JSONata",
+    "Comment": "A description of my state machine",
+    "StartAt": "Generate UniqueIDs",
+    "States": {
+        "Generate UniqueIDs": {
+            "Type": "Pass",
+            "Next": "Publish Order Created Event & Wait For Stock Reserved",
+            "Assign": {
+                "eventId": "{% $uuid() %}"
+            }
         },
-        {
-          "ErrorEquals": [
-            "States.TaskFailed"
-          ],
-          "Next": "Order No Stock",
-          "Output": {
-            "userId": "{% $states.input.userId %}",
-            "orderNumber": "{% $states.input.orderNumber %}",
-            "products": "{% $states.input.products %}",
-            "_datadog": "{% $states.input._datadog %}"
-          }
-        }
-      ],
-      "Output": {
-        "original": "{% $states.input %}",
-        "result": "{% $states.result %}",
-        "_datadog": "{% $states.input._datadog %}"
-      }
-    },
-    "Retry Publish Order Created": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::events:putEvents.waitForTaskToken",
-      "Arguments": {
-        "Entries": [
-          {
-            "Detail": {
-              "data": {
-                "orderNumber": "{% $states.input.orderNumber %}",
-                "products": "{% $states.input.products %}"
-              },
-              "conversationId": "{% $states.context.Task.Token %}",
-              "id": "{% $eventId %}",
-              "_datadog": "{% $states.input._datadog %}"
+        "Publish Order Created Event & Wait For Stock Reserved": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::events:putEvents.waitForTaskToken",
+            "Arguments": {
+                "Entries": [
+                    {
+                        "Detail": {
+                            "data": {
+                                "orderNumber": "{% $states.input.orderNumber %}",
+                                "products": "{% $states.input.products %}"
+                            },
+                            "conversationId": "{% $states.context.Task.Token %}",
+                            "id": "{% $eventId %}",
+                            "_datadog": "{% $states.input._datadog %}"
+                        },
+                        "DetailType": "orders.orderCreated.v1",
+                        "EventBusName": "${EventBusName}",
+                        "Source": "${Env}.orders"
+                    }
+                ]
             },
-            "DetailType": "orders.orderCreated.v1",
-            "EventBusName": "${EventBusName}",
-            "Source": "${Env}.orders"
-          }
-        ]
-      },
-      "TimeoutSeconds": 60,
-      "Catch": [
-        {
-          "ErrorEquals": [
-            "States.Timeout"
-          ],
-          "Next": "Order No Stock",
-          "Output": {
-            "userId": "{% $states.input.userId %}",
-            "orderNumber": "{% $states.input.orderNumber %}",
-            "products": "{% $states.input.products %}",
-            "_datadog": "{% $states.input._datadog %}"
-          }
+            "Next": "Confirm Order",
+            "TimeoutSeconds": 60,
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "States.Timeout"
+                    ],
+                    "Next": "Retry Publish Order Created",
+                    "Output": {
+                        "userId": "{% $states.input.userId %}",
+                        "orderNumber": "{% $states.input.orderNumber %}",
+                        "products": "{% $states.input.products %}",
+                        "_datadog": "{% $states.input._datadog %}"
+                    }
+                },
+                {
+                    "ErrorEquals": [
+                        "States.TaskFailed"
+                    ],
+                    "Next": "Order No Stock",
+                    "Output": {
+                        "userId": "{% $states.input.userId %}",
+                        "orderNumber": "{% $states.input.orderNumber %}",
+                        "products": "{% $states.input.products %}",
+                        "_datadog": "{% $states.input._datadog %}"
+                    }
+                }
+            ],
+            "Output": {
+                "original": "{% $states.input %}",
+                "result": "{% $states.result %}",
+                "_datadog": "{% $states.input._datadog %}"
+            }
         },
-        {
-          "ErrorEquals": [
-            "States.TaskFailed"
-          ],
-          "Next": "Order No Stock",
-          "Output": {
-            "userId": "{% $states.input.userId %}",
-            "orderNumber": "{% $states.input.orderNumber %}",
-            "products": "{% $states.input.products %}",
-            "_datadog": "{% $states.input._datadog %}"
-          }
+        "Retry Publish Order Created": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::events:putEvents.waitForTaskToken",
+            "Arguments": {
+                "Entries": [
+                    {
+                        "Detail": {
+                            "data": {
+                                "orderNumber": "{% $states.input.orderNumber %}",
+                                "products": "{% $states.input.products %}"
+                            },
+                            "conversationId": "{% $states.context.Task.Token %}",
+                            "id": "{% $eventId %}",
+                            "_datadog": "{% $states.input._datadog %}"
+                        },
+                        "DetailType": "orders.orderCreated.v1",
+                        "EventBusName": "${EventBusName}",
+                        "Source": "${Env}.orders"
+                    }
+                ]
+            },
+            "TimeoutSeconds": 60,
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "States.Timeout"
+                    ],
+                    "Next": "Order No Stock",
+                    "Output": {
+                        "userId": "{% $states.input.userId %}",
+                        "orderNumber": "{% $states.input.orderNumber %}",
+                        "products": "{% $states.input.products %}",
+                        "_datadog": "{% $states.input._datadog %}"
+                    }
+                },
+                {
+                    "ErrorEquals": [
+                        "States.TaskFailed"
+                    ],
+                    "Next": "Order No Stock",
+                    "Output": {
+                        "userId": "{% $states.input.userId %}",
+                        "orderNumber": "{% $states.input.orderNumber %}",
+                        "products": "{% $states.input.products %}",
+                        "_datadog": "{% $states.input._datadog %}"
+                    }
+                }
+            ],
+            "Output": {
+                "original": "{% $states.input %}",
+                "result": "{% $states.result %}",
+                "_datadog": "{% $states.input._datadog %}"
+            },
+            "Next": "Confirm Order"
+        },
+        "Confirm Order": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Arguments": {
+                "FunctionName": "${ConfirmOrderLambda}",
+                "Payload": {
+                    "UserId": "{% $states.input.original.userId %}",
+                    "OrderNumber": "{% $states.input.original.orderNumber %}",
+                    "_datadog": "{% $states.input._datadog %}"
+                }
+            },
+            "Output": {
+                "original": "{% $states.input %}",
+                "result": "{% $states.result %}",
+                "_datadog": "{% $states.input._datadog %}"
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException",
+                        "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 1,
+                    "MaxAttempts": 3,
+                    "BackoffRate": 2,
+                    "JitterStrategy": "FULL"
+                }
+            ],
+            "End": true
+        },
+        "Order No Stock": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Arguments": {
+                "FunctionName": "${NoStockLambda}",
+                "Payload": {
+                    "UserId": "{% $states.input.userId %}",
+                    "OrderNumber": "{% $states.input.orderNumber %}",
+                    "_datadog": "{% $states.input._datadog %}"
+                }
+            },
+            "Output": {
+                "original": "{% $states.input %}",
+                "result": "{% $states.result %}",
+                "_datadog": "{% $states.input._datadog %}"
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException",
+                        "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 1,
+                    "MaxAttempts": 3,
+                    "BackoffRate": 2,
+                    "JitterStrategy": "FULL"
+                }
+            ],
+            "End": true
         }
-      ],
-      "Output": {
-        "original": "{% $states.input %}",
-        "result": "{% $states.result %}",
-        "_datadog": "{% $states.input._datadog %}"
-      },
-      "Next": "Confirm Order"
-    },
-    "Confirm Order": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Arguments": {
-        "FunctionName": "${ConfirmOrderLambda}",
-        "Payload": {
-          "UserId": "{% $states.input.original.userId %}",
-          "OrderNumber": "{% $states.input.original.orderNumber %}",
-          "_datadog": "{% $states.input._datadog %}"
-        }
-      },
-      "Output": {
-        "original": "{% $states.input %}",
-        "result": "{% $states.result %}",
-        "_datadog": "{% $states.input._datadog %}"
-      },
-      "Retry": [
-        {
-          "ErrorEquals": [
-            "Lambda.ServiceException",
-            "Lambda.AWSLambdaException",
-            "Lambda.SdkClientException",
-            "Lambda.TooManyRequestsException"
-          ],
-          "IntervalSeconds": 1,
-          "MaxAttempts": 3,
-          "BackoffRate": 2,
-          "JitterStrategy": "FULL"
-        }
-      ],
-      "End": true
-    },
-    "Order No Stock": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
-      "Arguments": {
-        "FunctionName": "${NoStockLambda}",
-        "Payload": {
-          "UserId": "{% $states.input.userId %}",
-          "OrderNumber": "{% $states.input.orderNumber %}",
-          "_datadog": "{% $states.input._datadog %}"
-        }
-      },
-      "Output": {
-        "original": "{% $states.input %}",
-        "result": "{% $states.result %}",
-        "_datadog": "{% $states.input._datadog %}"
-      },
-      "Retry": [
-        {
-          "ErrorEquals": [
-            "Lambda.ServiceException",
-            "Lambda.AWSLambdaException",
-            "Lambda.SdkClientException",
-            "Lambda.TooManyRequestsException"
-          ],
-          "IntervalSeconds": 1,
-          "MaxAttempts": 3,
-          "BackoffRate": 2,
-          "JitterStrategy": "FULL"
-        }
-      ],
-      "End": true
     }
-  }
 }
