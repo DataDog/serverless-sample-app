@@ -84,6 +84,23 @@ export class Api extends Construct {
         },
       }
     );
+    // The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+    calculatePricingFuncion.addToRolePolicy(
+      new PolicyStatement({
+        actions: [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+        ],
+        resources: ["arn:aws:logs:*:*:*"],
+        effect: Effect.DENY,
+      })
+    );
+
+    // Add Datadog configuration to your Lambda function
+    props.serviceProps
+      .getSharedProps()
+      .datadogConfiguration?.addLambdaFunctions([calculatePricingFuncion]);
 
     const kmsAlias = Alias.fromAliasName(this, "SSMAlias", "aws/ssm");
     kmsAlias.grantDecrypt(calculatePricingFuncion);

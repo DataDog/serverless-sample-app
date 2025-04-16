@@ -17,26 +17,32 @@ import (
 	core "github.com/datadog/serverless-sample-product-core"
 
 	"github.com/aws/aws-sdk-go-v2/service/sns"
-	"go.opentelemetry.io/otel/propagation"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	observability "github.com/datadog/serverless-sample-observability"
 )
 
 type SnsEventPublisher struct {
-	client    sns.Client
-	propgator propagation.TextMapPropagator
+	client sns.Client
 }
 
 func NewSnsEventPublisher(client sns.Client) *SnsEventPublisher {
-	propgator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
-	return &SnsEventPublisher{client: client, propgator: propgator}
+	return &SnsEventPublisher{client: client}
 }
 
 func (publisher SnsEventPublisher) PublishProductCreated(ctx context.Context, evt core.ProductCreatedEvent) {
-	_, _ = tracer.SpanFromContext(ctx)
+	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productCreated")
+	defer span.Finish()
+
+	_, spanWasFound := tracer.SpanFromContext(ctx)
+
+	if !spanWasFound {
+		fmt.Println("EventPublisher: No span found in current context")
+	}
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated", evt)
+
+	fmt.Println(cloudEvent.TraceParent)
 
 	tracedMessageData, _ := json.Marshal(cloudEvent)
 

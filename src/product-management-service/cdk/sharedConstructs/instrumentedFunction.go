@@ -34,8 +34,6 @@ func NewInstrumentedFunction(scope constructs.Construct, id string, props *Instr
 	function := InstrumentedFunction{}
 
 	defaultEnvironmentVariables := make(map[string]*string)
-	defaultEnvironmentVariables["DD_LOG_LEVEL"] = jsii.String("debug")
-	defaultEnvironmentVariables["DD_TRACE_DEBUG"] = jsii.String("true")
 	defaultEnvironmentVariables["ENV"] = jsii.String(props.SharedProps.Env)
 	defaultEnvironmentVariables["DD_FLUSH_TO_LOG"] = jsii.String("true")
 	defaultEnvironmentVariables["DD_TRACE_ENABLED"] = jsii.String("true")
@@ -73,6 +71,7 @@ func NewInstrumentedFunction(scope constructs.Construct, id string, props *Instr
 		MemorySize:   jsii.Number(props.MemorySize),
 		Environment:  &defaultEnvironmentVariables,
 		Architecture: awslambda.Architecture_ARM_64(),
+		Tracing:      awslambda.Tracing_ACTIVE,
 	})
 
 	// The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs

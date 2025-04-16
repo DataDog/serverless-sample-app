@@ -11,6 +11,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
+
+	//awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
 	adapters "productacl/internal/adapters"
 	core "productacl/internal/core"
 
@@ -27,7 +30,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 
 	ddlambda "github.com/DataDog/datadog-lambda-go"
-	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
 )
 
 var (
@@ -61,7 +63,7 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 		var evt observability.CloudEvent[core.PublicPricingUpdatedEventV1]
 		json.Unmarshal(body, &evt)
 
-		span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(evt.ExtractSpanLinks()))
+		span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 
 		_, err := eventTranslator.HandleProductPricingChanged(ctx, evt.Data)
 

@@ -55,12 +55,6 @@ export function startProcessSpanWithSemanticConventions(
         "messaging.message.age": Date.now() - Date.parse(evt.time),
       });
     }
-
-    if (evt.traceparent !== undefined && evt.traceparent !== undefined) {
-      const manualContext = new ManualContext(evt.traceparent!.toString());
-
-      messageProcessingSpan.addLink(manualContext);
-    }
   } catch (e) {
     logger.error(JSON.stringify(e));
   }

@@ -49,7 +49,6 @@ func NewProductAclService(scope constructs.Construct, id string, props *ProductA
 	environmentVariables := make(map[string]*string)
 	environmentVariables["STOCK_LEVEL_UPDATED_TOPIC_ARN"] = jsii.String(*productStockUpdatedTopic.TopicArn())
 	environmentVariables["PRICE_CALCULATED_TOPIC_ARN"] = jsii.String(*productPriceCalculatedTopic.TopicArn())
-	environmentVariables["DD_TRACE_PROPAGATION_STYLE_EXTRACT"] = jsii.String("none")
 
 	inventoryStockUpdatedAclFunction := sharedconstructs.NewInstrumentedFunction(scope, "InventoryStockUpdatedACL", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,

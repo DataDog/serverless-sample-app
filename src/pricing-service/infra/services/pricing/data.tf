@@ -8,18 +8,6 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-data "aws_iam_policy_document" "sqs_receive" {
-  statement {
-    actions = ["sqs:ReceiveMessage",
-      "sqs:DeleteMessage",
-    "sqs:GetQueueAttributes"]
-    resources = [
-      aws_sqs_queue.product_created_queue.arn,
-      aws_sqs_queue.product_updated_queue.arn
-    ]
-  }
-}
-
 data "aws_iam_policy_document" "allow_jwt_secret_key_ssm_read" {
   statement {
     actions = ["ssm:DescribeParameters",

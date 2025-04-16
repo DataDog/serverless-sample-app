@@ -56,7 +56,7 @@ func functionHandler(ctx context.Context, request events.SNSEvent) {
 		var evt observability.CloudEvent[core.PriceCalculatedEvent]
 		json.Unmarshal(body, &evt)
 
-		span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(evt.ExtractSpanLinks()))
+		span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 
 		_, err := handler.Handle(ctx, evt.Data)
 

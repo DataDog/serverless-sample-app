@@ -31,7 +31,7 @@ func NewCreateProductCommandHandler(productRepository ProductRepository, eventPu
 }
 
 func (handler *CreateProductCommandHandler) Handle(ctx context.Context, command CreateProductCommand) (*ProductDTO, error) {
-	span, _ := tracer.SpanFromContext(ctx)
+	span, _ := tracer.StartSpanFromContext(ctx, "handle createProductCommand")
 	defer span.Finish()
 	span.SetTag("product.name", command.Name)
 	span.SetTag("product.price", command.Name)

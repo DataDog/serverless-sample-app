@@ -17,9 +17,3 @@ resource "aws_iam_policy" "get_jwt_ssm_parameter" {
   path   = "/"
   policy = data.aws_iam_policy_document.allow_jwt_secret_key_ssm_read.json
 }
-
-resource "aws_iam_policy" "sqs_receive_policy" {
-  name   = "tf-pricing-sqs-receive-${var.env}"
-  path   = "/"
-  policy = data.aws_iam_policy_document.sqs_receive.json
-}

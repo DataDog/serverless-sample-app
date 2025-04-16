@@ -15,7 +15,7 @@ The product service manages the product catalogue, and items that are available 
 This README contains relevant instructions for deploying this individual service with each of the available IaC tools. As well as details on any Go specific implementation details when instrumenting with Datadog.
 
 ```go
-span := tracer.StartSpan("process.message", tracer.WithSpanLinks(spanLinks))
+span := tracer.StartSpanWithContext(ctx, "process.message")
 defer span.Finish()
 ```
 

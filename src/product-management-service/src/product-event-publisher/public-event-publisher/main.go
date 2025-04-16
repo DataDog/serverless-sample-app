@@ -42,6 +42,8 @@ var (
 )
 
 func functionHandler(ctx context.Context, request events.SQSEvent) (events.SQSEventResponse, error) {
+	fmt.Printf("Received SQSEvent: %s\n\n", request)
+	
 	failures := []events.SQSBatchItemFailure{}
 
 	for index := range request.Records {
@@ -100,7 +102,7 @@ func processCreatedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 	var evt observability.CloudEvent[core.ProductCreatedEvent]
 	json.Unmarshal(body, &evt)
 
-	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(evt.ExtractSpanLinks()))
+	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 	defer span.Finish()
 
 	return handler.HandleCreated(ctx, evt.Data)
@@ -112,7 +114,7 @@ func processUpdatedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 	var evt observability.CloudEvent[core.ProductUpdatedEvent]
 	json.Unmarshal(body, &evt)
 
-	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(evt.ExtractSpanLinks()))
+	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 	defer span.Finish()
 
 	return handler.HandleUpdated(ctx, evt.Data)
@@ -124,7 +126,7 @@ func processDeletedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 	var evt observability.CloudEvent[core.ProductDeletedEvent]
 	json.Unmarshal(body, &evt)
 
-	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(evt.ExtractSpanLinks()))
+	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 	defer span.Finish()
 
 	return handler.HandleDeleted(ctx, evt.Data)

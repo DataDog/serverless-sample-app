@@ -74,6 +74,8 @@ func NewProductService(scope constructs.Construct, id string, props *ProductServ
 			EnableColdStartTracing: jsii.Bool(true),
 			CaptureLambdaPayload:   jsii.Bool(true),
 			EnableDatadogTracing:   jsii.Bool(true),
+			FlushMetricsToLogs:     jsii.Bool(true),
+			EnableMergeXrayTraces:  jsii.Bool(true),
 		})
 
 	sharedProps := sharedconstructs.SharedProps{
