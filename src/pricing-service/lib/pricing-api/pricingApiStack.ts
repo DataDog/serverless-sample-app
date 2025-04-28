@@ -13,7 +13,6 @@ import { Api } from "./api";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { PricingServiceProps } from "./pricingServiceProps";
 import { PricingEventHandlers } from "./pricingEventHandlers";
-import { DatadogLambda } from "datadog-cdk-constructs-v2";
 
 // no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class PricingApiStack extends cdk.Stack {
