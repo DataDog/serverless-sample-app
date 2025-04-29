@@ -54,7 +54,9 @@ module "datadog_ecs_fargate_task" {
   version = "0.2.0-beta"
 
   # Configure Datadog
-  dd_api_key_secret_arn            = var.dd_api_key_secret_arn
+  dd_api_key_secret = {
+    arn = var.dd_api_key_secret_arn
+  }
   dd_site                          = var.dd_site
   dd_service                       = var.service_name
   dd_essential                     = true
@@ -123,10 +125,6 @@ module "datadog_ecs_fargate_task" {
     }
   }
 
-  dd_cws = {
-    enabled = true,
-  }
-
   # Configure Task Definition
   family = var.service_name
   container_definitions = jsonencode([
@@ -150,7 +148,7 @@ module "datadog_ecs_fargate_task" {
   ])
   volumes = []
   runtime_platform = {
-    cpu_architecture        = "X86_64"
+    cpu_architecture        = "ARM64"
     operating_system_family = "LINUX"
   }
   requires_compatibilities = ["FARGATE"]
