@@ -49,19 +49,86 @@ resource "aws_iam_role_policy_attachment" "additional_execution_role_policy_atta
   policy_arn = var.additional_execution_role_policy_attachments[count.index]
 }
 
-resource "aws_ecs_task_definition" "main" {
-  family                   = var.service_name
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = var.cpu
-  memory                   = var.memory_size
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn            = aws_iam_role.ecs_task_role.arn
-  runtime_platform {
-    operating_system_family = "LINUX"
-    cpu_architecture        = "ARM64"
+module "datadog_ecs_fargate_task" {
+  source  = "DataDog/ecs-datadog/aws//modules/ecs_fargate"
+  version = "0.2.0-beta"
+
+  # Configure Datadog
+  dd_api_key_secret_arn            = var.dd_api_key_secret_arn
+  dd_site                          = var.dd_site
+  dd_service                       = var.service_name
+  dd_essential                     = true
+  dd_is_datadog_dependency_enabled = true
+
+  dd_environment = [
+    {
+      name  = "ECS_FARGATE"
+      value = "true"
+    },
+    {
+      name  = "DD_LOGS_INJECTION"
+      value = "true"
+    },
+    {
+      name  = "DD_PROCESS_AGENT_ENABLED"
+      value = "true"
+    },
+    {
+      name  = "DD_APM_ENABLED"
+      value = "true"
+    },
+    {
+      name  = "DD_APM_NON_LOCAL_TRAFFIC"
+      value = "true"
+    },
+    {
+      name  = "DD_DOGSTATSD_NON_LOCAL_TRAFFIC"
+      value = "false"
+    },
+    {
+      name  = "DD_ECS_TASK_COLLECTION_ENABLED"
+      value = "true"
+    },
+    {
+      name  = "DD_ENV"
+      value = var.env
+    },
+    {
+      name  = "DD_SERVICE"
+      value = var.service_name
+    },
+    {
+      name  = "DD_VERSION"
+      value = var.app_version
+    },
+    {
+      name  = "DD_APM_IGNORE_RESOURCES"
+      value = "GET /health"
+    }
+  ]
+
+  dd_dogstatsd = {
+    dogstatsd_cardinality    = "high",
+    origin_detection_enabled = true,
   }
 
+  dd_apm = {
+    enabled = true,
+  }
+
+  dd_log_collection = {
+    enabled = true,
+    fluentbit_config = {
+      is_log_router_dependency_enabled = true,
+    }
+  }
+
+  dd_cws = {
+    enabled = true,
+  }
+
+  # Configure Task Definition
+  family = var.service_name
   container_definitions = jsonencode([
     {
       name  = var.service_name
@@ -79,116 +146,20 @@ resource "aws_ecs_task_definition" "main" {
           valueFrom = var.dd_api_key_secret_arn
         }
       ]
-      logConfiguration = {
-        logDriver = "awsfirelens"
-        options = {
-          Name           = "datadog"
-          Host           = "http-intake.logs.${var.dd_site}"
-          TLS            = "on"
-          dd_service     = var.service_name
-          dd_source      = "dotnet",
-          dd_message_key = "log",
-          provider       = "ecs",
-          apikey         = data.aws_secretsmanager_secret_version.current_api_key_secret.secret_string
-        }
-      }
     },
-    {
-      name  = "DatadogAgent"
-      image = "public.ecr.aws/datadog/agent:latest"
-      portMappings = [
-        {
-          containerPort = 8125
-          hostPort      = 8125
-        },
-        {
-          containerPort = 8126
-          hostPort      = 8126
-        }
-      ]
-      environment = [
-        {
-          name  = "TEAM"
-          value = "orders"
-        },
-        {
-          name  = "DOMAIN"
-          value = "orders"
-        },
-        {
-          name  = "DD_SITE"
-          value = var.dd_site
-        },
-        {
-          name  = "ECS_FARGATE"
-          value = "true"
-        },
-        {
-          name  = "DD_LOGS_INJECTION"
-          value = "true"
-        },
-        {
-          name  = "DD_PROCESS_AGENT_ENABLED"
-          value = "true"
-        },
-        {
-          name  = "DD_APM_ENABLED"
-          value = "true"
-        },
-        {
-          name  = "DD_APM_NON_LOCAL_TRAFFIC"
-          value = "true"
-        },
-        {
-          name  = "DD_DOGSTATSD_NON_LOCAL_TRAFFIC"
-          value = "false"
-        },
-        {
-          name  = "DD_ECS_TASK_COLLECTION_ENABLED"
-          value = "true"
-        },
-        {
-          name  = "DD_ENV"
-          value = var.env
-        },
-        {
-          name  = "DD_SERVICE"
-          value = var.service_name
-        },
-        {
-          name  = "DD_VERSION"
-          value = var.app_version
-        },
-        {
-          name  = "DD_APM_IGNORE_RESOURCES"
-          value = "GET /health"
-        }
-      ]
-      secrets = [
-        {
-          name      = "DD_API_KEY"
-          valueFrom = var.dd_api_key_secret_arn
-        }
-      ]
-    },
-    {
-      name      = "log-router"
-      image     = "amazon/aws-for-fluent-bit:latest"
-      essential = true
-      firelensConfiguration = {
-        type = "fluentbit"
-        options = {
-          enable-ecs-log-metadata = "true"
-        }
-      }
-    }
   ])
+  volumes = []
+  runtime_platform = {
+    cpu_architecture        = "X86_64"
+    operating_system_family = "LINUX"
+  }
+  requires_compatibilities = ["FARGATE"]
 }
 
 resource "aws_ecs_service" "main" {
   name                  = var.service_name
   cluster               = var.ecs_cluster_id
-  task_definition       = aws_ecs_task_definition.main.arn
+  task_definition       = module.datadog_ecs_fargate_task.arn
   desired_count         = 1
   launch_type           = "FARGATE"
   wait_for_steady_state = true

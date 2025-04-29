@@ -39,6 +39,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "api-docs", "api-docs", "{27
 		api-docs\orders-acl.yml = api-docs\orders-acl.yml
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Orders.UnitTests", "src\Orders.UnitTests\Orders.UnitTests.csproj", "{3C772ECC-82B9-41D7-A615-0C2C93836958}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -156,6 +158,10 @@ Global
 		{5183B5AC-B6B0-4924-BCC2-BE48E2E76ABD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5183B5AC-B6B0-4924-BCC2-BE48E2E76ABD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5183B5AC-B6B0-4924-BCC2-BE48E2E76ABD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C772ECC-82B9-41D7-A615-0C2C93836958}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C772ECC-82B9-41D7-A615-0C2C93836958}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C772ECC-82B9-41D7-A615-0C2C93836958}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C772ECC-82B9-41D7-A615-0C2C93836958}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{16597FCC-C251-476B-ACBA-AC92CFF6AC29} = {AF426F74-C863-4338-A873-2AE0AD964A96}
@@ -164,5 +170,6 @@ Global
 		{5BC38C55-694A-4058-8E38-BC19D77302A4} = {0699F20E-E4E4-440E-AC6B-C31589CDE618}
 		{B6D4904B-B0DD-4098-85F8-C826EA5697B8} = {0699F20E-E4E4-440E-AC6B-C31589CDE618}
 		{5183B5AC-B6B0-4924-BCC2-BE48E2E76ABD} = {0699F20E-E4E4-440E-AC6B-C31589CDE618}
+		{3C772ECC-82B9-41D7-A615-0C2C93836958} = {0699F20E-E4E4-440E-AC6B-C31589CDE618}
 	EndGlobalSection
 EndGlobal
