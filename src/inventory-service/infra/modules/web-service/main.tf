@@ -1,5 +1,5 @@
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "TF_${var.service_name}_exec-${var.env}"
+  name = "TF_${var.service_name}_ex-${var.env}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -72,10 +72,6 @@ module "datadog_ecs_fargate_task" {
       value = "true"
     },
     {
-      name  = "DD_PROCESS_AGENT_ENABLED"
-      value = "true"
-    },
-    {
       name  = "DD_APM_ENABLED"
       value = "true"
     },
@@ -118,6 +114,14 @@ module "datadog_ecs_fargate_task" {
     enabled = true,
     fluentbit_config = {
       is_log_router_dependency_enabled = true,
+      is_log_router_essential = true,
+      log_driver_configuration = {
+        host_endpoint = "http-intake.logs.${var.dd_site}"
+        tls = true
+        service = var.service_name
+        source_name = "java"
+        message_key = "log"
+      }
     }
   }
 
@@ -131,13 +135,15 @@ module "datadog_ecs_fargate_task" {
         {
           containerPort = 8080
           hostPort      = 8080
-          appProtocol  = "http"
-          protocol = "tcp"
-          name: "inventory-api"
         }
       ]
-      essential = true
       environment = var.environment_variables
+      secrets = [
+        {
+          name      = "SECRET_NAME"
+          valueFrom = var.dd_api_key_secret_arn
+        }
+      ]
     },
   ])
   volumes = []
@@ -146,13 +152,22 @@ module "datadog_ecs_fargate_task" {
     operating_system_family = "LINUX"
   }
   requires_compatibilities = ["FARGATE"]
+  network_mode = "awsvpc"
+  cpu = var.cpu
+  memory = var.memory_size
+  execution_role = {
+    arn = aws_iam_role.ecs_task_execution_role.arn
+  }
+  task_role = {
+    arn = aws_iam_role.ecs_task_role.arn
+  }
 }
 
 resource "aws_ecs_service" "main" {
   name                  = var.service_name
   cluster               = var.ecs_cluster_id
   task_definition       = module.datadog_ecs_fargate_task.arn
-  desired_count         = 2
+  desired_count         = 1
   launch_type           = "FARGATE"
   wait_for_steady_state = true
   network_configuration {

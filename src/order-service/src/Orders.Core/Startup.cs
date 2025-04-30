@@ -43,7 +43,7 @@ public static class Startup
         services.AddLogging();
         services.AddAwsServices(configuration);
         // Register repositories
-        services.AddScoped<IOrders, DynamoDBOrders>();
+        services.AddSingleton<IOrders, DynamoDBOrders>();
         
         return services;
     }

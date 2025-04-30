@@ -8,14 +8,20 @@ using Datadog.Trace;
 
 namespace Orders.Api;
 
-public record UserClaims(string UserId, string UserType);
+public record UserClaims(string? UserId, string? UserType);
 
 public static class UserClaimExtensions
 {
-    public static UserClaims ExtractUserId(this IEnumerable<Claim> claims)
+    public static UserClaims? ExtractUserId(this IEnumerable<Claim>? claims)
     {
-        var userId = claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier").Value;
-        var userType = claims.FirstOrDefault(c => c.Type == "user_type").Value;
+        if (claims is null)
+        {
+            return null;
+        }
+
+        var enumerable = claims.ToList();
+        var userId = enumerable.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+        var userType = enumerable.FirstOrDefault(c => c.Type == "user_type")?.Value;
 
         if (Tracer.Instance.ActiveScope != null)
         {

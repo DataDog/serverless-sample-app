@@ -1,9 +1,8 @@
+using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Versioning;
-using Microsoft.AspNetCore.Mvc.Versioning.Conventions;
 using Microsoft.OpenApi.Models;
+using Asp.Versioning;
 using Orders.Api;
 using Orders.Api.CompleteOrder;
 using Orders.Api.ConfirmedOrders;
@@ -35,6 +34,8 @@ try
     builder.Services.AddValidatorsFromAssemblyContaining<Order>();
 
     // Add API versioning
+    builder.Services.AddProblemDetails();
+    builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddApiVersioning(options =>
     {
         options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -44,15 +45,27 @@ try
             new HeaderApiVersionReader("X-API-Version")
         );
     });
+    builder.Services.AddEndpointsApiExplorer();
 
-    builder.Services.AddVersionedApiExplorer(options =>
+    builder.Services.AddRateLimiter(options =>
     {
-        options.GroupNameFormat = "'v'VVV";
-        options.SubstituteApiVersionInUrl = true;
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        {
+            var userDetails = httpContext.User?.Claims?.ExtractUserId();
+
+            return RateLimitPartition.GetFixedWindowLimiter(
+                userDetails?.UserId ?? httpContext.Request.Headers.Host.ToString(),
+                partition => new FixedWindowRateLimiterOptions
+                {
+                    AutoReplenishment = true,
+                    PermitLimit = 60,
+                    QueueLimit = 0,
+                    Window = TimeSpan.FromMinutes(1)
+                });
+        });
     });
 
     // Add API documentation
-    builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
     {
         options.SwaggerDoc("v1", new OpenApiInfo { Title = "Orders API", Version = "v1" });
@@ -82,6 +95,8 @@ try
 
     var app = builder.Build();
 
+    app.UseRateLimiter();
+    
     // Add global exception handling
     app.UseGlobalExceptionHandling();
 
@@ -89,7 +104,13 @@ try
 
     // Enable Swagger UI
     app.UseSwagger();
-    app.UseSwaggerUI(options => { options.SwaggerEndpoint("/swagger/v1/swagger.json", "Orders API v1"); });
+    if (app.Environment.IsDevelopment())
+        app.UseSwaggerUI(options =>
+        {
+            var url = $"/swagger/v1/swagger.json";
+            var name = "V1";
+            options.SwaggerEndpoint(url, name);
+        });
 
     app.UseCors("CorsPolicy");
 
@@ -97,18 +118,21 @@ try
 
     app.UseAuthorization();
 
-    // Add health check endpoint with more detailed status
-    app.MapGet("/health", () =>
-    {
-        return Results.Ok(new
-        {
-            Status = "Healthy",
-            Timestamp = DateTime.UtcNow,
-            Version = "1.0.0" // Increment this when deploying new versions
-        });
-    }).WithTags("Monitoring");
-
     var orders = app.NewVersionedApi("Orders");
+
+    // Add health check endpoint with more detailed status
+    orders.MapGet("/health", () =>
+        {
+            return Results.Ok(new
+            {
+                Status = "Healthy",
+                Timestamp = DateTime.UtcNow,
+                Version = "1.0.0" // Increment this when deploying new versions
+            });
+        })
+        .HasApiVersion(1.0)
+        .WithDescription("Health check endpoint")
+        .WithTags("Monitoring");
     // Version 1 API endpoints
     orders.MapGet("/orders", GetUserOrdersHandler.Handle)
         .HasApiVersion(1.0)
@@ -116,24 +140,24 @@ try
         .Produces<PaginatedResponse<OrderDto>>(200)
         .ProducesProblem(401);
     ;
-    app.MapGet("/orders/confirmed", ConfirmedOrdersHandler.Handle)
+    orders.MapGet("/orders/confirmed", ConfirmedOrdersHandler.Handle)
         .HasApiVersion(1.0)
         .WithDescription("Get all confirmed orders")
         .Produces<PaginatedResponse<OrderDto>>(200)
         .ProducesProblem(401);
-    app.MapGet("/orders/{OrderId}", GetOrderDetailsHandler.Handle)
+    orders.MapGet("/orders/{OrderId}", GetOrderDetailsHandler.Handle)
         .HasApiVersion(1.0)
         .WithDescription("Get details for a specific order")
         .Produces<OrderDto>(200)
         .ProducesProblem(401)
         .ProducesProblem(404);
-    app.MapPost("/orders", CreateOrderHandler.Handle)
+    orders.MapPost("/orders", CreateOrderHandler.Handle)
         .HasApiVersion(1.0)
         .WithDescription("Create a new order")
         .Produces<OrderDto>(201)
         .ProducesProblem(400)
         .ProducesProblem(401);
-    app.MapPost("/orders/{OrderId}/complete", CompleteOrderHandler.Handle)
+    orders.MapPost("/orders/{OrderId}/complete", CompleteOrderHandler.Handle)
         .HasApiVersion(1.0)
         .WithDescription("Mark an order as complete")
         .Produces(204)
