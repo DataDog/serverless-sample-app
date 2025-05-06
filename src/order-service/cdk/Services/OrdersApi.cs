@@ -53,7 +53,7 @@ public class OrdersApi : Construct
         var workflowLogGroup = new LogGroup(this, "InventoryOrderingWorkflowLogGroup", new LogGroupProps()
         {
             LogGroupName =
-                $"/aws/vendedlogs/states/{props.SharedProps.ServiceName}-OrderWorkflow-{props.SharedProps.Env}",
+                $"/aws/vendedlogs/states/{props.SharedProps.ServiceName}-OrderWorkflow-{props.SharedProps.Env}-Logs",
             RemovalPolicy = RemovalPolicy.DESTROY
         });
 
