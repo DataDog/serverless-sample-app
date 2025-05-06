@@ -101,7 +101,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       RetentionInDays: 1
-      LogGroupName: !Sub "/aws/vendedlogs/states/${ServiceName}-OrderWorkflow-${Env}"
+      LogGroupName: !Sub "/aws/vendedlogs/states/${ServiceName}-OrderWorkflow-${Env}-Logs"
 
   OrderWorkflow:
     Type: AWS::Serverless::StateMachine

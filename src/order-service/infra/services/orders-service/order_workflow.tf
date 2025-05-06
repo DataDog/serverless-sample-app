@@ -54,8 +54,12 @@ resource "aws_iam_role_policy_attachment" "order_workflow_eb_publish_policy_atta
   policy_arn = aws_iam_policy.eb_publish.arn
 }
 
+locals {
+  workflow_name = "OrderService-orders-${var.env}-Logs"
+}
+
 resource "aws_cloudwatch_log_group" "sfn_log_group" {
-  name              = "/aws/vendedlogs/states/OrderService-orders-${var.env}"
+  name              = "/aws/vendedlogs/states/${local.workflow_name}"
   retention_in_days = 7
   lifecycle {
     prevent_destroy = false
@@ -63,7 +67,7 @@ resource "aws_cloudwatch_log_group" "sfn_log_group" {
 }
 
 resource "aws_sfn_state_machine" "order_workflow_state_machine" {
-  name     = "OrderService-orders-${var.env}"
+  name     = local.workflow_name
   role_arn = aws_iam_role.order_workflow_sfn_role.arn
   logging_configuration {
     log_destination        = "${aws_cloudwatch_log_group.sfn_log_group.arn}:*"
