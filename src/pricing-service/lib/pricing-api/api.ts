@@ -60,7 +60,7 @@ export class Api extends Construct {
       pathToBuildFile,
     ]);
 
-    const calculatePricingFuncion = new NodejsFunction(
+    const calculatePricingFunction = new NodejsFunction(
       this,
       "CalculatePricingFunction",
       {
@@ -86,10 +86,10 @@ export class Api extends Construct {
     );
 
     const kmsAlias = Alias.fromAliasName(this, "SSMAlias", "aws/ssm");
-    kmsAlias.grantDecrypt(calculatePricingFuncion);
+    kmsAlias.grantDecrypt(calculatePricingFunction);
 
     const calculatePricingIntegration = new LambdaIntegration(
-      calculatePricingFuncion
+      calculatePricingFunction
     );
 
     return calculatePricingIntegration;
