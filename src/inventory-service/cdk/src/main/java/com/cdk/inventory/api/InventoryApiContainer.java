@@ -162,8 +162,8 @@ public class InventoryApiContainer extends Construct {
         datadogEnvironmentVariables.put("DD_APM_NON_LOCAL_TRAFFIC", "true");
         datadogEnvironmentVariables.put("DD_DOGSTATSD_NON_LOCAL_TRAFFIC", "true");
         datadogEnvironmentVariables.put("DD_ECS_TASK_COLLECTION_ENABLED", "true");
-        datadogEnvironmentVariables.put("DD_APM_IGNORE_RESOURCES", "GET /");
         datadogEnvironmentVariables.put("DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT", "0.0.0.0:4317");
+        datadogEnvironmentVariables.put("DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_HTTP_ENDPOINT", "0.0.0.0:4318");
         datadogEnvironmentVariables.put("DD_ENV", env);
         datadogEnvironmentVariables.put("DD_SERVICE", service);
         datadogEnvironmentVariables.put("DD_VERSION", version);
@@ -185,7 +185,9 @@ public class InventoryApiContainer extends Construct {
 
         StringParameter apiEndpoint = new StringParameter(this, "ApiEndpoint", StringParameterProps.builder()
                 .parameterName(String.format("/%s/%s/api-endpoint", props.serviceProps().getSharedProps().env(), props.serviceProps().getSharedProps().service()))
-                .stringValue(restApi.getUrl())
+                .stringValue(String.format("http://%s", application
+                                        .getLoadBalancer()
+                                        .getLoadBalancerDnsName()))
                 .build());
         
     }

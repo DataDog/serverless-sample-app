@@ -311,6 +311,13 @@ public class OrdersApi : Construct
             }
         });
 
+        // Add API Gateway endpoint to parameters
+        new StringParameter(this, "ApiGatewayEndpoint", new StringParameterProps
+        {
+            ParameterName = $"/{props.SharedProps.Env}/{props.SharedProps.ServiceName}/api-endpoint",
+            StringValue = $"http://{application.LoadBalancer.LoadBalancerDnsName}",
+        });
+
         CreateApiGatewayForAlb(props, application);
 
         return application;
@@ -403,13 +410,6 @@ public class OrdersApi : Construct
                     }
                 }
             }
-        });
-
-        // Add API Gateway endpoint to parameters
-        new StringParameter(this, "ApiGatewayEndpoint", new StringParameterProps
-        {
-            ParameterName = $"/{props.SharedProps.Env}/{props.SharedProps.ServiceName}/api-endpoint",
-            StringValue = api.Url
         });
 
         return api;

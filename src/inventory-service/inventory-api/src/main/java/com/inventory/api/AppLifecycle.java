@@ -26,7 +26,8 @@ public class AppLifecycle {
     private static final Logger LOGGER = Logger.getLogger("Listener");
 
     void onStart(@Observes StartupEvent ev) {
-        if (!"local".equalsIgnoreCase(System.getenv("env"))) {
+        LOGGER.info("The application is starting...");
+        if (!"local".equalsIgnoreCase(System.getenv("ENV"))) {
             LOGGER.info("Priming AWS SDKs...");
             try {
                 dynamoDbClient.describeTable(r -> r.tableName(System.getenv("TABLE_NAME")));

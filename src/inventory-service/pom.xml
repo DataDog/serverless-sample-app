@@ -18,13 +18,4 @@
         <module>inventory-ordering-service</module>
         <module>cdk</module>
     </modules>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.inventory</groupId>
-                <artifactId>inventory-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 </project>
