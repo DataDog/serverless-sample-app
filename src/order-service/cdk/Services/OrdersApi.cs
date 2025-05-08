@@ -215,6 +215,12 @@ public class OrdersApi : Construct
                         { "DD_ENV", props.SharedProps.Env },
                         { "DD_VERSION", props.SharedProps.Version }
                     },
+                    DockerLabels = new Dictionary<string, string>(3)
+                    {
+                        {"com.datadoghq.tags.env", props.SharedProps.Env },
+                        {"com.datadoghq.tags.service", props.SharedProps.ServiceName },
+                        {"com.datadoghq.tags.version", props.SharedProps.Version },
+                    },
                     ContainerPort = 8080,
                     ContainerName = "DotnetInventoryApi",
                     LogDriver = LogDrivers.Firelens(new FireLensLogDriverProps()

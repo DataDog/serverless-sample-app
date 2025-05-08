@@ -75,6 +75,12 @@ public class InventoryApiContainer extends Construct {
         environmentVariables.put("QUARKUS_HTTP_CORS_HEADERS", "Accept,Authorization,Content-Type");
         environmentVariables.put("QUARKUS_HTTP_CORS_METHODS", "GET,POST,OPTIONS,PUT,DELETE");
         environmentVariables.put("QUARKUS_HTTP_CORS_ORIGINS", "*");
+        environmentVariables.put("DD_APM_IGNORE_RESOURCES", "GET /health,/");
+
+        Map<String, String> dockerLabels = new HashMap<>();
+        dockerLabels.put("com.datadoghq.tags.env", props.serviceProps().getSharedProps().env());
+        dockerLabels.put("com.datadoghq.tags.service", props.serviceProps().getSharedProps().service());
+        dockerLabels.put("com.datadoghq.tags.version", props.serviceProps().getSharedProps().version());
 
         ApplicationLoadBalancedFargateService application = ApplicationLoadBalancedFargateService.Builder.create(this, "InventoryApiService")
                 .cluster(cluster)
@@ -90,6 +96,11 @@ public class InventoryApiContainer extends Construct {
                         .environment(environmentVariables)
                         .containerPort(8080)
                         .containerName("InventoryApi")
+                        .dockerLabels(Map.of(
+                                "com.datadoghq.tags.env", props.serviceProps().getSharedProps().env(),
+                                "com.datadoghq.tags.service", props.serviceProps().getSharedProps().service(),
+                                "com.datadoghq.tags.version", props.serviceProps().getSharedProps().version()
+                        ))
                         .logDriver(new FireLensLogDriver(FireLensLogDriverProps.builder()
                                 .options(Map.of(
                                         "Name", "datadog",
