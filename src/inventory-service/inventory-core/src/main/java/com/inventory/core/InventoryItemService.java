@@ -11,7 +11,6 @@ import io.opentracing.Span;
 import io.opentracing.log.Fields;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
-import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -41,29 +40,21 @@ public class InventoryItemService {
 
     public HandlerResponse<InventoryItemDTO> withProductId(String productId) {
         final Span span = GlobalTracer.get().activeSpan();
-        try {
-            this.logger.info("Received request for product {}", productId);
 
-            if (span != null) {
-                span.setTag("product.id", productId);
-            }
+        this.logger.info("Received request for product {}", productId);
 
-            InventoryItem existingProduct = this.repository.withProductId(productId);
-
-            if (existingProduct == null) {
-                this.logger.warn("Inventory item not found with productID: {}", productId);
-                return new HandlerResponse<>(null, List.of("Product not found"), false);
-            }
-
-            return new HandlerResponse<>(new InventoryItemDTO(existingProduct), List.of("OK"), true);
-        } catch (Exception e) {
-            logger.error("Error retrieving product", e);
-            if (span != null) {
-                span.setTag(Tags.ERROR, true);
-                span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e));
-            }
-            return new HandlerResponse<>(null, List.of("Unknown error: " + e.getMessage()), false);
+        if (span != null) {
+            span.setTag("product.id", productId);
         }
+
+        InventoryItem existingProduct = this.repository.withProductId(productId);
+
+        if (existingProduct == null) {
+            this.logger.warn("Inventory item not found with productID: {}", productId);
+            return new HandlerResponse<>(null, List.of("Product not found"), false);
+        }
+
+        return new HandlerResponse<>(new InventoryItemDTO(existingProduct), List.of("OK"), true);
     }
 
     public HandlerResponse<InventoryItemDTO> updateStock(UpdateInventoryStockRequest request) {
@@ -82,9 +73,11 @@ public class InventoryItemService {
                 return new HandlerResponse<>(null, validationResponse, false);
             }
 
-            var existingInventoryItem = this.repository.withProductId(request.getProductId());
+            InventoryItem existingInventoryItem;
 
-            if (existingInventoryItem == null) {
+            try {
+                existingInventoryItem = this.repository.withProductId(request.getProductId());
+            } catch (InventoryItemNotFoundException ex) {
                 if (span != null) {
                     span.setTag("product.notFound", "true");
                 }
@@ -125,7 +118,6 @@ public class InventoryItemService {
             span.setTag("order.conversationId", conversationId);
         }
 
-        // Store the products in the order cache early to ensure they're recorded even if reservation fails
         try {
             orderCache.store(orderNumber, new ArrayList<>(products));
         } catch (Exception e) {
@@ -138,65 +130,31 @@ public class InventoryItemService {
         }
 
         try {
-            AtomicBoolean isFailure = new AtomicBoolean(false);
-            List<InventoryItem> stockAddedFor = Collections.synchronizedList(new ArrayList<>());
-
-            // Process products in parallel for large orders for better performance
-            if (products.size() > 5) {
-                // For larger orders, process in parallel using CompletableFuture
-                logger.info("Using parallel processing for large order with {} products", products.size());
-                
-                List<CompletableFuture<Void>> futures = products.stream()
-                    .map(productId -> CompletableFuture.runAsync(() -> {
-                        if (isFailure.get()) {
-                            return; // Skip if we already know we'll fail
-                        }
-                        
-                        processProductReservation(productId, orderNumber, stockAddedFor, isFailure, span);
-                    }))
-                    .collect(Collectors.toList());
-                
-                try {
-                    // Wait for all product reservations to complete with timeout
-                    CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                        .get(10, TimeUnit.SECONDS);
-                } catch (Exception e) {
-                    logger.error("Error in parallel product reservation", e);
-                    isFailure.set(true);
-                }
-            } else {
-                // For smaller orders, process sequentially for less overhead
-                for (String productId : products) {
-                    if (isFailure.get()) {
-                        break; // No need to continue if we already know we'll fail
-                    }
-                    
-                    processProductReservation(productId, orderNumber, stockAddedFor, isFailure, span);
-                }
-            }
+            InventoryItemReservationResult result = reserveStockForInventoryItems(orderNumber, products, span);
 
             // Publish appropriate events based on reservation result
-            if (isFailure.get()) {
+            if (result.isFailure().get()) {
                 if (span != null) {
                     span.setTag("order.reserved", "false");
                 }
+
+                logger.warn("Stock reservation failed for order {}", orderNumber);
+
                 this.eventPublisher.publishStockReservationFailedEvent(
                         new StockReservationFailedEventV1(orderNumber, conversationId));
-                
-                logger.warn("Stock reservation failed for order {}", orderNumber);
             } else {
-                // Update all reserved items
-                for (InventoryItem inventoryItem : stockAddedFor) {
-                    this.repository.update(inventoryItem);
-                }
-                
                 if (span != null) {
                     span.setTag("order.reserved", "true");
                 }
+
+                logger.info("Successfully reserved stock for order {}", orderNumber);
+
+                // Update all reserved items
+                for (InventoryItem inventoryItem : result.stockAddedFor()) {
+                    this.repository.update(inventoryItem);
+                }
                 this.eventPublisher.publishStockReservedEvent(
                         new StockReservedEventV1(orderNumber, conversationId));
-                
-                logger.info("Successfully reserved stock for order {}", orderNumber);
             }
 
             return new HandlerResponse<>(true, List.of("OK"), true);
@@ -218,7 +176,38 @@ public class InventoryItemService {
             return new HandlerResponse<>(false, List.of("Error reserving stock: " + e.getMessage()), false);
         }
     }
-    
+
+    private InventoryItemReservationResult reserveStockForInventoryItems(String orderNumber, List<String> products, Span span) {
+        AtomicBoolean isFailure = new AtomicBoolean(false);
+        List<InventoryItem> stockAddedFor = Collections.synchronizedList(new ArrayList<>());
+
+        logger.info("Using parallel processing for large order with {} products", products.size());
+
+        List<CompletableFuture<Void>> futures = products.stream()
+                .map(productId -> CompletableFuture.runAsync(() -> {
+                    if (isFailure.get()) {
+                        return; // Skip if we already know we'll fail
+                    }
+
+                    processProductReservation(productId, orderNumber, stockAddedFor, isFailure, span);
+                }))
+                .collect(Collectors.toList());
+
+        try {
+            // Wait for all product reservations to complete with timeout
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .get(10, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            logger.error("Error in parallel product reservation", e);
+            isFailure.set(true);
+        }
+        InventoryItemReservationResult result = new InventoryItemReservationResult(isFailure, stockAddedFor);
+        return result;
+    }
+
+    private record InventoryItemReservationResult(AtomicBoolean isFailure, List<InventoryItem> stockAddedFor) {
+    }
+
     private void processProductReservation(String productId, String orderNumber, 
                                          List<InventoryItem> stockAddedFor, 
                                          AtomicBoolean isFailure, Span parentSpan) {

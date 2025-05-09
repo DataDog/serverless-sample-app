@@ -6,7 +6,9 @@
 
 package com.inventory.core.adapters;
 
+import com.inventory.core.DataAccessException;
 import com.inventory.core.InventoryItem;
+import com.inventory.core.InventoryItemNotFoundException;
 import com.inventory.core.InventoryItemRepository;
 import com.inventory.core.config.AppConfig;
 
@@ -19,6 +21,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
@@ -46,7 +50,7 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
 
     @Override
     @CacheResult(cacheName = "inventory-cache")
-    public InventoryItem withProductId(String productId) {
+    public InventoryItem withProductId(String productId) throws DataAccessException, InventoryItemNotFoundException {
         final Span span = GlobalTracer.get().activeSpan();
         if (span != null) {
             span.setTag("cache.inventory.operation", "get");
@@ -66,14 +70,14 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
 
         try {
             var result = dynamoDB.getItem(request);
-            
+
             Map<String, AttributeValue> item = result.item();
-            
+
             if (item.isEmpty() || !item.containsKey(PRODUCT_ID_KEY)) {
                 if (span != null) {
                     span.setTag("product.found", false);
                 }
-                return null;
+                throw new InventoryItemNotFoundException(productId);
             }
 
             if (span != null) {
@@ -84,24 +88,22 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
 
             ArrayList<String> orders = new ArrayList<>(item.get(RESERVED_STOCK_ORDERS_KEY).ss());
             return new InventoryItem(
-                item.get(PARTITION_KEY).s(), 
-                Double.parseDouble(item.get(STOCK_LEVEL_KEY).n()), 
-                Double.parseDouble(item.get(RESERVED_STOCK_LEVEL_KEY).n()), 
-                orders
+                    item.get(PARTITION_KEY).s(),
+                    Double.parseDouble(item.get(STOCK_LEVEL_KEY).n()),
+                    Double.parseDouble(item.get(RESERVED_STOCK_LEVEL_KEY).n()),
+                    orders
             );
-        } catch (Exception e) {
-            logger.error("Error fetching inventory item from DynamoDB", e);
-            if (span != null) {
-                span.setTag("error", true);
-                span.setTag("error.message", e.getMessage());
-            }
-            throw e;
+        }
+        catch (AwsServiceException |
+               SdkClientException e) {
+            logger.error("An error occurred while accessing DynamoDB: {}", e.getMessage(), e);
+            throw new DataAccessException(e);
         }
     }
 
     @Override
     @CacheInvalidate(cacheName = "inventory-cache")
-    public void update(InventoryItem product) {
+    public void update(InventoryItem product) throws DataAccessException  {
         final Span span = GlobalTracer.get().activeSpan();
         if (span != null) {
             span.setTag("cache.inventory.operation", "invalidate");
@@ -121,23 +123,21 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
                 .item(item)
                 .returnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
                 .build();
+        try{
 
-        try {
             var response = this.dynamoDB.putItem(putItemRequest);
-            
+
             if (span != null) {
                 span.setTag("db.wcu", response.consumedCapacity().writeCapacityUnits());
                 span.setTag("db.rcu", response.consumedCapacity().readCapacityUnits());
                 span.setTag("product.found", true);
             }
             logger.info("Updated inventory item in DynamoDB: {}", product.getProductId());
-        } catch (Exception e) {
-            logger.error("Error updating inventory item in DynamoDB", e);
-            if (span != null) {
-                span.setTag("error", true);
-                span.setTag("error.message", e.getMessage());
-            }
-            throw e;
+        }
+        catch (AwsServiceException |
+            SdkClientException e) {
+            logger.error("An error occurred while accessing DynamoDB: {}", e.getMessage(), e);
+            throw new DataAccessException(e);
         }
     }
     
