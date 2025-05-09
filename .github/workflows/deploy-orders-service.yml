@@ -64,7 +64,7 @@ jobs:
           REPOSITORY: dd-serverless-sample-app-dotnet
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          cd src/order-service
+          cd src/order-service/src
           docker build -f Dockerfile -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
           docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
   deploy-tf:
