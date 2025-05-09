@@ -64,7 +64,7 @@ jobs:
           REPOSITORY: dd-serverless-sample-app-inventory-java
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          cd src/inventory-service/inventory-api
+          cd inventory-api
           docker build -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
           docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
 
