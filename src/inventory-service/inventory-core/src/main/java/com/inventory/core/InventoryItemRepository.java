@@ -7,6 +7,6 @@
 package com.inventory.core;
 
 public interface InventoryItemRepository {
-    InventoryItem withProductId(String productId);
-    void update(InventoryItem item);
+    InventoryItem withProductId(String productId) throws DataAccessException, InventoryItemNotFoundException;
+    void update(InventoryItem item) throws DataAccessException;
 }
