@@ -69,6 +69,7 @@ jobs:
           docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
   deploy-tf:
     runs-on: ubuntu-latest
+    needs: build-docker-image
     concurrency:
       group: tf-networked
     steps:
@@ -180,6 +181,7 @@ jobs:
 
   deploy-cdk:
     runs-on: ubuntu-latest
+    needs: build-docker-image
     concurrency:
       group: cdk-networked
     steps:
@@ -273,6 +275,7 @@ jobs:
 
   deploy-sam:
     runs-on: ubuntu-latest
+    needs: build-docker-image
     concurrency:
       group: sam-networked
     steps:
