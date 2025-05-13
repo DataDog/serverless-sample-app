@@ -231,6 +231,7 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
