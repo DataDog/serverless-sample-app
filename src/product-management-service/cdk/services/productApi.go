@@ -9,9 +9,11 @@ package services
 
 import (
 	sharedconstructs "cdk/sharedConstructs"
+	"fmt"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsdsql"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssns"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsssm"
@@ -24,13 +26,17 @@ type ProductApiProps struct {
 }
 
 type ProductApi struct {
-	Table               awsdynamodb.Table
-	ProductCreatedTopic awssns.Topic
-	ProductUpdatedTopic awssns.Topic
-	ProductDeletedTopic awssns.Topic
+	Database                awsdsql.CfnCluster
+	DatabaseClusterEndpoint *string
+	Table                   awsdynamodb.Table
+	ProductCreatedTopic     awssns.Topic
+	ProductUpdatedTopic     awssns.Topic
+	ProductDeletedTopic     awssns.Topic
 }
 
 func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps) ProductApi {
+	region := awscdk.Stack_Of(scope).Region()
+
 	productCreatedTopic := awssns.NewTopic(scope, jsii.String("ProductCreatedTopic"), &awssns.TopicProps{})
 	productUpdatedTopic := awssns.NewTopic(scope, jsii.String("ProductUpdatedTopic"), &awssns.TopicProps{})
 	productDeletedTopic := awssns.NewTopic(scope, jsii.String("ProductDeletedTopic"), &awssns.TopicProps{})
@@ -45,6 +51,8 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		},
 		RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
 	})
+
+	dsqlCluster := awsdsql.NewCfnCluster(scope, jsii.String("DSQLCluster"), &awsdsql.CfnClusterProps{})
 
 	api := awsapigateway.NewRestApi(scope, jsii.String("ProductApi"), &awsapigateway.RestApiProps{
 		RestApiName: jsii.Sprintf("%s-Api-%s", props.ServiceProps.SharedProps.ServiceName, props.ServiceProps.SharedProps.Env),
@@ -127,10 +135,19 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		StringValue:   api.Url(),
 	})
 
+	databaseClusterEndpoint := jsii.String(fmt.Sprintf("%s.dsql.%s.on.aws", *dsqlCluster.GetAtt(jsii.String("Identifier"), awscdk.ResolutionTypeHint_STRING).ToString(), *region))
+
+	awsssm.NewStringParameter(scope, jsii.String("ProductDbClusterEndpoint"), &awsssm.StringParameterProps{
+		ParameterName: jsii.Sprintf("/%s/%s/cluster-endpoint", props.ServiceProps.SharedProps.Env, props.ServiceProps.SharedProps.ServiceName),
+		StringValue:   databaseClusterEndpoint,
+	})
+
 	return ProductApi{
-		Table:               table,
-		ProductCreatedTopic: productCreatedTopic,
-		ProductUpdatedTopic: productUpdatedTopic,
-		ProductDeletedTopic: productDeletedTopic,
+		DatabaseClusterEndpoint: databaseClusterEndpoint,
+		Database:                dsqlCluster,
+		Table:                   table,
+		ProductCreatedTopic:     productCreatedTopic,
+		ProductUpdatedTopic:     productUpdatedTopic,
+		ProductDeletedTopic:     productDeletedTopic,
 	}
 }
