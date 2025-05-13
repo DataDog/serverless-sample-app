@@ -760,11 +760,11 @@ Resources:
       ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
       TaskRoleArn: !GetAtt ECSTaskRole.Arn
       RuntimePlatform:
-        CpuArchitecture: ARM64
+        CpuArchitecture: X86_64
         OperatingSystemFamily: LINUX
       ContainerDefinitions:
         - Name: InventoryApi
-          Image: public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-inventory-java:latest
+          Image: !Sub public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-inventory-java:${CommitHash}
           Environment:
             - Name: TABLE_NAME
               Value: !Ref InventoryApiTable

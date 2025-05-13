@@ -17,9 +17,6 @@ import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFarga
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedTaskImageOptions;
 import software.amazon.awscdk.services.elasticloadbalancingv2.HealthCheck;
 import software.amazon.awscdk.services.iam.*;
-import software.amazon.awscdk.services.sns.ITopic;
-import software.amazon.awscdk.services.sns.Topic;
-import software.amazon.awscdk.services.sns.TopicProps;
 import software.amazon.awscdk.services.ssm.StringParameter;
 import software.amazon.awscdk.services.ssm.StringParameterProps;
 import software.constructs.Construct;
@@ -75,7 +72,7 @@ public class InventoryApiContainer extends Construct {
         environmentVariables.put("QUARKUS_HTTP_CORS_HEADERS", "Accept,Authorization,Content-Type");
         environmentVariables.put("QUARKUS_HTTP_CORS_METHODS", "GET,POST,OPTIONS,PUT,DELETE");
         environmentVariables.put("QUARKUS_HTTP_CORS_ORIGINS", "*");
-        environmentVariables.put("DD_APM_IGNORE_RESOURCES", "GET /health,/");
+
 
         Map<String, String> dockerLabels = new HashMap<>();
         dockerLabels.put("com.datadoghq.tags.env", props.serviceProps().getSharedProps().env());
@@ -86,11 +83,12 @@ public class InventoryApiContainer extends Construct {
                 .cluster(cluster)
                 .desiredCount(2)
                 .runtimePlatform(RuntimePlatform.builder()
-                        .cpuArchitecture(CpuArchitecture.ARM64)
+                        .cpuArchitecture(CpuArchitecture.X86_64)
                         .operatingSystemFamily(OperatingSystemFamily.LINUX)
                         .build())
                 .taskImageOptions(ApplicationLoadBalancedTaskImageOptions.builder()
-                        .image(ContainerImage.fromRegistry("public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-inventory-java:latest"))
+                        .image(ContainerImage.fromRegistry(String.format(
+                                                        "public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-inventory-java:%s", props.serviceProps().getSharedProps().version())))
                         .executionRole(executionRole)
                         .taskRole(taskRole)
                         .environment(environmentVariables)
@@ -178,6 +176,7 @@ public class InventoryApiContainer extends Construct {
         datadogEnvironmentVariables.put("DD_ENV", env);
         datadogEnvironmentVariables.put("DD_SERVICE", service);
         datadogEnvironmentVariables.put("DD_VERSION", version);
+        datadogEnvironmentVariables.put("DD_APM_IGNORE_RESOURCES", "(GET) /health,(GET) /");
         
         application.getTaskDefinition().addContainer("Datadog", ContainerDefinitionOptions.builder()
                 .image(ContainerImage.fromRegistry("public.ecr.aws/datadog/agent:latest"))

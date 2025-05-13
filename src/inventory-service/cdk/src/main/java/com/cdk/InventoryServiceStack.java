@@ -11,14 +11,9 @@ import com.cdk.inventory.ordering.InventoryOrderingServiceProps;
 import software.amazon.awscdk.SecretValue;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
-import software.amazon.awscdk.services.events.EventBus;
-import software.amazon.awscdk.services.events.EventBusProps;
-import software.amazon.awscdk.services.events.IEventBus;
 import software.amazon.awscdk.services.secretsmanager.ISecret;
 import software.amazon.awscdk.services.secretsmanager.Secret;
 import software.amazon.awscdk.services.secretsmanager.SecretProps;
-import software.amazon.awscdk.services.ssm.IStringParameter;
-import software.amazon.awscdk.services.ssm.StringParameter;
 import software.constructs.Construct;
 
 import java.util.List;
@@ -37,7 +32,7 @@ public class InventoryServiceStack extends Stack {
 
         String serviceName = "InventoryService";
         String env = System.getenv("ENV") == null ? "dev" : System.getenv("ENV");
-        String version = System.getenv("VERSION") == null ? "dev" : System.getenv("VERSION");
+        String version = System.getenv("VERSION") == null ? "latest" : System.getenv("VERSION");
 
         ISecret ddApiKeySecret = new Secret(this, "DDApiKeySecret",
                 SecretProps.builder()

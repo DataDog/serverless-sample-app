@@ -19,8 +19,58 @@ permissions:
   contents: read
 
 jobs:
+  build-docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java 21 for x64
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "corretto"
+          architecture: x64
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: "us-east-1"
+      - name: Login to Amazon ECR public
+        id: login-ecr-public
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+      - name: Set Commit Hash Environment Variables
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Build
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "us-east-1"
+        run: |
+          cd src/inventory-service
+          make build
+      - name: Build, tag, and push docker image to Amazon ECR Public
+        env:
+          REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
+          REGISTRY_ALIAS: k4y9x2e7
+          REPOSITORY: dd-serverless-sample-app-inventory-java
+          IMAGE_TAG: ${{ env.sha_short }}
+        run: |
+          cd src/inventory-service/inventory-api
+          docker build -f src/main/docker/Dockerfile -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
+          docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
+
   deploy-tf:
     runs-on: ubuntu-latest
+    needs: build-docker-image
     concurrency:
       group: tf-networked
     steps:
@@ -48,6 +98,7 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "eu-west-2"
@@ -58,6 +109,7 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
@@ -73,6 +125,7 @@ jobs:
         shell: bash
         env:
           ENV: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           AWS_REGION: "eu-west-2"
         run: |
           cd src/inventory-service
@@ -82,6 +135,7 @@ jobs:
         if: always()
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
@@ -94,6 +148,7 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
@@ -118,6 +173,7 @@ jobs:
         if: always()
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
@@ -129,6 +185,7 @@ jobs:
 
   deploy-cdk:
     runs-on: ubuntu-latest
+    needs: build-docker-image
     concurrency:
       group: cdk-networked
     steps:
@@ -161,6 +218,7 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY_SECRET_ARN: ${{secrets.US_EAST_1_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
@@ -173,6 +231,7 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY_SECRET_ARN: ${{secrets.EU_WEST_1_DD_API_KEY_SECRET_ARN}}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
@@ -184,6 +243,7 @@ jobs:
         shell: bash
         env:
           ENV: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           AWS_REGION: "eu-west-1"
         run: |
           cd src/inventory-service
@@ -193,6 +253,7 @@ jobs:
         if: always()
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
@@ -203,6 +264,7 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
@@ -222,6 +284,7 @@ jobs:
         if: always()
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
@@ -231,6 +294,7 @@ jobs:
 
   deploy-sam:
     runs-on: ubuntu-latest
+    needs: build-docker-image
     concurrency:
       group: sam-networked
     steps:
@@ -261,6 +325,7 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
@@ -272,6 +337,7 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
@@ -283,6 +349,7 @@ jobs:
         shell: bash
         env:
           ENV: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           AWS_REGION: "eu-central-1"
         run: |
           cd src/inventory-service
@@ -303,6 +370,7 @@ jobs:
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
@@ -323,6 +391,7 @@ jobs:
         if: always()
         env:
           COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
