@@ -25,7 +25,7 @@ import java.util.concurrent.ExecutionException;
 
 public class ApiDriver {
     static final int SLEEP_TIME_BETWEEN_RETRIES=5000;
-    static final int MAX_RETRIES=5;
+    static final int MAX_RETRIES=10;
     static final int HTTP_TIMEOUT=20;
 
     private final EventBridgeClient eventBridgeClient;
