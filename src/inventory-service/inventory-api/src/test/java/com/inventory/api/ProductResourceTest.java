@@ -43,51 +43,63 @@ class ProductResourceTest {
 
     @Test
     public void test_when_product_created_event_received_product_is_available_through_api() throws IOException, ExecutionException, InterruptedException {
-            var randomProductId = UUID.randomUUID().toString();
+        var randomProductId = UUID.randomUUID().toString();
 
-            apiDriver.injectProductCreatedEvent(randomProductId);
+        System.out.println("Running 'test_when_product_created_event_received_product_is_available_through_api' for product " + randomProductId);
 
-            Thread.sleep(WORKFLOW_MINIMUM_EXECUTION);
+        apiDriver.injectProductCreatedEvent(randomProductId);
 
-            var stockLevel = apiDriver.getProductStockLevel(randomProductId);
+        Thread.sleep(WORKFLOW_MINIMUM_EXECUTION);
 
-            Assertions.assertNotNull(stockLevel.getData());
-            Assertions.assertEquals(randomProductId, stockLevel.getData().getProductId());
+        var stockLevel = apiDriver.getProductStockLevel(randomProductId, -1);
+
+        Assertions.assertNotNull(stockLevel.getData());
+        Assertions.assertEquals(randomProductId, stockLevel.getData().getProductId());
+
+        System.out.println("Success 'test_when_product_created_event_received_product_is_available_through_api' for product " + randomProductId);
     }
 
     @Test
     public void test_product_stock_levels_can_be_updated() throws IOException, ExecutionException, InterruptedException {
         var randomProductId = UUID.randomUUID().toString();
 
+        System.out.println("Running 'test_product_stock_levels_can_be_updated' for product " + randomProductId);
+
         apiDriver.injectProductCreatedEvent(randomProductId);
 
         Thread.sleep(WORKFLOW_MINIMUM_EXECUTION);
 
-        var stockLevel = apiDriver.getProductStockLevel(randomProductId);
+        var stockLevel = apiDriver.getProductStockLevel(randomProductId, -1);
         Assertions.assertEquals(randomProductId, stockLevel.getData().getProductId());
 
         var updateStockLevelResult = apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
 
         Assertions.assertEquals(200, updateStockLevelResult.statusCode());
 
-        stockLevel = apiDriver.getProductStockLevel(randomProductId);
+        stockLevel = apiDriver.getProductStockLevel(randomProductId, 10);
 
         Assertions.assertNotNull(stockLevel.getData());
         Assertions.assertEquals(10.0, stockLevel.getData().getCurrentStockLevel());
+
+        System.out.println("Success 'test_product_stock_levels_can_be_updated' for product " + randomProductId);
     }
 
     @Test
     public void test_product_stock_levels_can_be_updated_for_an_unknown_product() throws IOException, ExecutionException, InterruptedException {
         var randomProductId = UUID.randomUUID().toString();
 
+        System.out.println("Running 'test_product_stock_levels_can_be_updated_for_an_unknown_product' for product " + randomProductId);
+
         var updateStockLevelResult = apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
 
         Assertions.assertEquals(200, updateStockLevelResult.statusCode());
 
-        var stockLevel = apiDriver.getProductStockLevel(randomProductId);
+        var stockLevel = apiDriver.getProductStockLevel(randomProductId, 10);
 
         Assertions.assertNotNull(stockLevel.getData());
         Assertions.assertEquals(10.0, stockLevel.getData().getCurrentStockLevel());
+
+        System.out.println("Success 'test_product_stock_levels_can_be_updated_for_an_unknown_product' for product " + randomProductId);
     }
 
     @Test
@@ -95,18 +107,20 @@ class ProductResourceTest {
         var randomProductId = UUID.randomUUID().toString();
         var randomOrderNumber = UUID.randomUUID().toString();
 
+        System.out.println("Running 'test_stock_levels_are_decreased_when_order_created' for product " + randomProductId);
+
         apiDriver.injectProductCreatedEvent(randomProductId);
 
         Thread.sleep(WORKFLOW_MINIMUM_EXECUTION);
 
-        var stockLevel = apiDriver.getProductStockLevel(randomProductId);
+        var stockLevel = apiDriver.getProductStockLevel(randomProductId, -1);
         Assertions.assertEquals(randomProductId, stockLevel.getData().getProductId());
 
         var updateStockLevelResult = apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
 
         Assertions.assertEquals(200, updateStockLevelResult.statusCode());
 
-        stockLevel = apiDriver.getProductStockLevel(randomProductId);
+        stockLevel = apiDriver.getProductStockLevel(randomProductId, 10);
 
         Assertions.assertEquals(10.0, stockLevel.getData().getCurrentStockLevel());
 
@@ -114,16 +128,20 @@ class ProductResourceTest {
 
         Thread.sleep(EVENT_PROCESSING_DELAY);
 
-        stockLevel = apiDriver.getProductStockLevel(randomProductId);
+        stockLevel = apiDriver.getProductStockLevel(randomProductId, 9);
 
         Assertions.assertEquals(9, stockLevel.getData().getCurrentStockLevel());
         Assertions.assertEquals(1, stockLevel.getData().getReservedStockLevel());
+
+        System.out.println("Success 'test_stock_levels_are_decreased_when_order_created' for product " + randomProductId);
     }
 
     @Test
     public void test_stock_levels_are_decreased_when_order_completed() throws IOException, ExecutionException, InterruptedException {
         var randomProductId = UUID.randomUUID().toString();
         var randomOrderNumber = UUID.randomUUID().toString();
+
+        System.out.println("Running 'test_stock_levels_are_decreased_when_order_completed' for product " + randomProductId);
 
         apiDriver.injectProductCreatedEvent(randomProductId);
 
@@ -139,9 +157,11 @@ class ProductResourceTest {
 
         Thread.sleep(EVENT_PROCESSING_DELAY);
 
-        var stockLevel = apiDriver.getProductStockLevel(randomProductId);
+        var stockLevel = apiDriver.getProductStockLevel(randomProductId, 9);
 
         Assertions.assertEquals(9, stockLevel.getData().getCurrentStockLevel());
         Assertions.assertEquals(0, stockLevel.getData().getReservedStockLevel());
+
+        System.out.println("Success 'test_stock_levels_are_decreased_when_order_completed' for product " + randomProductId);
     }
 }

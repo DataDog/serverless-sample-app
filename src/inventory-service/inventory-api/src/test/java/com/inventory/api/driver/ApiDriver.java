@@ -58,7 +58,7 @@ public class ApiDriver {
         return response.parameter().value();
     }
 
-    public ApiResponse<InventoryItemDTO> getProductStockLevel(String id) throws IOException, InterruptedException, ExecutionException {
+    public ApiResponse<InventoryItemDTO> getProductStockLevel(String id, int expectedStockLevel) throws IOException, InterruptedException, ExecutionException {
         String jwt = generateJWT(secretKey);
         String apiEndpoint = this.apiEndpoint + "/inventory/" + id;
 
@@ -72,7 +72,6 @@ public class ApiDriver {
                 .GET()
                 .build();
 
-        System.out.println(String.format("First attempt to get stock level for product: %s", id));
         var httpResult = this.httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         System.out.println(httpResult.body());
         ApiResponse<InventoryItemDTO> stockLevelResponse = null;
@@ -81,30 +80,43 @@ public class ApiDriver {
         stockLevelResponse = objectMapper.readValue(httpResult.body(), typeRef);
 
         var success = false;
-
-        if (stockLevelResponse.getData() != null){
-            success = true;
-        }
+        success = validateStockLevelInResponse(expectedStockLevel, stockLevelResponse);
 
         var maxRetries = MAX_RETRIES;
         while (!success && maxRetries > 0) {
-            System.out.println(String.format("Attempt %d to get stock level for product: %s", maxRetries, id));
-
             Thread.sleep(SLEEP_TIME_BETWEEN_RETRIES);
 
             httpResult = this.httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println("Response for product..." + id);
             System.out.println(httpResult.body());
             stockLevelResponse = objectMapper.readValue(httpResult.body(), typeRef);
-            System.out.println(String.format("Response received for product: %s", httpResult.statusCode()));
 
-            if (stockLevelResponse.getData() != null){
-                success = true;
-            }
+            success = validateStockLevelInResponse(expectedStockLevel, stockLevelResponse);
 
             maxRetries--;
         }
 
         return stockLevelResponse;
+    }
+
+    private static boolean validateStockLevelInResponse(int expectedStockLevel, ApiResponse<InventoryItemDTO> stockLevelResponse) {
+        boolean success = false;
+        if (stockLevelResponse.getData() != null){
+            // If a value of less than 0 is passed in the stock level doesn't matter
+            if (expectedStockLevel < 0){
+                System.out.println("Expected stock level is less than 0, so we don't care what the value is");
+                success = true;
+            }
+
+            // If a stock level is passed in, make sure that it is validated
+            if (stockLevelResponse.getData().getCurrentStockLevel() == expectedStockLevel){
+                System.out.println("Expected stock level is equal to current stock level");
+                success = true;
+            } else {
+                System.out.println("Expected stock level is not equal to current stock level, retrying...");
+            }
+        }
+        return success;
     }
 
     public HttpResponse<String> updateStockLevel(UpdateStockLevelCommand command) throws IOException, InterruptedException, ExecutionException {
