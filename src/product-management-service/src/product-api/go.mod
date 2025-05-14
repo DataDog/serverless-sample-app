@@ -13,6 +13,7 @@ replace github.com/datadog/serverless-sample-product-core v0.0.0 => ../core
 require (
 	github.com/DataDog/datadog-lambda-go v1.22.0
 	github.com/aws/aws-lambda-go v1.47.0
+	github.com/aws/aws-sdk-go v1.44.327
 	github.com/aws/aws-sdk-go-v2 v1.36.3
 	github.com/aws/aws-sdk-go-v2/config v1.29.12
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.18.8
@@ -20,7 +21,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sns v1.34.2
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.58.0
 	github.com/golang-jwt/jwt/v5 v5.2.2
-	go.opentelemetry.io/otel v1.35.0
+	github.com/jackc/pgx/v5 v5.7.4
 	gopkg.in/DataDog/dd-trace-go.v1 v1.72.2
 )
 
@@ -80,6 +81,10 @@ require (
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.9 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.7 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/lufia/plan9stats v0.0.0-20220913051719-115f729f3c8c // indirect
@@ -107,14 +112,17 @@ require (
 	go.opentelemetry.io/collector/pdata v1.11.0 // indirect
 	go.opentelemetry.io/collector/pdata/pprofile v0.104.0 // indirect
 	go.opentelemetry.io/collector/semconv v0.104.0 // indirect
+	go.opentelemetry.io/otel v1.35.0 // indirect
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.34.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
+	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/time v0.10.0 // indirect

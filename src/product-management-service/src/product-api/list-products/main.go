@@ -31,9 +31,10 @@ var (
 		awstrace.AppendMiddleware(&awsCfg)
 		return awsCfg
 	}()
-	dynamoDbRepository   = adapters.NewDynamoDbProductRepository(*dynamodb.NewFromConfig(awsCfg), os.Getenv("TABLE_NAME"))
-	createProductHandler = core.NewCreateProductCommandHandler(dynamoDbRepository, adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg)))
-	handler              = core.NewListProductsQueryHandler(dynamoDbRepository)
+	dSqlProductRepository, _ = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
+	dynamoDbRepository       = adapters.NewDynamoDbProductRepository(*dynamodb.NewFromConfig(awsCfg), os.Getenv("TABLE_NAME"))
+	createProductHandler     = core.NewCreateProductCommandHandler(dSqlProductRepository, adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg)))
+	handler                  = core.NewListProductsQueryHandler(dSqlProductRepository)
 )
 
 func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -47,6 +48,7 @@ func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest)
 }
 
 func main() {
+
 	// Seed database on first call
 	_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Flat White", Price: 3.5})
 	_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Espresso", Price: 2.99})

@@ -10,6 +10,7 @@ package services
 import (
 	sharedconstructs "cdk/sharedConstructs"
 	"fmt"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
@@ -53,6 +54,17 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	})
 
 	dsqlCluster := awsdsql.NewCfnCluster(scope, jsii.String("DSQLCluster"), &awsdsql.CfnClusterProps{})
+	databaseClusterEndpoint := jsii.String(fmt.Sprintf("%s.dsql.%s.on.aws", *dsqlCluster.GetAtt(jsii.String("Identifier"), awscdk.ResolutionTypeHint_STRING).ToString(), *region))
+	dsqlConnectPolicyStatement := awsiam.NewPolicyStatement(&awsiam.PolicyStatementProps{
+		Effect:    awsiam.Effect_ALLOW,
+		Actions:   jsii.Strings("dsql:DbConnectAdmin"),
+		Resources: jsii.Strings("*"),
+	})
+
+	// Create the policy
+	dSqlConnectPolicy := awsiam.NewPolicy(scope, jsii.String("DbConnectPolicy"), &awsiam.PolicyProps{
+		Statements: &[]awsiam.PolicyStatement{dsqlConnectPolicyStatement},
+	})
 
 	api := awsapigateway.NewRestApi(scope, jsii.String("ProductApi"), &awsapigateway.RestApiProps{
 		RestApiName: jsii.Sprintf("%s-Api-%s", props.ServiceProps.SharedProps.ServiceName, props.ServiceProps.SharedProps.Env),
@@ -69,6 +81,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	environmentVariables["PRODUCT_UPDATED_TOPIC_ARN"] = jsii.String(*productUpdatedTopic.TopicArn())
 	environmentVariables["PRODUCT_DELETED_TOPIC_ARN"] = jsii.String(*productDeletedTopic.TopicArn())
 	environmentVariables["JWT_SECRET_PARAM_NAME"] = props.ServiceProps.JwtSecretAccessKeyParam.ParameterName()
+	environmentVariables["DSQL_CLUSTER_ENDPOINT"] = databaseClusterEndpoint
 
 	listProductsFunction := sharedconstructs.NewInstrumentedFunction(scope, "ListProductsFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,
@@ -79,6 +92,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 
 	table.GrantReadWriteData(listProductsFunction.Function)
 	productCreatedTopic.GrantPublish(listProductsFunction.Function)
+	listProductsFunction.Function.Role().AttachInlinePolicy(dSqlConnectPolicy)
 
 	createProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "CreateProductFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,
@@ -134,8 +148,6 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		ParameterName: jsii.Sprintf("/%s/%s/api-endpoint", props.ServiceProps.SharedProps.Env, props.ServiceProps.SharedProps.ServiceName),
 		StringValue:   api.Url(),
 	})
-
-	databaseClusterEndpoint := jsii.String(fmt.Sprintf("%s.dsql.%s.on.aws", *dsqlCluster.GetAtt(jsii.String("Identifier"), awscdk.ResolutionTypeHint_STRING).ToString(), *region))
 
 	awsssm.NewStringParameter(scope, jsii.String("ProductDbClusterEndpoint"), &awsssm.StringParameterProps{
 		ParameterName: jsii.Sprintf("/%s/%s/cluster-endpoint", props.ServiceProps.SharedProps.Env, props.ServiceProps.SharedProps.ServiceName),

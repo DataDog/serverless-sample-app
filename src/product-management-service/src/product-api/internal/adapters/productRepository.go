@@ -157,6 +157,10 @@ func (repo *DynamoDbProductRepository) List(ctx context.Context) ([]core.Product
 	return products, nil
 }
 
+func (repo *DynamoDbProductRepository) ApplyMigrations(ctx context.Context) error {
+	return nil
+}
+
 type Item struct {
 	PK            string
 	Type          string
