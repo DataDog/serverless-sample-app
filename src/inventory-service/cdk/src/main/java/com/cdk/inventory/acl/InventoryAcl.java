@@ -15,13 +15,13 @@ import com.cdk.events.OrderCreatedEvent;
 import com.cdk.events.ProductCreatedEvent;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.Duration;
-import software.amazon.awscdk.services.connect.CfnQuickConnect;
-import software.amazon.awscdk.services.events.EventPattern;
-import software.amazon.awscdk.services.events.IRule;
+import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.services.events.Rule;
-import software.amazon.awscdk.services.events.RuleProps;
+import software.amazon.awscdk.services.events.targets.LambdaFunction;
 import software.amazon.awscdk.services.events.targets.SqsQueue;
 import software.amazon.awscdk.services.iam.Effect;
+import software.amazon.awscdk.services.iam.Policy;
+import software.amazon.awscdk.services.iam.PolicyDocument;
 import software.amazon.awscdk.services.iam.PolicyStatement;
 import software.amazon.awscdk.services.lambda.IFunction;
 import software.amazon.awscdk.services.lambda.eventsources.SqsEventSource;
@@ -29,9 +29,6 @@ import software.amazon.awscdk.services.lambda.eventsources.SqsEventSourceProps;
 import software.amazon.awscdk.services.sns.ITopic;
 import software.amazon.awscdk.services.sns.Topic;
 import software.amazon.awscdk.services.sns.TopicProps;
-import software.amazon.awscdk.services.sns.subscriptions.SqsSubscription;
-import software.amazon.awscdk.services.ssm.StringParameter;
-import software.amazon.awscdk.services.ssm.StringParameterProps;
 import software.constructs.Construct;
 
 import java.util.HashMap;
@@ -74,12 +71,7 @@ public class InventoryAcl extends Construct {
 
         ResilientQueue orderCreatedQueue = new ResilientQueue(this, "OrderCreatedEventQueue", new ResilientQueueProps("InventoryOrderCreatedEventQueue", props.sharedProps()));
 
-        HashMap<String, String> orderCreatedFunctionEnvVars = new HashMap<>(2);
-        orderCreatedFunctionEnvVars.put("EVENT_BUS_NAME", props.publisherBus().getEventBusName());
-        orderCreatedFunctionEnvVars.put("TABLE_NAME", props.inventoryTable().getTableName());
-
-        IFunction orderCreatedFunction = new InstrumentedFunction(this, "OrderCreatedACLFunction",
-                new InstrumentedFunctionProps(props.sharedProps(), "com.inventory.acl", compiledJarFilePath, "handleOrderCreated", orderCreatedFunctionEnvVars, true)).getFunction();
+        IFunction orderCreatedFunction = createOrderCreatedFunction(props, compiledJarFilePath);
 
         orderCreatedFunction.addEventSource(new SqsEventSource(orderCreatedQueue.getQueue(), SqsEventSourceProps.builder()
                 .reportBatchItemFailures(true)
@@ -121,6 +113,55 @@ public class InventoryAcl extends Construct {
 
         Rule orderCompletedRule = new OrderCompletedEvent(this, "InventoryOrderCompletedRule", props.sharedProps(),props.subscriberBus());
         orderCompletedRule.addTarget(new SqsQueue(orderCompletedQueue.getQueue()));
+
+        IFunction productCatalogueRefreshFunction = getProductCatalogueRefreshFunction(props, newProductAddedTopic, compiledJarFilePath);
+    }
+
+    private IFunction createOrderCreatedFunction(@NotNull InventoryAclProps props, String compiledJarFilePath) {
+        HashMap<String, String> orderCreatedFunctionEnvVars = new HashMap<>(2);
+        orderCreatedFunctionEnvVars.put("EVENT_BUS_NAME", props.publisherBus().getEventBusName());
+        orderCreatedFunctionEnvVars.put("TABLE_NAME", props.inventoryTable().getTableName());
+
+        return new InstrumentedFunction(this, "OrderCreatedACLFunction",
+                new InstrumentedFunctionProps(props.sharedProps(), "com.inventory.acl", compiledJarFilePath, "handleOrderCreated", orderCreatedFunctionEnvVars, true)).getFunction();
+    }
+
+    private IFunction getProductCatalogueRefreshFunction(@NotNull InventoryAclProps props, ITopic newProductAddedTopic, String compiledJarFilePath) {
+        var productApiEndpointParameterName = String.format("/%s/ProductService/api-endpoint", props.sharedProps().env());
+
+        HashMap<String, String> productCatalogueRefreshFunctionEnvVars = new HashMap<>(4);
+        productCatalogueRefreshFunctionEnvVars.put("EVENT_BUS_NAME", props.publisherBus().getEventBusName());
+        productCatalogueRefreshFunctionEnvVars.put("TABLE_NAME", props.inventoryTable().getTableName());
+        productCatalogueRefreshFunctionEnvVars.put("PRODUCT_ADDED_TOPIC_ARN", newProductAddedTopic.getTopicArn());
+        productCatalogueRefreshFunctionEnvVars.put("PRODUCT_API_ENDPOINT_PARAMETER", productApiEndpointParameterName);
+
+        IFunction productCatalogueRefreshFunction = new InstrumentedFunction(this, "ProductRefreshFunction",
+                new InstrumentedFunctionProps(props.sharedProps(), "com.inventory.acl", compiledJarFilePath, "handleProductCatalogueRefresh", productCatalogueRefreshFunctionEnvVars, true)).getFunction();
+        var everyOneMinuteScheduleRule = Rule.Builder.create(this, "EveryOneMinuteScheduleRule")
+                .schedule(software.amazon.awscdk.services.events.Schedule.rate(Duration.minutes(1)))
+                .build();
+        props.inventoryTable().grantReadData(productCatalogueRefreshFunction);
+        newProductAddedTopic.grantPublish(productCatalogueRefreshFunction);
+
+        everyOneMinuteScheduleRule.addTarget(new LambdaFunction(productCatalogueRefreshFunction));
+        PolicyStatement readSsmParameterPolicy = PolicyStatement.Builder.create()
+                .effect(Effect.ALLOW)
+                .actions(List.of("ssm:GetParameter", "ssm:DescribeParameters", "ssm:GetParameterHistory", "ssm:GetParameters"))
+                .resources(List.of(String.format("arn:aws:ssm:%s:%s:parameter%s", Stack.of(this).getRegion(), Stack.of(this).getAccount(), productApiEndpointParameterName)))
+                .build();
+        Policy readySsmParameterPolicy = Policy.Builder.create(this, "ReadProductApiEndpointParameter")
+                .policyName("AllowReadOfProductApiEndpoint")
+                .document(PolicyDocument.Builder.create()
+                        .statements(List.of(readSsmParameterPolicy))
+                        .build())
+                .build();
+        productCatalogueRefreshFunction.getRole().attachInlinePolicy(readySsmParameterPolicy);
+        productCatalogueRefreshFunction.addToRolePolicy(PolicyStatement.Builder.create()
+                .effect(Effect.ALLOW)
+                .resources(List.of("*"))
+                .actions(List.of("events:ListEventBuses"))
+                .build());
+        return productCatalogueRefreshFunction;
     }
 
     public ITopic getNewProductAddedTopic() {
