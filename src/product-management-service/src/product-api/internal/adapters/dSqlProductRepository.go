@@ -55,7 +55,7 @@ func NewDSqlProductRepository(clusterEndpoint string) (*DSqlProductRepository, e
 	endpoint := "https://" + clusterEndpoint
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
-		log.Fatalf("NewRequest failed: %v", err)
+		log.Printf("NewRequest failed: %v", err)
 		return nil, err
 	}
 	values := req.URL.Query()
