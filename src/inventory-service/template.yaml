@@ -148,7 +148,7 @@ Resources:
     Properties:
       CodeUri: ./inventory-acl/target/function.zip
       Handler: io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest
-      FunctionName: !Sub ${ServiceName}-AclProductCreated-${Env}
+      FunctionName: !Sub ${ServiceName}-ProductRefresh-${Env}
       Environment:
         Variables:
           PRODUCT_ADDED_TOPIC_ARN: !Ref NewProductAddedTopic
