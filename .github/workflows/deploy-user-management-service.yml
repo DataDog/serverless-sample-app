@@ -89,7 +89,8 @@ jobs:
           cd src/user-management-service
           make build
           make tf-destroy
-      - name: Deploy dev
+      - name: Deploy to dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -102,6 +103,7 @@ jobs:
           cd src/user-management-service
           make tf-apply
       - name: Integration test dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           ENV: "dev"
@@ -185,6 +187,7 @@ jobs:
           npm i
           make cdk-destroy
       - name: Deploy to dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -196,6 +199,7 @@ jobs:
           npm i
           make cdk-deploy
       - name: Integration test dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           ENV: "dev"
@@ -275,6 +279,7 @@ jobs:
           cd src/user-management-service
           make sam-destroy
       - name: Deploy to dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -286,6 +291,7 @@ jobs:
           cd src/user-management-service
           make sam
       - name: Integration test dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           ENV: "dev"

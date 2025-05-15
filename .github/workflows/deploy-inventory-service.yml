@@ -144,7 +144,8 @@ jobs:
         run: |
           cd src/inventory-service
           make tf-destroy
-      - name: Deploy dev
+      - name: Deploy to dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -158,9 +159,11 @@ jobs:
           cd src/inventory-service
           make tf-apply
       - name: Sleep for 60 seconds
+        if: github.event_name == 'push'
         run: sleep 60s
         shell: bash
       - name: Integration test dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           ENV: "dev"
@@ -260,7 +263,8 @@ jobs:
         run: |
           cd src/inventory-service
           make cdk-destroy
-      - name: Deploy dev
+      - name: Deploy to dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -272,6 +276,7 @@ jobs:
           cd src/inventory-service
           make cdk-deploy
       - name: Integration test dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           ENV: "dev"
@@ -367,6 +372,7 @@ jobs:
           cd src/inventory-service
           make sam-destroy
       - name: Deploy to dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -379,6 +385,7 @@ jobs:
           cd src/inventory-service
           make sam
       - name: Integration test dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           ENV: "dev"
