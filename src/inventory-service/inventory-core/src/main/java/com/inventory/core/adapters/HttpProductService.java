@@ -17,33 +17,21 @@ import java.util.logging.Logger;
 
 @ApplicationScoped
 public class HttpProductService implements ProductService {
+    private final SsmClient ssmClient;
     private String productApiEndpoint = "";
     private static final Logger LOG = Logger.getLogger(HttpProductService.class.getName());
     private final ObjectMapper objectMapper;
 
     @Inject
     public HttpProductService(SsmClient ssmClient) {
+        this.ssmClient = ssmClient;
         this.objectMapper = new ObjectMapper();
-        // Retrieve the product API endpoint from SSM Parameter Store
-        try {
-            var productApiEndpointSsmParameterName = System.getenv("PRODUCT_API_ENDPOINT_PARAMETER");
-            var productApiBase = ssmClient.getParameter(GetParameterRequest.builder()
-                    .name(productApiEndpointSsmParameterName)
-                    .build())
-                    .parameter()
-                    .value();
-            if (productApiBase.endsWith("/")) {
-                productApiBase = productApiBase.substring(0, productApiBase.length() - 1);
-            }
-            this.productApiEndpoint = String.format("%s/product", productApiBase);
-            LOG.info("Product API endpoint set to: " + this.productApiEndpoint);
-        } catch (Exception e) {
-            LOG.severe("Failed to retrieve product API endpoint: " + e.getMessage());
-        }
+        this.refreshApiEndpoint(ssmClient);
     }
 
     @Override
     public ArrayList<ProductCatalogueItem> getProductCatalogue() {
+        this.refreshApiEndpoint(ssmClient);
         if (productApiEndpoint == null) {
             LOG.info("Product API endpoint not set");
             return new ArrayList<>();
@@ -69,6 +57,25 @@ public class HttpProductService implements ProductService {
         } catch (Exception e) {
             LOG.severe("Error fetching product catalogue: " + e.getMessage());
             return new ArrayList<>();
+        }
+    }
+
+    private void refreshApiEndpoint(SsmClient ssmClient) {
+        // Retrieve the product API endpoint from SSM Parameter Store
+        try {
+            var productApiEndpointSsmParameterName = System.getenv("PRODUCT_API_ENDPOINT_PARAMETER");
+            var productApiBase = ssmClient.getParameter(GetParameterRequest.builder()
+                            .name(productApiEndpointSsmParameterName)
+                            .build())
+                    .parameter()
+                    .value();
+            if (productApiBase.endsWith("/")) {
+                productApiBase = productApiBase.substring(0, productApiBase.length() - 1);
+            }
+            this.productApiEndpoint = String.format("%s/product", productApiBase);
+            LOG.info("Product API endpoint set to: " + this.productApiEndpoint);
+        } catch (Exception e) {
+            LOG.severe("Failed to retrieve product API endpoint: " + e.getMessage());
         }
     }
 }

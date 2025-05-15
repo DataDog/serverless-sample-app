@@ -160,8 +160,8 @@ Resources:
         Every1Minute:
           Type: ScheduleV2
           Properties:
-            ScheduleExpression: 'rate(1 minute)'
-            Name: InvokeEvery1Minute
+            ScheduleExpression: 'rate(5 minutes)'
+            Name: InvokeEvery5Minutes
             Input: "invoke"
       Policies:
         - Version: '2012-10-17'

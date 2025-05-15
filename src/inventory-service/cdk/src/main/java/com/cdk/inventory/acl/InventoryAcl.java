@@ -137,8 +137,8 @@ public class InventoryAcl extends Construct {
 
         IFunction productCatalogueRefreshFunction = new InstrumentedFunction(this, "ProductRefreshFunction",
                 new InstrumentedFunctionProps(props.sharedProps(), "com.inventory.acl", compiledJarFilePath, "handleProductCatalogueRefresh", productCatalogueRefreshFunctionEnvVars, true)).getFunction();
-        var everyOneMinuteScheduleRule = Rule.Builder.create(this, "EveryOneMinuteScheduleRule")
-                .schedule(software.amazon.awscdk.services.events.Schedule.rate(Duration.minutes(1)))
+        var everyOneMinuteScheduleRule = Rule.Builder.create(this, "EveryFiveMinutesScheduleRule")
+                .schedule(software.amazon.awscdk.services.events.Schedule.rate(Duration.minutes(5)))
                 .build();
         props.inventoryTable().grantReadData(productCatalogueRefreshFunction);
         newProductAddedTopic.grantPublish(productCatalogueRefreshFunction);

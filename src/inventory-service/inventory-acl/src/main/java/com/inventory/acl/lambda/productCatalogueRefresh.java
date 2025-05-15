@@ -1,7 +1,6 @@
 package com.inventory.acl.lambda;
 
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inventory.core.InventoryItemService;
@@ -18,7 +17,6 @@ import java.io.OutputStream;
 public class productCatalogueRefresh implements RequestStreamHandler {
     @Inject
     ObjectMapper objectMapper;
-    Logger logger = LoggerFactory.getLogger(productCatalogueRefresh.class);
     @Inject
     InventoryItemService inventoryService;
 

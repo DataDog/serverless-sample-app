@@ -6,10 +6,6 @@
 //
 
 data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
-data "aws_availability_zones" "available" {
-  state = "available"
-}
 
 data "aws_iam_policy_document" "dynamo_db_read" {
   statement {
@@ -147,8 +143,4 @@ data "aws_iam_policy_document" "sns_publish" {
 
 data "aws_secretsmanager_secret" "api_key_secret" {
   arn = var.dd_api_key_secret_arn
-}
-
-data "aws_secretsmanager_secret_version" "current_api_key_secret" {
-  secret_id = data.aws_secretsmanager_secret.api_key_secret.id
 }
