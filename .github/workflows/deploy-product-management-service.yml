@@ -8,11 +8,10 @@ on:
       - "main"
   pull_request:
     paths:
-      - src/inventory-service/**
+      - src/product-management-service/**
     branches:
       - "main"
     types: [opened, synchronize, reopened]
-  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -88,6 +87,7 @@ jobs:
           cd src/product-management-service
           make tf-destroy
       - name: Deploy to dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -100,6 +100,7 @@ jobs:
           cd src/product-management-service
           make tf-apply
       - name: Integration test dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -179,6 +180,7 @@ jobs:
           cd src/product-management-service
           make cdk-destroy
       - name: Deploy to dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -189,6 +191,7 @@ jobs:
           cd src/product-management-service
           make cdk-deploy
       - name: Integration test dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           ENV: "dev"
@@ -263,6 +266,7 @@ jobs:
           cd src/product-management-service
           make sam-destroy
       - name: Deploy to dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -274,6 +278,7 @@ jobs:
           cd src/product-management-service
           make sam
       - name: Integration test dev
+        if: github.event_name == 'push'
         shell: bash
         env:
           ENV: "dev"

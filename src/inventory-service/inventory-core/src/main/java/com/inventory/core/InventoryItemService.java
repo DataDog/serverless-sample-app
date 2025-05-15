@@ -6,6 +6,7 @@
 
 package com.inventory.core;
 
+import com.inventory.core.adapters.ProductCatalogueItem;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
@@ -29,13 +30,15 @@ public class InventoryItemService {
     private final InventoryItemRepository repository;
     private final OrderCache orderCache;
     private final EventPublisher eventPublisher;
+    private final ProductService productService;
     private final Logger logger = LoggerFactory.getLogger(InventoryItemService.class);
 
     @Inject
-    public InventoryItemService(InventoryItemRepository repository, OrderCache orderCache, EventPublisher eventPublisher) {
+    public InventoryItemService(InventoryItemRepository repository, OrderCache orderCache, EventPublisher eventPublisher, ProductService productService) {
         this.repository = repository;
         this.orderCache = orderCache;
         this.eventPublisher = eventPublisher;
+        this.productService = productService;
     }
 
     public HandlerResponse<InventoryItemDTO> withProductId(String productId) {
@@ -175,6 +178,36 @@ public class InventoryItemService {
             
             return new HandlerResponse<>(false, List.of("Error reserving stock: " + e.getMessage()), false);
         }
+    }
+
+    public HandlerResponse<Boolean> refreshProductCache() {
+        final Span span = GlobalTracer.get().activeSpan();
+        logger.info("Checking all products exist from product cache");
+
+        var products = this.productService.getProductCatalogue();
+
+        if (span != null) {
+            span.setTag("product.count", products.size());
+        }
+
+        if (products == null || products.isEmpty()) {
+            logger.warn("No products returned from product service");
+            return new HandlerResponse<>(false, List.of("No products found"), false);
+        }
+
+        for (ProductCatalogueItem product : products) {
+            try {
+                logger.info("Checking product {}", product.getProductId());
+                var existingProduct = this.repository.withProductId(product.getProductId());
+                logger.info("Found existing product with id {}", existingProduct.getProductId());
+            }
+            catch (InventoryItemNotFoundException e) {
+                logger.info("Didn't find existing product with id", product.getProductId());
+                this.eventPublisher.publishNewProductAddedEvent(new NewProductAddedEvent(product.getProductId()));
+            }
+        }
+
+        return new HandlerResponse<>(true, List.of("Success"), false);
     }
 
     private InventoryItemReservationResult reserveStockForInventoryItems(String orderNumber, List<String> products, Span span) {

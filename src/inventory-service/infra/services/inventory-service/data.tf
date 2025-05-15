@@ -6,10 +6,6 @@
 //
 
 data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
-data "aws_availability_zones" "available" {
-  state = "available"
-}
 
 data "aws_iam_policy_document" "dynamo_db_read" {
   statement {
@@ -50,6 +46,18 @@ data "aws_iam_policy_document" "allow_jwt_secret_key_ssm_read" {
       "ssm:GetParameters"]
     resources = [
         var.env == "dev" || var.env == "prod" ? "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/shared/secret-access-key" : "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/InventoryService/secret-access-key"
+    ]
+  }
+}
+
+data "aws_iam_policy_document" "allow_product_api_endpoint_ssm_read" {
+  statement {
+    actions = ["ssm:DescribeParameters",
+      "ssm:GetParameter",
+      "ssm:GetParameterHistory",
+      "ssm:GetParameters"]
+    resources = [
+      "arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter${local.product_api_endpoint_parameter_name}"
     ]
   }
 }
@@ -135,8 +143,4 @@ data "aws_iam_policy_document" "sns_publish" {
 
 data "aws_secretsmanager_secret" "api_key_secret" {
   arn = var.dd_api_key_secret_arn
-}
-
-data "aws_secretsmanager_secret_version" "current_api_key_secret" {
-  secret_id = data.aws_secretsmanager_secret.api_key_secret.id
 }

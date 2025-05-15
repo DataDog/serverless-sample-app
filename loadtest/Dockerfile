@@ -5,4 +5,4 @@ COPY ./ /usr/app
 RUN npm install -g artillery@latest
 RUN npm install
 
-CMD ["artillery", "run", "loadtest.yml"]
+CMD ["artillery", "run", "loadsimulator.yml"]

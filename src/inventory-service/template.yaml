@@ -143,6 +143,57 @@ Resources:
     Metadata:
       SkipBuild: true
 
+  ProductCatalogueRefreshFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./inventory-acl/target/function.zip
+      Handler: io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest
+      FunctionName: !Sub ${ServiceName}-ProductRefresh-${Env}
+      Environment:
+        Variables:
+          PRODUCT_ADDED_TOPIC_ARN: !Ref NewProductAddedTopic
+          TABLE_NAME: !Ref InventoryApiTable
+          PRODUCT_API_ENDPOINT_PARAMETER: !Sub "/${Env}/ProductService/api-endpoint"
+          QUARKUS_LAMBDA_HANDLER: handleProductCatalogueRefresh
+          MAIN_CLASS: com.inventory.acl.FunctionConfiguration
+      Events:
+        Every1Minute:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: 'rate(5 minutes)'
+            Name: InvokeEvery5Minutes
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:DescribeParameters
+                - ssm:GetParameterHistory
+                - ssm:GetParameters
+              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Env}/ProductService/api-endpoint
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt NewProductAddedTopic.TopicName
+        - DynamoDBReadPolicy:
+            TableName: !Ref InventoryApiTable
+    Metadata:
+      SkipBuild: true
+
   InventoryOrderCreatedPublicEventHandler:
     Type: AWS::Serverless::Function
     Properties:

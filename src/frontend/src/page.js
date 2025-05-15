@@ -219,6 +219,12 @@ function loadStockLevel(product, callback) {
       return response.data.currentStockLevel;
     },
     error: function (xhr, status, error) {
+      callback(
+        product.productId,
+        product.name,
+        product.price,
+        0
+      );
       return 0;
     },
     beforeSend: function (xhr) {
