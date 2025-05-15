@@ -31,7 +31,7 @@ dotnet restore &>../../build-logs/order-service.log
 popd
 
 pushd src/order-service/src/Orders.BackgroundWorkers
-dotnet lambda package &>../../../build-logs/order-service.log
+dotnet lambda package &>../../../../build-logs/order-service.log
 popd
 
 pushd src/product-management-service
