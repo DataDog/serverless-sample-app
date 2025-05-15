@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Create build logs directory if it doesn't exist
+mkdir -p build-logs
+
 pushd src/shared-infra
 npm i
 popd
