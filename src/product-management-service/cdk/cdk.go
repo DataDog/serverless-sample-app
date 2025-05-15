@@ -64,7 +64,7 @@ func NewProductService(scope constructs.Construct, id string, props *ProductServ
 		stack,
 		jsii.String("Datadog"),
 		&ddcdkconstruct.DatadogProps{
-			ExtensionLayerVersion:  jsii.Number(77),
+			ExtensionLayerVersion:  jsii.Number(78),
 			AddLayers:              jsii.Bool(true),
 			Site:                   jsii.String(os.Getenv("DD_SITE")),
 			ApiKeySecret:           ddApiKeySecret,

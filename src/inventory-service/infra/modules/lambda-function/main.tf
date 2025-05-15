@@ -117,16 +117,14 @@ module "aws_lambda_function" {
     "DD_VERSION" : var.app_version
     "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
     "DD_CAPTURE_LAMBDA_PAYLOAD" : "true"
-    "DD_SERVERLESS_APPSEC_ENABLED": "true"
-    "DD_IAST_ENABLED": "true"
     "DD_LOGS_INJECTION" : "true"
     "spring_cloud_function_definition" : var.routing_expression
     "QUARKUS_LAMBDA_HANDLER": var.routing_expression}),
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 77
-  datadog_java_layer_version      = 19
+  datadog_extension_layer_version = 78
+  datadog_java_layer_version      = 21
 }
 
 resource "aws_lambda_alias" "SnapStartAlias" {
