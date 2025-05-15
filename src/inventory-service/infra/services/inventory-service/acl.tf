@@ -210,7 +210,7 @@ module "product_cache_refresh_function" {
   additional_policy_attachments = [
     aws_iam_policy.sns_publish.arn,
     aws_iam_policy.dynamo_db_read.arn,
-    aws_iam_policy.allow_product_api_endpoint_read,
+    aws_iam_policy.allow_product_api_endpoint_read.arn,
   ]
 }
 
