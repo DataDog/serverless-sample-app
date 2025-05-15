@@ -19,7 +19,7 @@ resource "aws_ssm_parameter" "inventory_service_access_key" {
 module "inventory_api_web_service" {
   source       = "../../modules/web-service"
   service_name = "InventoryApi"
-  image        = "public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-inventory-java:latest"
+  image        = "public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-inventory-java:${var.app_version}"
   env          = var.env
   app_version  = var.app_version
   environment_variables = [

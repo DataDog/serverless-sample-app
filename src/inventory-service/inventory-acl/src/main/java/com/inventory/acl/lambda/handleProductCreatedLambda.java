@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inventory.acl.adapters.EventBridgeMessageWrapper;
 import com.inventory.acl.core.ExternalEventHandler;
 import com.inventory.acl.core.events.external.ProductCreatedEventV1;
+import com.inventory.core.DataAccessException;
+import com.inventory.core.InventoryItemNotFoundException;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
@@ -63,7 +65,7 @@ public class handleProductCreatedLambda implements RequestHandler<SQSEvent, SQSB
 
                 processSpan.finish();
 
-            } catch (JsonProcessingException | Error exception) {
+            } catch (JsonProcessingException | DataAccessException | InventoryItemNotFoundException | Error exception) {
                 batchItemFailures.add(SQSBatchResponse.BatchItemFailure.builder().withItemIdentifier(message.getMessageId()).build());
                 logger.error("An exception occurred!", exception);
                 span.setTag(Tags.ERROR, true);

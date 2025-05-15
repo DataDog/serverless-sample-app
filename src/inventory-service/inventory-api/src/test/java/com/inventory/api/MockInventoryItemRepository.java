@@ -1,6 +1,8 @@
 package com.inventory.api;
 
+import com.inventory.core.DataAccessException;
 import com.inventory.core.InventoryItem;
+import com.inventory.core.InventoryItemNotFoundException;
 import com.inventory.core.InventoryItemRepository;
 
 import java.util.HashMap;
@@ -10,7 +12,7 @@ public class MockInventoryItemRepository implements InventoryItemRepository {
     private final Map<String, InventoryItem> inventoryItems = new HashMap<>();
 
     @Override
-    public InventoryItem withProductId(String productId) {
+    public InventoryItem withProductId(String productId) throws DataAccessException, InventoryItemNotFoundException {
         return inventoryItems.get(productId);
     }
 

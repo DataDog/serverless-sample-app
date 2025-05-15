@@ -8,11 +8,10 @@ on:
       - "main"
   pull_request:
     paths:
-      - src/inventory-service/**
+      - src/shared-infra/**
     branches:
       - "main"
     types: [opened, synchronize, reopened]
-  workflow_dispatch:
 
 permissions:
   id-token: write
