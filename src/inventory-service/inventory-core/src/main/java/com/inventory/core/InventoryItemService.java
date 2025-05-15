@@ -199,7 +199,7 @@ public class InventoryItemService {
             try {
                 logger.info("Checking product {}", product.getProductId());
                 var existingProduct = this.repository.withProductId(product.getProductId());
-                logger.info("Found existing product with id %s", existingProduct.getProductId());
+                logger.info("Found existing product with id {}", existingProduct.getProductId());
             }
             catch (InventoryItemNotFoundException e) {
                 logger.info("Didn't find existing product with id", product.getProductId());
