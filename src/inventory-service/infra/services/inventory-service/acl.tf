@@ -187,3 +187,50 @@ resource "aws_cloudwatch_event_target" "order_completed_sqs_target" {
   arn            = aws_sqs_queue.order_completed_queue.arn
   event_bus_name = aws_cloudwatch_event_bus.inventory_service_bus.name
 }
+
+module "product_cache_refresh_function" {
+  service_name   = "InventoryService"
+  package_name = "com.inventory.acl"
+  source         = "../../modules/lambda-function"
+  jar_file       = "../inventory-acl/target/function.zip"
+  function_name  = "ProductCatalogueRefresh"
+  lambda_handler = "io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest"
+  routing_expression = "handleProductCatalogueRefresh"
+  environment_variables = {
+    PRODUCT_ADDED_TOPIC_ARN : aws_sns_topic.java_inventory_new_product_added.arn
+    EVENT_BUS_NAME: var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.inventory_service_bus.name
+    TABLE_NAME : aws_dynamodb_table.inventory_api.name
+    PRODUCT_API_ENDPOINT_PARAMETER: local.product_api_endpoint_parameter_name
+  }
+  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site = var.dd_site
+  env = var.env
+  app_version = var.app_version
+  s3_bucket_name = aws_s3_bucket.lambda_code_storage_bucket.id
+  additional_policy_attachments = [
+    aws_iam_policy.sns_publish.arn,
+    aws_iam_policy.dynamo_db_read.arn,
+    aws_iam_policy.allow_product_api_endpoint_read,
+  ]
+}
+
+resource "aws_cloudwatch_event_rule" "every_1_minute" {
+  name        = "every_1_minute_rule"
+  description = "Run every 1 minute"
+
+  schedule_expression = "rate(1 minute)"
+}
+
+resource "aws_cloudwatch_event_target" "product_catalogue_refresh_target" {
+  rule      = aws_cloudwatch_event_rule.every_1_minute.name
+  target_id = "SendToLambda"
+  arn       = module.product_cache_refresh_function.function_arn
+}
+
+resource "aws_lambda_permission" "allow_eventbridge" {
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = module.product_cache_refresh_function.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.every_1_minute.arn
+}

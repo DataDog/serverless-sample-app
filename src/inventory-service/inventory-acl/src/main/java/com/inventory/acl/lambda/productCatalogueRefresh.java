@@ -2,6 +2,7 @@ package com.inventory.acl.lambda;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inventory.core.InventoryItemService;
 import jakarta.inject.Inject;
@@ -9,8 +10,12 @@ import jakarta.inject.Named;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 @Named("handleProductCatalogueRefresh")
-public class productCatalogueRefresh implements RequestHandler<String, String> {
+public class productCatalogueRefresh implements RequestStreamHandler {
     @Inject
     ObjectMapper objectMapper;
     Logger logger = LoggerFactory.getLogger(productCatalogueRefresh.class);
@@ -18,8 +23,8 @@ public class productCatalogueRefresh implements RequestHandler<String, String> {
     InventoryItemService inventoryService;
 
     @Override
-    public String handleRequest(String input, Context context) {
+    public void handleRequest(InputStream inputStream, OutputStream outputStream, Context context) throws IOException {
         var products = inventoryService.refreshProductCache();
-        return "OK";
+        outputStream.write(objectMapper.writeValueAsBytes(products));
     }
 }
