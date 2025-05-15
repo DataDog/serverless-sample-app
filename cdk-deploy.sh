@@ -18,41 +18,36 @@ echo "Starting service deployments in background..."
 # Inventory service
 (
   pushd src/inventory-service/cdk
-  # Redirect all output from mvn to the log file
-  mvn clean package -DskipTests &>../../../deployment-logs/inventory-service.log
   # Append cdk deploy output to the same log file
-  cdk deploy --require-approval never &>../../../deployment-logs/inventory-service.log
+  cdk --app cdk.out deploy --require-approval never &>../../../deployment-logs/inventory-service.log
   popd
 ) &
 
 # User management service
 (
   pushd src/user-management-service
-  npm i &>../../deployment-logs/user-management-service.log
-  cdk deploy --require-approval never &>../../deployment-logs/user-management-service.log
+  cdk --app cdk.out deploy --require-approval never &>../../deployment-logs/user-management-service.log
   popd
 ) &
 
 # Order service
 (
   pushd src/order-service/cdk
-  cdk deploy --require-approval never &>../../../deployment-logs/order-service.log
+  cdk --app cdk.out deploy --require-approval never &>../../../deployment-logs/order-service.log
   popd
 ) &
 
 # Product management service
 (
   pushd src/product-management-service/cdk
-  cdk deploy --require-approval never &>../../../deployment-logs/product-management-service.log
+  cdk --app cdk.out deploy --require-approval never &>../../../deployment-logs/product-management-service.log
   popd
 ) &
 
 # Loyalty point service
 (
   pushd src/loyalty-point-service
-  npm i &>../../deployment-logs/loyalty-point-service.log
-  ./package.sh &>>../../deployment-logs/loyalty-point-service.log
-  cdk deploy --require-approval never &>>../../deployment-logs/loyalty-point-service.log
+  cdk --app cdk.out deploy --require-approval never &>../../deployment-logs/loyalty-point-service.log
   popd
 ) &
 
