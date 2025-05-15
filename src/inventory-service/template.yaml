@@ -162,7 +162,6 @@ Resources:
           Properties:
             ScheduleExpression: 'rate(5 minutes)'
             Name: InvokeEvery5Minutes
-            Input: "invoke"
       Policies:
         - Version: '2012-10-17'
           Statement:
