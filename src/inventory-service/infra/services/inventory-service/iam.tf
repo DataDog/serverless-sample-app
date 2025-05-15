@@ -57,7 +57,7 @@ resource "aws_iam_policy" "allow_jwt_secret_access" {
 resource "aws_iam_policy" "allow_product_api_endpoint_read" {
   name   = "TF_Inventory-product-api-${var.env}"
   path   = "/"
-  policy = data.aws_iam_policy_document.allow_product_api_endpoint_ssm_read
+  policy = data.aws_iam_policy_document.allow_product_api_endpoint_ssm_read.json
 }
 
 resource "aws_iam_role" "invetory_ordering_sfn_role" {
