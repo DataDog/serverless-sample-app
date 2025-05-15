@@ -5,7 +5,7 @@ npm i
 popd
 
 pushd src/inventory-service
-mvn clean package -DskipTests &>../../../build-logs/inventory-service.log
+mvn clean package -DskipTests &>../../build-logs/inventory-service.log
 popd
 
 pushd src/user-management-service
