@@ -96,10 +96,11 @@ func NewProductService(scope constructs.Construct, id string, props *ProductServ
 	})
 
 	services.NewProductBackgroundServices(stack, "ProductBackgroundServices", &services.ProductBackgroundServiceProps{
-		ServiceProps:             serviceProps,
-		ProductStockUpdatedTopic: productAcl.ProductStockUpdatedTopic,
-		PriceCalculatedTopic:     productAcl.PriceCalculatedTopic,
-		ProductTable:             productApi.Table,
+		ServiceProps:                serviceProps,
+		ProductStockUpdatedTopic:    productAcl.ProductStockUpdatedTopic,
+		PriceCalculatedTopic:        productAcl.PriceCalculatedTopic,
+		DatabaseClusterEndpoint:     productApi.DatabaseClusterEndpoint,
+		DatabaseClusterAccessPolicy: productApi.DatabaseClusterAccessPolicy,
 	})
 
 	services.NewProductPublicEventPublisherService(stack, "ProductPublicEventPublisher", &services.ProductPublicEventPublisherServiceProps{

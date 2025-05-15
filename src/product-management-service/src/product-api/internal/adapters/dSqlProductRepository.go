@@ -12,26 +12,27 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/session"
 	core "github.com/datadog/serverless-sample-product-core"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 	"log"
 	"net/http"
-	"os"
-	"strings"
+	"net/url"
 	"time"
 
 	_ "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
-	_ "github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib" // Keep this as the underlying driver
+	"github.com/jmoiron/sqlx"
+	sqltrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
 )
 
 type DSqlProductRepository struct {
-	authToken string
-	conn      *pgxpool.Pool
+	conn *sqlx.DB
 }
 
 func NewDSqlProductRepository(clusterEndpoint string) (*DSqlProductRepository, error) {
 	log.Println("Cluster endpoint: ", clusterEndpoint)
+	sqltrace.Register("pgx", &stdlib.Driver{}, sqltrace.WithServiceName("product-api-db"))
 
 	sess, err := session.NewSession()
 	if err != nil {
@@ -73,37 +74,39 @@ func NewDSqlProductRepository(clusterEndpoint string) (*DSqlProductRepository, e
 
 	token := req.URL.String()[len("https://"):]
 
-	var sb strings.Builder
-	sb.WriteString("postgres://")
-	sb.WriteString(clusterEndpoint)
-	sb.WriteString(":5432/postgres?user=admin&sslmode=verify-full")
-	url := sb.String()
+	// Open a traced connection
+	baseURL := fmt.Sprintf("postgres://%s:5432/postgres", clusterEndpoint)
 
-	log.Println("Full URL: ", url)
-
-	connConfig, err := pgxpool.ParseConfig(url)
-
-	// To avoid issues with parse config set the password directly in config
-	log.Println("Connection token is: ", token)
-	connConfig.ConnConfig.Password = token
+	// Parse it to add query parameters in a structured way
+	connURL, err := url.Parse(baseURL)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to parse config: %v\n", err)
-		os.Exit(1)
-	}
-
-	log.Println("Full URL: ", connConfig.ConnConfig.ConnString())
-
-	dbpool, err := pgxpool.NewWithConfig(context.Background(), connConfig)
-	if err != nil {
-		log.Printf("Unable to create connection pool: %v\n", err)
 		return nil, err
 	}
 
-	log.Println("Database connection is success")
+	// Add query parameters
+	q := connURL.Query()
+	q.Set("user", "admin")
+	q.Set("password", token) // The password will be URL-encoded automatically
+	q.Set("sslmode", "verify-full")
+	connURL.RawQuery = q.Encode()
+
+	// Open a traced connection
+	db, err := sqltrace.Open("pgx", connURL.String())
+	if err != nil {
+		log.Printf("Unable to connect to database: %v\n", err)
+		return nil, err
+	}
+
+	// Wrap with sqlx
+	dbx := sqlx.NewDb(db, "pgx")
+
+	// Set connection pool settings if needed
+	dbx.SetMaxOpenConns(10)
+	dbx.SetMaxIdleConns(5)
+	dbx.SetConnMaxLifetime(5 * time.Minute)
 
 	repository := &DSqlProductRepository{
-		authToken: url,
-		conn:      dbpool,
+		conn: dbx,
 	}
 
 	err = repository.ApplyMigrations(context.Background())
@@ -117,7 +120,7 @@ func NewDSqlProductRepository(clusterEndpoint string) (*DSqlProductRepository, e
 }
 
 func (repo *DSqlProductRepository) Store(ctx context.Context, p core.Product) error {
-	_, err := repo.conn.Exec(ctx, `
+	_, err := repo.conn.ExecContext(ctx, `
 		INSERT INTO products (id, name, previous_name, price, previous_price, stock_level, updated)
 		VALUES ($1, $2, NULL, $3, NULL, $4, FALSE)
 		ON CONFLICT (id) DO NOTHING
@@ -128,7 +131,7 @@ func (repo *DSqlProductRepository) Store(ctx context.Context, p core.Product) er
 
 	// Insert price brackets
 	for _, pb := range p.PriceBreakdown {
-		_, err := repo.conn.Exec(ctx, `
+		_, err := repo.conn.ExecContext(ctx, `
 			INSERT INTO product_prices (product_id, quantity, price)
 			VALUES ($1, $2, $3)
 		`, p.Id, pb.Quantity, pb.Price)
@@ -140,7 +143,7 @@ func (repo *DSqlProductRepository) Store(ctx context.Context, p core.Product) er
 }
 
 func (repo *DSqlProductRepository) Update(ctx context.Context, p core.Product) error {
-	_, err := repo.conn.Exec(ctx, `
+	_, err := repo.conn.ExecContext(ctx, `
 		UPDATE products
 		SET name = $2, price = $3, stock_level = $4, updated = TRUE
 		WHERE id = $1
@@ -150,12 +153,12 @@ func (repo *DSqlProductRepository) Update(ctx context.Context, p core.Product) e
 	}
 
 	// Remove old price brackets and insert new ones
-	_, err = repo.conn.Exec(ctx, `DELETE FROM product_prices WHERE product_id = $1`, p.Id)
+	_, err = repo.conn.ExecContext(ctx, `DELETE FROM product_prices WHERE product_id = $1`, p.Id)
 	if err != nil {
 		return err
 	}
 	for _, pb := range p.PriceBreakdown {
-		_, err := repo.conn.Exec(ctx, `
+		_, err := repo.conn.ExecContext(ctx, `
 			INSERT INTO product_prices (product_id, quantity, price)
 			VALUES ($1, $2, $3)
 		`, p.Id, pb.Quantity, pb.Price)
@@ -167,7 +170,7 @@ func (repo *DSqlProductRepository) Update(ctx context.Context, p core.Product) e
 }
 
 func (repo *DSqlProductRepository) Get(ctx context.Context, productId string) (*core.Product, error) {
-	row := repo.conn.QueryRow(ctx, `
+	row := repo.conn.QueryRowContext(ctx, `
 		SELECT id, name, price, stock_level
 		FROM products
 		WHERE id = $1
@@ -179,7 +182,7 @@ func (repo *DSqlProductRepository) Get(ctx context.Context, productId string) (*
 		return nil, err
 	}
 
-	rows, err := repo.conn.Query(ctx, `
+	rows, err := repo.conn.QueryContext(ctx, `
 		SELECT quantity, price
 		FROM product_prices
 		WHERE product_id = $1
@@ -204,12 +207,12 @@ func (repo *DSqlProductRepository) Get(ctx context.Context, productId string) (*
 
 func (repo *DSqlProductRepository) Delete(ctx context.Context, productId string) {
 	// Delete product and cascade deletes price brackets
-	_, _ = repo.conn.Exec(ctx, `DELETE FROM products WHERE id = $1`, productId)
-	_, _ = repo.conn.Exec(ctx, `DELETE FROM product_prices WHERE product_id = $1`, productId)
+	_, _ = repo.conn.ExecContext(ctx, `DELETE FROM products WHERE id = $1`, productId)
+	_, _ = repo.conn.ExecContext(ctx, `DELETE FROM product_prices WHERE product_id = $1`, productId)
 }
 
 func (repo *DSqlProductRepository) List(ctx context.Context) ([]core.Product, error) {
-	rows, err := repo.conn.Query(ctx, `
+	rows, err := repo.conn.QueryContext(ctx, `
 		SELECT id, name, price, stock_level
 		FROM products
 	`)
@@ -226,7 +229,7 @@ func (repo *DSqlProductRepository) List(ctx context.Context) ([]core.Product, er
 		}
 
 		// Get price brackets for each product
-		pbRows, err := repo.conn.Query(ctx, `
+		pbRows, err := repo.conn.QueryContext(ctx, `
 			SELECT quantity, price
 			FROM product_prices
 			WHERE product_id = $1
@@ -254,7 +257,7 @@ func (repo *DSqlProductRepository) List(ctx context.Context) ([]core.Product, er
 func (repo *DSqlProductRepository) ApplyMigrations(ctx context.Context) error {
 	// there should be a foreign key to products table but DSQL does not currently support FK constraints
 	// https://docs.aws.amazon.com/aurora-dsql/latest/userguide/working-with-postgresql-compatibility.html
-	_, err := repo.conn.Exec(ctx, `
+	_, err := repo.conn.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS products (
 			id UUID PRIMARY KEY,
 			name VARCHAR(255) NOT NULL,

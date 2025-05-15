@@ -16,12 +16,10 @@ import (
 	"product-api/internal/adapters"
 	"product-api/internal/utils"
 
+	ddlambda "github.com/DataDog/datadog-lambda-go"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-
-	ddlambda "github.com/DataDog/datadog-lambda-go"
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
 )
 
@@ -32,7 +30,6 @@ var (
 		return awsCfg
 	}()
 	dSqlProductRepository, _ = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
-	dynamoDbRepository       = adapters.NewDynamoDbProductRepository(*dynamodb.NewFromConfig(awsCfg), os.Getenv("TABLE_NAME"))
 	createProductHandler     = core.NewCreateProductCommandHandler(dSqlProductRepository, adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg)))
 	handler                  = core.NewListProductsQueryHandler(dSqlProductRepository)
 )
