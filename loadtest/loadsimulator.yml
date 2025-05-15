@@ -4,18 +4,18 @@ config:
     timeout: 60
   processor: "generator.js"
   phases:
-    - duration: 30
-      arrivalRate: 0.033
-    - duration: 20
-      arrivalRate: 0.05
     - duration: 10
-      arrivalRate: 0.02
-    - duration: 120
-      arrivalRate: 0.01
-    - duration: 5
-      arrivalRate: 0.06
+      arrivalCount: 10
     - duration: 30
-      arrivalRate: 0.02
+      arrivalCount: 10
+    - duration: 60
+      arrivalCount: 20
+    - duration: 120
+      arrivalCount: 30
+    - duration: 10
+      arrivalCount: 10
+    - duration: 90
+      arrivalCount: 30
 
 scenarios:
   - name: "User create order"
