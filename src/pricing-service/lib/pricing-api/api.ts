@@ -85,6 +85,8 @@ export class Api extends Construct {
       }
     );
 
+    // Paste Datadog configuration from the workshop here.
+
     const kmsAlias = Alias.fromAliasName(this, "SSMAlias", "aws/ssm");
     kmsAlias.grantDecrypt(calculatePricingFunction);
 
