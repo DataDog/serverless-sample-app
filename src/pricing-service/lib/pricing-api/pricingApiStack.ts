@@ -27,6 +27,7 @@ export class PricingApiStack extends cdk.Stack {
       secretStringValue: new cdk.SecretValue(process.env.DD_API_KEY!),
     });
 
+    // Paste Datadog configuration code here, replacing the SharedProps construct as well
     const sharedProps: SharedProps = {
       team: "pricing",
       domain: "pricing",
@@ -43,6 +44,8 @@ export class PricingApiStack extends cdk.Stack {
       ddApiKeySecret: ddApiKey,
       jwtSecret: pricingServiceProps.getJwtSecret(),
     });
+
+    // Paste PricingEventHandlers here.
 
     const apiEndpoint = new StringParameter(this, "PricingAPIEndpoint", {
       parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/api-endpoint`,
