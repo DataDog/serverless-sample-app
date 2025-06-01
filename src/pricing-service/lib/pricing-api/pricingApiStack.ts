@@ -45,6 +45,8 @@ export class PricingApiStack extends cdk.Stack {
       jwtSecret: pricingServiceProps.getJwtSecret(),
     });
 
+    // Paste PricingEventHandlers here.
+
     const apiEndpoint = new StringParameter(this, "PricingAPIEndpoint", {
       parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/api-endpoint`,
       stringValue: api.api.url,
