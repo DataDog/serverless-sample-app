@@ -14,7 +14,7 @@ import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { SqsQueue } from "aws-cdk-lib/aws-events-targets";
 import { PricingServiceProps } from "./pricingServiceProps";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
-import { Duration } from "aws-cdk-lib";
+import { Duration, RemovalPolicy } from "aws-cdk-lib";
 import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 export interface PricingEventHandlerProps {
@@ -82,6 +82,9 @@ export class PricingEventHandlers extends Construct {
           target: "node22",
         },
       }
+    );
+    handleProductCreatedFunction.logGroup.applyRemovalPolicy(
+      RemovalPolicy.DESTROY
     );
 
     props.serviceProps
@@ -159,6 +162,7 @@ export class PricingEventHandlers extends Construct {
         },
       }
     );
+    handleProductUpdatedFunction.logGroup.applyRemovalPolicy(RemovalPolicy.DESTROY);
 
     props.serviceProps
       .getPublisherBus()
