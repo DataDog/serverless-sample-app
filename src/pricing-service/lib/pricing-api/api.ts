@@ -7,7 +7,7 @@
 
 import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
-import { Duration } from "aws-cdk-lib";
+import { Duration, RemovalPolicy } from "aws-cdk-lib";
 import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
 import { IStringParameter } from "aws-cdk-lib/aws-ssm";
 import { PricingServiceProps } from "./pricingServiceProps";
@@ -84,6 +84,7 @@ export class Api extends Construct {
         },
       }
     );
+    calculatePricingFunction.logGroup.applyRemovalPolicy(RemovalPolicy.DESTROY);
 
     // Paste Datadog configuration from the workshop here.
 
