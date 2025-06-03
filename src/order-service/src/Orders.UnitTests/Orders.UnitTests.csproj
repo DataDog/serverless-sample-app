@@ -9,23 +9,29 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.Hosting.Testing" Version="9.0.0"/>
-        <PackageReference Include="coverlet.collector" Version="6.0.2"/>
+        <PackageReference Include="Aspire.Hosting.Testing" Version="9.3.0" />
+        <PackageReference Include="coverlet.collector" Version="6.0.4">
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+          <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
         <PackageReference Include="FluentAssertions" Version="6.12.0" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0"/>
-        <PackageReference Include="Moq" Version="4.20.70" />
-        <PackageReference Include="xunit" Version="2.9.2"/>
-        <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />
+        <PackageReference Include="Moq" Version="4.20.72" />
+        <PackageReference Include="xunit" Version="2.9.3" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.0">
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+          <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
     </ItemGroup>
 
     <ItemGroup>
-        <Using Include="System.Net"/>
-        <Using Include="Microsoft.Extensions.DependencyInjection"/>
-        <Using Include="Aspire.Hosting.ApplicationModel"/>
-        <Using Include="Aspire.Hosting.Testing"/>
-        <Using Include="Xunit"/>
-        <Using Include="Moq"/>
-        <Using Include="FluentAssertions"/>
+        <Using Include="System.Net" />
+        <Using Include="Microsoft.Extensions.DependencyInjection" />
+        <Using Include="Aspire.Hosting.ApplicationModel" />
+        <Using Include="Aspire.Hosting.Testing" />
+        <Using Include="Xunit" />
+        <Using Include="Moq" />
+        <Using Include="FluentAssertions" />
     </ItemGroup>
 
     <ItemGroup>
