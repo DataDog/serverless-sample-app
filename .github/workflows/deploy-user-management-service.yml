@@ -28,7 +28,6 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
       - uses: actions-rust-lang/setup-rust-toolchain@v1
-      - uses: mlugg/setup-zig@v1
       - name: Install Cargo Lambda
         run: |
           cargo install cargo-lambda
@@ -140,7 +139,6 @@ jobs:
         run: |
           npm install -g aws-cdk
       - uses: actions-rust-lang/setup-rust-toolchain@v1
-      - uses: mlugg/setup-zig@v1
       - name: Install Cargo Lambda
         run: |
           cargo install cargo-lambda
@@ -231,7 +229,6 @@ jobs:
         with:
           node-version: "22"
       - uses: actions-rust-lang/setup-rust-toolchain@v1
-      - uses: mlugg/setup-zig@v1
       - name: Install Cargo Lambda
         run: |
           cargo install cargo-lambda
@@ -323,7 +320,6 @@ jobs:
   #       with:
   #         node-version: "22"
   #     - uses: actions-rust-lang/setup-rust-toolchain@v1
-  #     - uses: mlugg/setup-zig@v1
   #     - name: Install Cargo Lambda
   #       run: |
   #         cargo install cargo-lambda
