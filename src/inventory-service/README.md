@@ -33,7 +33,7 @@ When using Java as your language of choice with the AWS CDK, you need to manuall
 ```java
 List<ILayerVersion> layers = new ArrayList<>(2);
         layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:21",System.getenv("AWS_REGION"))));
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:77", System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:80", System.getenv("AWS_REGION"))));
 
 var builder = Function.Builder.create(this, props.routingExpression())
     // Remove for brevity
