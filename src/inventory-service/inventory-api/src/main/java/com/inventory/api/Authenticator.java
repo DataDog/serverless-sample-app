@@ -10,6 +10,8 @@ import software.amazon.awssdk.services.ssm.model.GetParameterRequest;
 
 import java.security.Key;
 
+import javax.crypto.SecretKey;
+
 @ApplicationScoped
 public class Authenticator {
     private static final String USER_TYPE_CLAIM = "user_type";
@@ -34,8 +36,12 @@ public class Authenticator {
         try {
             LOGGER.info(secretString);
 
-            Key key = Keys.hmacShaKeyFor(secretString.getBytes());
-            Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+            SecretKey secretKey = Keys.hmacShaKeyFor(secretString.getBytes());
+            Claims claims = Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
 
             if (claims.get(USER_TYPE_CLAIM) != null) {
                 return false;
@@ -52,8 +58,12 @@ public class Authenticator {
         try {
             LOGGER.info(secretString);
 
-            Key key = Keys.hmacShaKeyFor(secretString.getBytes());
-            Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+            SecretKey secretKey = Keys.hmacShaKeyFor(secretString.getBytes());
+            Claims claims = Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
 
             if (!ADMIN.equals(claims.get(USER_TYPE_CLAIM))) {
                 return false;

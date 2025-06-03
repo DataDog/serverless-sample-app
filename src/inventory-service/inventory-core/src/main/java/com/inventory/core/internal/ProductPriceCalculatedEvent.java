@@ -4,7 +4,7 @@
  * Copyright 2024 Datadog, Inc.
  */
 
-package com.inventory.core.events.internal;
+package com.inventory.core.internal;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
