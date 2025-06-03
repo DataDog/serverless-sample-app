@@ -191,7 +191,7 @@ public class OrdersApi : Construct
                 DesiredCount = 2,
                 RuntimePlatform = new RuntimePlatform
                 {
-                    CpuArchitecture = CpuArchitecture.ARM64,
+                    CpuArchitecture = CpuArchitecture.X86_64,
                     OperatingSystemFamily = OperatingSystemFamily.LINUX
                 },
                 TaskImageOptions = new ApplicationLoadBalancedTaskImageOptions
