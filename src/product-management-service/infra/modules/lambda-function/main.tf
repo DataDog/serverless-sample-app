@@ -96,13 +96,15 @@ module "aws_lambda_function" {
   timeout                  = 29
 
   environment_variables = merge(tomap({
-    "DD_COLD_START_TRACING": "true",
+    "DD_COLD_START_TRACING" : "true",
     "DD_CAPTURE_LAMBDA_PAYLOAD" : "true",
     "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
     "DD_ENV" : var.env
     "DD_SERVICE" : var.service_name
     "DD_SITE" : var.dd_site
     "DD_VERSION" : var.app_version
+    "DD_DATA_STREAMS_ENABLED"                           = "true"
+    "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED" = "true"
     "ENV" : var.env }),
     var.environment_variables
   )

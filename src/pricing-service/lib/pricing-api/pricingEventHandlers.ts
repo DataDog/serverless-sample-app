@@ -73,6 +73,8 @@ export class PricingEventHandlers extends Construct {
           TEAM: props.serviceProps.getSharedProps().team,
           DOMAIN: props.serviceProps.getSharedProps().domain,
           EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
+          DD_DATA_STREAMS_ENABLED: "true",
+          DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true",
         },
         bundling: {
           platform: "node",
@@ -152,6 +154,8 @@ export class PricingEventHandlers extends Construct {
           TEAM: props.serviceProps.getSharedProps().team,
           DOMAIN: props.serviceProps.getSharedProps().domain,
           EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
+          DD_DATA_STREAMS_ENABLED: "true",
+          DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true",
         },
         bundling: {
           platform: "node",

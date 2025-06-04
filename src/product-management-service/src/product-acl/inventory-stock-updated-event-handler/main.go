@@ -11,6 +11,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	adapters "productacl/internal/adapters"
 	core "productacl/internal/core"
 
@@ -60,6 +62,7 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 		var evt observability.CloudEvent[core.PublicInventoryStockUpdatedEventV1]
 		json.Unmarshal(body, &evt)
 
+		ctx, _ := tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
 		span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 
 		_, err := eventTranslator.HandleStockUpdated(ctx, evt.Data)
