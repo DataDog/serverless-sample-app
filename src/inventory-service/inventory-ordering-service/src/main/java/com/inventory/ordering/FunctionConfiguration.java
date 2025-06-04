@@ -10,10 +10,12 @@ import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.inventory.core.adapters.Carrier;
 import com.inventory.ordering.adapters.CloudEventWrapper;
 import com.inventory.ordering.core.InventoryOrderingService;
 
 import com.inventory.ordering.core.events.internal.NewProductAddedEvent;
+import datadog.trace.api.experimental.DataStreamsCheckpointer;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
@@ -59,6 +61,9 @@ public class FunctionConfiguration {
                             .start();
 
                     try (Scope scope = GlobalTracer.get().activateSpan(processSpan)) {
+                        var carrier = new Carrier();
+                        DataStreamsCheckpointer.get().setConsumeCheckpoint("sns", evtWrapper.getType(), carrier);
+
                         processSpan.setTag("product.id", evtWrapper.getData().getProductId());
                         processSpan.setTag("messaging.message.id", evtWrapper.getId());
                         processSpan.setTag("messaging.operation.type", "process");

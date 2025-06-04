@@ -12,6 +12,8 @@ import com.inventory.acl.core.ExternalEventHandler;
 import com.inventory.acl.core.events.external.OrderCreatedEventV1;
 import com.inventory.core.DataAccessException;
 import com.inventory.core.InventoryItemNotFoundException;
+import com.inventory.core.adapters.Carrier;
+import datadog.trace.api.experimental.DataStreamsCheckpointer;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
@@ -54,6 +56,8 @@ public class handleOrderCreatedLambda implements RequestHandler<SQSEvent, SQSBat
                         .start();
 
                 try (Scope scope = GlobalTracer.get().activateSpan(processSpan)) {
+                    var carrier = new Carrier();
+                    DataStreamsCheckpointer.get().setConsumeCheckpoint("sns", evtWrapper.getDetailType(), carrier);
                     processSpan.setTag("messaging.id", message.getMessageId());
                     processSpan.setTag("messaging.operation.type", "process");
                     processSpan.setTag("messaging.system", "aws_sqs");
