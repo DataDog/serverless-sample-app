@@ -8,9 +8,6 @@ package com.cdk.constructs;
 
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.Duration;
-import software.amazon.awscdk.services.iam.Effect;
-import software.amazon.awscdk.services.iam.PolicyStatement;
-import software.amazon.awscdk.services.iam.PolicyStatementProps;
 import software.amazon.awscdk.services.lambda.*;
 import software.amazon.awscdk.services.lambda.Runtime;
 import software.amazon.awscdk.services.lambda.VersionProps;
@@ -42,6 +39,7 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.put("DD_API_KEY", props.sharedProps().ddApiKeySecret().getSecretValue().unsafeUnwrap());
         lambdaEnvironment.put("DD_CAPTURE_LAMBDA_PAYLOAD", "true");
         lambdaEnvironment.put("DD_LOGS_INJECTION", "true");
+        lambdaEnvironment.put("DD_DATA_STREAMS_ENABLED", "true");
         lambdaEnvironment.put("TEAM", "inventory");
         lambdaEnvironment.put("DOMAIN", "inventory");
         lambdaEnvironment.put("spring_cloud_function_definition", props.routingExpression());

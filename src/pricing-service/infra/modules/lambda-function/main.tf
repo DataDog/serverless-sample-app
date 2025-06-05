@@ -104,6 +104,8 @@ resource "aws_lambda_function" "function" {
       "ENV"                     = var.env
       "POWERTOOLS_SERVICE_NAME" = var.service_name
       "POWERTOOLS_LOG_LEVEL"    = "INFO"
+      "DD_DATA_STREAMS_ENABLED" = "true"
+      "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED" = "true"
     }, var.environment_variables)
   }
 }

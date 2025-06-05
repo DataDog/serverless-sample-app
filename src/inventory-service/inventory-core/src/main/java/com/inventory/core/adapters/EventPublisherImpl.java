@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.inventory.core.*;
 import com.inventory.core.config.AppConfig;
+import datadog.trace.api.experimental.DataStreamsCheckpointer;
+import datadog.trace.api.experimental.DataStreamsContextCarrier;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
@@ -29,6 +31,8 @@ import software.amazon.awssdk.services.sns.model.PublishRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @ApplicationScoped
 public class EventPublisherImpl implements EventPublisher {
@@ -69,6 +73,9 @@ public class EventPublisherImpl implements EventPublisher {
             final Span publishSpan = createPublishSpan(span, "inventory.productAdded", evtWrapper, evtContents.length(), topicArn);
 
             try (Scope scope = GlobalTracer.get().activateSpan(publishSpan)) {
+                var carrier = new Carrier();
+                DataStreamsCheckpointer.get().setProduceCheckpoint("sns", evtWrapper.getType(), carrier);
+
                 this.snsClient.publish(PublishRequest.builder()
                         .topicArn(topicArn)
                         .message(evtContents)
@@ -183,6 +190,9 @@ public class EventPublisherImpl implements EventPublisher {
                 .asChildOf(parentSpan)
                 .start();
 
+        var carrier = new Carrier();
+        DataStreamsCheckpointer.get().setProduceCheckpoint("sns", evtWrapper.getType(), carrier);
+
         publishSpan.setTag("domain", appConfig.getDomain());
         publishSpan.setTag("messaging.message.eventType", destination == null ? "public" : "private");
         publishSpan.setTag("messaging.message.type", detailType);
@@ -235,3 +245,4 @@ public class EventPublisherImpl implements EventPublisher {
         return arnParts[arnParts.length - 1];
     }
 }
+

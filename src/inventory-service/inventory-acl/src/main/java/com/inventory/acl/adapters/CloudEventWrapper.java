@@ -11,6 +11,9 @@ public class CloudEventWrapper<T> implements Serializable {
     @JsonProperty("conversationId")
     private String conversationId;
 
+    @JsonProperty("type")
+    private String type;
+
     public T getData() {
         return data;
     }
@@ -25,5 +28,13 @@ public class CloudEventWrapper<T> implements Serializable {
 
     public void setConversationId(String conversationId) {
         this.conversationId = conversationId;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }
