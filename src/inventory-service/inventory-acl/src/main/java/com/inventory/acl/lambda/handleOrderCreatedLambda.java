@@ -57,7 +57,7 @@ public class handleOrderCreatedLambda implements RequestHandler<SQSEvent, SQSBat
 
                 try (Scope scope = GlobalTracer.get().activateSpan(processSpan)) {
                     var carrier = new Carrier();
-                    DataStreamsCheckpointer.get().setConsumeCheckpoint("sns", evtWrapper.getDetailType(), carrier);
+                    DataStreamsCheckpointer.get().setConsumeCheckpoint("sns", evtWrapper.getDetail().getType(), carrier);
                     processSpan.setTag("messaging.id", message.getMessageId());
                     processSpan.setTag("messaging.operation.type", "process");
                     processSpan.setTag("messaging.system", "aws_sqs");

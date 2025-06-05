@@ -10,7 +10,6 @@ import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.inventory.core.adapters.Carrier;
 import com.inventory.ordering.adapters.CloudEventWrapper;
 import com.inventory.ordering.core.InventoryOrderingService;
 
@@ -29,6 +28,8 @@ import org.springframework.context.annotation.Bean;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 @SpringBootApplication(scanBasePackages = "com.inventory.ordering")
@@ -95,3 +96,4 @@ public class FunctionConfiguration {
         };
     }
 }
+
