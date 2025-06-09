@@ -6,14 +6,18 @@ import java.util.Map;
 import java.util.Set;
 
 public class Carrier implements DataStreamsContextCarrier {
+    private Headers headers;
 
-    @Override
-    public Set<Map.Entry<String, Object>> entries() {
-        return Set.of();
+    public Carrier(Headers headers) {
+        this.headers = headers;
     }
 
-    @Override
-    public void set(String s, String s1) {
+    public Set<Map.Entry<String, Object>> entries() {
+        return this.headers.entrySet();
+    }
 
+    public void set(String key, String value){
+        this.headers.put(key, value);
     }
 }
+
