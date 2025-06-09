@@ -11,6 +11,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"log"
 	"os"
 	"product-event-publisher/internal/core"
@@ -52,6 +55,11 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 		Entries: entiries,
 	}
 
+	ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
+	}
+
 	_, err := publisher.client.PutEvents(ctx, input)
 
 	if err != nil {
@@ -81,6 +89,11 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 		Entries: entiries,
 	}
 
+	ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{}, "direction:out", "type:sns", fmt.Sprintln("topic:%s", cloudEvent.Type))
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
+	}
+
 	_, err := publisher.client.PutEvents(ctx, input)
 
 	if err != nil {
@@ -104,6 +117,11 @@ func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Con
 			EventBusName: &busName,
 			Source:       &source,
 		},
+	}
+
+	ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{}, "direction:out", "type:sns", fmt.Sprintln("topic:%s", cloudEvent.Type))
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
 	}
 
 	input := &eventbridge.PutEventsInput{

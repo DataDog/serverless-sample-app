@@ -27,6 +27,8 @@ export function startProcessSpanWithSemanticConventions(
   const messageProcessingSpan = tracer.startSpan(`process ${evt.type}`, {
     childOf: conventions.parentSpan ?? undefined,
   });
+  const headers = {};
+  tracer.dataStreamsCheckpointer.setConsumeCheckpoint("sns", evt.type, headers);
 
   try {
     messageProcessingSpan.addTags({
@@ -77,6 +79,13 @@ export function startPublishSpanWithSemanticConventions(
   });
 
   try {
+    const headers = {};
+    tracer.dataStreamsCheckpointer.setProduceCheckpoint(
+      "sns",
+      evt.type,
+      headers
+    );
+    
     messagingSpan.addTags({
       domain: process.env.DOMAIN,
       "messaging.message.eventType":
