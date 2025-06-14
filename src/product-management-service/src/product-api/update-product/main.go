@@ -22,7 +22,6 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 
 	ddlambda "github.com/DataDog/datadog-lambda-go"
@@ -35,8 +34,9 @@ var (
 		awstrace.AppendMiddleware(&awsCfg)
 		return awsCfg
 	}()
-	handler = core.NewUpdateProductCommandHandler(
-		adapters.NewDynamoDbProductRepository(*dynamodb.NewFromConfig(awsCfg), os.Getenv("TABLE_NAME")),
+	dSqlProductRepository, _ = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
+	handler                  = core.NewUpdateProductCommandHandler(
+		dSqlProductRepository,
 		adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg)))
 	authenticator = adapters.NewAuthenticator(context.Background(), *ssm.NewFromConfig(awsCfg))
 )
