@@ -19,7 +19,7 @@ resource "aws_ssm_parameter" "orders_service_access_key" {
 module "orders_web_service" {
   source       = "../../modules/web-service"
   service_name = "ordersservice"
-  image        = "public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-dotnet:latest"
+  image        = "public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-dotnet:${var.app_version}"
   env          = var.env
   app_version  = var.app_version
   environment_variables = [
