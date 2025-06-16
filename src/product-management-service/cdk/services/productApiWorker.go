@@ -9,8 +9,7 @@ package services
 
 import (
 	sharedconstructs "cdk/sharedConstructs"
-
-	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambdaeventsources"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssns"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
@@ -19,15 +18,16 @@ import (
 )
 
 type ProductBackgroundServiceProps struct {
-	ServiceProps             ProductServiceProps
-	ProductStockUpdatedTopic awssns.ITopic
-	PriceCalculatedTopic     awssns.ITopic
-	ProductTable             awsdynamodb.ITable
+	ServiceProps                ProductServiceProps
+	ProductStockUpdatedTopic    awssns.ITopic
+	PriceCalculatedTopic        awssns.ITopic
+	DatabaseClusterEndpoint     *string
+	DatabaseClusterAccessPolicy awsiam.Policy
 }
 
 func NewProductBackgroundServices(scope constructs.Construct, id string, props *ProductBackgroundServiceProps) {
 	environmentVariables := make(map[string]*string)
-	environmentVariables["TABLE_NAME"] = jsii.String(*props.ProductTable.TableName())
+	environmentVariables["DSQL_CLUSTER_ENDPOINT"] = props.DatabaseClusterEndpoint
 
 	handlePricingChangedFunction := sharedconstructs.NewInstrumentedFunction(scope, "ProductApiHandlerPricingChanged", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,
@@ -36,7 +36,7 @@ func NewProductBackgroundServices(scope constructs.Construct, id string, props *
 		EnvironmentVariables: environmentVariables,
 	})
 
-	props.ProductTable.GrantReadWriteData(handlePricingChangedFunction.Function)
+	handlePricingChangedFunction.Function.Role().AttachInlinePolicy(props.DatabaseClusterAccessPolicy)
 
 	handlePriceCalculatedDLQ := awssqs.NewQueue(scope, jsii.String("HandlePriceCalculatedDLQ"), &awssqs.QueueProps{
 		QueueName: jsii.Sprintf("HandlePriceCalculatedDLQ-%s", props.ServiceProps.SharedProps.Env),
@@ -51,8 +51,8 @@ func NewProductBackgroundServices(scope constructs.Construct, id string, props *
 		FunctionName:         "HandleStockUpdated",
 		EnvironmentVariables: environmentVariables,
 	})
-
-	props.ProductTable.GrantReadWriteData(handleStockUpdatedFunction.Function)
+	
+	handleStockUpdatedFunction.Function.Role().AttachInlinePolicy(props.DatabaseClusterAccessPolicy)
 
 	handleStockUpdatedDLQ := awssqs.NewQueue(scope, jsii.String("HandleStockUpdatedDLQ"), &awssqs.QueueProps{
 		QueueName: jsii.Sprintf("HandleStockUpdatedDLQ-%s", props.ServiceProps.SharedProps.Env),
