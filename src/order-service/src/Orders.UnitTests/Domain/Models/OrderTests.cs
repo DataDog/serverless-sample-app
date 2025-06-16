@@ -2,6 +2,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025 Datadog, Inc.
 
+using NJsonSchema;
 using Orders.Core.Domain.Exceptions;
 using Orders.Core.Domain.Models;
 

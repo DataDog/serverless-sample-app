@@ -189,6 +189,7 @@ public class OrdersApi : Construct
             {
                 Cluster = cluster,
                 DesiredCount = 2,
+                MinHealthyPercent = 100,
                 RuntimePlatform = new RuntimePlatform
                 {
                     CpuArchitecture = CpuArchitecture.X86_64,
@@ -197,7 +198,7 @@ public class OrdersApi : Construct
                 TaskImageOptions = new ApplicationLoadBalancedTaskImageOptions
                 {
                     Image = ContainerImage.FromRegistry(
-                        "public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-dotnet:latest"),
+                        $"public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-dotnet:{props.SharedProps.Version}"),
                     ExecutionRole = executionRole,
                     TaskRole = taskRole,
                     Environment = new Dictionary<string, string>
@@ -213,7 +214,8 @@ public class OrdersApi : Construct
                         { "ENV", props.SharedProps.Env },
                         { "DD_SERVICE", props.SharedProps.ServiceName },
                         { "DD_ENV", props.SharedProps.Env },
-                        { "DD_VERSION", props.SharedProps.Version }
+                        { "DD_VERSION", props.SharedProps.Version },
+                        { "DD_DATA_STREAMS_ENABLED", "true" },
                     },
                     DockerLabels = new Dictionary<string, string>(3)
                     {
@@ -309,7 +311,8 @@ public class OrdersApi : Construct
                 { "DD_ENV", props.SharedProps.Env },
                 { "DD_SERVICE", props.SharedProps.ServiceName },
                 { "DD_VERSION", props.SharedProps.Version },
-                { "DD_APM_IGNORE_RESOURCES", "GET /health" }
+                { "DD_APM_IGNORE_RESOURCES", "GET /health" },
+                { "DD_DATA_STREAMS_ENABLED", "true" },
             },
             Secrets = new Dictionary<string, Secret>
             {

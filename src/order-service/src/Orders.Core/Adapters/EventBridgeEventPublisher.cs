@@ -3,13 +3,15 @@
 // Copyright 2024 Datadog, Inc.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Amazon.EventBridge;
 using Amazon.EventBridge.Model;
+using CloudNative.CloudEvents;
 using CloudNative.CloudEvents.SystemTextJson;
 using Datadog.Trace;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Orders.Core.PublicEvents;
+using Serilog;
 
 namespace Orders.Core.Adapters;
 
@@ -22,8 +24,8 @@ public class EventBridgeEventPublisher(
 
     private async Task Publish(PutEventsRequestEntry evt)
     {
-        var scope = Tracer.Instance.StartActive($"publish {evt.DetailType}");
-        
+        using var scope = Tracer.Instance.StartActive($"publish {evt.DetailType}");
+
         var cloudEvent = evt.GenerateCloudEventFrom();
         var evtFormatter = new JsonEventFormatter();
         if (cloudEvent != null)
@@ -31,8 +33,15 @@ public class EventBridgeEventPublisher(
             evt.Detail = evtFormatter.ConvertToJsonElement(cloudEvent).ToString();
             scope.Span.AddSemConvFrom(evt, cloudEvent);
         }
+        
+        new SpanContextInjector().InjectIncludingDsm(
+            evt.Detail,
+            SetHeader,
+            scope.Span.Context,
+            "sns",
+            evt.DetailType);
 
-        var putEventsResponse = await eventBridgeClient.PutEventsAsync(new PutEventsRequest()
+        var putEventsResponse = await eventBridgeClient.PutEventsAsync(new PutEventsRequest
         {
             Entries = new List<PutEventsRequestEntry>(1)
             {
@@ -46,7 +55,7 @@ public class EventBridgeEventPublisher(
 
     public async Task Publish(OrderCreatedEventV1 evt)
     {
-        var putEventRecord = new PutEventsRequestEntry()
+        var putEventRecord = new PutEventsRequestEntry
         {
             EventBusName = EventBusName,
             Source = Source,
@@ -59,7 +68,7 @@ public class EventBridgeEventPublisher(
 
     public async Task Publish(OrderConfirmedEventV1 evt)
     {
-        var putEventRecord = new PutEventsRequestEntry()
+        var putEventRecord = new PutEventsRequestEntry
         {
             EventBusName = EventBusName,
             Source = Source,
@@ -72,7 +81,7 @@ public class EventBridgeEventPublisher(
 
     public async Task Publish(OrderCompletedEventV1 evt)
     {
-        var putEventRecord = new PutEventsRequestEntry()
+        var putEventRecord = new PutEventsRequestEntry
         {
             EventBusName = EventBusName,
             Source = Source,
@@ -81,5 +90,20 @@ public class EventBridgeEventPublisher(
         };
 
         await Publish(putEventRecord);
+    }
+
+    private static void SetHeader(string eventJson, string key, string value)
+    {
+        Log.Logger.Information("Setting header {Key} with value {Value}", key, value);
+        
+        var jsonNode = JsonNode.Parse(eventJson);
+        if (jsonNode?["_datadog"] == null)
+        {
+            jsonNode!["_datadog"] = new JsonObject();
+        }
+        
+        jsonNode!["_datadog"]![key] = value;
+        
+        Log.Logger.Information("State of Datadog node is {DatadogNode}", jsonNode!["_datadog"]);
     }
 }

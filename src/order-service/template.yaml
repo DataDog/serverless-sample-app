@@ -59,6 +59,8 @@ Globals:
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
         POWERTOOLS_LOG_LEVEL: "INFO"
         AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
+        DD_DATA_STREAMS_ENABLED: "true"
+        DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true"
     Architectures:
       - x86_64
 
@@ -795,7 +797,7 @@ Resources:
         OperatingSystemFamily: LINUX
       ContainerDefinitions:
         - Name: OrderApi
-          Image: public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-dotnet:latest
+          Image: !Sub public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-dotnet:${CommitHash}
           Environment:
             - Name: TABLE_NAME
               Value: !Ref OrdersTable

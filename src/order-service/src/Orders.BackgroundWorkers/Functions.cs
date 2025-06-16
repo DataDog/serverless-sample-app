@@ -95,7 +95,7 @@ public class Functions
                     });
         }
 
-        return new SQSBatchResponse()
+        return new SQSBatchResponse
         {
             BatchItemFailures = batchItemFailures
         };
@@ -116,11 +116,17 @@ public class Functions
                 return false;
             }
 
+            var parentContext = new SpanContextExtractor().ExtractIncludingDsm(
+                JsonDocument.Parse(record.Body),
+                GetHeader,
+                "sns",
+                evtData.Detail.Type);
+
             processingSpan = Tracer.Instance.StartActive($"process {evtData.Detail.Type}", new SpanCreationSettings
             {
                 Parent = parentSpan?.Context
             });
-            
+
             record.AddToTelemetry();
             evtData.Detail?.AddToTelemetry();
             evtData.Detail!.Data.OrderNumber.AddToTelemetry("order.id");
@@ -189,7 +195,7 @@ public class Functions
                     });
         }
 
-        return new SQSBatchResponse()
+        return new SQSBatchResponse
         {
             BatchItemFailures = batchItemFailures
         };
@@ -210,6 +216,12 @@ public class Functions
                 _logger.LogWarning("Deserialized event data is null from message body {MessageBody}", record.Body);
                 return false;
             }
+
+            var parentContext = new SpanContextExtractor().ExtractIncludingDsm(
+                JsonSerializer.SerializeToDocument(evtData.Detail),
+                GetHeader,
+                "sns",
+                evtData.Detail.Type);
 
             processingSpan = Tracer.Instance.StartActive($"process {evtData.Detail.Type}", new SpanCreationSettings
             {
@@ -240,6 +252,20 @@ public class Functions
         finally
         {
             processingSpan?.Close();
+        }
+    }
+
+    private static IEnumerable<string?> GetHeader(JsonDocument doc, string key)
+    {
+        if (doc.RootElement.TryGetProperty("detail", out var detailProperty))
+        {
+            if (detailProperty.TryGetProperty("_datadog", out var datadogProperty))
+            {
+                if (datadogProperty.TryGetProperty(key, out var value))
+                {
+                    yield return value.GetString();
+                }
+            }
         }
     }
 }
