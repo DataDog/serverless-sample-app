@@ -23,7 +23,7 @@ public class OrdersServiceStack : Stack
     {
         var serviceName = "OrdersService";
         var env = System.Environment.GetEnvironmentVariable("ENV") ?? "dev";
-        var version = System.Environment.GetEnvironmentVariable("VERSION") ?? "latest";
+        var version = System.Environment.GetEnvironmentVariable("COMMIT_HASH") ?? "latest";
         var ddSite = System.Environment.GetEnvironmentVariable("DD_SITE") ?? "datadoghq.com";
 
         var secret = new Secret(this, "DDApiKeySecret", new SecretProps()

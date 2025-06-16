@@ -72,6 +72,7 @@ public class InventoryApiContainer extends Construct {
         environmentVariables.put("QUARKUS_HTTP_CORS_HEADERS", "Accept,Authorization,Content-Type");
         environmentVariables.put("QUARKUS_HTTP_CORS_METHODS", "GET,POST,OPTIONS,PUT,DELETE");
         environmentVariables.put("QUARKUS_HTTP_CORS_ORIGINS", "*");
+        environmentVariables.put("DD_DATA_STREAMS_ENABLED", "true");
 
 
         Map<String, String> dockerLabels = new HashMap<>();
@@ -177,6 +178,7 @@ public class InventoryApiContainer extends Construct {
         datadogEnvironmentVariables.put("DD_SERVICE", service);
         datadogEnvironmentVariables.put("DD_VERSION", version);
         datadogEnvironmentVariables.put("DD_APM_IGNORE_RESOURCES", "(GET) /health,(GET) /");
+        datadogEnvironmentVariables.put("DD_DATA_STREAMS_ENABLED", "true");
         
         application.getTaskDefinition().addContainer("Datadog", ContainerDefinitionOptions.builder()
                 .image(ContainerImage.fromRegistry("public.ecr.aws/datadog/agent:latest"))

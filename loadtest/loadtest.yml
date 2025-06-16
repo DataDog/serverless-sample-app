@@ -149,3 +149,25 @@ scenarios:
           json:
             productId: "{{ProductId}}"
             stockLevel: "{{NewStockLevel}}"
+  - name: "Admin create products"
+    flow:
+      - post:
+          url: "{{ $processEnvironment.USER_API_ENDPOINT }}/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email_address: "admin@serverless-sample.com"
+            password: "Admin!23"
+          capture:
+            json: "$.data.token"
+            as: adminJwt
+      - function: generateProductName
+      - post:
+          url: "{{ $processEnvironment.PRODUCT_API_ENDPOINT }}/product"
+          ifTrue: 'ProductName'
+          headers:
+            Content-Type: "application/json"
+            Authorization: "Bearer {{adminJwt}}"
+          json:
+            name: "{{ProductName}}"
+            price: "{{Price}}"

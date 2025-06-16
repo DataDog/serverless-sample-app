@@ -797,7 +797,7 @@ Resources:
         OperatingSystemFamily: LINUX
       ContainerDefinitions:
         - Name: OrderApi
-          Image: public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-dotnet:latest
+          Image: !Sub public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-dotnet:${CommitHash}
           Environment:
             - Name: TABLE_NAME
               Value: !Ref OrdersTable
