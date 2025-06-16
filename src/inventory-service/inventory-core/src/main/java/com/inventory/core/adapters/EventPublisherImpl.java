@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.inventory.core.*;
 import com.inventory.core.config.AppConfig;
+import datadog.trace.api.experimental.DataStreamsCheckpointer;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.log.Fields;
@@ -26,7 +27,6 @@ import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
@@ -69,6 +69,9 @@ public class EventPublisherImpl implements EventPublisher {
             final Span publishSpan = createPublishSpan(span, "inventory.productAdded", evtWrapper, evtContents.length(), topicArn);
 
             try (Scope scope = GlobalTracer.get().activateSpan(publishSpan)) {
+                var carrier = new Carrier(new Headers());
+                DataStreamsCheckpointer.get().setProduceCheckpoint("sns", evtWrapper.getType(), carrier);
+
                 this.snsClient.publish(PublishRequest.builder()
                         .topicArn(topicArn)
                         .message(evtContents)
@@ -156,6 +159,10 @@ public class EventPublisherImpl implements EventPublisher {
 
             logger.info("Publishing {} from {} to {}", detailType, source, eventBusName);
 
+            var carrier = new Carrier(new Headers());
+            DataStreamsCheckpointer.get().setProduceCheckpoint("sns", detailType, carrier);
+
+
             PutEventsRequest request = PutEventsRequest
                     .builder()
                     .entries(List.of(PutEventsRequestEntry.builder()
@@ -235,3 +242,4 @@ public class EventPublisherImpl implements EventPublisher {
         return arnParts[arnParts.length - 1];
     }
 }
+

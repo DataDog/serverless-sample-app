@@ -8,9 +8,6 @@ package com.cdk.constructs;
 
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.Duration;
-import software.amazon.awscdk.services.iam.Effect;
-import software.amazon.awscdk.services.iam.PolicyStatement;
-import software.amazon.awscdk.services.iam.PolicyStatementProps;
 import software.amazon.awscdk.services.lambda.*;
 import software.amazon.awscdk.services.lambda.Runtime;
 import software.amazon.awscdk.services.lambda.VersionProps;
@@ -42,6 +39,7 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.put("DD_API_KEY", props.sharedProps().ddApiKeySecret().getSecretValue().unsafeUnwrap());
         lambdaEnvironment.put("DD_CAPTURE_LAMBDA_PAYLOAD", "true");
         lambdaEnvironment.put("DD_LOGS_INJECTION", "true");
+        lambdaEnvironment.put("DD_DATA_STREAMS_ENABLED", "true");
         lambdaEnvironment.put("TEAM", "inventory");
         lambdaEnvironment.put("DOMAIN", "inventory");
         lambdaEnvironment.put("spring_cloud_function_definition", props.routingExpression());
@@ -52,8 +50,8 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.putAll(props.environmentVariables());
 
         List<ILayerVersion> layers = new ArrayList<>(2);
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:19",System.getenv("AWS_REGION"))));
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:77", System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:21",System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:80", System.getenv("AWS_REGION"))));
 
 
         Asset fileAsset = Asset.Builder.create(this, String.format("%sS3Asset", props.routingExpression()))

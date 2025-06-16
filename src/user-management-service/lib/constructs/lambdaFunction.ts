@@ -8,7 +8,7 @@
 import { Construct } from "constructs";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Code, IDestination, Runtime } from "aws-cdk-lib/aws-lambda";
-import { Duration, Tags } from "aws-cdk-lib";
+import { Duration, RemovalPolicy, Tags } from "aws-cdk-lib";
 import { Alias } from "aws-cdk-lib/aws-kms";
 import { SharedProps } from "./sharedFunctionProps";
 import path = require("path");

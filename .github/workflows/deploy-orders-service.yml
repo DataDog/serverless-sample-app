@@ -61,7 +61,7 @@ jobs:
           REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
           REGISTRY_ALIAS: k4y9x2e7
           REPOSITORY: dd-serverless-sample-app-dotnet
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: ${{ env.sha_short }}
         run: |
           cd src/order-service/src
           docker build -f Dockerfile -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .

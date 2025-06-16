@@ -11,6 +11,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	"log"
 	"os"
 
@@ -54,6 +56,11 @@ func (publisher SnsEventPublisher) PublishProductCreated(ctx context.Context, ev
 	input := &sns.PublishInput{
 		TopicArn: &topicArn,
 		Message:  &message,
+	}
+
+	ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
 	}
 
 	_, err := publisher.client.Publish(ctx, input)

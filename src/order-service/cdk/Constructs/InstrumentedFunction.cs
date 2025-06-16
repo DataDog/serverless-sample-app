@@ -55,6 +55,7 @@ public class InstrumentedFunction : Construct
             { "DD_SERVICE", props.Shared.ServiceName },
             { "DD_API_KEY_SECRET_ARN", props.DdApiKeySecret.SecretArn },
             { "DD_CAPTURE_LAMBDA_PAYLOAD", "true" },
+            { "DD_DATA_STREAMS_ENABLED", "true" },
             { "DOMAIN", props.Shared.Domain },
             { "TEAM", props.Shared.Team }
         };
@@ -75,7 +76,7 @@ public class InstrumentedFunction : Construct
                 Layers =
                 [
                     LayerVersion.FromLayerVersionArn(this, "DDExtension",
-                        $"arn:aws:lambda:{Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1"}:464622532012:layer:Datadog-Extension-ARM:77"),
+                        $"arn:aws:lambda:{Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1"}:464622532012:layer:Datadog-Extension-ARM:80"),
                     LayerVersion.FromLayerVersionArn(this, "DDTrace",
                         $"arn:aws:lambda:{Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1"}:464622532012:layer:dd-trace-dotnet-ARM:20")
                 ]

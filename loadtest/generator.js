@@ -53,4 +53,11 @@ module.exports = {
 
     return done();
   },
+  generateProductName: function (context, events, done) {
+    context.vars.ProductName = crypto.randomUUID().toString().slice(0, 10);
+    const randomPrice = Math.round(Math.random() * 10);
+    context.vars.Price = randomPrice;
+
+    return done();
+  },
 };

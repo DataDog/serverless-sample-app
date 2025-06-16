@@ -15,7 +15,10 @@ import { Span, tracer, TracerProvider } from "dd-trace";
 import { CloudEvent } from "cloudevents";
 import { randomUUID } from "crypto";
 import { Logger } from "@aws-lambda-powertools/logger";
-import { MessagingType, startPublishSpanWithSemanticConventions } from "../../observability/observability";
+import {
+  MessagingType,
+  startPublishSpanWithSemanticConventions,
+} from "../../observability/observability";
 import { LoyaltyPointsAddedV1 } from "../core/events/loyaltyPointsUpdatedV1";
 
 export class EventBridgeEventPublisher implements EventPublisher {
@@ -58,8 +61,15 @@ export class EventBridgeEventPublisher implements EventPublisher {
           Detail: JSON.stringify(cloudEventWrapper),
           DetailType: "loyalty.pointsAdded.v1",
           Source: `${process.env.ENV}.loyalty`,
-        }
-      ]
+        },
+      ];
+
+      const headers = {};
+      tracer.dataStreamsCheckpointer.setProduceCheckpoint(
+        "sns",
+        "loyalty.pointsAdded.v1",
+        headers
+      );
 
       await this.client.send(
         new PutEventsCommand({

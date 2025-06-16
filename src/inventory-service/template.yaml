@@ -12,8 +12,8 @@ Transform:
     Parameters:
       stackName: !Ref AWS::StackName
       apiKey: !Ref DDApiKey
-      javaLayerVersion: '20'
-      extensionLayerVersion: '77'
+      javaLayerVersion: '21'
+      extensionLayerVersion: '80'
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -65,6 +65,8 @@ Globals:
         DOMAIN: inventory
         ENV: !Ref Env
         DD_LOGS_INJECTION: 'true'
+        DD_DATA_STREAMS_ENABLED: "true"
+        DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true"
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
         POWERTOOLS_LOG_LEVEL: INFO
         AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper

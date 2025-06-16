@@ -40,7 +40,7 @@ Globals:
     Timeout: 29
     MemorySize: 512
     Layers:
-      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension-ARM:77
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension-ARM:80
     Environment:
       Variables:
         ENV: !Ref Env
@@ -57,6 +57,8 @@ Globals:
         TABLE_NAME: !Ref ProductApiTable
         DSQL_CLUSTER_ENDPOINT: !Sub "${ProductApiCluster}.dsql.${AWS::Region}.on.aws"
 
+        DD_DATA_STREAMS_ENABLED: "true"
+        DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true"
     Architectures:
       - arm64
   Api:

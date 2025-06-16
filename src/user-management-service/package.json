@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
-    "@types/node": "22.13.14",
+    "@types/node": "^22.13.14",
     "aws-cdk": "2.1006.0",
     "aws-cdk-lib": "^2.186.0",
     "cargo-lambda-cdk": "^0.0.33",
@@ -29,8 +29,8 @@
   "dependencies": {
     "aws-cdk-lib": "2.171.1",
     "constructs": "^10.0.0",
-    "source-map-support": "^0.5.21",
     "serverless-plugin-datadog": "^5.80.0",
-    "serverless-plugin-resource-tagging": "^1.2.0"
+    "serverless-plugin-resource-tagging": "^1.2.0",
+    "source-map-support": "^0.5.21"
   }
 }
