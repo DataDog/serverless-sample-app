@@ -189,6 +189,7 @@ public class OrdersApi : Construct
             {
                 Cluster = cluster,
                 DesiredCount = 2,
+                MinHealthyPercent = 100,
                 RuntimePlatform = new RuntimePlatform
                 {
                     CpuArchitecture = CpuArchitecture.X86_64,
@@ -197,7 +198,7 @@ public class OrdersApi : Construct
                 TaskImageOptions = new ApplicationLoadBalancedTaskImageOptions
                 {
                     Image = ContainerImage.FromRegistry(
-                        "public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-dotnet:latest"),
+                        $"public.ecr.aws/k4y9x2e7/dd-serverless-sample-app-dotnet:{props.SharedProps.Version}"),
                     ExecutionRole = executionRole,
                     TaskRole = taskRole,
                     Environment = new Dictionary<string, string>
