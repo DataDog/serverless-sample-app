@@ -49,7 +49,7 @@ jobs:
   #         DD_SITE: "datadoghq.eu"
   #         AWS_REGION: "eu-west-2"
   #       run: |
-  #         cd src/analytics-service
+  #         cd src/activity-service
   #         make build
   #     - name: Deploy ephermal environment
   #       shell: bash
@@ -62,7 +62,7 @@ jobs:
   #         AWS_REGION: "eu-west-2"
   #         TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
   #       run: |
-  #         cd src/analytics-service
+  #         cd src/activity-service
   #         make tf-apply
   #     - name: Sleep for 60 seconds
   #       run: sleep 60s
@@ -74,7 +74,7 @@ jobs:
   #         VERSION: ${{ env.sha_short }}
   #         AWS_REGION: "eu-west-2"
   #       run: |
-  #         cd src/analytics-service
+  #         cd src/activity-service
   #         make integration-test
   #     - name: Destroy ephermal environment
   #       shell: bash
@@ -88,7 +88,7 @@ jobs:
   #         AWS_REGION: "eu-west-2"
   #         TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
   #       run: |
-  #         cd src/analytics-service
+  #         cd src/activity-service
   #         make tf-destroy
   #     - name: Deploy to dev
   #       if: github.event_name == 'push'
@@ -102,7 +102,7 @@ jobs:
   #         AWS_REGION: "eu-west-2"
   #         TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
   #       run: |
-  #         cd src/analytics-service
+  #         cd src/activity-service
   #         make tf-apply
   #     - name: Sleep for 60 seconds
   #       if: github.event_name == 'push'
@@ -115,7 +115,7 @@ jobs:
   #         ENV: "dev"
   #         AWS_REGION: "eu-west-2"
   #       run: |
-  #         cd src/analytics-service
+  #         cd src/activity-service
   #         make integration-test
   #     - name: Destroy dev
   #       shell: bash
@@ -129,7 +129,7 @@ jobs:
   #         AWS_REGION: "eu-west-2"
   #         TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
   #       run: |
-  #         cd src/analytics-service
+  #         cd src/activity-service
   #         make tf-destroy
 
   deploy-cdk:
@@ -171,7 +171,7 @@ jobs:
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
         run: |
-          cd src/analytics-service
+          cd src/activity-service
           make cdk-deploy
       - name: Integration test ephermal environment
         shell: bash
@@ -180,7 +180,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           AWS_REGION: "eu-west-1"
         run: |
-          cd src/analytics-service
+          cd src/activity-service
           make integration-test
       - name: Destroy ephermal environment
         shell: bash
@@ -192,7 +192,7 @@ jobs:
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
         run: |
-          cd src/analytics-service
+          cd src/activity-service
           make cdk-destroy
       - name: Deploy to dev
         if: github.event_name == 'push'
@@ -204,7 +204,7 @@ jobs:
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
         run: |
-          cd src/analytics-service
+          cd src/activity-service
           make cdk-deploy
       - name: Integration test dev
         if: github.event_name == 'push'
@@ -213,7 +213,7 @@ jobs:
           ENV: "dev"
           AWS_REGION: "eu-west-1"
         run: |
-          cd src/analytics-service
+          cd src/activity-service
           make integration-test
       - name: Destroy dev
         shell: bash
@@ -225,7 +225,7 @@ jobs:
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
         run: |
-          cd src/analytics-service
+          cd src/activity-service
           make cdk-destroy
 
   # deploy-sam:
@@ -261,7 +261,7 @@ jobs:
   #         DD_SITE: "datadoghq.eu"
   #         AWS_REGION: "eu-central-1"
   #       run: |
-  #         cd src/analytics-service
+  #         cd src/activity-service
   #         make build
   #     - name: Deploy to ephermal environment
   #       shell: bash
@@ -273,7 +273,7 @@ jobs:
   #         DD_SITE: "datadoghq.eu"
   #         AWS_REGION: "eu-central-1"
   #       run: |
-  #         cd src/analytics-service
+  #         cd src/activity-service
   #         make sam
   #     - name: Integration test ephermal environment
   #       shell: bash
@@ -282,7 +282,7 @@ jobs:
   #         VERSION: ${{ env.sha_short }}
   #         AWS_REGION: "eu-central-1"
   #       run: |
-  #         cd src/analytics-service
+  #         cd src/activity-service
   #         make integration-test
   #     - name: Destroy
   #       shell: bash
@@ -294,7 +294,7 @@ jobs:
   #         DD_SITE: "datadoghq.eu"
   #         AWS_REGION: "eu-central-1"
   #       run: |
-  #         cd src/analytics-service
+  #         cd src/activity-service
   #         make sam-destroy
   #     - name: Deploy to dev
   #       if: github.event_name == 'push'
@@ -307,7 +307,7 @@ jobs:
   #         DD_SITE: "datadoghq.eu"
   #         AWS_REGION: "eu-central-1"
   #       run: |
-  #         cd src/analytics-service
+  #         cd src/activity-service
   #         make sam
   #     - name: Integration test dev
   #       if: github.event_name == 'push'
@@ -316,7 +316,7 @@ jobs:
   #         ENV: "dev"
   #         AWS_REGION: "eu-central-1"
   #       run: |
-  #         cd src/analytics-service
+  #         cd src/activity-service
   #         make integration-test
   #     - name: Destroy dev
   #       shell: bash
@@ -329,5 +329,5 @@ jobs:
   #         DD_SITE: "datadoghq.eu"
   #         AWS_REGION: "eu-central-1"
   #       run: |
-  #         cd src/analytics-service
+  #         cd src/activity-service
   #         make sam-destroy
