@@ -161,6 +161,8 @@ jobs:
         shell: bash
         run: |
           echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Install dependencies
+        run: make dev
       - name: Deploy ephermal environment
         shell: bash
         env:
