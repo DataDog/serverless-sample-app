@@ -9,7 +9,7 @@ from cdk.activity_service.utils import get_stack_name
 
 account = client('sts').get_caller_identity()['Account']
 region = session.Session().region_name
-environment = os.getenv('ENVIRONMENT', 'dev')
+environment = os.getenv('ENV', 'dev')
 app = App()
 my_stack = ServiceStack(
     scope=app,
