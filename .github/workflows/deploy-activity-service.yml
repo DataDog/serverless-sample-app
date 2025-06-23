@@ -145,14 +145,14 @@ jobs:
           python-version: "3.13"
           cache: "poetry" # NOTE: poetry must be installed before this step, or else cache doesn't work
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.0.3
         with:
           node-version: "20"
       - name: Install CDK
         run: |
           npm install -g aws-cdk
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@master
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
