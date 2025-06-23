@@ -62,7 +62,7 @@ class ApiConstruct(Construct):
             "product.productCreated.v1",
             "product.productUpdated.v1",
             "product.productDeleted.v1",
-            "users.userRegistered.v1",
+            "users.userCreated.v1",
             "orders.orderCreated.v1",
             "orders.orderConfirmed.v1",
             "orders.orderCompleted.v1",

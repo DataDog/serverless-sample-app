@@ -75,6 +75,7 @@ class SharedResources:
         rule = events.Rule(
             scope,
             f"{self.shared_props.service_name}-{rule_name}-{self.shared_props.environment}",
+            rule_name=f"{self.shared_props.service_name}-{rule_name}-{self.shared_props.environment}",
             event_bus=self.activity_event_bus,
             event_pattern=event_pattern,
         )
@@ -83,6 +84,8 @@ class SharedResources:
             shared_bus_rule = events.Rule(
                 scope,
                 f"{self.shared_props.service_name}-Shared{rule_name}-{self.shared_props.environment}",
+                rule_name=f"{self.shared_props.service_name}-{rule_name}-{self.shared_props.environment}",
+                description=f"{self.shared_props.service_name} subscribing to {detail_type} in the '{self.shared_props.environment}' environment",
                 event_bus=self.shared_event_bus,
                 event_pattern=event_pattern,
             )
