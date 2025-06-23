@@ -84,7 +84,7 @@ class ApiDriver:
 
         put_events_command = {
             "Source": f"{self.environment}.users",
-            "DetailType": "users.userRegistered.v1",
+            "DetailType": "users.userCreated.v1",
             "Detail": json.dumps(event),
             "EventBusName": self.event_bus_name
         }
