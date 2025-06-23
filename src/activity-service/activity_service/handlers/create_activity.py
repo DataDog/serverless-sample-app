@@ -76,47 +76,47 @@ def process_cloud_event(cloud_event_wrapper: dict, time: int, lambda_context: La
     event_data = cloud_event_wrapper.get("data")
     event_id = cloud_event_wrapper.get("id")
 
-    if type == PRODUCT_CREATED_EVENT_NAME:
+    if event_type == PRODUCT_CREATED_EVENT_NAME:
         handle_product_created(event_id, event_type, event_data, time)
-    elif type == PRODUCT_UPDATED_EVENT_NAME:
+    elif event_type == PRODUCT_UPDATED_EVENT_NAME:
         handle_product_updated(event_id, event_type, event_data, time)
-    elif type == PRODUCT_DELETED_EVENT_NAME:
+    elif event_type == PRODUCT_DELETED_EVENT_NAME:
         handle_product_deleted(event_id, event_type, event_data, time)
-    elif type == USER_REGISTERED_EVENT_NAME:
+    elif event_type == USER_REGISTERED_EVENT_NAME:
         handle_user_registered(event_id, event_type, event_data, time)
-    elif type == ORDER_CREATED_EVENT_NAME:
+    elif event_type == ORDER_CREATED_EVENT_NAME:
         handle_order_created(event_id, event_type, event_data, time)
-    elif type == ORDER_CONFIRMED_EVENT_NAME:
+    elif event_type == ORDER_CONFIRMED_EVENT_NAME:
         handle_order_confirmed(event_id, event_type, event_data, time)
-    elif type == ORDER_COMPLETED_EVENT_NAME:
+    elif event_type == ORDER_COMPLETED_EVENT_NAME:
         handle_order_completed(event_id, event_type, event_data, time)
-    elif type == STOCK_UPDATED:
+    elif event_type == STOCK_UPDATED:
         handle_stock_updated(event_id, event_type, event_data, time)
-    elif type == STOCK_RESERVED_EVENT_NAME:
+    elif event_type == STOCK_RESERVED_EVENT_NAME:
         handle_stock_reserved(event_id, event_type, event_data, time)
-    elif type == STOCK_RESERVATION_FAILED_EVENT_NAME:
+    elif event_type == STOCK_RESERVATION_FAILED_EVENT_NAME:
         handle_stock_reservation_failed(event_id, event_type, event_data, time)
     else:
         logger.error(f"Unhandled event_type: {event_type}")
 
+@tracer.wrap(resource=f"process {PRODUCT_CREATED_EVENT_NAME}")
 def handle_product_created(event_id: str, activity_type: str, detail: dict, time: int) -> None:
-    with tracer.trace(f"process {PRODUCT_CREATED_EVENT_NAME}") as span:
-        """Handle product creation events"""
-        _add_default_span_tags(span, event_id, PRODUCT_CREATED_EVENT_NAME)
+    """Handle product creation events"""
+    _add_default_span_tags(event_id, PRODUCT_CREATED_EVENT_NAME)
 
-        product_id = detail.get("productId")
+    product_id = detail.get("productId")
 
-        create_activity_request: CreateActivityRequest = CreateActivityRequest(
-            entityId=product_id,
-            entityType="product",
-            activityType=activity_type,
-            activityTime=time,
-        )
-        tracer.current_span().set_tag("product.id", product_id)
+    create_activity_request: CreateActivityRequest = CreateActivityRequest(
+        entityId=product_id,
+        entityType="product",
+        activityType=activity_type,
+        activityTime=time,
+    )
+    tracer.current_span().set_tag("product.id", product_id)
 
-        create_activity_handler(create_activity_request, dal_handler)
+    create_activity_handler(create_activity_request, dal_handler)
 
-        logger.info("Successfully processed product creation", product_id=detail.get("productId"))
+    logger.info("Successfully processed product creation", product_id=detail.get("productId"))
 
 
 @tracer.wrap(resource=f"process {PRODUCT_UPDATED_EVENT_NAME}")
@@ -133,9 +133,6 @@ def handle_product_updated(event_id: str, activity_type: str, detail: dict,time:
         activityTime=time,
     )
     tracer.current_span().set_tag("product.id", product_id)
-
-    # Database operations
-    dal_handler: DalHandler = get_dal_handler(table_name)
 
     create_activity_handler(create_activity_request, dal_handler)
 
@@ -156,9 +153,6 @@ def handle_product_deleted(event_id: str, activity_type: str, detail: dict,time:
         activityTime=time,
     )
     tracer.current_span().set_tag("product.id", product_id)
-
-    # Database operations
-    dal_handler: DalHandler = get_dal_handler(table_name)
 
     create_activity_handler(create_activity_request, dal_handler)
 
@@ -319,7 +313,9 @@ def handle_stock_reservation_failed(event_id: str, activity_type: str, detail: d
     tracer.current_span().set_tag("order.number", order_number)
     create_activity_handler(activity_request, dal_handler)
 
-def _add_default_span_tags(span: Span, event_id: str, event_type: str) -> None:
+def _add_default_span_tags(event_id: str, event_type: str) -> None:
+    """Add default span tags using the current span from tracer"""
+    span = tracer.current_span()
     span.set_tag("domain", "activity")
     span.set_tag("team", "activity")
     span.set_tag("messaging.message.eventType", "public")
