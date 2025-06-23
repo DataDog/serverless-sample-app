@@ -11,6 +11,13 @@ module.exports = {
     const randomIndex = Math.round(
       Math.random() * context.vars.products.length
     );
+
+    console.log(
+      `Setting order products with random index: ${randomIndex} from products length: ${context.vars.products.length}`
+    );
+
+    console.log(context.vars.products[randomIndex]);
+    
     context.vars.OrderProducts = [context.vars.products[randomIndex].productId];
 
     return done();
