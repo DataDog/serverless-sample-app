@@ -78,7 +78,7 @@ class ApiDriver:
         )
 
     def inject_user_registered_event(self, entity_id: str) -> None:
-        event = self._wrap_with_cloud_events("users", "users.userRegistered.v1", {
+        event = self._wrap_with_cloud_events("users", "users.userCreated.v1", {
             "userId": entity_id,
         })
 
