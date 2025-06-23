@@ -76,16 +76,3 @@ update-deps:
 	pre-commit autoupdate
 	npm i --package-lock-only
 
-openapi:
-	poetry run python generate_openapi.py
-
-compare-openapi:
-	poetry run python generate_openapi.py --out-destination '.' --out-filename 'openapi_latest.json'
-	@if cmp --silent $(CURRENT_OPENAPI) $(LATEST_OPENAPI); then \
-		rm $(LATEST_OPENAPI); \
-		echo "Swagger file is up to date"; \
-	else \
-		echo "Swagger files are not equal, did you run 'make pr' or 'make openapi'?"; \
-		rm $(LATEST_OPENAPI); \
-		exit 1; \
-	fi

@@ -95,7 +95,6 @@ make pr            # Complete pipeline: deps format pre-commit complex lint lint
 - `app.py` - CDK app entry point
 - `pyproject.toml` - Poetry configuration and tool settings
 - `Makefile` - Development workflow commands
-- `generate_openapi.py` - OpenAPI documentation generator
 
 **Observability Features:**
 - AWS Lambda Powertools integration
