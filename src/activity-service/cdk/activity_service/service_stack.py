@@ -30,6 +30,9 @@ class ServiceStack(Stack):
             capture_lambda_payload=True,
             site=dd_site,
             api_key=dd_api_key,
+            enable_cold_start_tracing=True,
+           source_code_integration=True,
+           enable_datadog_tracing=True,
         )
 
         self.shared_props = SharedProps("activity", "activity", SERVICE_NAME, environment, version, self.datadog_configuration)

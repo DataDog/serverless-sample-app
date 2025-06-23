@@ -26,6 +26,8 @@ from activity_service.models.public_events import (
     USER_REGISTERED_EVENT_NAME,
 )
 
+tracer.set_tags({"domain": "analytics", "team": "analytics"})
+
 # Initialize batch processor for SQS events
 processor = BatchProcessor(event_type=EventType.SQS)
 
@@ -39,9 +41,9 @@ def lambda_handler(event: SQSEvent, context: LambdaContext) -> PartialItemFailur
     Process SQS messages containing EventBridge events with partial batch response support.
     """
 
-    tracer.current_span.set_tag("messaging.batch.message_count", len(event.records))
-    tracer.current_span.set_tag("messaging.system", "sqs")
-    tracer.current_span.set_tag("messaging.operation.type", "receive")
+    # Set up observability tags for the current span
+    tracer.current_span().set_tag("messaging.system", "sqs")
+    tracer.current_span().set_tag("messaging.operation.type", "receive")
 
     return process_partial_response(
         event=event,
@@ -49,12 +51,6 @@ def lambda_handler(event: SQSEvent, context: LambdaContext) -> PartialItemFailur
         processor=processor,
         context=context,
     )
-
-
-def get_table_name() -> str:
-    """Get the table name from environment variables"""
-    return
-
 
 def process_message(record: SQSRecord, lambda_context: LambdaContext) -> None:
     """Process an individual SQS record containing an EventBridge event"""
@@ -103,21 +99,24 @@ def process_cloud_event(cloud_event_wrapper: dict, time: int, lambda_context: La
     else:
         logger.error(f"Unhandled event_type: {event_type}")
 
-@tracer.wrap(resource=f"process {PRODUCT_CREATED_EVENT_NAME}")
 def handle_product_created(event_id: str, activity_type: str, detail: dict, time: int) -> None:
-    """Handle product creation events"""
-    _add_default_span_tags(event_id, PRODUCT_CREATED_EVENT_NAME)
+    with tracer.trace(f"process {PRODUCT_CREATED_EVENT_NAME}") as span:
+        """Handle product creation events"""
+        _add_default_span_tags(span, event_id, PRODUCT_CREATED_EVENT_NAME)
 
-    create_activity_request: CreateActivityRequest = CreateActivityRequest(
-        entityId=detail.get("productId"),
-        entityType="product",
-        activityType=activity_type,
-        activityTime=time,
-    )
+        product_id = detail.get("productId")
 
-    create_activity_handler(create_activity_request, dal_handler)
+        create_activity_request: CreateActivityRequest = CreateActivityRequest(
+            entityId=product_id,
+            entityType="product",
+            activityType=activity_type,
+            activityTime=time,
+        )
+        tracer.current_span().set_tag("product.id", product_id)
 
-    logger.info("Successfully processed product creation", product_id=detail.get("productId"))
+        create_activity_handler(create_activity_request, dal_handler)
+
+        logger.info("Successfully processed product creation", product_id=detail.get("productId"))
 
 
 @tracer.wrap(resource=f"process {PRODUCT_UPDATED_EVENT_NAME}")
@@ -125,12 +124,15 @@ def handle_product_updated(event_id: str, activity_type: str, detail: dict,time:
     """Handle product update events"""
     _add_default_span_tags(event_id, PRODUCT_UPDATED_EVENT_NAME)
 
+    product_id = detail.get("productId")
+
     create_activity_request: CreateActivityRequest = CreateActivityRequest(
-        entityId=detail.get("productId"),
+        entityId=product_id,
         entityType="product",
         activityType=activity_type,
         activityTime=time,
     )
+    tracer.current_span().set_tag("product.id", product_id)
 
     # Database operations
     dal_handler: DalHandler = get_dal_handler(table_name)
@@ -145,12 +147,15 @@ def handle_product_deleted(event_id: str, activity_type: str, detail: dict,time:
     """Handle product update events"""
     _add_default_span_tags(event_id, PRODUCT_DELETED_EVENT_NAME)
 
+    product_id = detail.get("productId")
+
     create_activity_request: CreateActivityRequest = CreateActivityRequest(
-        entityId=detail.get("productId"),
+        entityId=product_id,
         entityType="product",
         activityType=activity_type,
         activityTime=time,
     )
+    tracer.current_span().set_tag("product.id", product_id)
 
     # Database operations
     dal_handler: DalHandler = get_dal_handler(table_name)
@@ -163,12 +168,15 @@ def handle_product_deleted(event_id: str, activity_type: str, detail: dict,time:
 def handle_user_registered(event_id: str, activity_type: str, detail: dict, time: int) -> None:
     _add_default_span_tags(event_id, USER_REGISTERED_EVENT_NAME)
 
+    user_id = detail.get("userId")
+
     create_activity_request: CreateActivityRequest = CreateActivityRequest(
-        entityId=detail.get("userId"),
+        entityId=user_id,
         entityType="user",
         activityType=activity_type,
         activityTime=time,
     )
+    tracer.current_span().set_tag("user.id", user_id)
 
     create_activity_handler(create_activity_request, dal_handler)
 
@@ -177,12 +185,15 @@ def handle_user_registered(event_id: str, activity_type: str, detail: dict, time
 def handle_order_created(event_id: str, activity_type: str, detail: dict,time: int) -> None:
     _add_default_span_tags(event_id, ORDER_CREATED_EVENT_NAME)
 
+    order_number = detail.get("orderNumber")
+
     create_order_activity_request: CreateActivityRequest = CreateActivityRequest(
-        entityId=detail.get("orderNumber"),
+        entityId=order_number,
         entityType="order",
         activityType=activity_type,
         activityTime=time,
     )
+    tracer.current_span().set_tag("order.number", order_number)
     create_activity_handler(create_order_activity_request, dal_handler)
 
     user_id = detail.get("userId")
@@ -190,6 +201,8 @@ def handle_order_created(event_id: str, activity_type: str, detail: dict,time: i
     if not user_id:
         logger.warning("User ID not found in order creation event")
         return
+
+    tracer.current_span().set_tag("user.id", user_id)
 
     create_order_user_activity_request: CreateActivityRequest = CreateActivityRequest(
         entityId=detail.get("userId"),
@@ -204,12 +217,15 @@ def handle_order_created(event_id: str, activity_type: str, detail: dict,time: i
 def handle_order_confirmed(event_id: str, activity_type: str, detail: dict,time: int) -> None:
     _add_default_span_tags(event_id, ORDER_CONFIRMED_EVENT_NAME)
 
+    order_number = detail.get("orderNumber")
+
     confirm_order_activity_request: CreateActivityRequest = CreateActivityRequest(
-        entityId=detail.get("orderNumber"),
+        entityId=order_number,
         entityType="order",
         activityType=activity_type,
         activityTime=time,
     )
+    tracer.current_span().set_tag("order.number", order_number)
     create_activity_handler(confirm_order_activity_request, dal_handler)
 
     user_id = detail.get("userId")
@@ -217,6 +233,8 @@ def handle_order_confirmed(event_id: str, activity_type: str, detail: dict,time:
     if not user_id:
         logger.warning("User ID not found in order creation event")
         return
+
+    tracer.current_span().set_tag("user.id", user_id)
 
     confirm_order_user_activity_request: CreateActivityRequest = CreateActivityRequest(
         entityId=detail.get("userId"),
@@ -230,12 +248,15 @@ def handle_order_confirmed(event_id: str, activity_type: str, detail: dict,time:
 def handle_order_completed(event_id: str, activity_type: str, detail: dict,time: int) -> None:
     _add_default_span_tags(event_id, ORDER_COMPLETED_EVENT_NAME)
 
+    order_number = detail.get("orderNumber")
+
     order_activity_request: CreateActivityRequest = CreateActivityRequest(
-        entityId=detail.get("orderNumber"),
+        entityId=order_number,
         entityType="order",
         activityType=activity_type,
         activityTime=time,
     )
+    tracer.current_span().set_tag("order.number", order_number)
     create_activity_handler(order_activity_request, dal_handler)
 
     user_id = detail.get("userId")
@@ -243,6 +264,8 @@ def handle_order_completed(event_id: str, activity_type: str, detail: dict,time:
     if not user_id:
         logger.warning("User ID not found in order creation event")
         return
+
+    tracer.current_span().set_tag("user.id", user_id)
 
     user_activity_request: CreateActivityRequest = CreateActivityRequest(
         entityId=detail.get("userId"),
@@ -256,47 +279,55 @@ def handle_order_completed(event_id: str, activity_type: str, detail: dict,time:
 def handle_stock_updated(event_id: str, activity_type: str, detail: dict,time: int) -> None:
     _add_default_span_tags(event_id, STOCK_UPDATED)
 
+    product_id = detail.get("productId")
     product_activity_request: CreateActivityRequest = CreateActivityRequest(
-        entityId=detail.get("productId"),
+        entityId=product_id,
         entityType="product",
         activityType=activity_type,
         activityTime=time,
     )
+    tracer.current_span().set_tag("product.id", product_id)
     create_activity_handler(product_activity_request, dal_handler)
 
 @tracer.wrap(resource=f"process {STOCK_RESERVED_EVENT_NAME}")
 def handle_stock_reserved(event_id: str, activity_type: str, detail: dict,time: int) -> None:
     _add_default_span_tags(event_id, STOCK_RESERVED_EVENT_NAME)
 
-    product_activity_request: CreateActivityRequest = CreateActivityRequest(
-        entityId=detail.get("orderNumber"),
+    order_number = detail.get("orderNumber")
+
+    activity_request: CreateActivityRequest = CreateActivityRequest(
+        entityId=order_number,
         entityType="order",
         activityType=activity_type,
         activityTime=time,
     )
-    create_activity_handler(product_activity_request, dal_handler)
+    tracer.current_span().set_tag("order.number", order_number)
+    create_activity_handler(activity_request, dal_handler)
 
 @tracer.wrap(resource=f"process {STOCK_RESERVATION_FAILED_EVENT_NAME}")
 def handle_stock_reservation_failed(event_id: str, activity_type: str, detail: dict,time: int) -> None:
     _add_default_span_tags(event_id, STOCK_RESERVATION_FAILED_EVENT_NAME)
 
-    product_activity_request: CreateActivityRequest = CreateActivityRequest(
-        entityId=detail.get("orderNumber"),
+    order_number = detail.get("orderNumber")
+
+    activity_request: CreateActivityRequest = CreateActivityRequest(
+        entityId=order_number,
         entityType="order",
         activityType=activity_type,
         activityTime=time,
     )
-    create_activity_handler(product_activity_request, dal_handler)
+    tracer.current_span().set_tag("order.number", order_number)
+    create_activity_handler(activity_request, dal_handler)
 
-def _add_default_span_tags(event_id: str, event_type: str) -> None:
-    tracer.current_span.set_tag("domain", "activity")
-    tracer.current_span.set_tag("team", "activity")
-    tracer.current_span.set_tag("messaging.message.eventType", "public")
-    tracer.current_span.set_tag("messaging.message.type", event_type)
-    tracer.current_span.set_tag("messaging.message.id", event_id)
-    tracer.current_span.set_tag("messaging.operation.type", "process")
-    tracer.current_span.set_tag("messaging.operation.name", "process")
-    tracer.current_span.set_tag("messaging.batch.message_count", 1)
+def _add_default_span_tags(span: Span, event_id: str, event_type: str) -> None:
+    span.set_tag("domain", "activity")
+    span.set_tag("team", "activity")
+    span.set_tag("messaging.message.eventType", "public")
+    span.set_tag("messaging.message.type", event_type)
+    span.set_tag("messaging.message.id", event_id)
+    span.set_tag("messaging.operation.type", "process")
+    span.set_tag("messaging.operation.name", "process")
+    span.set_tag("messaging.batch.message_count", 1)
 
 def convert_date_time_string_to_epoch(date_time_string: str) -> int:
     """
