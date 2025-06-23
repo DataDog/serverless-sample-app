@@ -30,6 +30,10 @@ pushd src/loyalty-point-service
 cdk destroy --all --force &
 popd
 
+pushd src/activity-service
+cdk destroy --all --force &
+popd
+
 wait
 
 pushd src/shared-infra

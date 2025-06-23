@@ -40,6 +40,12 @@ npm i
 cdk deploy --require-approval never &>../../deployment-logs/loyalty-point-service.log &
 popd
 
+pushd src/activity-service
+npm i
+./package.sh
+cdk deploy --require-approval=never &>../../deployment-logs/activity-service.log &
+popd
+
 # Print deployment status
 echo "Deployment complete. Check logs in deployment-logs directory"
 ls -l deployment-logs/
