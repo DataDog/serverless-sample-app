@@ -6,33 +6,48 @@ using Microsoft.AspNetCore.Authorization;
 using Orders.Api.Models;
 using Orders.Core;
 using Orders.Core.Adapters;
+using FluentValidation;
 
 namespace Orders.Api.GetOrderDetails;
 
 public class GetOrderDetailsHandler
 {
     [Authorize]
-    public static async Task<IResult> Handle(HttpContext context, string orderId, IOrders orders, ILogger<GetOrderDetailsHandler> logger)
+    public static async Task<IResult> Handle(
+        HttpContext context, 
+        string orderId, 
+        IOrders orders, 
+        IValidator<GetOrderRequest> validator,
+        ILogger<GetOrderDetailsHandler> logger)
     {
         var correlationId = context.Items["CorrelationId"]?.ToString() ?? Guid.NewGuid().ToString();
         
         try
         {
-            // Validate input parameters
-            if (string.IsNullOrWhiteSpace(orderId))
+            var user = context.User.Claims.ExtractUserId();
+            
+            // Create request object for validation
+            var request = new GetOrderRequest
             {
+                OrderId = orderId,
+                UserId = user.UserId
+            };
+            
+            // Validate using FluentValidation
+            var validationResult = await validator.ValidateAsync(request);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors
+                    .GroupBy(e => e.PropertyName)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+
                 return Results.BadRequest(new ValidationErrorResponse(
                     ErrorCodes.ValidationError,
-                    new Dictionary<string, string[]>
-                    {
-                        ["OrderId"] = new[] { "Order ID is required" }
-                    },
+                    errors,
                     correlationId));
             }
 
             orderId.AddToTelemetry("order.id");
-            
-            var user = context.User.Claims.ExtractUserId();
             var existingOrder = await orders.WithOrderId(user.UserId, orderId);
             
             if (existingOrder is null)

@@ -28,11 +28,23 @@ public class CreateOrderRequestValidator : AbstractValidator<CreateOrderRequest>
     public CreateOrderRequestValidator()
     {
         RuleFor(x => x.Products)
-            .NotEmpty().WithMessage("Products cannot be empty")
-            .Must(p => p.Length <= 100).WithMessage("Too many products in a single order");
+            .NotNull().WithMessage("Products array is required")
+            .NotEmpty().WithMessage("At least one product must be specified")
+            .Must(p => p.Length <= 50).WithMessage("Cannot order more than 50 products at once")
+            .Must(p => p.Length >= 1).WithMessage("At least one product must be specified")
+            .Must(HaveUniqueProducts).WithMessage("Duplicate products are not allowed");
 
         RuleForEach(x => x.Products)
             .NotEmpty().WithMessage("Product ID cannot be empty")
-            .Length(1, 50).WithMessage("Product ID must be between 1 and 50 characters");
+            .Length(1, 50).WithMessage("Product ID must be between 1 and 50 characters")
+            .Matches(@"^[a-zA-Z0-9\-_]+$").WithMessage("Product ID contains invalid characters");
+    }
+
+    /// <summary>
+    /// Validates that all products in the order are unique
+    /// </summary>
+    private static bool HaveUniqueProducts(string[] products)
+    {
+        return products.Length == products.Distinct().Count();
     }
 } 

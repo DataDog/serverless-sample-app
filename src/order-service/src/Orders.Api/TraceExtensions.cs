@@ -3,8 +3,7 @@
 // Copyright 2025 Datadog, Inc.
 
 using Datadog.Trace;
-using Orders.Api.CompleteOrder;
-using Orders.Api.CreateOrder;
+using Orders.Api.Models;
 
 namespace Orders.Api;
 

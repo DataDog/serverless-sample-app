@@ -3,10 +3,10 @@
 // Copyright 2025 Datadog, Inc.
 
 using Microsoft.AspNetCore.Authorization;
-using Orders.Api.CreateOrder;
 using Orders.Api.Models;
 using Orders.Core;
 using Orders.Core.Domain.Exceptions;
+using FluentValidation;
 
 namespace Orders.Api.CompleteOrder;
 
@@ -18,6 +18,7 @@ public class CompleteOrderHandler
         CompleteOrderRequest request,
         IOrders orders,
         IEventGateway eventGateway,
+        IValidator<CompleteOrderRequest> validator,
         ILogger<CompleteOrderHandler> logger)
     {
         var correlationId = context.Items["CorrelationId"]?.ToString() ?? Guid.NewGuid().ToString();
@@ -25,6 +26,20 @@ public class CompleteOrderHandler
         try
         {
             request.AddToTelemetry();
+            
+            // Validate request using FluentValidation
+            var validationResult = await validator.ValidateAsync(request);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors
+                    .GroupBy(e => e.PropertyName)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+
+                return Results.BadRequest(new ValidationErrorResponse(
+                    ErrorCodes.ValidationError,
+                    errors,
+                    correlationId));
+            }
             
             var user = context.User.Claims.ExtractUserId();
 
@@ -43,29 +58,6 @@ public class CompleteOrderHandler
                         ["correlationId"] = correlationId,
                         ["errorCode"] = ErrorCodes.Forbidden
                     });
-            }
-
-            // Validate request parameters
-            if (string.IsNullOrWhiteSpace(request.OrderId))
-            {
-                return Results.BadRequest(new ValidationErrorResponse(
-                    ErrorCodes.ValidationError,
-                    new Dictionary<string, string[]>
-                    {
-                        ["OrderId"] = new[] { "Order ID is required" }
-                    },
-                    correlationId));
-            }
-
-            if (string.IsNullOrWhiteSpace(request.UserId))
-            {
-                return Results.BadRequest(new ValidationErrorResponse(
-                    ErrorCodes.ValidationError,
-                    new Dictionary<string, string[]>
-                    {
-                        ["UserId"] = new[] { "User ID is required" }
-                    },
-                    correlationId));
             }
             
             var existingOrder = await orders.WithOrderId(request.UserId, request.OrderId);

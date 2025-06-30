@@ -3,9 +3,11 @@
 // Copyright 2025 Datadog, Inc.
 
 using Microsoft.AspNetCore.Authorization;
-using Orders.Api.CompleteOrder;
-using Orders.Api.CreateOrder;
+using Microsoft.AspNetCore.Mvc;
+using Orders.Api.Models;
 using Orders.Core;
+using Orders.Core.Common;
+using FluentValidation;
 
 namespace Orders.Api.ConfirmedOrders;
 
@@ -16,29 +18,93 @@ public class ConfirmedOrdersHandler
         HttpContext context,
         IOrders orders,
         IEventGateway eventGateway,
-        ILogger<CreateOrderHandler> logger)
+        IValidator<PaginationQueryRequest> validator,
+        ILogger<ConfirmedOrdersHandler> logger,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? pageToken = null,
+        CancellationToken cancellationToken = default)
     {
+        var correlationId = context.Items["CorrelationId"]?.ToString() ?? Guid.NewGuid().ToString();
+        
         try
         {
-            var user = context.User.Claims.ExtractUserId();
-
-            if (user.UserType != "ADMIN")
+            // Create request object for validation
+            var paginationRequest = new PaginationQueryRequest
             {
-                return Results.Unauthorized();
+                PageSize = pageSize,
+                PageToken = pageToken
+            };
+            
+            // Validate using FluentValidation
+            var validationResult = await validator.ValidateAsync(paginationRequest, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors
+                    .GroupBy(e => e.PropertyName)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+
+                return Results.BadRequest(new ValidationErrorResponse(
+                    ErrorCodes.ValidationError,
+                    errors,
+                    correlationId));
             }
 
-            var confirmedOrders = await orders.ConfirmedOrders();
+            var user = context.User.Claims.ExtractUserId();
+            if (user?.UserType != "ADMIN")
+            {
+                logger.LogWarning("Unauthorized access attempt to confirmed orders by user {UserId} with type {UserType}", 
+                    user?.UserId, user?.UserType);
+                
+                return Results.Problem(
+                    detail: "Only administrators can access confirmed orders",
+                    title: "Forbidden",
+                    statusCode: 403,
+                    extensions: new Dictionary<string, object?>
+                    {
+                        ["correlationId"] = correlationId,
+                        ["errorCode"] = ErrorCodes.Forbidden
+                    });
+            }
 
-            return Results.Ok(confirmedOrders.Select(order => new OrderDTO(order)));
+            var pagination = new PaginationRequest(pageSize, pageToken);
+            var pagedResult = await orders.ConfirmedOrders(pagination, cancellationToken);
+
+            var response = new 
+            {
+                Items = pagedResult.Items.Select(order => new OrderDTO(order)),
+                PageSize = pagedResult.PageSize,
+                HasMorePages = pagedResult.HasMorePages,
+                NextPageToken = pagedResult.NextPageToken
+            };
+
+            logger.LogDebug("Retrieved {ItemCount} confirmed orders", pagedResult.ItemCount);
+
+            return Results.Ok(response);
         }
-        catch (OrderNotConfirmedException)
+        catch (ArgumentException ex)
         {
-            return Results.BadRequest("");
+            logger.LogWarning(ex, "Invalid argument provided for confirmed orders retrieval");
+            
+            return Results.BadRequest(new ErrorResponse(
+                ErrorCodes.ValidationError,
+                "Invalid request parameters",
+                ex.Message,
+                null,
+                correlationId));
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            logger.LogError(e, "Error retrieving order");
-            return Results.InternalServerError();
+            logger.LogError(ex, "Unexpected error retrieving confirmed orders");
+            
+            return Results.Problem(
+                detail: "An unexpected error occurred while retrieving confirmed orders",
+                title: "Internal Server Error",
+                statusCode: 500,
+                extensions: new Dictionary<string, object?>
+                {
+                    ["correlationId"] = correlationId,
+                    ["errorCode"] = ErrorCodes.InternalError
+                });
         }
     }
 }

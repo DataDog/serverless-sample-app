@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Authorization;
 using Orders.Api.Models;
 using Orders.Core;
 using Orders.Core.Domain.Exceptions;
+using FluentValidation;
+using Orders.Api.Logging;
+using System.Diagnostics;
 
 namespace Orders.Api.CreateOrder;
 
@@ -17,62 +20,90 @@ public class CreateOrderHandler
         CreateOrderRequest request,
         IOrders orders,
         IOrderWorkflow orderWorkflow,
+        IValidator<CreateOrderRequest> validator,
         ILogger<CreateOrderHandler> logger)
     {
         var correlationId = context.Items["CorrelationId"]?.ToString() ?? Guid.NewGuid().ToString();
+        var stopwatch = Stopwatch.StartNew();
+        
+        using var performanceScope = logger.BeginPerformanceScope("CreateOrder", correlationId);
         
         try
         {
             request.AddToTelemetry();
             
             var userClaims = context.User.Claims.ExtractUserId();
-
-            // Validate request
-            if (request.Products == null || !request.Products.Any())
+            var userType = userClaims?.UserType ?? "Unknown";
+            
+            // Log operation start with safe context
+            logger.LogOrderCreationStarted(request.Products.Length, userType);
+            
+            // Validate request using FluentValidation
+            var validationStartTime = Stopwatch.GetTimestamp();
+            var validationResult = await validator.ValidateAsync(request);
+            var validationDuration = Stopwatch.GetElapsedTime(validationStartTime);
+            
+            if (!validationResult.IsValid)
             {
+                var errors = validationResult.Errors
+                    .GroupBy(e => e.PropertyName)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+
+                logger.LogOrderCreationValidationFailed(validationResult.Errors.Count);
+                logger.LogValidationFailed(validationResult.Errors.Count, "CreateOrder");
+
                 return Results.BadRequest(new ValidationErrorResponse(
                     ErrorCodes.ValidationError,
-                    new Dictionary<string, string[]>
-                    {
-                        ["Products"] = new[] { "At least one product must be specified" }
-                    },
+                    errors,
                     correlationId));
             }
-
-            if (request.Products.Count() > 50)
-            {
-                return Results.BadRequest(new ValidationErrorResponse(
-                    ErrorCodes.ValidationError,
-                    new Dictionary<string, string[]>
-                    {
-                        ["Products"] = new[] { "Cannot order more than 50 products at once" }
-                    },
-                    correlationId));
-            }
+            
+            logger.LogValidationPassed("CreateOrder", (long)validationDuration.TotalMilliseconds);
 
             Order? newOrder = null;
+            string orderType;
 
             if (userClaims.UserType == "PREMIUM")
             {
                 newOrder = Order.CreatePriorityOrder(userClaims.UserId, request.Products);
+                orderType = "Priority";
             }
             else
             {
                 newOrder = Order.CreateStandardOrder(userClaims.UserId, request.Products);
+                orderType = "Standard";
             }
+            
+            // Log workflow start
+            logger.LogWorkflowStarted("OrderCreation", orderType);
             
             await orders.Store(newOrder);
             await orderWorkflow.StartWorkflowFor(newOrder);
             
-            logger.LogInformation("Order {OrderId} created successfully for user {UserId}", 
-                newOrder.OrderNumber, userClaims.UserId);
+            stopwatch.Stop();
+            
+            // Log successful completion with structured context
+            logger.LogOrderCreated(orderType, stopwatch.ElapsedMilliseconds);
+            
+            // Log business metrics (NO PII)
+            var businessContext = new BusinessMetricsContext
+            {
+                CorrelationId = correlationId,
+                EventType = "OrderCreated",
+                OrderType = orderType,
+                UserTier = userType,
+                ProductCount = request.Products.Length,
+                Timestamp = DateTime.UtcNow,
+                ProcessingStage = "Created"
+            };
+            logger.LogBusinessMetrics("Order creation completed", businessContext);
             
             return Results.Created($"/api/orders/{newOrder.OrderNumber}", new OrderDTO(newOrder));
         }
         catch (OrderValidationException ex)
         {
-            logger.LogWarning(ex, "Order validation failed for user {UserId}", 
-                context.User.Claims.ExtractUserId().UserId);
+            var userType = context.User.Claims.ExtractUserId()?.UserType ?? "Unknown";
+            logger.LogOrderCreationValidationFailed(ex.ValidationErrors.Count);
             
             return Results.BadRequest(new ValidationErrorResponse(
                 ErrorCodes.ValidationError,
@@ -81,7 +112,8 @@ public class CreateOrderHandler
         }
         catch (InvalidOrderStateException ex)
         {
-            logger.LogWarning(ex, "Invalid order state transition attempted");
+            var userType = context.User.Claims.ExtractUserId()?.UserType ?? "Unknown";
+            logger.LogOrderCreationFailed(userType, ex);
             
             return Results.Conflict(new ErrorResponse(
                 ErrorCodes.InvalidState,
@@ -92,7 +124,9 @@ public class CreateOrderHandler
         }
         catch (WorkflowException ex)
         {
-            logger.LogError(ex, "Workflow failed for order {OrderId}", ex.OrderId.Value);
+            var userType = context.User.Claims.ExtractUserId()?.UserType ?? "Unknown";
+            logger.LogWorkflowFailed("OrderCreation", "Unknown", ex);
+            logger.LogOrderCreationFailed(userType, ex);
             
             return Results.Problem(
                 detail: "Order workflow could not be started",
@@ -106,7 +140,8 @@ public class CreateOrderHandler
         }
         catch (ArgumentException ex)
         {
-            logger.LogWarning(ex, "Invalid argument provided");
+            var userType = context.User.Claims.ExtractUserId()?.UserType ?? "Unknown";
+            logger.LogValidationFailed(1, "CreateOrder");
             
             return Results.BadRequest(new ErrorResponse(
                 ErrorCodes.ValidationError,
@@ -117,8 +152,8 @@ public class CreateOrderHandler
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error creating order for user {UserId}", 
-                context.User.Claims.ExtractUserId().UserId);
+            var userType = context.User.Claims.ExtractUserId()?.UserType ?? "Unknown";
+            logger.LogOrderCreationFailed(userType, ex);
             
             return Results.Problem(
                 detail: "An unexpected error occurred while creating the order",
