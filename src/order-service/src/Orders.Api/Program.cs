@@ -95,6 +95,9 @@ try
 
     var app = builder.Build();
 
+    // Add correlation ID middleware first
+    app.UseCorrelationId();
+    
     app.UseRateLimiter();
     
     // Add global exception handling
