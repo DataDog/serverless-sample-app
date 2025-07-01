@@ -76,6 +76,7 @@ jobs:
           make integration-test
       - name: Destroy ephermal environment
         shell: bash
+        if: always()
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "tf-${{ env.sha_short }}"
@@ -114,6 +115,7 @@ jobs:
           make integration-test
       - name: Destroy dev
         shell: bash
+        if: always()
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
