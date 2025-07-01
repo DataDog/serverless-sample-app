@@ -73,6 +73,7 @@ jobs:
           ENV: ${{ env.sha_short }}
           VERSION: ${{ env.sha_short }}
           AWS_REGION: "eu-west-2"
+          AWS_DEFAULT_REGION: "eu-west-2"
         run: |
           cd src/activity-service
           make integration-test
@@ -114,6 +115,7 @@ jobs:
         env:
           ENV: "dev"
           AWS_REGION: "eu-west-2"
+          AWS_DEFAULT_REGION: "eu-west-2"
         run: |
           cd src/activity-service
           make integration-test
@@ -183,6 +185,7 @@ jobs:
           ENV: ${{ env.sha_short }}
           VERSION: ${{ env.sha_short }}
           AWS_REGION: "eu-west-1"
+          AWS_DEFAULT_REGION: "eu-west-1"
         run: |
           cd src/activity-service
           make integration-test
@@ -216,6 +219,7 @@ jobs:
         env:
           ENV: "dev"
           AWS_REGION: "eu-west-1"
+          AWS_DEFAULT_REGION: "eu-west-1"
         run: |
           cd src/activity-service
           make integration-test
@@ -285,6 +289,7 @@ jobs:
           ENV: ${{ env.sha_short }}
           VERSION: ${{ env.sha_short }}
           AWS_REGION: "eu-central-1"
+          AWS_DEFAULT_REGION: "eu-central-1"
         run: |
           cd src/activity-service
           make integration-test
@@ -319,6 +324,7 @@ jobs:
         env:
           ENV: "dev"
           AWS_REGION: "eu-central-1"
+          AWS_DEFAULT_REGION: "eu-central-1"
         run: |
           cd src/activity-service
           make integration-test
