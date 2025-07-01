@@ -134,7 +134,7 @@ Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "ActivityService-ServiceRole-${Env}"
+      RoleName: !Sub "SAM-ActivityService-ServiceRole-${Env}"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
