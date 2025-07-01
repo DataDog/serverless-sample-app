@@ -48,7 +48,7 @@ module "create_product_lambda" {
     "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "PRODUCT_CREATED_TOPIC_ARN" : aws_sns_topic.product_created.arn
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
-    "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.name}.on.aws"
+    "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -82,7 +82,7 @@ module "list_products_lambda" {
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "PRODUCT_CREATED_TOPIC_ARN" : aws_sns_topic.product_created.arn
-    "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.name}.on.aws"
+    "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -116,7 +116,7 @@ module "get_product_lambda" {
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.product_api.name
-    "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.name}.on.aws"
+    "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -155,7 +155,7 @@ module "update_product_lambda" {
     "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "PRODUCT_UPDATED_TOPIC_ARN" : aws_sns_topic.product_updated.arn
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
-    "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.name}.on.aws"
+    "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -196,7 +196,7 @@ module "delete_product_lambda" {
     "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "PRODUCT_DELETED_TOPIC_ARN" : aws_sns_topic.product_deleted.arn
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
-    "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.name}.on.aws"
+    "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
