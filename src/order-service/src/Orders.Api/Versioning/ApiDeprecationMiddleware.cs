@@ -31,7 +31,7 @@ public class ApiDeprecationMiddleware
             var apiVersion = context.GetRequestedApiVersion();
             var userClaims = context.User?.Claims?.ExtractUserId();
             var userType = userClaims?.UserType ?? "ANONYMOUS";
-            var endpoint = context.Request.Path.ToString();
+            var endpoint = context.Request.Path.ToString().Replace("\r", "").Replace("\n", "");
 
             if (apiVersion != null)
             {
@@ -45,7 +45,7 @@ public class ApiDeprecationMiddleware
                     context.Response.Headers["X-API-Latest-Version"] = "1.0";
                     
                     // Log API version usage for analytics (NO PII)
-                    _logger.LogInformation("API version {ApiVersion} accessed by user type {UserType} at endpoint {Endpoint}", 
+                    _logger.LogInformation("API version {ApiVersion} accessed by user type {UserType} at sanitized endpoint {Endpoint}", 
                         apiVersion.ToString(), userType, endpoint);
                 }
                 
@@ -72,7 +72,7 @@ public class ApiDeprecationMiddleware
                 context.Response.Headers["X-API-Version"] = "1.0";
                 context.Response.Headers["X-API-Default-Version"] = "true";
                 
-                _logger.LogInformation("Default API version used by user type {UserType} at endpoint {Endpoint}", 
+                _logger.LogInformation("Default API version used by user type {UserType} at sanitized endpoint {Endpoint}", 
                     userType, endpoint);
             }
 
