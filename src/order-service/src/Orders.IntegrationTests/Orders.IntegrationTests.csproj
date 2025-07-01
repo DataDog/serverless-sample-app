@@ -21,7 +21,7 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="3.7.404.15" />
+        <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="4.0.2" />
     </ItemGroup>
 
     <ItemGroup>

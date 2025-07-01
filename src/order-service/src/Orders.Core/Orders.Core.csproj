@@ -11,7 +11,7 @@
     <ItemGroup>
         <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.406.22" />
         <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.400.134" />
-        <PackageReference Include="AWSSDK.EventBridge" Version="3.7.403.5" />
+        <PackageReference Include="AWSSDK.EventBridge" Version="4.0.2" />
         <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="3.7.404.15" />
         <PackageReference Include="AWSSDK.StepFunctions" Version="3.7.403.77" />
         <PackageReference Include="CloudNative.CloudEvents" Version="2.8.0" />
