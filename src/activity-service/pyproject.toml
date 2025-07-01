@@ -26,6 +26,7 @@ cachetools = "*"
 boto3 = "^1.38.41"
 aws-lambda-env-modeler = "*"
 ddtrace = "3.9.3"
+dateparser = "1.2.2"
 
 [tool.poetry.group.dev.dependencies]
 # CDK

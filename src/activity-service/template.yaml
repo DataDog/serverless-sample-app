@@ -1,0 +1,604 @@
+#
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2024 Datadog, Inc.
+#
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::Serverless-2016-10-31
+  - Name: DatadogServerless
+    Parameters:
+      stackName: !Ref "AWS::StackName"
+      apiKey: !Ref DDApiKey
+      pythonLayerVersion: "109"
+      extensionLayerVersion: "81"
+      service: !Ref ServiceName
+      env: !Ref Env
+      version: !Ref CommitHash
+      site: !Ref DDSite
+      captureLambdaPayload: true
+Description: Activity Service - Serverless activity tracking service built with AWS SAM
+
+Conditions:
+  IsNonProdEnvironment: !Not [!Equals [!Ref Env, prod]]
+  IsIntegratedEnvironment: !Or
+    - !Equals ["dev", !Ref Env]
+    - !Equals ["prod", !Ref Env]
+  IsNotIntegratedEnvironment: !And
+    - !Not [!Equals [!Ref Env, prod]]
+    - !Not [!Equals [!Ref Env, dev]]
+
+Parameters:
+  ServiceName:
+    Type: String
+    Default: OrdersService
+  Env:
+    Type: String
+    Default: dev
+  CommitHash:
+    Type: String
+    Default: latest
+  DDSite:
+    Type: String
+  DDApiKey:
+    Type: String
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 29
+    MemorySize: 512
+    Environment:
+      Variables:
+        POWERTOOLS_SERVICE_NAME: ActivityService
+        LOG_LEVEL: INFO
+        DD_CAPTURE_LAMBDA_PAYLOAD: true
+        DD_COLD_START_TRACING: true
+        DD_TRACE_ENABLED: true
+
+Resources:
+  # DynamoDB Tables
+  ActivitiesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "Activities-${Env}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      DeletionProtectionEnabled: false
+
+  IdempotencyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "ActivitiesIdempotency-${Env}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expiration
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      DeletionProtectionEnabled: false
+
+  # SQS Queues
+  ActivityDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "ActivityService-activity-dlq-${Env}"
+      MessageRetentionPeriod: 1209600  # 14 days
+
+  ActivityQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "ActivityService-activity-queue-${Env}"
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ActivityDeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  # EventBridge Custom Bus
+  ActivityEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub "ActivityService-events-${Env}"
+
+  # Common Lambda Layer
+  CommonLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub "ActivityService-common-${Env}"
+      Description: "Common dependencies layer for Activity Service"
+      ContentUri: .build/common_layer/
+      CompatibleRuntimes:
+        - python3.13
+    Metadata:
+      BuildMethod: python3.13
+
+  # Lambda IAM Role
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "ActivityService-ServiceRole-${Env}"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                Resource: !GetAtt ActivitiesTable.Arn
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                Resource: !GetAtt IdempotencyTable.Arn
+        - PolicyName: AppConfigAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - appconfig:GetLatestConfiguration
+                  - appconfig:StartConfigurationSession
+                Resource: '*'
+        - PolicyName: AllowSQSAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ChangeMessageVisibility
+                  - sqs:ChangeMessageVisibilityBatch
+                  - sqs:DeleteMessage
+                  - sqs:DeleteMessageBatch
+                  - sqs:GetQueueAttributes
+                  - sqs:ReceiveMessage
+                Resource: !GetAtt ActivityQueue.Arn
+
+  # Lambda Functions
+  GetActivityFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "ActivityService-GetActivity-${Env}"
+      CodeUri: .build/lambdas/
+      Handler: activity_service.handlers.handle_get_activity.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Layers:
+        - !Ref CommonLayer
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ActivitiesTable
+          IDEMPOTENCY_TABLE_NAME: !Ref IdempotencyTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ActivityApi
+            Path: /api/activity/{entity_type}/{entity_id}
+            Method: GET
+
+  HandleEventsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "ActivityService-HandleEvents-${Env}"
+      CodeUri: .build/lambdas/
+      Handler: activity_service.handlers.create_activity.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Layers:
+        - !Ref CommonLayer
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ActivitiesTable
+          IDEMPOTENCY_TABLE_NAME: !Ref IdempotencyTable
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ActivityQueue.Arn
+            BatchSize: 10
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+
+  # API Gateway
+  ActivityApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "Activity Service Rest API - ${Env}"
+      StageName: Prod
+      Description: "This service handles /api/activity requests"
+
+  # EventBridge Rules for Event Subscriptions
+  ProductCreatedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "activity_product_productCreated_v1-${Env}"
+      EventBusName: !Ref ActivityEventBus
+      EventPattern:
+        detail-type:
+          - "product.productCreated.v1"
+      Targets:
+        - Arn: !GetAtt ActivityQueue.Arn
+          Id: "ActivityQueueTarget"
+
+  ProductUpdatedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "activity_product_productUpdated_v1-${Env}"
+      EventBusName: !Ref ActivityEventBus
+      EventPattern:
+        detail-type:
+          - "product.productUpdated.v1"
+      Targets:
+        - Arn: !GetAtt ActivityQueue.Arn
+          Id: "ActivityQueueTarget"
+
+  ProductDeletedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "activity_product_productDeleted_v1-${Env}"
+      EventBusName: !Ref ActivityEventBus
+      EventPattern:
+        detail-type:
+          - "product.productDeleted.v1"
+      Targets:
+        - Arn: !GetAtt ActivityQueue.Arn
+          Id: "ActivityQueueTarget"
+
+  UserCreatedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "activity_users_userCreated_v1-${Env}"
+      EventBusName: !Ref ActivityEventBus
+      EventPattern:
+        detail-type:
+          - "users.userCreated.v1"
+      Targets:
+        - Arn: !GetAtt ActivityQueue.Arn
+          Id: "ActivityQueueTarget"
+
+  OrderCreatedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "activity_orders_orderCreated_v1-${Env}"
+      EventBusName: !Ref ActivityEventBus
+      EventPattern:
+        detail-type:
+          - "orders.orderCreated.v1"
+      Targets:
+        - Arn: !GetAtt ActivityQueue.Arn
+          Id: "ActivityQueueTarget"
+
+  OrderConfirmedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "activity_orders_orderConfirmed_v1-${Env}"
+      EventBusName: !Ref ActivityEventBus
+      EventPattern:
+        detail-type:
+          - "orders.orderConfirmed.v1"
+      Targets:
+        - Arn: !GetAtt ActivityQueue.Arn
+          Id: "ActivityQueueTarget"
+
+  OrderCompletedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "activity_orders_orderCompleted_v1-${Env}"
+      EventBusName: !Ref ActivityEventBus
+      EventPattern:
+        detail-type:
+          - "orders.orderCompleted.v1"
+      Targets:
+        - Arn: !GetAtt ActivityQueue.Arn
+          Id: "ActivityQueueTarget"
+
+  StockUpdatedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "activity_inventory_stockUpdated_v1-${Env}"
+      EventBusName: !Ref ActivityEventBus
+      EventPattern:
+        detail-type:
+          - "inventory.stockUpdated.v1"
+      Targets:
+        - Arn: !GetAtt ActivityQueue.Arn
+          Id: "ActivityQueueTarget"
+
+  StockReservedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "activity_inventory_stockReserved_v1-${Env}"
+      EventBusName: !Ref ActivityEventBus
+      EventPattern:
+        detail-type:
+          - "inventory.stockReserved.v1"
+      Targets:
+        - Arn: !GetAtt ActivityQueue.Arn
+          Id: "ActivityQueueTarget"
+
+  StockReservationFailedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "activity_inventory_stockReservationFailed_v1-${Env}"
+      EventBusName: !Ref ActivityEventBus
+      EventPattern:
+        detail-type:
+          - "inventory.stockReservationFailed.v1"
+      Targets:
+        - Arn: !GetAtt ActivityQueue.Arn
+          Id: "ActivityQueueTarget"
+
+  # SQS Queue Policies to allow EventBridge to send messages
+  ActivityQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref ActivityQueue
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action:
+              - sqs:SendMessage
+            Resource: !GetAtt ActivityQueue.Arn
+
+  # SSM Parameters
+  ActivityApiEndpointParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${Env}/ActivityService/api-endpoint"
+      Type: String
+      Value: !Sub "https://${ActivityApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
+  ActivityEventBusArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${Env}/ActivityService/event-bus-arn"
+      Type: String
+      Value: !GetAtt ActivityEventBus.Arn
+
+  ActivityEventBusNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${Env}/ActivityService/event-bus-name"
+      Type: String
+      Value: !Ref ActivityEventBus
+
+  # JWT Secret (conditional based on environment)
+  JwtSecretAccessKey:
+    Type: AWS::SSM::Parameter
+    Condition: IsNotIntegratedEnvironment
+    Properties:
+      Name: !Sub "/${Env}/ActivityService/secret-access-key"
+      Type: String
+      Value: "This is a sample secret key that should not be used in production"
+
+  ################################################
+  ######## Public Event Subscriptions ############
+  ################################################
+  SharedEventBusToActivityServiceEventBusRole:
+    Type: AWS::IAM::Role
+    Condition: IsIntegratedEnvironment
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: allow-eb-publish
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "events:PutEvents"
+                Resource: [!GetAtt ActivityEventBus.Arn]
+
+  # EventBridge Rules for Event Subscriptions
+  SharedProductCreatedRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      Name: !Sub "shared_activity_product_productCreated_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        detail-type:
+          - "product.productCreated.v1"
+      Targets:
+        - Id: ActivityServiceEventBus
+          Arn: !GetAtt ActivityEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToActivityServiceEventBusRole.Arn
+
+  SharedProductUpdatedRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      Name: !Sub "shared_activity_product_productUpdated_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        detail-type:
+          - "product.productUpdated.v1"
+      Targets:
+        - Id: ActivityServiceEventBus
+          Arn: !GetAtt ActivityEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToActivityServiceEventBusRole.Arn
+
+  SharedProductDeletedRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      Name: !Sub "shared_activity_product_productDeleted_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        detail-type:
+          - "product.productDeleted.v1"
+      Targets:
+        - Id: ActivityServiceEventBus
+          Arn: !GetAtt ActivityEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToActivityServiceEventBusRole.Arn
+
+  SharedUserCreatedRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      Name: !Sub "shared_activity_users_userCreated_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        detail-type:
+          - "users.userCreated.v1"
+      Targets:
+        - Id: ActivityServiceEventBus
+          Arn: !GetAtt ActivityEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToActivityServiceEventBusRole.Arn
+
+  SharedOrderCreatedRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      Name: !Sub "shared_activity_orders_orderCreated_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        detail-type:
+          - "orders.orderCreated.v1"
+      Targets:
+        - Id: ActivityServiceEventBus
+          Arn: !GetAtt ActivityEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToActivityServiceEventBusRole.Arn
+
+  SharedOrderConfirmedRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      Name: !Sub "shared_activity_orders_orderConfirmed_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        detail-type:
+          - "orders.orderConfirmed.v1"
+      Targets:
+        - Id: ActivityServiceEventBus
+          Arn: !GetAtt ActivityEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToActivityServiceEventBusRole.Arn
+
+  SharedOrderCompletedRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      Name: !Sub "shared_activity_orders_orderCompleted_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        detail-type:
+          - "orders.orderCompleted.v1"
+      Targets:
+        - Id: ActivityServiceEventBus
+          Arn: !GetAtt ActivityEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToActivityServiceEventBusRole.Arn
+
+  SharedStockUpdatedRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      Name: !Sub "shared_activity_inventory_stockUpdated_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        detail-type:
+          - "inventory.stockUpdated.v1"
+      Targets:
+        - Id: ActivityServiceEventBus
+          Arn: !GetAtt ActivityEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToActivityServiceEventBusRole.Arn
+
+  SharedStockReservedRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      Name: !Sub "shared_activity_inventory_stockReserved_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        detail-type:
+          - "inventory.stockReserved.v1"
+      Targets:
+        - Id: ActivityServiceEventBus
+          Arn: !GetAtt ActivityEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToActivityServiceEventBusRole.Arn
+
+  SharedStockReservationFailedRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      Name: !Sub "shared_activity_inventory_stockReservationFailed_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        detail-type:
+          - "inventory.stockReservationFailed.v1"
+      Targets:
+        - Id: ActivityServiceEventBus
+          Arn: !GetAtt ActivityEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToActivityServiceEventBusRole.Arn
+
+Outputs:
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ActivityApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiEndpoint"
+
+  ActivitiesTableName:
+    Description: "DynamoDB Activities Table Name"
+    Value: !Ref ActivitiesTable
+    Export:
+      Name: !Sub "${AWS::StackName}-ActivitiesTable"
+
+  IdempotencyTableName:
+    Description: "DynamoDB Idempotency Table Name"
+    Value: !Ref IdempotencyTable
+    Export:
+      Name: !Sub "${AWS::StackName}-IdempotencyTable"
+
+  ActivityEventBusName:
+    Description: "EventBridge Bus Name"
+    Value: !Ref ActivityEventBus
+    Export:
+      Name: !Sub "${AWS::StackName}-EventBus"
+
+  ActivityQueueUrl:
+    Description: "SQS Queue URL"
+    Value: !Ref ActivityQueue
+    Export:
+      Name: !Sub "${AWS::StackName}-ActivityQueue"
