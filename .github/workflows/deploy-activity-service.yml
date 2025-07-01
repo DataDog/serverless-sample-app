@@ -40,6 +40,18 @@ jobs:
         shell: bash
         run: |
           echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Setup dev environment
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/activity-service
+          make dev
       - name: Build
         shell: bash
         env:
@@ -259,6 +271,18 @@ jobs:
         shell: bash
         run: |
           echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Setup dev environment
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          VERSION: ${{ env.sha_short }}
+          ENV: "dev"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+          DD_SITE: "datadoghq.eu"
+          AWS_REGION: "eu-central-1"
+        run: |
+          cd src/activity-service
+          make dev
       - name: Build
         shell: bash
         env:
