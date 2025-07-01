@@ -45,13 +45,14 @@ unit:
 	poetry run pytest tests/unit  --cov-config=.coveragerc --cov=activity_service --cov-report xml
 
 build: deps
+	rm -rf .build
 	mkdir -p .build/lambdas ; cp -r activity_service .build/lambdas
 	mkdir -p .build/common_layer ; poetry export --without=dev --format=requirements.txt > .build/common_layer/requirements.txt
 
 build-terraform: build
 	@echo "Creating ZIP files for Terraform deployment"
-	cd .build/lambdas && zip -r ../activity_service.zip . -x "*.pyc" "*/__pycache__/*"
-	cd .build/common_layer && pip install --target python/lib/python3.13/site-packages -r requirements.txt && zip -r ../common_layer.zip python/
+	cd .build/lambdas && zip -r ../activity_service.zip .
+	cd .build/common_layer && pip install --target python/lib/python3.13/site-packages -r requirements.txt && zip -r ../common_layer.zip python
 
 integration-test:
 	poetry run pytest tests/integration  --cov-config=.coveragerc --cov=activity_service --cov-report xml
