@@ -5,19 +5,6 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-# Create a set of IAM policies our application will need
-resource "aws_iam_policy" "dynamo_db_read" {
-  name   = "TF_${var.service_name}-ddb-read-${var.env}"
-  path   = "/"
-  policy = data.aws_iam_policy_document.dynamo_db_read.json
-}
-
-resource "aws_iam_policy" "dynamo_db_write" {
-  name   = "TF_${var.service_name}-ddb-write-${var.env}"
-  path   = "/"
-  policy = data.aws_iam_policy_document.dynamo_db_write.json
-}
-
 resource "aws_iam_policy" "dsql_connect" {
   name   = "TF_${var.service_name}-dsql-connect-${var.env}"
   path   = "/"

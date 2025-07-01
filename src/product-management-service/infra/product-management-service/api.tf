@@ -45,7 +45,6 @@ module "create_product_lambda" {
   function_name  = "CreateProduct"
   lambda_handler = "index.handler"
   environment_variables = {
-    "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "PRODUCT_CREATED_TOPIC_ARN" : aws_sns_topic.product_created.arn
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
@@ -55,7 +54,6 @@ module "create_product_lambda" {
   app_version           = var.app_version
   env                   = var.env
   additional_policy_attachments = [
-    aws_iam_policy.dynamo_db_write.arn,
     aws_iam_policy.allow_jwt_secret_access.arn,
     aws_iam_policy.sns_publish_create.arn,
     aws_iam_policy.dsql_connect.arn
@@ -80,7 +78,6 @@ module "list_products_lambda" {
   function_name  = "ListProducts"
   lambda_handler = "index.handler"
   environment_variables = {
-    "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "PRODUCT_CREATED_TOPIC_ARN" : aws_sns_topic.product_created.arn
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
@@ -89,7 +86,6 @@ module "list_products_lambda" {
   app_version           = var.app_version
   env                   = var.env
   additional_policy_attachments = [
-    aws_iam_policy.dynamo_db_read.arn,
     aws_iam_policy.allow_jwt_secret_access.arn,
     aws_iam_policy.sns_publish_create.arn,
     aws_iam_policy.dsql_connect.arn
@@ -115,7 +111,6 @@ module "get_product_lambda" {
   function_name  = "GetProduct"
   lambda_handler = "index.handler"
   environment_variables = {
-    "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
@@ -123,7 +118,6 @@ module "get_product_lambda" {
   app_version           = var.app_version
   env                   = var.env
   additional_policy_attachments = [
-    aws_iam_policy.dynamo_db_read.arn,
     aws_iam_policy.allow_jwt_secret_access.arn,
     aws_iam_policy.dsql_connect.arn
   ]
@@ -152,7 +146,6 @@ module "update_product_lambda" {
   function_name  = "UpdateProduct"
   lambda_handler = "index.handler"
   environment_variables = {
-    "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "PRODUCT_UPDATED_TOPIC_ARN" : aws_sns_topic.product_updated.arn
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
@@ -162,8 +155,6 @@ module "update_product_lambda" {
   app_version           = var.app_version
   env                   = var.env
   additional_policy_attachments = [
-    aws_iam_policy.dynamo_db_read.arn,
-    aws_iam_policy.dynamo_db_write.arn,
     aws_iam_policy.allow_jwt_secret_access.arn,
     aws_iam_policy.sns_publish_update.arn,
     aws_iam_policy.dsql_connect.arn
@@ -193,7 +184,6 @@ module "delete_product_lambda" {
   function_name  = "DeleteProduct"
   lambda_handler = "index.handler"
   environment_variables = {
-    "TABLE_NAME" : aws_dynamodb_table.product_api.name
     "PRODUCT_DELETED_TOPIC_ARN" : aws_sns_topic.product_deleted.arn
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
@@ -203,8 +193,6 @@ module "delete_product_lambda" {
   app_version           = var.app_version
   env                   = var.env
   additional_policy_attachments = [
-    aws_iam_policy.dynamo_db_read.arn,
-    aws_iam_policy.dynamo_db_write.arn,
     aws_iam_policy.allow_jwt_secret_access.arn,
     aws_iam_policy.sns_publish_delete.arn,
     aws_iam_policy.dsql_connect.arn

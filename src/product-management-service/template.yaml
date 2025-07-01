@@ -54,7 +54,6 @@ Globals:
         DD_SITE: !Ref DDSite
         DD_VERSION: !Ref CommitHash
         DD_SERVICE: !Ref ServiceName
-        TABLE_NAME: !Ref ProductApiTable
         DSQL_CLUSTER_ENDPOINT: !Sub "${ProductApiCluster}.dsql.${AWS::Region}.on.aws"
 
         DD_DATA_STREAMS_ENABLED: "true"
@@ -115,14 +114,11 @@ Resources:
             Path: /product/{productId}
             Method: get
       Policies:
-        - DynamoDBReadPolicy:
-            TableName: !Ref ProductApiTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-                - dynamodb:GetItem
               Resource: !Ref DDApiKeySecret
         - Version: "2012-10-17"
           Statement:
@@ -158,14 +154,11 @@ Resources:
             Path: /product
             Method: get
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ProductApiTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-                - dynamodb:GetItem
               Resource: !Ref DDApiKeySecret
         - Version: "2012-10-17"
           Statement:
@@ -211,15 +204,7 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - dynamodb:PutItem
-                - dynamodb:GetItem
-              Resource: !GetAtt ProductApiTable.Arn
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
-                - dynamodb:GetItem
               Resource: !Ref DDApiKeySecret
         - Version: "2012-10-17"
           Statement:
@@ -273,13 +258,6 @@ Resources:
             - !Sub /${Env}/shared/secret-access-key
             - !Sub /${Env}/${ServiceName}/secret-access-key
       Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:PutItem
-                - dynamodb:GetItem
-              Resource: !GetAtt ProductApiTable.Arn
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -342,15 +320,7 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - dynamodb:DeleteItem
-                - dynamodb:GetItem
-              Resource: !GetAtt ProductApiTable.Arn
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
-                - dynamodb:GetItem
               Resource: !Ref DDApiKeySecret
         - Version: "2012-10-17"
           Statement:
@@ -421,18 +391,6 @@ Resources:
     Properties:
       DeletionProtectionEnabled: false
 
-  ProductApiTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Sub ${ServiceName}-Products-${Env}
-      AttributeDefinitions:
-        - AttributeName: PK
-          AttributeType: S
-      BillingMode: PAY_PER_REQUEST
-      KeySchema:
-        - AttributeName: PK
-          KeyType: HASH
-
   ProductApiStockUpdatedWorker:
     Type: AWS::Serverless::Function
     Properties:
@@ -445,8 +403,6 @@ Resources:
           Properties:
             Topic: !Ref StockUpdatedTopic
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ProductApiTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -483,8 +439,6 @@ Resources:
           Properties:
             Topic: !Ref PriceCalculatedTopic
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ProductApiTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
