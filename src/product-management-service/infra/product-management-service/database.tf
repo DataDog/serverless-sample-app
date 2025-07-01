@@ -17,7 +17,7 @@ resource "aws_dynamodb_table" "product_api" {
 }
 
 resource "aws_dsql_cluster" "product_api_dsql" {
-  deletion_protection_enabled = true
+  deletion_protection_enabled = false
 
   tags = {
     Name = "${var.service_name}-Products-${var.env}"
