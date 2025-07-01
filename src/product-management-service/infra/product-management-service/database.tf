@@ -6,12 +6,20 @@
 //
 
 resource "aws_dynamodb_table" "product_api" {
-  name           = "${var.service_name}-Products-${var.env}"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "PK"
+  name         = "${var.service_name}-Products-${var.env}"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "PK"
 
   attribute {
     name = "PK"
     type = "S"
+  }
+}
+
+resource "aws_dsql_cluster" "product_api_dsql" {
+  deletion_protection_enabled = true
+
+  tags = {
+    Name = "${var.service_name}-Products-${var.env}"
   }
 }

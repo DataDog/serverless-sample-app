@@ -10,21 +10,30 @@ package adapters
 import (
 	"context"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws/session"
-	core "github.com/datadog/serverless-sample-product-core"
-	"github.com/jackc/pgx/v5/stdlib"
 	"log"
-	"net/http"
 	"net/url"
+	"os"
 	"time"
 
+	core "github.com/datadog/serverless-sample-product-core"
+	"github.com/jackc/pgx/v5/stdlib"
+
 	_ "github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/dsql/auth"
 	_ "github.com/jackc/pgx/v5/stdlib" // Keep this as the underlying driver
 	"github.com/jmoiron/sqlx"
 	sqltrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
 )
+
+type Config struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+	Database string
+	Region   string
+}
 
 type DSqlProductRepository struct {
 	conn *sqlx.DB
@@ -34,47 +43,17 @@ func NewDSqlProductRepository(clusterEndpoint string) (*DSqlProductRepository, e
 	log.Println("Cluster endpoint: ", clusterEndpoint)
 	sqltrace.Register("pgx", &stdlib.Driver{}, sqltrace.WithServiceName("product-api-db"))
 
-	sess, err := session.NewSession()
-	if err != nil {
-		log.Println("Failed to create new session, returning")
-		return nil, err
+	dbConfig := Config{
+		Host:     clusterEndpoint,
+		User:     "admin",
+		Region:   os.Getenv("AWS_REGION"),
+		Port:     "5431",
+		Database: "postgres",
+		Password: "",
 	}
 
-	creds, err := sess.Config.Credentials.Get()
-	if err != nil {
-		log.Println("Failed to get credentials, returning")
-		return nil, err
-	}
-	staticCredentials := credentials.NewStaticCredentials(
-		creds.AccessKeyID,
-		creds.SecretAccessKey,
-		creds.SessionToken,
-	)
+	authToken, _ := GenerateDbConnectAuthToken(context.Background(), dbConfig.Host, dbConfig.User, 15*time.Minute)
 
-	// the scheme is arbitrary and is only needed because validation of the URL requires one.
-	endpoint := "https://" + clusterEndpoint
-	req, err := http.NewRequest("GET", endpoint, nil)
-	if err != nil {
-		log.Printf("NewRequest failed: %v", err)
-		return nil, err
-	}
-	values := req.URL.Query()
-	values.Set("Action", "DbConnectAdmin")
-	req.URL.RawQuery = values.Encode()
-
-	signer := v4.Signer{
-		Credentials: staticCredentials,
-	}
-
-	_, err = signer.Presign(req, nil, "dsql", "us-east-1", 15*time.Minute, time.Now())
-	if err != nil {
-		log.Fatalf("Presign failed: %v", err)
-		return nil, err
-	}
-
-	token := req.URL.String()[len("https://"):]
-
-	// Open a traced connection
 	baseURL := fmt.Sprintf("postgres://%s:5432/postgres", clusterEndpoint)
 
 	// Parse it to add query parameters in a structured way
@@ -86,11 +65,10 @@ func NewDSqlProductRepository(clusterEndpoint string) (*DSqlProductRepository, e
 	// Add query parameters
 	q := connURL.Query()
 	q.Set("user", "admin")
-	q.Set("password", token) // The password will be URL-encoded automatically
+	q.Set("password", authToken) // The password will be URL-encoded automatically
 	q.Set("sslmode", "verify-full")
 	connURL.RawQuery = q.Encode()
 
-	// Open a traced connection
 	db, err := sqltrace.Open("pgx", connURL.String())
 	if err != nil {
 		log.Printf("Unable to connect to database: %v\n", err)
@@ -117,6 +95,36 @@ func NewDSqlProductRepository(clusterEndpoint string) (*DSqlProductRepository, e
 	}
 
 	return repository, nil
+}
+
+// GenerateDbConnectAuthToken generates an authentication token for database connection
+func GenerateDbConnectAuthToken(
+	ctx context.Context, clusterEndpoint, user string, expiry time.Duration,
+) (string, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	tokenOptions := func(options *auth.TokenOptions) {
+		options.ExpiresIn = expiry
+	}
+
+	if user == "admin" {
+		token, err := auth.GenerateDBConnectAdminAuthToken(ctx, clusterEndpoint, os.Getenv("AWS_REGION"), cfg.Credentials, tokenOptions)
+		if err != nil {
+			return "", err
+		}
+
+		return token, nil
+	}
+
+	token, err := auth.GenerateDbConnectAuthToken(ctx, clusterEndpoint, os.Getenv("AWS_REGION"), cfg.Credentials, tokenOptions)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }
 
 func (repo *DSqlProductRepository) Store(ctx context.Context, p core.Product) error {
@@ -267,12 +275,16 @@ func (repo *DSqlProductRepository) ApplyMigrations(ctx context.Context) error {
 			stock_level REAL,
 			updated BOOLEAN DEFAULT FALSE
 		);
-		
+	`)
+	if err != nil {
+		return err
+	}
+	_, err = repo.conn.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS product_prices (
-			product_id UUID NOT NULL,
-			quantity INTEGER NOT NULL,
-			price REAL NOT NULL
-		);
+		product_id UUID NOT NULL,
+		quantity INTEGER NOT NULL,
+		price REAL NOT NULL
+	);
 	`)
 	if err != nil {
 		return err

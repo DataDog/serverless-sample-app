@@ -117,3 +117,18 @@ data "aws_iam_policy_document" "public_event_publisher_policy" {
     }
   }
 }
+
+data "aws_iam_policy_document" "dsql_connect_policy" {
+  statement {
+    sid    = "AllowDSQLConnect"
+    effect = "Allow"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions   = ["dsql:DbConnectAdmin"]
+    resources = [aws_dsql_cluster.product_api_dsql.arn]
+  }
+}

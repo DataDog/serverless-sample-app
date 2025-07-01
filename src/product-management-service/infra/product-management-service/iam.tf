@@ -18,6 +18,12 @@ resource "aws_iam_policy" "dynamo_db_write" {
   policy = data.aws_iam_policy_document.dynamo_db_write.json
 }
 
+resource "aws_iam_policy" "dsql_connect" {
+  name   = "TF_${var.service_name}-dsql-connect-${var.env}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.dsql_connect_policy.json
+}
+
 resource "aws_iam_policy" "sns_publish_create" {
   name   = "TF_${var.service_name}-publish_create-${var.env}"
   path   = "/"

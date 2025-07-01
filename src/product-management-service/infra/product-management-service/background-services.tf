@@ -13,6 +13,7 @@ module "product_api_pricing_worker" {
   lambda_handler = "index.handler"
   environment_variables = {
     TABLE_NAME : aws_dynamodb_table.product_api.name
+    "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.name}.on.aws"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -20,7 +21,8 @@ module "product_api_pricing_worker" {
   env = var.env
   additional_policy_attachments = [
     aws_iam_policy.dynamo_db_read.arn,
-    aws_iam_policy.dynamo_db_write.arn
+    aws_iam_policy.dynamo_db_write.arn,
+    aws_iam_policy.dsql_connect.arn
   ]
 }
 
@@ -46,6 +48,7 @@ module "product_api_stock_updated_worker" {
   lambda_handler = "index.handler"
   environment_variables = {
     TABLE_NAME : aws_dynamodb_table.product_api.name
+    "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.name}.on.aws"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -53,7 +56,8 @@ module "product_api_stock_updated_worker" {
   env = var.env
   additional_policy_attachments = [
     aws_iam_policy.dynamo_db_read.arn,
-    aws_iam_policy.dynamo_db_write.arn
+    aws_iam_policy.dynamo_db_write.arn,
+    aws_iam_policy.dsql_connect.arn
   ]
 }
 
