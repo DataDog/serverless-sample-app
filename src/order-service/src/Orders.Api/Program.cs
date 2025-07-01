@@ -58,7 +58,6 @@ try
             new HeaderApiVersionReader("X-API-Version")
         );
     });
-    builder.Services.AddEndpointsApiExplorer();
 
     // Enhanced rate limiting with user-based policies
     builder.Services.AddRateLimiter(options =>
