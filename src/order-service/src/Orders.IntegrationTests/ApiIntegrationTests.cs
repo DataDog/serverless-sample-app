@@ -11,6 +11,13 @@ public class ApiIntegrationTests
     private readonly ITestOutputHelper _outputHelper;
     private readonly ApiDriver _apiDriver;
 
+    private readonly JsonSerializerOptions options = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
     public ApiIntegrationTests(ITestOutputHelper outputHelper)
     {
         _outputHelper = outputHelper;
@@ -25,7 +32,7 @@ public class ApiIntegrationTests
 
         Assert.True(createOrderResult.IsSuccessStatusCode);
 
-        var order = JsonSerializer.Deserialize<OrderDTO>(await createOrderResult.Content.ReadAsStringAsync());
+        var order = JsonSerializer.Deserialize<OrderDTO>(await createOrderResult.Content.ReadAsStringAsync(), options);
 
         var orderCreatedWasPublished =
             await _apiDriver.VerifyEventPublishedFor(order.OrderId, "orders.orderCreated.v1");
@@ -40,7 +47,7 @@ public class ApiIntegrationTests
 
         getOrderResult = await _apiDriver.GetOrderDetailsFor(order.OrderId);
 
-        order = JsonSerializer.Deserialize<OrderDTO>(await getOrderResult.Content.ReadAsStringAsync());
+        order = JsonSerializer.Deserialize<OrderDTO>(await getOrderResult.Content.ReadAsStringAsync(), options);
 
         Assert.Equal("Confirmed", order.OrderStatus);
 
@@ -59,7 +66,7 @@ public class ApiIntegrationTests
 
         Assert.True(createOrderResult.IsSuccessStatusCode);
 
-        var order = JsonSerializer.Deserialize<OrderDTO>(await createOrderResult.Content.ReadAsStringAsync());
+        var order = JsonSerializer.Deserialize<OrderDTO>(await createOrderResult.Content.ReadAsStringAsync(), options);
 
         var getOrderResult = await _apiDriver.GetOrderDetailsFor(order.OrderId);
 
@@ -70,7 +77,7 @@ public class ApiIntegrationTests
 
         getOrderResult = await _apiDriver.GetOrderDetailsFor(order.OrderId);
 
-        order = JsonSerializer.Deserialize<OrderDTO>(await getOrderResult.Content.ReadAsStringAsync());
+        order = JsonSerializer.Deserialize<OrderDTO>(await getOrderResult.Content.ReadAsStringAsync(), options);
 
         Assert.Equal("NoStock", order.OrderStatus);
     }
@@ -84,10 +91,10 @@ public class ApiIntegrationTests
 
         Assert.True(createOrderResult.IsSuccessStatusCode);
 
-        var order = JsonSerializer.Deserialize<OrderDTO>(await createOrderResult.Content.ReadAsStringAsync());
+        var order = JsonSerializer.Deserialize<OrderDTO>(await createOrderResult.Content.ReadAsStringAsync(), options);
 
         var getOrderResult = await _apiDriver.GetOrderDetailsFor(order.OrderId);
-        order = JsonSerializer.Deserialize<OrderDTO>(await getOrderResult.Content.ReadAsStringAsync());
+        order = JsonSerializer.Deserialize<OrderDTO>(await getOrderResult.Content.ReadAsStringAsync(), options);
 
         await _apiDriver.StockReservationSuccessfulFor(order.OrderId);
 
@@ -97,9 +104,9 @@ public class ApiIntegrationTests
         _outputHelper.WriteLine($"List confirmed order response was {response}");
 
         var confirmedOrders =
-            JsonSerializer.Deserialize<List<OrderDTO>>(response);
+            JsonSerializer.Deserialize<PagedResponse<OrderDTO>>(response, options);
 
-        Assert.Contains(confirmedOrders, o => o.OrderId == order.OrderId);
+        Assert.Contains(confirmedOrders.Items, o => o.OrderId == order.OrderId);
 
         await _apiDriver.OrderCompleted(order.OrderId, order.UserId);
 
@@ -115,7 +122,7 @@ public class ApiIntegrationTests
 
         Assert.True(createOrderResult.IsSuccessStatusCode);
 
-        var order = JsonSerializer.Deserialize<OrderDTO>(await createOrderResult.Content.ReadAsStringAsync());
+        var order = JsonSerializer.Deserialize<OrderDTO>(await createOrderResult.Content.ReadAsStringAsync(), options);
 
         var getOrderResult = await _apiDriver.GetOrderDetailsFor(order.OrderId);
 
@@ -133,7 +140,7 @@ public class ApiIntegrationTests
 
         getOrderResult = await _apiDriver.GetOrderDetailsFor(order.OrderId);
 
-        order = JsonSerializer.Deserialize<OrderDTO>(await getOrderResult.Content.ReadAsStringAsync());
+        order = JsonSerializer.Deserialize<OrderDTO>(await getOrderResult.Content.ReadAsStringAsync(), options);
 
         Assert.Equal("Confirmed", order.OrderStatus);
     }

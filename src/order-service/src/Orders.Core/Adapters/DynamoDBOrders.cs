@@ -3,12 +3,15 @@
 // Copyright 2025 Datadog, Inc.
 
 using System.Globalization;
+using System.Text.Json;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Datadog.Trace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Orders.Core.Common;
 using Polly;
+using System.Diagnostics;
 
 namespace Orders.Core.Adapters;
 
@@ -42,8 +45,11 @@ public class DynamoDBOrders(
     private readonly ResiliencePipeline<BatchWriteItemResponse> _batchWriteResiliencePipeline = 
         ResiliencePolicies.GetDynamoDBPolicy<BatchWriteItemResponse>(logger);
 
-    public async Task<List<Order>> ForUser(string userId, int pageSize = PAGE_SIZE, string? lastEvaluatedKey = null)
+    public async Task<PagedResult<Order>> ForUser(string userId, PaginationRequest pagination, CancellationToken cancellationToken = default)
     {
+        var stopwatch = Stopwatch.StartNew();
+        logger.LogDebug("Starting DynamoDB query for user orders with page size {PageSize}", pagination.PageSize);
+        
         var queryRequest = new QueryRequest()
         {
             TableName = configuration["TABLE_NAME"],
@@ -52,24 +58,25 @@ public class DynamoDBOrders(
             {
                 { ":PK", new AttributeValue { S = userId } }
             },
-            Limit = pageSize,
+            Limit = pagination.PageSize,
             ReturnConsumedCapacity = ReturnConsumedCapacity.TOTAL
         };
         
-        if (!string.IsNullOrEmpty(lastEvaluatedKey))
+        if (!string.IsNullOrEmpty(pagination.PageToken))
         {
-            queryRequest.ExclusiveStartKey = new Dictionary<string, AttributeValue>
+            var exclusiveStartKey = ParsePageToken(pagination.PageToken);
+            if (exclusiveStartKey != null)
             {
-                { PARTITION_KEY, new AttributeValue { S = userId } },
-                { SORT_KEY, new AttributeValue { S = lastEvaluatedKey } }
-            };
+                queryRequest.ExclusiveStartKey = exclusiveStartKey;
+            }
         }
 
         var queryResult = await _queryResiliencePipeline.ExecuteAsync(
             async ct => await dynamoDbClient.QueryAsync(queryRequest, ct), 
-            CancellationToken.None);
+            cancellationToken);
 
         queryResult.AddToTelemetry();
+        stopwatch.Stop();
 
         var orderList = new List<Order>();
 
@@ -83,10 +90,24 @@ public class DynamoDBOrders(
                 item[PRODUCTS].SS.ToArray(),
                 (OrderStatus)Enum.ToObject(typeof(OrderStatus), int.Parse(item[ORDER_STATUS].N))));
 
-        return orderList;
+        // Create page token for next page if there are more results
+        var nextPageToken = queryResult.LastEvaluatedKey?.Any() == true 
+            ? CreatePageToken(queryResult.LastEvaluatedKey) 
+            : null;
+
+        var hasMorePages = queryResult.LastEvaluatedKey?.Any() == true;
+
+        logger.LogInformation("DynamoDB query completed: returned {ItemCount} orders in {DurationMs}ms, consumed {ConsumedCapacity} RCU", 
+            orderList.Count, stopwatch.ElapsedMilliseconds, queryResult.ConsumedCapacity?.CapacityUnits ?? 0);
+
+        return new PagedResult<Order>(
+            orderList.AsReadOnly(),
+            pagination.PageSize,
+            nextPageToken,
+            hasMorePages);
     }
 
-    public async Task<List<Order>> ConfirmedOrders(int pageSize = PAGE_SIZE, string? lastEvaluatedKey = null)
+    public async Task<PagedResult<Order>> ConfirmedOrders(PaginationRequest pagination, CancellationToken cancellationToken = default)
     {
         var queryRequest = new QueryRequest()
         {
@@ -97,22 +118,22 @@ public class DynamoDBOrders(
                 { ":PK", new AttributeValue { S = "CONFIRMED" } }
             },
             IndexName = "GSI1",
-            Limit = pageSize,
+            Limit = pagination.PageSize,
             ReturnConsumedCapacity = ReturnConsumedCapacity.TOTAL
         };
         
-        if (!string.IsNullOrEmpty(lastEvaluatedKey))
+        if (!string.IsNullOrEmpty(pagination.PageToken))
         {
-            queryRequest.ExclusiveStartKey = new Dictionary<string, AttributeValue>
+            var exclusiveStartKey = ParsePageTokenForGSI(pagination.PageToken);
+            if (exclusiveStartKey != null)
             {
-                { GSI1PK, new AttributeValue { S = "CONFIRMED" } },
-                { GSI1SK, new AttributeValue { S = lastEvaluatedKey } }
-            };
+                queryRequest.ExclusiveStartKey = exclusiveStartKey;
+            }
         }
 
         var queryResult = await _queryResiliencePipeline.ExecuteAsync(
             async ct => await dynamoDbClient.QueryAsync(queryRequest, ct), 
-            CancellationToken.None);
+            cancellationToken);
 
         queryResult.AddToTelemetry();
 
@@ -128,10 +149,21 @@ public class DynamoDBOrders(
                 item[PRODUCTS].SS.ToArray(),
                 (OrderStatus)Enum.ToObject(typeof(OrderStatus), int.Parse(item[ORDER_STATUS].N))));
 
-        return orderList;
+        // Create page token for next page if there are more results
+        var nextPageToken = queryResult.LastEvaluatedKey?.Any() == true 
+            ? CreatePageTokenForGSI(queryResult.LastEvaluatedKey) 
+            : null;
+
+        var hasMorePages = queryResult.LastEvaluatedKey?.Any() == true;
+
+        return new PagedResult<Order>(
+            orderList.AsReadOnly(),
+            pagination.PageSize,
+            nextPageToken,
+            hasMorePages);
     }
 
-    public async Task<Order?> WithOrderId(string userId, string orderId)
+    public async Task<Order?> WithOrderId(string userId, string orderId, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Retrieving Order with orderId {orderId} and user {userId} from DynamoDB", orderId,
             userId);
@@ -149,7 +181,7 @@ public class DynamoDBOrders(
 
         var getItemResult = await _getItemResiliencePipeline.ExecuteAsync(
             async ct => await dynamoDbClient.GetItemAsync(getItemRequest, ct), 
-            CancellationToken.None);
+            cancellationToken);
         
         getItemResult.AddToTelemetry();
 
@@ -165,9 +197,10 @@ public class DynamoDBOrders(
             (OrderStatus)Enum.ToObject(typeof(OrderStatus), int.Parse(getItemResult.Item[ORDER_STATUS].N)));
     }
 
-    public async Task Store(Order order)
+    public async Task Store(Order order, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Updating Order with orderNumber {orderId}", order.OrderNumber);
+        var stopwatch = Stopwatch.StartNew();
+        logger.LogDebug("Starting DynamoDB store operation for order type {OrderType}", order.OrderType.ToString());
         var attributes = new Dictionary<string, AttributeValue>()
         {
             { PARTITION_KEY, new AttributeValue(order.UserId) },
@@ -197,12 +230,16 @@ public class DynamoDBOrders(
 
         var putItemResponse = await _putItemResiliencePipeline.ExecuteAsync(
             async ct => await dynamoDbClient.PutItemAsync(putItemRequest, ct), 
-            CancellationToken.None);
+            cancellationToken);
             
         putItemResponse.AddToTelemetry();
+        stopwatch.Stop();
+        
+        logger.LogInformation("DynamoDB store completed: order type {OrderType} stored in {DurationMs}ms, consumed {ConsumedCapacity} WCU", 
+            order.OrderType.ToString(), stopwatch.ElapsedMilliseconds, putItemResponse.ConsumedCapacity?.CapacityUnits ?? 0);
     }
     
-    public async Task StoreBatch(IEnumerable<Order> orders)
+    public async Task StoreBatch(IEnumerable<Order> orders, CancellationToken cancellationToken = default)
     {
         var writeRequests = new List<WriteRequest>();
         
@@ -247,7 +284,7 @@ public class DynamoDBOrders(
             
             var response = await _batchWriteResiliencePipeline.ExecuteAsync(
                 async ct => await dynamoDbClient.BatchWriteItemAsync(batchRequest, ct),
-                CancellationToken.None);
+                cancellationToken);
             
             // Handle unprocessed items if any
             if (response.UnprocessedItems.Count > 0 && response.UnprocessedItems.ContainsKey(configuration["TABLE_NAME"]))
@@ -260,5 +297,62 @@ public class DynamoDBOrders(
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Converts DynamoDB LastEvaluatedKey to a page token
+    /// </summary>
+    private static string CreatePageToken(Dictionary<string, AttributeValue> lastEvaluatedKey)
+    {
+        var pageTokenData = new Dictionary<string, string>();
+        foreach (var kvp in lastEvaluatedKey)
+        {
+            pageTokenData[kvp.Key] = kvp.Value.S ?? kvp.Value.N ?? "";
+        }
+        
+        var json = JsonSerializer.Serialize(pageTokenData);
+        return Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(json));
+    }
+
+    /// <summary>
+    /// Converts a page token back to DynamoDB LastEvaluatedKey
+    /// </summary>
+    private static Dictionary<string, AttributeValue>? ParsePageToken(string pageToken)
+    {
+        try
+        {
+            var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(pageToken));
+            var pageTokenData = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+            
+            if (pageTokenData == null) return null;
+
+            var lastEvaluatedKey = new Dictionary<string, AttributeValue>();
+            foreach (var kvp in pageTokenData)
+            {
+                lastEvaluatedKey[kvp.Key] = new AttributeValue { S = kvp.Value };
+            }
+            
+            return lastEvaluatedKey;
+        }
+        catch
+        {
+            return null; // Invalid token, ignore
+        }
+    }
+
+    /// <summary>
+    /// Creates a page token for GSI queries
+    /// </summary>
+    private static string CreatePageTokenForGSI(Dictionary<string, AttributeValue> lastEvaluatedKey)
+    {
+        return CreatePageToken(lastEvaluatedKey); // Same implementation for now
+    }
+
+    /// <summary>
+    /// Parses a page token for GSI queries
+    /// </summary>
+    private static Dictionary<string, AttributeValue>? ParsePageTokenForGSI(string pageToken)
+    {
+        return ParsePageToken(pageToken); // Same implementation for now
     }
 }
