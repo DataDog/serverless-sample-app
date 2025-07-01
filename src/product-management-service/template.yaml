@@ -54,7 +54,8 @@ Globals:
         DD_SITE: !Ref DDSite
         DD_VERSION: !Ref CommitHash
         DD_SERVICE: !Ref ServiceName
-        TABLE_NAME: !Ref ProductApiTable
+        DSQL_CLUSTER_ENDPOINT: !Sub "${ProductApiCluster}.dsql.${AWS::Region}.on.aws"
+
         DD_DATA_STREAMS_ENABLED: "true"
         DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true"
     Architectures:
@@ -113,15 +114,18 @@ Resources:
             Path: /product/{productId}
             Method: get
       Policies:
-        - DynamoDBReadPolicy:
-            TableName: !Ref ProductApiTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-                - dynamodb:GetItem
               Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dsql:DbConnectAdmin
+              Resource: !GetAtt ProductApiCluster.ResourceArn
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -150,15 +154,18 @@ Resources:
             Path: /product
             Method: get
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ProductApiTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-                - dynamodb:GetItem
               Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dsql:DbConnectAdmin
+              Resource: !GetAtt ProductApiCluster.ResourceArn
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -197,16 +204,14 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - dynamodb:PutItem
-                - dynamodb:GetItem
-              Resource: !GetAtt ProductApiTable.Arn
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
-                - secretsmanager:GetSecretValue
-                - dynamodb:GetItem
-              Resource: !Ref DDApiKeySecret
+                - dsql:DbConnectAdmin
+              Resource: !GetAtt ProductApiCluster.ResourceArn
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -257,15 +262,14 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - dynamodb:PutItem
-                - dynamodb:GetItem
-              Resource: !GetAtt ProductApiTable.Arn
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecret
+                - dsql:DbConnectAdmin
+              Resource: !GetAtt ProductApiCluster.ResourceArn
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -316,16 +320,14 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - dynamodb:DeleteItem
-                - dynamodb:GetItem
-              Resource: !GetAtt ProductApiTable.Arn
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
-                - secretsmanager:GetSecretValue
-                - dynamodb:GetItem
-              Resource: !Ref DDApiKeySecret
+                - dsql:DbConnectAdmin
+              Resource: !GetAtt ProductApiCluster.ResourceArn
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -384,17 +386,10 @@ Resources:
       Type: String
       Value: !Ref ProductDeletedTopic
 
-  ProductApiTable:
-    Type: AWS::DynamoDB::Table
+  ProductApiCluster:
+    Type: AWS::DSQL::Cluster
     Properties:
-      TableName: !Sub ${ServiceName}-Products-${Env}
-      AttributeDefinitions:
-        - AttributeName: PK
-          AttributeType: S
-      BillingMode: PAY_PER_REQUEST
-      KeySchema:
-        - AttributeName: PK
-          KeyType: HASH
+      DeletionProtectionEnabled: false
 
   ProductApiStockUpdatedWorker:
     Type: AWS::Serverless::Function
@@ -408,14 +403,18 @@ Resources:
           Properties:
             Topic: !Ref StockUpdatedTopic
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ProductApiTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dsql:DbConnectAdmin
+              Resource: !GetAtt ProductApiCluster.ResourceArn
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -440,14 +439,18 @@ Resources:
           Properties:
             Topic: !Ref PriceCalculatedTopic
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ProductApiTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dsql:DbConnectAdmin
+              Resource: !GetAtt ProductApiCluster.ResourceArn
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -483,6 +486,12 @@ Resources:
               Resource: !Ref DDApiKeySecret
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt StockUpdatedTopic.TopicName
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dsql:DbConnectAdmin
+              Resource: !GetAtt ProductApiCluster.ResourceArn
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:

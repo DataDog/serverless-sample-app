@@ -76,6 +76,7 @@ jobs:
           make integration-test
       - name: Destroy ephermal environment
         shell: bash
+        if: always()
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "tf-${{ env.sha_short }}"
@@ -114,6 +115,7 @@ jobs:
           make integration-test
       - name: Destroy dev
         shell: bash
+        if: always()
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
@@ -229,7 +231,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "eu-central-1"
+          aws-region: "eu-west-3"
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -241,7 +243,7 @@ jobs:
           ENV: "sam-${{ env.sha_short }}"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "eu-central-1"
+          aws-region: "eu-west-3"
         run: |
           cd src/product-management-service
           make sam
@@ -249,7 +251,7 @@ jobs:
         shell: bash
         env:
           ENV: "sam-${{ env.sha_short }}"
-          AWS_REGION: "eu-central-1"
+          aws-region: "eu-west-3"
         run: |
           cd src/product-management-service
           make integration-test
@@ -261,7 +263,7 @@ jobs:
           ENV: "sam-${{ env.sha_short }}"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "eu-central-1"
+          AWS_REGION: "eu-west-3"
         run: |
           cd src/product-management-service
           make sam-destroy
@@ -273,7 +275,7 @@ jobs:
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "eu-central-1"
+          AWS_REGION: "eu-west-3"
         run: |
           cd src/product-management-service
           make sam
@@ -282,7 +284,7 @@ jobs:
         shell: bash
         env:
           ENV: "dev"
-          AWS_REGION: "eu-central-1"
+          AWS_REGION: "eu-west-3"
         run: |
           cd src/product-management-service
           make integration-test
@@ -294,7 +296,7 @@ jobs:
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "eu-central-1"
+          AWS_REGION: "eu-west-3"
         run: |
           cd src/product-management-service
           make sam-destroy
