@@ -14,6 +14,11 @@ internal sealed class Program
         var ordersService = new OrdersServiceStack(app, "DotnetOrdersServiceStack", new StackProps()
         {
             StackName = $"OrdersService-{System.Environment.GetEnvironmentVariable("ENV")}",
+            Env = new Environment()
+            {
+                Account =  System.Environment.GetEnvironmentVariable("CDK_DEFAULT_ACCOUNT"),
+                Region =  System.Environment.GetEnvironmentVariable("CDK_DEFAULT_REGION"),
+            }
         });
 
         app.Synth();
