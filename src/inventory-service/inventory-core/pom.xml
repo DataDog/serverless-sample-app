@@ -19,7 +19,7 @@
         <quarkus.platform.version>3.24.1</quarkus.platform.version>
         <aws.sdk.version>2.31.74</aws.sdk.version>
         <skipITs>true</skipITs>
-        <surefire-plugin.version>3.5.0</surefire-plugin.version>
+        <surefire-plugin.version>3.5.3</surefire-plugin.version>
     </properties>
 
     <dependencyManagement>
