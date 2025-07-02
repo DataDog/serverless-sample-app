@@ -112,7 +112,7 @@ class ApiConstruct(Construct):
         return iam.Role(
             self,
             constants.SERVICE_ROLE_ARN,
-            role_name=f"{constants.SERVICE_NAME}-{constants.SERVICE_ROLE}-{self.shared_resources.shared_props.environment}",
+            role_name=f"CDK-{constants.SERVICE_NAME}-{constants.SERVICE_ROLE}-{self.shared_resources.shared_props.environment}",
             assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
             inline_policies={
                 'dynamic_configuration': iam.PolicyDocument(

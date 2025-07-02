@@ -2,12 +2,12 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2025 Datadog, Inc.
 
-using System.Text.Json.Serialization;
+namespace Orders.IntegrationTests;
 
-namespace Orders.Api.CreateOrder;
-
-public record CreateOrderRequest
+public record PagedResponse<T>
 {
-    [JsonPropertyName("products")]
-    public string[] Products { get; set; } = [];
+    public List<T> Items { get; set; }
+    public int PageSize { get; set; }
+    public bool HasMorePages { get; set; }
+    public string NextPageToken { get; set; }
 }

@@ -48,7 +48,7 @@ function refreshData() {
     contentType: "application/json",
     success: function (response) {
       loadingSpinner.ariaBusy = false;
-      response.forEach((message) => {
+      response.items.forEach((message) => {
         console.log(message);
 
         var rowElement = document.createElement("tr");
@@ -75,7 +75,7 @@ function refreshData() {
     },
     beforeSend: function (xhr) {
       xhr.setRequestHeader("Authorization", `Bearer ${jwt}`);
-    }
+    },
   });
 }
 

@@ -21,16 +21,16 @@ python = "^3.13.0"
 pydantic = {version = "^2.0.3"}
 email-validator = {version = "*"}
 aws-lambda-powertools =  {extras = ["tracer"],version = "^3.15.1"}
-mypy-boto3-dynamodb = "*"
+mypy-boto3-dynamodb = "^1.39.0"
 cachetools = "*"
-boto3 = "^1.38.41"
+boto3 = "^1.39.0"
 aws-lambda-env-modeler = "*"
-ddtrace = "3.9.3"
+ddtrace = "3.9.4"
 
 [tool.poetry.group.dev.dependencies]
 # CDK
 activity-service-cdk = {path = "cdk", develop = true}
-aws-cdk-lib = ">=2.201.0"
+aws-cdk-lib = ">=2.202.0"
 datadog-cdk-constructs-v2 = "^2.6.0"
 constructs = ">=10.0.0"
 cdk-nag = ">2.0.0"
