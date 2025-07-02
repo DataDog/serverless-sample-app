@@ -33,7 +33,7 @@ jobs:
         run: |
           cargo install cargo-lambda
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@master
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
@@ -145,7 +145,7 @@ jobs:
         run: |
           cargo install cargo-lambda
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@master
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
@@ -237,7 +237,7 @@ jobs:
           cargo install cargo-lambda
       - uses: aws-actions/setup-sam@v1
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@master
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
@@ -327,7 +327,7 @@ jobs:
   #       run: |
   #         cargo install cargo-lambda
   #     - name: Configure AWS credentials
-  #       uses: aws-actions/configure-aws-credentials@master
+  #       uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
   #       with:
   #         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
   #         role-session-name: GitHub_to_AWS_via_FederatedOIDC
