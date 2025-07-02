@@ -31,7 +31,7 @@ jobs:
   #         python-version: "3.13"
   #         cache: "poetry" # NOTE: poetry must be installed before this step, or else cache doesn't work
   #     - name: Configure AWS credentials
-  #       uses: aws-actions/configure-aws-credentials@master
+  #       uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
   #       with:
   #         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
   #         role-session-name: GitHub_to_AWS_via_FederatedOIDC
@@ -262,7 +262,7 @@ jobs:
           cache: "poetry" # NOTE: poetry must be installed before this step, or else cache doesn't work
       - uses: aws-actions/setup-sam@v1
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@master
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
