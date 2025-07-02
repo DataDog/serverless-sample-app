@@ -1,5 +1,5 @@
 {
-  "app": "npx tsx bin/order-mcp-stack.ts",
+  "app": "npx tsx bin/order-mcp-service.ts",
   "watch": {
     "include": [
       "**"
