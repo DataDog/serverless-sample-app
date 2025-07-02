@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using Amazon.CDK.AWS.EC2;
 using Amazon.CDK.AWS.Events;
 using Amazon.CDK.AWS.SNS;
 using Amazon.CDK.AWS.SSM;
@@ -21,11 +22,23 @@ public class OrderServiceProps : Construct
 
     public IEventBus PublisherBus => SharedEventBus == null ? OrdersEventBus : SharedEventBus;
 
+    public IVpc? ExistingVpc { get; private init; } = null;
+
     public OrderServiceProps(Construct scope, string id, SharedProps props) : base(scope, id)
     {
         var integratedEnvironments = new List<string> { "prod", "dev" };
 
-        OrdersEventBus = new EventBus(scope, "OrdersEventBus", new EventBusProps()
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VPC_ID")))
+        {
+            var existingVpc = Vpc.FromLookup(this, "ExistingVpc",
+                new VpcLookupOptions
+                {
+                    VpcId = Environment.GetEnvironmentVariable("VPC_ID")
+                });
+            ExistingVpc = existingVpc;
+        }
+
+        OrdersEventBus = new EventBus(scope, "OrdersEventBus", new EventBusProps
         {
             EventBusName = $"{props.ServiceName}-bus-{props.Env}"
         });
@@ -65,17 +78,17 @@ public class OrderServiceProps : Construct
         // Deploy the test harness in all non-production environments.
         if (props.Env != "prod")
         {
-            var publicEvents = new List<Rule>()
+            var publicEvents = new List<Rule>
             {
-                new OrderCreatedEventRule(scope, "OrderCreatedRule", props, new RuleProps()
+                new OrderCreatedEventRule(scope, "OrderCreatedRule", props, new RuleProps
                 {
                     EventBus = PublisherBus
                 }),
-                new OrderConfirmedEventRule(scope, "OrderConfirmedRule", props, new RuleProps()
+                new OrderConfirmedEventRule(scope, "OrderConfirmedRule", props, new RuleProps
                 {
                     EventBus = PublisherBus
                 }),
-                new OrderCompletedEventRule(scope, "OrderCompletedRule", props, new RuleProps()
+                new OrderCompletedEventRule(scope, "OrderCompletedRule", props, new RuleProps
                 {
                     EventBus = PublisherBus
                 })

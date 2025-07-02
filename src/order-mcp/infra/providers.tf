@@ -9,7 +9,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 6.0"
+      version = "~> 5.61"
     }
   }
   backend "s3" {}
@@ -17,11 +17,4 @@ terraform {
 
 provider "aws" {
   region = var.region
-
-  default_tags {
-    tags = {
-      DD_PRESERVE_STACK = "true"
-      MANAGED_BY        = "Terraform"
-    }
-  }
 }
