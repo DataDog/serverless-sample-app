@@ -47,8 +47,14 @@ function refreshData() {
     method: "GET",
     contentType: "application/json",
     success: function (response) {
+      let items = response.items;
+
+      if (!items) {
+        items = response;
+      }
+
       loadingSpinner.ariaBusy = false;
-      response.items.forEach((message) => {
+      items.forEach((message) => {
         console.log(message);
 
         var rowElement = document.createElement("tr");

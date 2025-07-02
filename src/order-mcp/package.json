@@ -1,0 +1,62 @@
+{
+  "name": "order-mcp",
+  "version": "0.1.0",
+  "type": "commonjs",
+  "bin": {
+    "order-mcp": "src/order-mcp/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/order-mcp/adapters/index.ts",
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest --no-cache",
+    "cdk": "cdk",
+    "dev:sst": "sst dev --stage=personal",
+    "build:sst": "sst build --stage=dev",
+    "deploy:sst": "sst deploy --stage=dev",
+    "remove:sst:personal": "sst remove --stage=personal",
+    "remove:sst": "sst remove --stage=dev",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-cloudformation": "^3.835.0",
+    "@aws-sdk/client-dynamodb": "^3.835.0",
+    "@aws-sdk/client-eventbridge": "^3.835.0",
+    "@aws-sdk/client-sfn": "^3.835.0",
+    "@aws-sdk/client-sns": "^3.835.0",
+    "@aws-sdk/client-sqs": "^3.835.0",
+    "@aws-sdk/client-ssm": "^3.835.0",
+    "@types/aws-lambda": "8.10.150",
+    "@types/express": "^5.0.3",
+    "@types/jest": "^29.5.14",
+    "@types/node": "22.15.29",
+    "aws-cdk": "^2.1019.1",
+    "aws-cdk-lib": "^2.202.0",
+    "constructs": "^10.4.2",
+    "datadog-cdk-constructs-v2": "^2.6.0",
+    "datadog-lambda-js": "^11.126.0",
+    "dd-trace": "^5.56.0",
+    "esbuild": "^0.20.2",
+    "jest": "^29.7.0",
+    "moq.ts": "^10.1.0",
+    "serverless-esbuild": "^1.55.1",
+    "serverless-plugin-datadog": "^5.98.0",
+    "serverless-step-functions": "^3.23.1",
+    "source-map-support": "^0.5.21",
+    "sst": "^2.45.1",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.3",
+    "typescript": "~5.8.3"
+  },
+  "dependencies": {
+    "@aws-lambda-powertools/logger": "^2.22.0",
+    "@aws-lambda-powertools/parameters": "^2.22.0",
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "axios": "^1.10.0",
+    "dd-trace": "^5.53.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
