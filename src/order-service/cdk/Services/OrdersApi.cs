@@ -50,7 +50,7 @@ public class OrdersApi : Construct
         var noStockHandler = CreateNoStockHandler(props, environmentVariables);
         ((Role)noStockHandler.Role).AddToPolicy(describeBusPolicyStatement);
 
-        var workflowLogGroup = new LogGroup(this, "InventoryOrderingWorkflowLogGroup", new LogGroupProps()
+        var workflowLogGroup = new LogGroup(this, "InventoryOrderingWorkflowLogGroup", new LogGroupProps
         {
             LogGroupName =
                 $"/aws/vendedlogs/states/{props.SharedProps.ServiceName}-OrderWorkflow-{props.SharedProps.Env}-Logs",
@@ -59,7 +59,7 @@ public class OrdersApi : Construct
 
         var workflowFilePath = "workflows/orderProcessingWorkflow.asl.json";
 
-        OrdersWorkflow = new StateMachine(this, "InventoryOrderingWorkflow", new StateMachineProps()
+        OrdersWorkflow = new StateMachine(this, "InventoryOrderingWorkflow", new StateMachineProps
         {
             StateMachineName = $"{props.SharedProps.ServiceName}-OrderWorkflow-{props.SharedProps.Env}",
             DefinitionBody = DefinitionBody.FromFile(workflowFilePath),
@@ -71,7 +71,7 @@ public class OrdersApi : Construct
                 { "ConfirmOrderLambda", confirmOrderHandler.FunctionArn },
                 { "NoStockLambda", noStockHandler.FunctionArn }
             },
-            Logs = new LogOptions()
+            Logs = new LogOptions
             {
                 Destination = workflowLogGroup,
                 IncludeExecutionData = true,
@@ -83,7 +83,7 @@ public class OrdersApi : Construct
         Tags.Of(OrdersWorkflow).Add("version", props.SharedProps.Version);
         Tags.Of(OrdersWorkflow).Add("DD_TRACE_ENABLED", "true");
         Tags.Of(OrdersWorkflow).Add("DD_ENHANCED_METRICS", "true");
-        
+
         props.ServiceProps.PublisherBus.GrantPutEventsTo(OrdersWorkflow);
         OrdersTable.GrantWriteData(OrdersWorkflow);
         confirmOrderHandler.GrantInvoke(OrdersWorkflow);
@@ -92,31 +92,31 @@ public class OrdersApi : Construct
 
     public OrdersApi(Construct scope, string id, OrdersApiProps props) : base(scope, id)
     {
-        var describeBusPolicyStatement = new PolicyStatement(new PolicyStatementProps()
+        var describeBusPolicyStatement = new PolicyStatement(new PolicyStatementProps
         {
             Effect = Effect.ALLOW,
             Resources = new[] { props.ServiceProps.PublisherBus.EventBusArn },
             Actions = new[] { "events:DescribeEventBus" }
         });
 
-        OrdersTable = new Table(this, "DotnetOrdersTable", new TableProps()
+        OrdersTable = new Table(this, "DotnetOrdersTable", new TableProps
         {
-            PartitionKey = new Attribute() { Name = "PK", Type = AttributeType.STRING },
-            SortKey = new Attribute() { Name = "SK", Type = AttributeType.STRING },
+            PartitionKey = new Attribute { Name = "PK", Type = AttributeType.STRING },
+            SortKey = new Attribute { Name = "SK", Type = AttributeType.STRING },
             BillingMode = BillingMode.PAY_PER_REQUEST,
             TableName = $"{props.SharedProps.ServiceName}-OrderTable-{props.SharedProps.Env}",
             TableClass = TableClass.STANDARD,
-            RemovalPolicy = RemovalPolicy.DESTROY,
+            RemovalPolicy = RemovalPolicy.DESTROY
         });
-        OrdersTable.AddGlobalSecondaryIndex(new GlobalSecondaryIndexProps()
+        OrdersTable.AddGlobalSecondaryIndex(new GlobalSecondaryIndexProps
         {
             IndexName = "GSI1",
-            PartitionKey = new Attribute() { Name = "GSI1PK", Type = AttributeType.STRING },
-            SortKey = new Attribute() { Name = "GSI1SK", Type = AttributeType.STRING },
+            PartitionKey = new Attribute { Name = "GSI1PK", Type = AttributeType.STRING },
+            SortKey = new Attribute { Name = "GSI1SK", Type = AttributeType.STRING },
             ProjectionType = ProjectionType.ALL
         });
 
-        OrderCreatedTopic = new Topic(this, "OrderCreatedTopic", new TopicProps()
+        OrderCreatedTopic = new Topic(this, "OrderCreatedTopic", new TopicProps
         {
             TopicName = $"{props.SharedProps.ServiceName}-OrderCreated-{props.SharedProps.Env}"
         });
@@ -136,7 +136,7 @@ public class OrdersApi : Construct
 
         OrdersTable.GrantReadWriteData(function.Function);
         props.ServiceProps.PublisherBus.GrantPutEventsTo(function.Function);
-        
+
         return function.Function;
     }
 
@@ -155,19 +155,19 @@ public class OrdersApi : Construct
     private ApplicationLoadBalancedFargateService CreateOrderAPI(OrdersApiProps props,
         PolicyStatement describeBusPolicyStatement)
     {
-        var vpc = new Vpc(this, "OrdersServiceVpc", new VpcProps()
+        var vpc = props.ServiceProps.ExistingVpc ?? new Vpc(this, "OrdersServiceVpc", new VpcProps
         {
             VpcName = $"{props.SharedProps.ServiceName}-Orders-{props.SharedProps.Env}",
             MaxAzs = 2
         });
 
-        var cluster = new Cluster(this, "DotnetInventoryApiCluster", new ClusterProps()
+        var cluster = new Cluster(this, "DotnetInventoryApiCluster", new ClusterProps
         {
             ClusterName = $"{props.SharedProps.ServiceName}-Orders-{props.SharedProps.Env}",
             Vpc = vpc
         });
 
-        var executionRole = new Role(this, "OrdersApiExecutionRole", new RoleProps()
+        var executionRole = new Role(this, "OrdersApiExecutionRole", new RoleProps
         {
             RoleName = $"CDK-{props.SharedProps.ServiceName}-Orders-{props.SharedProps.Env}-ExecutionRole",
             AssumedBy = new ServicePrincipal("ecs-tasks.amazonaws.com")
@@ -175,14 +175,14 @@ public class OrdersApi : Construct
         executionRole.AddManagedPolicy(
             ManagedPolicy.FromAwsManagedPolicyName("service-role/AmazonECSTaskExecutionRolePolicy"));
 
-        var taskRole = new Role(this, "OrdersApiTaskRole", new RoleProps()
+        var taskRole = new Role(this, "OrdersApiTaskRole", new RoleProps
         {
             RoleName = $"CDK-{props.SharedProps.ServiceName}-Orders-{props.SharedProps.Env}-TaskRole",
             AssumedBy = new ServicePrincipal("ecs-tasks.amazonaws.com")
         });
         taskRole.AddManagedPolicy(
             ManagedPolicy.FromAwsManagedPolicyName("service-role/AmazonECSTaskExecutionRolePolicy"));
-        
+
 
         var application = new ApplicationLoadBalancedFargateService(this, "OrdersService",
             new ApplicationLoadBalancedFargateServiceProps
@@ -215,17 +215,17 @@ public class OrdersApi : Construct
                         { "DD_SERVICE", props.SharedProps.ServiceName },
                         { "DD_ENV", props.SharedProps.Env },
                         { "DD_VERSION", props.SharedProps.Version },
-                        { "DD_DATA_STREAMS_ENABLED", "true" },
+                        { "DD_DATA_STREAMS_ENABLED", "true" }
                     },
                     DockerLabels = new Dictionary<string, string>(3)
                     {
-                        {"com.datadoghq.tags.env", props.SharedProps.Env },
-                        {"com.datadoghq.tags.service", props.SharedProps.ServiceName },
-                        {"com.datadoghq.tags.version", props.SharedProps.Version },
+                        { "com.datadoghq.tags.env", props.SharedProps.Env },
+                        { "com.datadoghq.tags.service", props.SharedProps.ServiceName },
+                        { "com.datadoghq.tags.version", props.SharedProps.Version }
                     },
                     ContainerPort = 8080,
                     ContainerName = "DotnetInventoryApi",
-                    LogDriver = LogDrivers.Firelens(new FireLensLogDriverProps()
+                    LogDriver = LogDrivers.Firelens(new FireLensLogDriverProps
                     {
                         Options = new Dictionary<string, string>
                         {
@@ -244,7 +244,7 @@ public class OrdersApi : Construct
                 PublicLoadBalancer = true
             });
 
-        var allowHttpSecurityGroup = new SecurityGroup(this, "AllowHttpSecurityGroup", new SecurityGroupProps()
+        var allowHttpSecurityGroup = new SecurityGroup(this, "AllowHttpSecurityGroup", new SecurityGroupProps
         {
             Vpc = vpc,
             SecurityGroupName = "AllowHttpSecurityGroup",
@@ -253,7 +253,7 @@ public class OrdersApi : Construct
         allowHttpSecurityGroup.AddIngressRule(Peer.AnyIpv4(), Port.Tcp(80));
         application.LoadBalancer.AddSecurityGroup(allowHttpSecurityGroup);
 
-        application.TaskDefinition.AddFirelensLogRouter("firelens", new FirelensLogRouterDefinitionOptions()
+        application.TaskDefinition.AddFirelensLogRouter("firelens", new FirelensLogRouterDefinitionOptions
         {
             Essential = true,
             Image = ContainerImage.FromRegistry("amazon/aws-for-fluent-bit:stable"),
@@ -261,7 +261,7 @@ public class OrdersApi : Construct
             FirelensConfig = new FirelensConfig
             {
                 Type = FirelensLogRouterType.FLUENTBIT,
-                Options = new FirelensOptions()
+                Options = new FirelensOptions
                 {
                     EnableECSLogMetadata = true
                 }
@@ -278,7 +278,7 @@ public class OrdersApi : Construct
         props.SharedProps.DDApiKeySecret.GrantRead(taskRole);
         props.SharedProps.DDApiKeySecret.GrantRead(executionRole);
 
-        application.TargetGroup.ConfigureHealthCheck(new HealthCheck()
+        application.TargetGroup.ConfigureHealthCheck(new HealthCheck
         {
             Port = "8080",
             Path = "/health",
@@ -312,7 +312,7 @@ public class OrdersApi : Construct
                 { "DD_SERVICE", props.SharedProps.ServiceName },
                 { "DD_VERSION", props.SharedProps.Version },
                 { "DD_APM_IGNORE_RESOURCES", "GET /health" },
-                { "DD_DATA_STREAMS_ENABLED", "true" },
+                { "DD_DATA_STREAMS_ENABLED", "true" }
             },
             Secrets = new Dictionary<string, Secret>
             {
@@ -324,14 +324,14 @@ public class OrdersApi : Construct
         new StringParameter(this, "ApiGatewayEndpoint", new StringParameterProps
         {
             ParameterName = $"/{props.SharedProps.Env}/{props.SharedProps.ServiceName}/api-endpoint",
-            StringValue = $"http://{application.LoadBalancer.LoadBalancerDnsName}",
+            StringValue = $"http://{application.LoadBalancer.LoadBalancerDnsName}"
         });
 
         CreateApiGatewayForAlb(props, application);
 
         return application;
     }
-    
+
     private IRestApi CreateApiGatewayForAlb(OrdersApiProps props, ApplicationLoadBalancedFargateService application)
     {
         var api = new RestApi(this, "OrdersApi", new RestApiProps
@@ -340,7 +340,7 @@ public class OrdersApi : Construct
             Description = "API Gateway for Orders Service",
             DeployOptions = new StageOptions
             {
-                StageName = props.SharedProps.Env,
+                StageName = props.SharedProps.Env
             },
             DefaultCorsPreflightOptions = new CorsOptions
             {
@@ -352,7 +352,7 @@ public class OrdersApi : Construct
 
         // Create integration with the ALB
         var albDnsName = application.LoadBalancer.LoadBalancerDnsName;
-        var integration = new HttpIntegration($"http://{albDnsName}/{{proxy}}", new HttpIntegrationProps()
+        var integration = new HttpIntegration($"http://{albDnsName}/{{proxy}}", new HttpIntegrationProps
         {
             HttpMethod = "ANY",
             Proxy = true,
@@ -376,27 +376,27 @@ public class OrdersApi : Construct
                     {
                         "integration.request.path.proxy", "method.request.path.proxy"
                     }
-                },
-            },
+                }
+            }
         });
 
         // Proxy all requests to the ALB
         var proxyResource = api.Root.AddResource("{proxy+}");
         proxyResource.AddMethod("ANY", integration, new MethodOptions
         {
-            RequestParameters = new Dictionary<string, bool>()
+            RequestParameters = new Dictionary<string, bool>
             {
-                {"method.request.path.proxy", true} 
+                { "method.request.path.proxy", true }
             },
-            MethodResponses = new[] 
+            MethodResponses = new[]
             {
                 new MethodResponse
                 {
                     StatusCode = "200",
                     ResponseParameters = new Dictionary<string, bool>
                     {
-                        {"method.response.header.Access-Control-Allow-Origin", true}
-                    },
+                        { "method.response.header.Access-Control-Allow-Origin", true }
+                    }
                 }
             }
         });
@@ -404,18 +404,18 @@ public class OrdersApi : Construct
         // Also route the root path
         api.Root.AddMethod("ANY", integration, new MethodOptions
         {
-            RequestParameters = new Dictionary<string, bool>()
+            RequestParameters = new Dictionary<string, bool>
             {
-                {"method.request.path.proxy", true} 
+                { "method.request.path.proxy", true }
             },
-            MethodResponses = new[] 
+            MethodResponses = new[]
             {
                 new MethodResponse
                 {
                     StatusCode = "200",
                     ResponseParameters = new Dictionary<string, bool>
                     {
-                        {"method.response.header.Access-Control-Allow-Origin", true}
+                        { "method.response.header.Access-Control-Allow-Origin", true }
                     }
                 }
             }
