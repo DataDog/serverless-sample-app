@@ -221,43 +221,55 @@ func (repo *DSqlProductRepository) Delete(ctx context.Context, productId string)
 
 func (repo *DSqlProductRepository) List(ctx context.Context) ([]core.Product, error) {
 	rows, err := repo.conn.QueryContext(ctx, `
-		SELECT id, name, price, stock_level
-		FROM products
+		SELECT 
+			p.id AS product_id, 
+			p.name AS product_name, 
+			p.price AS product_price, 
+			p.stock_level AS product_stock_level, 
+			pp.quantity AS price_quantity, 
+			pp.price AS price_value
+		FROM products p
+		LEFT JOIN product_prices pp ON p.id = pp.product_id
 	`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var products []core.Product
+	productMap := make(map[string]*core.Product)
 	for rows.Next() {
-		var p core.Product
-		if err := rows.Scan(&p.Id, &p.Name, &p.Price, &p.StockLevel); err != nil {
+		var productId string
+		var productName string
+		var productPrice float64
+		var productStockLevel float64
+		var priceQuantity sql.NullInt32
+		var priceValue sql.NullFloat64
+
+		if err := rows.Scan(&productId, &productName, &productPrice, &productStockLevel, &priceQuantity, &priceValue); err != nil {
 			return nil, err
 		}
 
-		// Get price brackets for each product
-		pbRows, err := repo.conn.QueryContext(ctx, `
-			SELECT quantity, price
-			FROM product_prices
-			WHERE product_id = $1
-		`, p.Id)
-		if err != nil {
-			return nil, err
-		}
-		var priceBrackets []core.ProductPrice
-		for pbRows.Next() {
-			var pb core.ProductPrice
-			if err := pbRows.Scan(&pb.Quantity, &pb.Price); err != nil {
-				pbRows.Close()
-				return nil, err
+		if _, exists := productMap[productId]; !exists {
+			productMap[productId] = &core.Product{
+				Id:           productId,
+				Name:         productName,
+				Price:        productPrice,
+				StockLevel:   productStockLevel,
+				PriceBreakdown: []core.ProductPrice{},
 			}
-			priceBrackets = append(priceBrackets, pb)
 		}
-		pbRows.Close()
-		p.PriceBreakdown = priceBrackets
 
-		products = append(products, p)
+		if priceQuantity.Valid && priceValue.Valid {
+			productMap[productId].PriceBreakdown = append(productMap[productId].PriceBreakdown, core.ProductPrice{
+				Quantity: int(priceQuantity.Int32),
+				Price:    priceValue.Float64,
+			})
+		}
+	}
+
+	var products []core.Product
+	for _, product := range productMap {
+		products = append(products, *product)
 	}
 	return products, nil
 }
