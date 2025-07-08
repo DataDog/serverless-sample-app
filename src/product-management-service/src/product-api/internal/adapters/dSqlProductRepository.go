@@ -9,6 +9,7 @@ package adapters
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/url"
@@ -21,6 +22,7 @@ import (
 	_ "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dsql/auth"
+
 	// Keep this as the underlying driver
 	"github.com/jmoiron/sqlx"
 	sqltrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
@@ -240,8 +242,8 @@ func (repo *DSqlProductRepository) List(ctx context.Context) ([]core.Product, er
 	for rows.Next() {
 		var productId string
 		var productName string
-		var productPrice float64
-		var productStockLevel float64
+		var productPrice float32
+		var productStockLevel float32
 		var priceQuantity sql.NullInt32
 		var priceValue sql.NullFloat64
 
@@ -251,10 +253,10 @@ func (repo *DSqlProductRepository) List(ctx context.Context) ([]core.Product, er
 
 		if _, exists := productMap[productId]; !exists {
 			productMap[productId] = &core.Product{
-				Id:           productId,
-				Name:         productName,
-				Price:        productPrice,
-				StockLevel:   productStockLevel,
+				Id:             productId,
+				Name:           productName,
+				Price:          productPrice,
+				StockLevel:     productStockLevel,
 				PriceBreakdown: []core.ProductPrice{},
 			}
 		}
@@ -262,7 +264,7 @@ func (repo *DSqlProductRepository) List(ctx context.Context) ([]core.Product, er
 		if priceQuantity.Valid && priceValue.Valid {
 			productMap[productId].PriceBreakdown = append(productMap[productId].PriceBreakdown, core.ProductPrice{
 				Quantity: int(priceQuantity.Int32),
-				Price:    priceValue.Float64,
+				Price:    float32(priceValue.Float64),
 			})
 		}
 	}
