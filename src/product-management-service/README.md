@@ -2,7 +2,7 @@
 
 **Runtime: GoLang**
 
-**AWS Services Used: API Gateway, Lambda, DynamoDB, SNS, SQS, EventBridge**
+**AWS Services Used: API Gateway, Lambda, Aurora DSQL, SNS, SQS, EventBridge**
 
 ![Architecture Diagram](../../img/product-service-arch.png)
 
