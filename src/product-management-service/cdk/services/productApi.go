@@ -10,6 +10,7 @@ package services
 import (
 	sharedconstructs "cdk/sharedConstructs"
 	"fmt"
+
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
@@ -50,7 +51,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	dsqlConnectPolicyStatement := awsiam.NewPolicyStatement(&awsiam.PolicyStatementProps{
 		Effect:    awsiam.Effect_ALLOW,
 		Actions:   jsii.Strings("dsql:DbConnectAdmin"),
-		Resources: jsii.Strings(clusterArn),
+		Resources: jsii.Strings(*clusterArn),
 	})
 
 	// Create the policy
