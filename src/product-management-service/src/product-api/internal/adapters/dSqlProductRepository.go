@@ -21,7 +21,7 @@ import (
 	_ "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dsql/auth"
-	_ "github.com/jackc/pgx/v5/stdlib" // Keep this as the underlying driver
+	// Keep this as the underlying driver
 	"github.com/jmoiron/sqlx"
 	sqltrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
 )
