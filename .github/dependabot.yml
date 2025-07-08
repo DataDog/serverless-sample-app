@@ -2,32 +2,43 @@ version: 2
 updates:
 
   - package-ecosystem: "maven"
-    directory: "/src/java"
+    directory: "/src/inventory-service"
     schedule:
       interval: "monthly"
 
   - package-ecosystem: "npm"
     directories:
-      - "/src/nodejs"
-      - "/src/rust"
+      - "/src/loyalty-point-service"
+      - "/src/pricing-service"
+      - "/src/user-management-service"
     schedule:
       interval: "monthly"
 
   - package-ecosystem: "nuget"
-    directory: "/src/dotnet"
+    directory: "/src/order-service"
     schedule:
       interval: "monthly"
 
   - package-ecosystem: "terraform"
     directories:
-      - "/src/java/infra"
-      - "/src/nodejs/infra"
-      - "/src/dotnet/infra"
+      - "/src/inventory-service/infra"
+      - "/src/loyalty-point-service/infra"
+      - "/src/pricing-service/infra"
+      - "/src/user-management-service/infra"
+      - "/src/order-service/infra"
+      - "/src/product-management-service/infra"
+      - "/src/activity-service/infra"
     schedule:
       interval: "monthly"
 
   - package-ecosystem: "cargo"
     directories:
-      - "/src/rust"
+      - "/src/user-management-service"
+    schedule:
+      interval: "monthly"
+
+  - package-ecosystem: "pip"
+    directories:
+      - "/src/activity-service"
     schedule:
       interval: "monthly"

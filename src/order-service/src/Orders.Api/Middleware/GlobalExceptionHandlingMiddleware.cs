@@ -3,7 +3,9 @@
 // Copyright 2025 Datadog, Inc.
 
 using System.Text.Json;
+using Orders.Api.Models;
 using Orders.Core;
+using Orders.Core.Domain.Exceptions;
 
 namespace Orders.Api.Middleware;
 
@@ -37,27 +39,72 @@ public class GlobalExceptionHandlingMiddleware
     private static Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
+        var correlationId = context.Items["CorrelationId"]?.ToString() ?? context.TraceIdentifier;
         
-        var statusCode = exception switch
+        var (statusCode, errorCode, message, details) = exception switch
         {
-            OrderNotConfirmedException => StatusCodes.Status400BadRequest,
-            KeyNotFoundException => StatusCodes.Status404NotFound,
-            ArgumentException => StatusCodes.Status400BadRequest,
-            UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
-            _ => StatusCodes.Status500InternalServerError
+            OrderValidationException validationEx => (
+                StatusCodes.Status400BadRequest,
+                ErrorCodes.ValidationError,
+                "Order validation failed",
+                validationEx.Message
+            ),
+            Orders.Core.Domain.Exceptions.OrderNotConfirmedException => (
+                StatusCodes.Status409Conflict,
+                ErrorCodes.InvalidState,
+                "Order must be confirmed before this operation",
+                exception.Message
+            ),
+            InvalidOrderStateException => (
+                StatusCodes.Status409Conflict,
+                ErrorCodes.InvalidState,
+                "Invalid order state transition",
+                exception.Message
+            ),
+            OrderNotFoundException => (
+                StatusCodes.Status404NotFound,
+                ErrorCodes.NotFound,
+                "Order not found",
+                exception.Message
+            ),
+            WorkflowException => (
+                StatusCodes.Status503ServiceUnavailable,
+                ErrorCodes.ServiceUnavailable,
+                "Workflow service unavailable",
+                "The order workflow service is currently unavailable. Please try again later."
+            ),
+            ArgumentException => (
+                StatusCodes.Status400BadRequest,
+                ErrorCodes.ValidationError,
+                "Invalid input provided",
+                exception.Message
+            ),
+            UnauthorizedAccessException => (
+                StatusCodes.Status401Unauthorized,
+                ErrorCodes.Unauthorized,
+                "Authentication required",
+                "Valid authentication credentials are required to access this resource"
+            ),
+            _ => (
+                StatusCodes.Status500InternalServerError,
+                ErrorCodes.InternalError,
+                "An unexpected error occurred",
+                "An internal server error occurred. Please try again later."
+            )
         };
 
         context.Response.StatusCode = statusCode;
 
-        var response = new 
-        {
-            StatusCode = statusCode,
-            Message = exception.Message,
-            TraceId = context.TraceIdentifier
-        };
+        var errorResponse = new ErrorResponse(
+            errorCode,
+            message,
+            details,
+            null,
+            correlationId
+        );
 
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         
-        return context.Response.WriteAsync(JsonSerializer.Serialize(response, options));
+        return context.Response.WriteAsync(JsonSerializer.Serialize(errorResponse, options));
     }
 } 

@@ -51,7 +51,7 @@ resource "aws_iam_role_policy_attachment" "additional_execution_role_policy_atta
 
 module "datadog_ecs_fargate_task" {
   source  = "DataDog/ecs-datadog/aws//modules/ecs_fargate"
-  version = "0.2.0-beta"
+  version = "1.0.3"
 
   # Configure Datadog
   dd_api_key_secret = {
