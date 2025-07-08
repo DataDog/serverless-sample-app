@@ -23,10 +23,8 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
-	awscfg "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-
 	ddlambda "github.com/DataDog/datadog-lambda-go"
+	awscfg "github.com/aws/aws-sdk-go-v2/config"
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
@@ -37,8 +35,9 @@ var (
 		awstrace.AppendMiddleware(&awsCfg)
 		return awsCfg
 	}()
-	handler = core.NewProductStockUpdatedEventHandler(
-		adapters.NewDynamoDbProductRepository(*dynamodb.NewFromConfig(awsCfg), os.Getenv("TABLE_NAME")))
+	dSqlProductRepository, _ = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
+	handler                  = core.NewProductStockUpdatedEventHandler(
+		dSqlProductRepository)
 )
 
 func functionHandler(ctx context.Context, request events.SNSEvent) {
