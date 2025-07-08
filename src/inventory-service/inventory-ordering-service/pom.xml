@@ -19,7 +19,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <wrapper.version>1.0.29.RELEASE</wrapper.version>
-        <aws-lambda-events.version>3.15.0</aws-lambda-events.version>
+        <aws-lambda-events.version>3.16.0</aws-lambda-events.version>
         <spring-cloud-function.version>4.3.0</spring-cloud-function.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
@@ -53,7 +53,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.19.0</version>
+            <version>2.19.1</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
