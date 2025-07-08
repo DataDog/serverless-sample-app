@@ -18,6 +18,7 @@ type ProductRepository interface {
 	Get(ctx context.Context, productId string) (*Product, error)
 	Delete(ctx context.Context, productId string)
 	List(ctx context.Context) ([]Product, error)
+	ApplyMigrations(ctx context.Context) error
 }
 
 type Product struct {

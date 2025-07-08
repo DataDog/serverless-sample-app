@@ -16,12 +16,10 @@ import (
 	"product-api/internal/adapters"
 	"product-api/internal/utils"
 
+	ddlambda "github.com/DataDog/datadog-lambda-go"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-
-	ddlambda "github.com/DataDog/datadog-lambda-go"
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
 )
 
@@ -31,9 +29,9 @@ var (
 		awstrace.AppendMiddleware(&awsCfg)
 		return awsCfg
 	}()
-	dynamoDbRepository   = adapters.NewDynamoDbProductRepository(*dynamodb.NewFromConfig(awsCfg), os.Getenv("TABLE_NAME"))
-	createProductHandler = core.NewCreateProductCommandHandler(dynamoDbRepository, adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg)))
-	handler              = core.NewListProductsQueryHandler(dynamoDbRepository)
+	dSqlProductRepository, _ = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
+	createProductHandler     = core.NewCreateProductCommandHandler(dSqlProductRepository, adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg)))
+	handler                  = core.NewListProductsQueryHandler(dSqlProductRepository)
 )
 
 func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -47,6 +45,7 @@ func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest)
 }
 
 func main() {
+
 	// Seed database on first call
 	_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Flat White", Price: 3.5})
 	_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Espresso", Price: 2.99})

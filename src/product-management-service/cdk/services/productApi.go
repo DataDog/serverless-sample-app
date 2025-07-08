@@ -9,10 +9,12 @@ package services
 
 import (
 	sharedconstructs "cdk/sharedConstructs"
+	"fmt"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
-	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsdsql"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssns"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsssm"
 	"github.com/aws/constructs-go/constructs/v10"
@@ -24,26 +26,34 @@ type ProductApiProps struct {
 }
 
 type ProductApi struct {
-	Table               awsdynamodb.Table
-	ProductCreatedTopic awssns.Topic
-	ProductUpdatedTopic awssns.Topic
-	ProductDeletedTopic awssns.Topic
+	Database                    awsdsql.CfnCluster
+	DatabaseClusterAccessPolicy awsiam.Policy
+	DatabaseClusterEndpoint     *string
+	ProductCreatedTopic         awssns.Topic
+	ProductUpdatedTopic         awssns.Topic
+	ProductDeletedTopic         awssns.Topic
 }
 
 func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps) ProductApi {
+	region := awscdk.Stack_Of(scope).Region()
+
 	productCreatedTopic := awssns.NewTopic(scope, jsii.String("ProductCreatedTopic"), &awssns.TopicProps{})
 	productUpdatedTopic := awssns.NewTopic(scope, jsii.String("ProductUpdatedTopic"), &awssns.TopicProps{})
 	productDeletedTopic := awssns.NewTopic(scope, jsii.String("ProductDeletedTopic"), &awssns.TopicProps{})
 
-	table := awsdynamodb.NewTable(scope, jsii.String("ProductsTable"), &awsdynamodb.TableProps{
-		TableName:   jsii.Sprintf("%s-Products-%s", props.ServiceProps.SharedProps.ServiceName, props.ServiceProps.SharedProps.Env),
-		TableClass:  awsdynamodb.TableClass_STANDARD,
-		BillingMode: awsdynamodb.BillingMode_PAY_PER_REQUEST,
-		PartitionKey: &awsdynamodb.Attribute{
-			Name: jsii.String("PK"),
-			Type: awsdynamodb.AttributeType_STRING,
-		},
-		RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
+	dsqlCluster := awsdsql.NewCfnCluster(scope, jsii.String("DSQLCluster"), &awsdsql.CfnClusterProps{
+		DeletionProtectionEnabled: jsii.Bool(false),
+	})
+	databaseClusterEndpoint := jsii.String(fmt.Sprintf("%s.dsql.%s.on.aws", *dsqlCluster.GetAtt(jsii.String("Identifier"), awscdk.ResolutionTypeHint_STRING).ToString(), *region))
+	dsqlConnectPolicyStatement := awsiam.NewPolicyStatement(&awsiam.PolicyStatementProps{
+		Effect:    awsiam.Effect_ALLOW,
+		Actions:   jsii.Strings("dsql:DbConnectAdmin"),
+		Resources: jsii.Strings("*"),
+	})
+
+	// Create the policy
+	dSqlConnectPolicy := awsiam.NewPolicy(scope, jsii.String("DbConnectPolicy"), &awsiam.PolicyProps{
+		Statements: &[]awsiam.PolicyStatement{dsqlConnectPolicyStatement},
 	})
 
 	api := awsapigateway.NewRestApi(scope, jsii.String("ProductApi"), &awsapigateway.RestApiProps{
@@ -56,11 +66,11 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	})
 
 	environmentVariables := make(map[string]*string)
-	environmentVariables["TABLE_NAME"] = jsii.String(*table.TableName())
 	environmentVariables["PRODUCT_CREATED_TOPIC_ARN"] = jsii.String(*productCreatedTopic.TopicArn())
 	environmentVariables["PRODUCT_UPDATED_TOPIC_ARN"] = jsii.String(*productUpdatedTopic.TopicArn())
 	environmentVariables["PRODUCT_DELETED_TOPIC_ARN"] = jsii.String(*productDeletedTopic.TopicArn())
 	environmentVariables["JWT_SECRET_PARAM_NAME"] = props.ServiceProps.JwtSecretAccessKeyParam.ParameterName()
+	environmentVariables["DSQL_CLUSTER_ENDPOINT"] = databaseClusterEndpoint
 
 	listProductsFunction := sharedconstructs.NewInstrumentedFunction(scope, "ListProductsFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,
@@ -69,8 +79,8 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		EnvironmentVariables: environmentVariables,
 	})
 
-	table.GrantReadWriteData(listProductsFunction.Function)
 	productCreatedTopic.GrantPublish(listProductsFunction.Function)
+	listProductsFunction.Function.Role().AttachInlinePolicy(dSqlConnectPolicy)
 
 	createProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "CreateProductFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,
@@ -78,9 +88,9 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		FunctionName:         "CreateProduct",
 		EnvironmentVariables: environmentVariables,
 	})
-	table.GrantReadWriteData(createProductFunction.Function)
 	productCreatedTopic.GrantPublish(createProductFunction.Function)
 	props.ServiceProps.JwtSecretAccessKeyParam.GrantRead(createProductFunction.Function)
+	createProductFunction.Function.Role().AttachInlinePolicy(dSqlConnectPolicy)
 
 	getProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "GetProductFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,
@@ -88,8 +98,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		FunctionName:         "GetProduct",
 		EnvironmentVariables: environmentVariables,
 	})
-
-	table.GrantReadData(getProductFunction.Function)
+	getProductFunction.Function.Role().AttachInlinePolicy(dSqlConnectPolicy)
 
 	updateProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "UpdateProductFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,
@@ -97,9 +106,9 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		FunctionName:         "UpdateProduct",
 		EnvironmentVariables: environmentVariables,
 	})
-	table.GrantReadWriteData(updateProductFunction.Function)
 	productUpdatedTopic.GrantPublish(updateProductFunction.Function)
 	props.ServiceProps.JwtSecretAccessKeyParam.GrantRead(updateProductFunction.Function)
+	updateProductFunction.Function.Role().AttachInlinePolicy(dSqlConnectPolicy)
 
 	deleteProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "DeleteProductFunction", &sharedconstructs.InstrumentedFunctionProps{
 		SharedProps:          props.ServiceProps.SharedProps,
@@ -107,9 +116,9 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		FunctionName:         "DeleteProduct",
 		EnvironmentVariables: environmentVariables,
 	})
-	table.GrantReadWriteData(deleteProductFunction.Function)
 	productDeletedTopic.GrantPublish(deleteProductFunction.Function)
 	props.ServiceProps.JwtSecretAccessKeyParam.GrantRead(deleteProductFunction.Function)
+	deleteProductFunction.Function.Role().AttachInlinePolicy(dSqlConnectPolicy)
 
 	productResource := api.Root().AddResource(jsii.String("product"), &awsapigateway.ResourceOptions{})
 
@@ -127,10 +136,17 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		StringValue:   api.Url(),
 	})
 
+	awsssm.NewStringParameter(scope, jsii.String("ProductDbClusterEndpoint"), &awsssm.StringParameterProps{
+		ParameterName: jsii.Sprintf("/%s/%s/cluster-endpoint", props.ServiceProps.SharedProps.Env, props.ServiceProps.SharedProps.ServiceName),
+		StringValue:   databaseClusterEndpoint,
+	})
+
 	return ProductApi{
-		Table:               table,
-		ProductCreatedTopic: productCreatedTopic,
-		ProductUpdatedTopic: productUpdatedTopic,
-		ProductDeletedTopic: productDeletedTopic,
+		DatabaseClusterEndpoint:     databaseClusterEndpoint,
+		DatabaseClusterAccessPolicy: dSqlConnectPolicy,
+		Database:                    dsqlCluster,
+		ProductCreatedTopic:         productCreatedTopic,
+		ProductUpdatedTopic:         productUpdatedTopic,
+		ProductDeletedTopic:         productDeletedTopic,
 	}
 }
