@@ -45,10 +45,12 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		DeletionProtectionEnabled: jsii.Bool(false),
 	})
 	databaseClusterEndpoint := jsii.String(fmt.Sprintf("%s.dsql.%s.on.aws", *dsqlCluster.GetAtt(jsii.String("Identifier"), awscdk.ResolutionTypeHint_STRING).ToString(), *region))
+	clusterIdentifier := dsqlCluster.GetAtt(jsii.String("Identifier"), awscdk.ResolutionTypeHint_STRING).ToString()
+	clusterArn := jsii.String(fmt.Sprintf("arn:aws:dsql:%s:%s:cluster/%s", *region, *awscdk.Stack_Of(scope).Account(), *clusterIdentifier))
 	dsqlConnectPolicyStatement := awsiam.NewPolicyStatement(&awsiam.PolicyStatementProps{
 		Effect:    awsiam.Effect_ALLOW,
 		Actions:   jsii.Strings("dsql:DbConnectAdmin"),
-		Resources: jsii.Strings("*"),
+		Resources: jsii.Strings(clusterArn),
 	})
 
 	// Create the policy
