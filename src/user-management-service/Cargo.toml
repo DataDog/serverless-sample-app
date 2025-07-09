@@ -5,9 +5,18 @@ members = [
   "src/user-management/lambdas/get_user_details",
   "src/user-management/lambdas/login",
   "src/user-management/lambdas/handle_order_completed_for_user",
+  "src/user-management/lambdas/oauth_authorize",
+  "src/user-management/lambdas/oauth_authorize_callback",
+  "src/user-management/lambdas/oauth_client_get",
+  "src/user-management/lambdas/oauth_client_delete",
+  "src/user-management/lambdas/oauth_client_update",
+  "src/user-management/lambdas/oauth_dcr",
+  "src/user-management/lambdas/oauth_introspect",
+  "src/user-management/lambdas/oauth_revoke",
+  "src/user-management/lambdas/oauth_token",
   "src/user-management/core",
   "src/integration_tests",
-  "src/observability"
+  "src/observability",
 ]
 
 [workspace.dependencies]

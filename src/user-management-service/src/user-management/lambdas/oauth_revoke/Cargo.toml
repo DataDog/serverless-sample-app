@@ -1,0 +1,16 @@
+[package]
+name = "oauth_revoke"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+observability = {path = "../../../observability"}
+shared = { path = "../../core" }
+lambda_http = "0.15"
+aws-config = { version = "1.5", features = ["behavior-version-latest"] }
+aws-sdk-dynamodb = "1.67"
+aws-sdk-ssm = "1.67"
+
+tokio = {workspace = true}
+tracing = {workspace = true}
+tracing-subscriber = {workspace = true}

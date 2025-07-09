@@ -1676,6 +1676,141 @@ dependencies = [
 ]
 
 [[package]]
+name = "oauth_authorize"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "aws-sdk-ssm",
+ "lambda_http",
+ "observability",
+ "shared",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "oauth_authorize_callback"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "aws-sdk-ssm",
+ "lambda_http",
+ "observability",
+ "shared",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "oauth_client_delete"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "aws-sdk-ssm",
+ "lambda_http",
+ "observability",
+ "shared",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "oauth_client_get"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "aws-sdk-ssm",
+ "lambda_http",
+ "observability",
+ "shared",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "oauth_client_update"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "aws-sdk-ssm",
+ "lambda_http",
+ "observability",
+ "shared",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "oauth_dcr"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "aws-sdk-ssm",
+ "lambda_http",
+ "observability",
+ "shared",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "oauth_introspect"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "aws-sdk-ssm",
+ "lambda_http",
+ "observability",
+ "shared",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "oauth_revoke"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "aws-sdk-ssm",
+ "lambda_http",
+ "observability",
+ "shared",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "oauth_token"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "aws-sdk-ssm",
+ "lambda_http",
+ "observability",
+ "shared",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "object"
 version = "0.36.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2486,15 +2621,18 @@ dependencies = [
  "async-trait",
  "aws-sdk-dynamodb",
  "aws-sdk-eventbridge",
+ "base64 0.21.7",
  "chrono",
  "jsonwebtoken",
  "lambda_http",
  "observability",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 2.0.12",
  "tracing",
  "tracing-opentelemetry",
+ "uuid",
 ]
 
 [[package]]
