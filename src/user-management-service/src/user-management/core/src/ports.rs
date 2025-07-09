@@ -1,18 +1,23 @@
 use crate::{
-    core::{EventPublisher, Repository, RepositoryError, User, UserDTO, OAuthClient, OAuthClientDTO, 
-           OAuthClientCreatedDTO, GrantType, TokenEndpointAuthMethod, AuthorizationCode, OAuthToken},
+    core::{
+        AuthorizationCode, EventPublisher, GrantType, OAuthClient, OAuthClientCreatedDTO,
+        OAuthClientDTO, OAuthToken, Repository, RepositoryError, TokenEndpointAuthMethod, User,
+        UserDTO,
+    },
     tokens::TokenGenerator,
 };
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
+use chrono::{Duration, Utc};
+use lambda_http::tracing::log::warn;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing::Span;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
+use urlencoding::decode;
 use uuid::Uuid;
-use chrono::{Utc, Duration};
 
 #[derive(Error, Debug)]
 pub enum ApplicationError {
@@ -178,7 +183,7 @@ pub async fn handle_login<TRepo: Repository>(
 #[serde(rename_all = "camelCase")]
 pub struct OrderCompleted {
     order_number: String,
-    user_id: String
+    user_id: String,
 }
 
 impl OrderCompleted {
@@ -188,19 +193,14 @@ impl OrderCompleted {
     ) -> Result<(), ApplicationError> {
         Span::current().set_attribute("user.id", self.user_id.clone());
         Span::current().set_attribute("order.number", self.order_number.clone());
-        
-        let mut user = repository
-            .get_user(&self.user_id)
-            .await
-            .map_err(|e| {
-                return match e {
-                    RepositoryError::NotFound => ApplicationError::NotFound,
-                    RepositoryError::InternalError(e) => {
-                        ApplicationError::InternalError(e.to_string())
-                    }
-                    _ => ApplicationError::InternalError(e.to_string()),
-                };
-            })?;
+
+        let mut user = repository.get_user(&self.user_id).await.map_err(|e| {
+            return match e {
+                RepositoryError::NotFound => ApplicationError::NotFound,
+                RepositoryError::InternalError(e) => ApplicationError::InternalError(e.to_string()),
+                _ => ApplicationError::InternalError(e.to_string()),
+            };
+        })?;
 
         user.order_placed();
 
@@ -221,11 +221,6 @@ pub struct CreateOAuthClientCommand {
     #[serde(rename = "grantTypes")]
     pub grant_types: Vec<String>,
     pub scopes: Vec<String>,
-    #[serde(rename = "clientUri")]
-    pub client_uri: Option<String>,
-    #[serde(rename = "logoUri")]
-    pub logo_uri: Option<String>,
-    pub contacts: Vec<String>,
 }
 
 impl CreateOAuthClientCommand {
@@ -235,46 +230,59 @@ impl CreateOAuthClientCommand {
     ) -> Result<OAuthClientCreatedDTO, ApplicationError> {
         // Validate input
         if self.client_name.is_empty() {
-            return Err(ApplicationError::InvalidInput("Client name is required".to_string()));
+            return Err(ApplicationError::InvalidInput(
+                "Client name is required".to_string(),
+            ));
         }
 
         if self.redirect_uris.is_empty() {
-            return Err(ApplicationError::InvalidInput("At least one redirect URI is required".to_string()));
+            return Err(ApplicationError::InvalidInput(
+                "At least one redirect URI is required".to_string(),
+            ));
         }
 
         // Validate redirect URIs
         for uri in &self.redirect_uris {
             if !uri.starts_with("https://") && !uri.starts_with("http://localhost") {
                 return Err(ApplicationError::InvalidInput(
-                    "Redirect URIs must use HTTPS or localhost".to_string()
+                    "Redirect URIs must use HTTPS or localhost".to_string(),
                 ));
             }
         }
 
         // Parse grant types
-        let grant_types: Result<Vec<GrantType>, ApplicationError> = self.grant_types.iter()
+        let grant_types: Result<Vec<GrantType>, ApplicationError> = self
+            .grant_types
+            .iter()
             .map(|s| match s.as_str() {
                 "authorization_code" => Ok(GrantType::AuthorizationCode),
                 "client_credentials" => Ok(GrantType::ClientCredentials),
                 "refresh_token" => Ok(GrantType::RefreshToken),
                 "implicit" => Ok(GrantType::Implicit),
-                _ => Err(ApplicationError::InvalidInput(format!("Invalid grant type: {}", s))),
+                _ => Err(ApplicationError::InvalidInput(format!(
+                    "Invalid grant type: {}",
+                    s
+                ))),
             })
             .collect();
-        
+
         let grant_types = grant_types?;
 
         if grant_types.is_empty() {
-            return Err(ApplicationError::InvalidInput("At least one grant type is required".to_string()));
+            return Err(ApplicationError::InvalidInput(
+                "At least one grant type is required".to_string(),
+            ));
         }
 
         // Validate scopes
         if self.scopes.is_empty() {
-            return Err(ApplicationError::InvalidInput("At least one scope is required".to_string()));
+            return Err(ApplicationError::InvalidInput(
+                "At least one scope is required".to_string(),
+            ));
         }
 
         // Create OAuth client
-        let mut client = OAuthClient::new(
+        let client = OAuthClient::new(
             self.client_name.clone(),
             self.redirect_uris.clone(),
             grant_types,
@@ -282,14 +290,10 @@ impl CreateOAuthClientCommand {
             TokenEndpointAuthMethod::ClientSecretPost,
         );
 
-        // Set optional fields
-        client.client_uri = self.client_uri.clone();
-        client.logo_uri = self.logo_uri.clone();
-        client.contacts = self.contacts.clone();
-
         // Store client
-        repository.create_oauth_client(&client).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to create OAuth client: {}", e)))?;
+        repository.create_oauth_client(&client).await.map_err(|e| {
+            ApplicationError::InternalError(format!("Failed to create OAuth client: {}", e))
+        })?;
 
         // Return created client with secret
         Ok(OAuthClientCreatedDTO {
@@ -297,7 +301,11 @@ impl CreateOAuthClientCommand {
             client_secret: client.client_secret,
             client_name: client.client_name,
             redirect_uris: client.redirect_uris,
-            grant_types: client.grant_types.iter().map(|g| format!("{:?}", g)).collect(),
+            grant_types: client
+                .grant_types
+                .iter()
+                .map(|g| format!("{:?}", g))
+                .collect(),
             scopes: client.scopes,
             created_at: client.created_at,
         })
@@ -315,8 +323,12 @@ impl GetOAuthClientQuery {
         &self,
         repository: &TRepo,
     ) -> Result<OAuthClientDTO, ApplicationError> {
-        let client = repository.get_oauth_client(&self.client_id).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e)))?
+        let client = repository
+            .get_oauth_client(&self.client_id)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e))
+            })?
             .ok_or(ApplicationError::NotFound)?;
 
         Ok(client.as_dto())
@@ -344,8 +356,12 @@ impl UpdateOAuthClientCommand {
         &self,
         repository: &TRepo,
     ) -> Result<OAuthClientDTO, ApplicationError> {
-        let mut client = repository.get_oauth_client(&self.client_id).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e)))?
+        let mut client = repository
+            .get_oauth_client(&self.client_id)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e))
+            })?
             .ok_or(ApplicationError::NotFound)?;
 
         // Validate redirect URIs if provided
@@ -353,7 +369,7 @@ impl UpdateOAuthClientCommand {
             for uri in redirect_uris {
                 if !uri.starts_with("https://") && !uri.starts_with("http://localhost") {
                     return Err(ApplicationError::InvalidInput(
-                        "Redirect URIs must use HTTPS or localhost".to_string()
+                        "Redirect URIs must use HTTPS or localhost".to_string(),
                     ));
                 }
             }
@@ -366,20 +382,10 @@ impl UpdateOAuthClientCommand {
             self.scopes.clone(),
         );
 
-        // Update optional fields
-        if let Some(ref client_uri) = self.client_uri {
-            client.client_uri = Some(client_uri.clone());
-        }
-        if let Some(ref logo_uri) = self.logo_uri {
-            client.logo_uri = Some(logo_uri.clone());
-        }
-        if let Some(ref contacts) = self.contacts {
-            client.contacts = contacts.clone();
-        }
-
         // Save updated client
-        repository.update_oauth_client(&client).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to update OAuth client: {}", e)))?;
+        repository.update_oauth_client(&client).await.map_err(|e| {
+            ApplicationError::InternalError(format!("Failed to update OAuth client: {}", e))
+        })?;
 
         Ok(client.as_dto())
     }
@@ -397,17 +403,29 @@ impl DeleteOAuthClientCommand {
         repository: &TRepo,
     ) -> Result<(), ApplicationError> {
         // Check if client exists
-        let client = repository.get_oauth_client(&self.client_id).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e)))?
+        let client = repository
+            .get_oauth_client(&self.client_id)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e))
+            })?
             .ok_or(ApplicationError::NotFound)?;
 
         // Revoke all tokens for this client
-        repository.revoke_all_tokens_for_client(&client.client_id).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to revoke tokens: {}", e)))?;
+        repository
+            .revoke_all_tokens_for_client(&client.client_id)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to revoke tokens: {}", e))
+            })?;
 
         // Delete the client
-        repository.delete_oauth_client(&self.client_id).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to delete OAuth client: {}", e)))?;
+        repository
+            .delete_oauth_client(&self.client_id)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to delete OAuth client: {}", e))
+            })?;
 
         Ok(())
     }
@@ -424,8 +442,12 @@ impl ListOAuthClientsQuery {
         &self,
         repository: &TRepo,
     ) -> Result<Vec<OAuthClientDTO>, ApplicationError> {
-        let clients = repository.list_oauth_clients(self.page, self.limit).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to list OAuth clients: {}", e)))?;
+        let clients = repository
+            .list_oauth_clients(self.page, self.limit)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to list OAuth clients: {}", e))
+            })?;
 
         Ok(clients.into_iter().map(|c| c.as_dto()).collect())
     }
@@ -444,8 +466,15 @@ impl ValidateClientCredentialsQuery {
         &self,
         repository: &TRepo,
     ) -> Result<bool, ApplicationError> {
-        let is_valid = repository.validate_client_secret(&self.client_id, &self.client_secret).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to validate client credentials: {}", e)))?;
+        let is_valid = repository
+            .validate_client_secret(&self.client_id, &self.client_secret)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!(
+                    "Failed to validate client credentials: {}",
+                    e
+                ))
+            })?;
 
         Ok(is_valid)
     }
@@ -469,6 +498,11 @@ pub struct AuthorizeResponse {
     pub authorization_url: String,
 }
 
+#[derive(Serialize, Clone)]
+pub struct AuthorizeHtmlResponse {
+    pub html_content: String,
+}
+
 impl AuthorizeRequest {
     pub async fn handle<TRepo: Repository>(
         &self,
@@ -476,22 +510,34 @@ impl AuthorizeRequest {
     ) -> Result<AuthorizeResponse, ApplicationError> {
         // Validate response_type
         if self.response_type != "code" {
-            return Err(ApplicationError::InvalidInput("Only 'code' response type is supported".to_string()));
+            return Err(ApplicationError::InvalidInput(
+                "Only 'code' response type is supported".to_string(),
+            ));
         }
 
         // Validate client
-        let client = repository.get_oauth_client(&self.client_id).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e)))?
-            .ok_or(ApplicationError::InvalidInput("Invalid client_id".to_string()))?;
+        let client = repository
+            .get_oauth_client(&self.client_id)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e))
+            })?
+            .ok_or(ApplicationError::InvalidInput(
+                "Invalid client_id".to_string(),
+            ))?;
 
         // Validate redirect_uri
         if !client.redirect_uris.contains(&self.redirect_uri) {
-            return Err(ApplicationError::InvalidInput("Invalid redirect_uri".to_string()));
+            return Err(ApplicationError::InvalidInput(
+                "Invalid redirect_uri".to_string(),
+            ));
         }
 
         // Validate grant type
         if !client.grant_types.contains(&GrantType::AuthorizationCode) {
-            return Err(ApplicationError::InvalidInput("Client not authorized for authorization_code grant".to_string()));
+            return Err(ApplicationError::InvalidInput(
+                "Client not authorized for authorization_code grant".to_string(),
+            ));
         }
 
         // Validate scope
@@ -499,7 +545,10 @@ impl AuthorizeRequest {
             let requested_scopes: Vec<&str> = requested_scope.split(' ').collect();
             for scope in requested_scopes {
                 if !client.scopes.contains(&scope.to_string()) {
-                    return Err(ApplicationError::InvalidInput(format!("Invalid scope: {}", scope)));
+                    return Err(ApplicationError::InvalidInput(format!(
+                        "Invalid scope: {}",
+                        scope
+                    )));
                 }
             }
         }
@@ -516,6 +565,77 @@ impl AuthorizeRequest {
         );
 
         Ok(AuthorizeResponse { authorization_url })
+    }
+
+    pub async fn handle_html<TRepo: Repository>(
+        &self,
+        repository: &TRepo,
+    ) -> Result<AuthorizeHtmlResponse, ApplicationError> {
+        // Validate response_type
+        if self.response_type != "code" {
+            return Err(ApplicationError::InvalidInput(
+                "Only 'code' response type is supported".to_string(),
+            ));
+        }
+
+        // Validate client
+        let client = repository
+            .get_oauth_client(&self.client_id)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e))
+            })?
+            .ok_or(ApplicationError::InvalidInput(
+                "Invalid client_id".to_string(),
+            ))?;
+
+        // Validate redirect_uri
+        if !client.redirect_uris.contains(&self.redirect_uri) {
+            return Err(ApplicationError::InvalidInput(
+                "Invalid redirect_uri".to_string(),
+            ));
+        }
+
+        // Validate grant type
+        if !client.grant_types.contains(&GrantType::AuthorizationCode) {
+            return Err(ApplicationError::InvalidInput(
+                "Client not authorized for authorization_code grant".to_string(),
+            ));
+        }
+
+        // Validate scope
+        if let Some(requested_scope) = &self.scope {
+            let requested_scopes: Vec<&str> = requested_scope.split(' ').collect();
+            for scope in requested_scopes {
+                if !client.scopes.contains(&scope.to_string()) {
+                    return Err(ApplicationError::InvalidInput(format!(
+                        "Invalid scope: {}",
+                        scope
+                    )));
+                }
+            }
+        }
+
+        // Generate HTML login page
+        use crate::html_templates::{generate_csrf_token, LoginPageTemplate};
+
+        let csrf_token = generate_csrf_token();
+        let login_page = LoginPageTemplate::new(
+            self.client_id.clone(),
+            self.redirect_uri.clone(),
+            self.scope.as_deref().unwrap_or("").to_string(),
+            self.state.as_deref().unwrap_or("").to_string(),
+            self.code_challenge.as_deref().unwrap_or("").to_string(),
+            self.code_challenge_method
+                .as_deref()
+                .unwrap_or("")
+                .to_string(),
+            csrf_token,
+        );
+
+        Ok(AuthorizeHtmlResponse {
+            html_content: login_page.render(),
+        })
     }
 }
 
@@ -541,13 +661,21 @@ impl AuthorizeCallbackCommand {
         repository: &TRepo,
     ) -> Result<AuthorizeCallbackResponse, ApplicationError> {
         // Validate client
-        let client = repository.get_oauth_client(&self.client_id).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e)))?
-            .ok_or(ApplicationError::InvalidInput("Invalid client_id".to_string()))?;
+        let client = repository
+            .get_oauth_client(&self.client_id)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e))
+            })?
+            .ok_or(ApplicationError::InvalidInput(
+                "Invalid client_id".to_string(),
+            ))?;
 
         // Validate redirect_uri
         if !client.redirect_uris.contains(&self.redirect_uri) {
-            return Err(ApplicationError::InvalidInput("Invalid redirect_uri".to_string()));
+            return Err(ApplicationError::InvalidInput(
+                "Invalid redirect_uri".to_string(),
+            ));
         }
 
         // Generate authorization code
@@ -559,7 +687,13 @@ impl AuthorizeCallbackCommand {
             client_id: self.client_id.clone(),
             user_id: self.user_id.clone(),
             redirect_uri: self.redirect_uri.clone(),
-            scopes: self.scope.clone().unwrap_or_default().split(' ').map(|s| s.to_string()).collect(),
+            scopes: self
+                .scope
+                .clone()
+                .unwrap_or_default()
+                .split(' ')
+                .map(|s| s.to_string())
+                .collect(),
             code_challenge: self.code_challenge.clone(),
             code_challenge_method: self.code_challenge_method.clone(),
             expires_at: now + Duration::seconds(600), // 10 minutes
@@ -568,8 +702,15 @@ impl AuthorizeCallbackCommand {
         };
 
         // Store authorization code
-        repository.store_authorization_code(&auth_code).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to store authorization code: {}", e)))?;
+        repository
+            .store_authorization_code(&auth_code)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!(
+                    "Failed to store authorization code: {}",
+                    e
+                ))
+            })?;
 
         // Build redirect URL
         let mut redirect_url = format!("{}?code={}", self.redirect_uri, code);
@@ -578,6 +719,165 @@ impl AuthorizeCallbackCommand {
         }
 
         Ok(AuthorizeCallbackResponse { redirect_url })
+    }
+}
+
+#[derive(Deserialize)]
+pub struct LoginFormCommand {
+    pub email: String,
+    pub password: String,
+    pub client_id: String,
+    pub redirect_uri: String,
+    pub scope: String,
+    pub state: String,
+    pub code_challenge: String,
+    pub code_challenge_method: String,
+    pub csrf_token: String,
+    pub action: String,
+}
+
+#[derive(Serialize)]
+pub struct LoginFormResponse {
+    pub success: bool,
+    pub redirect_url: Option<String>,
+    pub html_content: Option<String>,
+}
+
+impl LoginFormCommand {
+    pub async fn handle<TRepo: Repository>(
+        &self,
+        repository: &TRepo,
+    ) -> Result<LoginFormResponse, ApplicationError> {
+        // Validate action
+        if self.action != "login" {
+            return Err(ApplicationError::InvalidInput("Invalid action".to_string()));
+        }
+
+        // Validate client
+        let client = repository
+            .get_oauth_client(&self.client_id)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e))
+            })?
+            .ok_or(ApplicationError::InvalidInput(
+                "Invalid client_id".to_string(),
+            ))?;
+
+        // Validate redirect_uri
+        if !client.redirect_uris.contains(&self.redirect_uri) {
+            return Err(ApplicationError::InvalidInput(
+                "Invalid redirect_uri".to_string(),
+            ));
+        }
+
+        // Authenticate user
+        let user = repository.get_user(&self.email).await;
+
+        let authenticated_user = match user {
+            Ok(u) => {
+                // Validate password using Argon2 (same as existing login logic)
+                use argon2::{Argon2, PasswordHash, PasswordVerifier};
+
+                let parsed_hash = PasswordHash::new(&u.get_password_hash())
+                    .map_err(|_e| ApplicationError::InternalError(_e.to_string()))?;
+
+                let password_valid = Argon2::default()
+                    .verify_password(self.password.as_bytes(), &parsed_hash)
+                    .is_ok();
+
+                if password_valid {
+                    u
+                } else {
+                    // Return HTML login page with error
+                    use crate::html_templates::{generate_csrf_token, LoginPageTemplate};
+
+                    let csrf_token = generate_csrf_token();
+                    let login_page = LoginPageTemplate::new(
+                        self.client_id.clone(),
+                        self.redirect_uri.clone(),
+                        self.scope.clone(),
+                        self.state.clone(),
+                        self.code_challenge.clone(),
+                        self.code_challenge_method.clone(),
+                        csrf_token,
+                    )
+                    .with_error("Invalid email or password".to_string());
+
+                    return Ok(LoginFormResponse {
+                        success: false,
+                        redirect_url: None,
+                        html_content: Some(login_page.render()),
+                    });
+                }
+            }
+            Err(_) => {
+                // Return HTML login page with error
+                use crate::html_templates::{generate_csrf_token, LoginPageTemplate};
+
+                let csrf_token = generate_csrf_token();
+                let login_page = LoginPageTemplate::new(
+                    self.client_id.clone(),
+                    self.redirect_uri.clone(),
+                    self.scope.clone(),
+                    self.state.clone(),
+                    self.code_challenge.clone(),
+                    self.code_challenge_method.clone(),
+                    csrf_token,
+                )
+                .with_error("Invalid email or password".to_string());
+
+                return Ok(LoginFormResponse {
+                    success: false,
+                    redirect_url: None,
+                    html_content: Some(login_page.render()),
+                });
+            }
+        };
+
+        // Generate authorization code (similar to AuthorizeCallbackCommand)
+        let code = Uuid::new_v4().to_string();
+        let now = Utc::now();
+
+        let auth_code = AuthorizationCode {
+            code: code.clone(),
+            client_id: self.client_id.clone(),
+            user_id: match &authenticated_user {
+                User::Standard(details) => details.user_id.clone(),
+                User::Premium(details) => details.user_id.clone(),
+                User::Admin(details) => details.user_id.clone(),
+            },
+            redirect_uri: self.redirect_uri.clone(),
+            scopes: self.scope.split(' ').map(|s| s.to_string()).collect(),
+            code_challenge: Some(self.code_challenge.clone()),
+            code_challenge_method: Some(self.code_challenge_method.clone()),
+            expires_at: now + Duration::seconds(600), // 10 minutes
+            is_used: false,
+            created_at: now,
+        };
+
+        // Store authorization code
+        repository
+            .store_authorization_code(&auth_code)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!(
+                    "Failed to store authorization code: {}",
+                    e
+                ))
+            })?;
+
+        // Build redirect URL
+        let mut redirect_url = format!("{}?code={}", self.redirect_uri, code);
+        if !self.state.is_empty() {
+            redirect_url.push_str(&format!("&state={}", self.state));
+        }
+
+        Ok(LoginFormResponse {
+            success: true,
+            redirect_url: Some(redirect_url),
+            html_content: None,
+        })
     }
 }
 
@@ -609,10 +909,18 @@ impl TokenRequest {
         token_generator: &TokenGenerator,
     ) -> Result<TokenResponse, ApplicationError> {
         match self.grant_type.as_str() {
-            "authorization_code" => self.handle_authorization_code(repository, token_generator).await,
+            "authorization_code" => {
+                self.handle_authorization_code(repository, token_generator)
+                    .await
+            }
             "refresh_token" => self.handle_refresh_token(repository, token_generator).await,
-            "client_credentials" => self.handle_client_credentials(repository, token_generator).await,
-            _ => Err(ApplicationError::InvalidInput("Unsupported grant type".to_string())),
+            "client_credentials" => {
+                self.handle_client_credentials(repository, token_generator)
+                    .await
+            }
+            _ => Err(ApplicationError::InvalidInput(
+                "Unsupported grant type".to_string(),
+            )),
         }
     }
 
@@ -621,60 +929,116 @@ impl TokenRequest {
         repository: &TRepo,
         token_generator: &TokenGenerator,
     ) -> Result<TokenResponse, ApplicationError> {
-        let code = self.code.as_ref()
-            .ok_or(ApplicationError::InvalidInput("Code is required for authorization_code grant".to_string()))?;
+        let code = self.code.as_ref().ok_or(ApplicationError::InvalidInput(
+            "Code is required for authorization_code grant".to_string(),
+        ))?;
 
-        let redirect_uri = self.redirect_uri.as_ref()
-            .ok_or(ApplicationError::InvalidInput("Redirect URI is required for authorization_code grant".to_string()))?;
+        let redirect_uri = self
+            .redirect_uri
+            .as_ref()
+            .ok_or(ApplicationError::InvalidInput(
+                "Redirect URI is required for authorization_code grant".to_string(),
+            ))?;
 
         // Get authorization code
-        let auth_code = repository.get_authorization_code(code).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to get authorization code: {}", e)))?
-            .ok_or(ApplicationError::InvalidInput("Invalid authorization code".to_string()))?;
+        let auth_code = repository
+            .get_authorization_code(code)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to get authorization code: {}", e))
+            })?
+            .ok_or(ApplicationError::InvalidInput(
+                "Invalid authorization code".to_string(),
+            ))?;
 
         // Validate authorization code
         let now = Utc::now();
 
         if auth_code.expires_at < now {
-            return Err(ApplicationError::InvalidInput("Authorization code has expired".to_string()));
+            return Err(ApplicationError::InvalidInput(
+                "Authorization code has expired".to_string(),
+            ));
         }
 
         if auth_code.client_id != self.client_id {
-            return Err(ApplicationError::InvalidInput("Client ID mismatch".to_string()));
+            return Err(ApplicationError::InvalidInput(
+                "Client ID mismatch".to_string(),
+            ));
         }
 
-        if auth_code.redirect_uri != *redirect_uri {
-            return Err(ApplicationError::InvalidInput("Redirect URI mismatch".to_string()));
+        if decode(&auth_code.redirect_uri) != decode(redirect_uri) {
+            warn!(
+                "Redirect URI mismatch: expected '{}', got '{}'",
+                redirect_uri, auth_code.redirect_uri
+            );
+            return Err(ApplicationError::InvalidInput(
+                "Redirect URI mismatch".to_string(),
+            ));
         }
 
         // Validate PKCE if present
         if let Some(code_challenge) = &auth_code.code_challenge {
-            let code_verifier = self.code_verifier.as_ref()
-                .ok_or(ApplicationError::InvalidInput("Code verifier is required for PKCE".to_string()))?;
+            // The code challenge property might exist, but be empty.
+            if !code_challenge.is_empty() {
+                let code_verifier =
+                    self.code_verifier
+                        .as_ref()
+                        .ok_or(ApplicationError::InvalidInput(
+                            "Code verifier is required for PKCE".to_string(),
+                        ))?;
 
-            if !self.validate_pkce(code_verifier, code_challenge, &auth_code.code_challenge_method) {
-                return Err(ApplicationError::InvalidInput("Invalid code verifier".to_string()));
+                if !self.validate_pkce(
+                    code_verifier,
+                    code_challenge,
+                    &auth_code.code_challenge_method,
+                ) {
+                    return Err(ApplicationError::InvalidInput(
+                        "Invalid code verifier".to_string(),
+                    ));
+                }
             }
         }
 
         // Validate client
-        let client = repository.get_oauth_client(&self.client_id).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e)))?
-            .ok_or(ApplicationError::InvalidInput("Invalid client_id".to_string()))?;
+        let client = repository
+            .get_oauth_client(&self.client_id)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e))
+            })?
+            .ok_or(ApplicationError::InvalidInput(
+                "Invalid client_id".to_string(),
+            ))?;
 
         // Validate client secret if not using PKCE
         if auth_code.code_challenge.is_none() {
-            let client_secret = self.client_secret.as_ref()
-                .ok_or(ApplicationError::InvalidInput("Client secret is required".to_string()))?;
+            let client_secret =
+                self.client_secret
+                    .as_ref()
+                    .ok_or(ApplicationError::InvalidInput(
+                        "Client secret is required".to_string(),
+                    ))?;
 
-            if !repository.validate_client_secret(&self.client_id, client_secret).await
-                .map_err(|e| ApplicationError::InternalError(format!("Failed to validate client secret: {}", e)))? {
-                return Err(ApplicationError::InvalidInput("Invalid client secret".to_string()));
+            if !repository
+                .validate_client_secret(&self.client_id, client_secret)
+                .await
+                .map_err(|e| {
+                    ApplicationError::InternalError(format!(
+                        "Failed to validate client secret: {}",
+                        e
+                    ))
+                })?
+            {
+                return Err(ApplicationError::InvalidInput(
+                    "Invalid client secret".to_string(),
+                ));
             }
         }
 
         // Get user for token generation
-        let user = repository.get_user(&auth_code.user_id).await
+        let user = repository
+            .get_user(&auth_code.user_id)
+            .await
             .map_err(|e| ApplicationError::InternalError(format!("Failed to get user: {}", e)))?;
 
         // Generate tokens
@@ -695,12 +1059,23 @@ impl TokenRequest {
         };
 
         // Store token
-        repository.store_oauth_token(&oauth_token).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to store OAuth token: {}", e)))?;
+        repository
+            .store_oauth_token(&oauth_token)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to store OAuth token: {}", e))
+            })?;
 
         // Delete authorization code (one-time use)
-        repository.revoke_authorization_code(code).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to revoke authorization code: {}", e)))?;
+        repository
+            .revoke_authorization_code(code)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!(
+                    "Failed to revoke authorization code: {}",
+                    e
+                ))
+            })?;
 
         Ok(TokenResponse {
             access_token,
@@ -716,29 +1091,53 @@ impl TokenRequest {
         repository: &TRepo,
         token_generator: &TokenGenerator,
     ) -> Result<TokenResponse, ApplicationError> {
-        let refresh_token = self.refresh_token.as_ref()
-            .ok_or(ApplicationError::InvalidInput("Refresh token is required".to_string()))?;
+        let refresh_token = self
+            .refresh_token
+            .as_ref()
+            .ok_or(ApplicationError::InvalidInput(
+                "Refresh token is required".to_string(),
+            ))?;
 
         // Get token by refresh token
-        let oauth_token = repository.get_oauth_token_by_refresh(refresh_token).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to get OAuth token: {}", e)))?
-            .ok_or(ApplicationError::InvalidInput("Invalid refresh token".to_string()))?;
+        let oauth_token = repository
+            .get_oauth_token_by_refresh(refresh_token)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to get OAuth token: {}", e))
+            })?
+            .ok_or(ApplicationError::InvalidInput(
+                "Invalid refresh token".to_string(),
+            ))?;
 
         // Validate client
         if oauth_token.client_id != self.client_id {
-            return Err(ApplicationError::InvalidInput("Client ID mismatch".to_string()));
+            return Err(ApplicationError::InvalidInput(
+                "Client ID mismatch".to_string(),
+            ));
         }
 
         // Validate client secret
         if let Some(client_secret) = &self.client_secret {
-            if !repository.validate_client_secret(&self.client_id, client_secret).await
-                .map_err(|e| ApplicationError::InternalError(format!("Failed to validate client secret: {}", e)))? {
-                return Err(ApplicationError::InvalidInput("Invalid client secret".to_string()));
+            if !repository
+                .validate_client_secret(&self.client_id, client_secret)
+                .await
+                .map_err(|e| {
+                    ApplicationError::InternalError(format!(
+                        "Failed to validate client secret: {}",
+                        e
+                    ))
+                })?
+            {
+                return Err(ApplicationError::InvalidInput(
+                    "Invalid client secret".to_string(),
+                ));
             }
         }
 
         // Get user for token generation
-        let user = repository.get_user(&oauth_token.user_id).await
+        let user = repository
+            .get_user(&oauth_token.user_id)
+            .await
             .map_err(|e| ApplicationError::InternalError(format!("Failed to get user: {}", e)))?;
 
         // Generate new access token
@@ -761,12 +1160,20 @@ impl TokenRequest {
         };
 
         // Store new token
-        repository.store_oauth_token(&new_oauth_token).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to store OAuth token: {}", e)))?;
+        repository
+            .store_oauth_token(&new_oauth_token)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to store OAuth token: {}", e))
+            })?;
 
         // Revoke old token
-        repository.revoke_oauth_token(&oauth_token.access_token).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to revoke old token: {}", e)))?;
+        repository
+            .revoke_oauth_token(&oauth_token.access_token)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to revoke old token: {}", e))
+            })?;
 
         Ok(TokenResponse {
             access_token,
@@ -782,23 +1189,42 @@ impl TokenRequest {
         repository: &TRepo,
         token_generator: &TokenGenerator,
     ) -> Result<TokenResponse, ApplicationError> {
-        let client_secret = self.client_secret.as_ref()
-            .ok_or(ApplicationError::InvalidInput("Client secret is required for client_credentials grant".to_string()))?;
+        let client_secret = self
+            .client_secret
+            .as_ref()
+            .ok_or(ApplicationError::InvalidInput(
+                "Client secret is required for client_credentials grant".to_string(),
+            ))?;
 
         // Validate client credentials
-        if !repository.validate_client_secret(&self.client_id, client_secret).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to validate client secret: {}", e)))? {
-            return Err(ApplicationError::InvalidInput("Invalid client credentials".to_string()));
+        if !repository
+            .validate_client_secret(&self.client_id, client_secret)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to validate client secret: {}", e))
+            })?
+        {
+            return Err(ApplicationError::InvalidInput(
+                "Invalid client credentials".to_string(),
+            ));
         }
 
         // Get client
-        let client = repository.get_oauth_client(&self.client_id).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e)))?
-            .ok_or(ApplicationError::InvalidInput("Invalid client_id".to_string()))?;
+        let client = repository
+            .get_oauth_client(&self.client_id)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e))
+            })?
+            .ok_or(ApplicationError::InvalidInput(
+                "Invalid client_id".to_string(),
+            ))?;
 
         // Validate grant type
         if !client.grant_types.contains(&GrantType::ClientCredentials) {
-            return Err(ApplicationError::InvalidInput("Client not authorized for client_credentials grant".to_string()));
+            return Err(ApplicationError::InvalidInput(
+                "Client not authorized for client_credentials grant".to_string(),
+            ));
         }
 
         // Generate access token (no refresh token for client credentials)
@@ -820,8 +1246,12 @@ impl TokenRequest {
         };
 
         // Store token
-        repository.store_oauth_token(&oauth_token).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to store OAuth token: {}", e)))?;
+        repository
+            .store_oauth_token(&oauth_token)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to store OAuth token: {}", e))
+            })?;
 
         Ok(TokenResponse {
             access_token,
@@ -832,11 +1262,16 @@ impl TokenRequest {
         })
     }
 
-    fn validate_pkce(&self, code_verifier: &str, code_challenge: &str, method: &Option<String>) -> bool {
+    fn validate_pkce(
+        &self,
+        code_verifier: &str,
+        code_challenge: &str,
+        method: &Option<String>,
+    ) -> bool {
         match method.as_deref() {
             Some("S256") => {
-                use sha2::{Sha256, Digest};
-                use base64::{Engine, engine::general_purpose};
+                use base64::{engine::general_purpose, Engine};
+                use sha2::{Digest, Sha256};
                 let mut hasher = Sha256::new();
                 hasher.update(code_verifier.as_bytes());
                 let hash = hasher.finalize();
@@ -880,15 +1315,26 @@ impl IntrospectTokenRequest {
     ) -> Result<IntrospectTokenResponse, ApplicationError> {
         // Validate client
         if let Some(client_secret) = &self.client_secret {
-            if !repository.validate_client_secret(&self.client_id, client_secret).await
-                .map_err(|e| ApplicationError::InternalError(format!("Failed to validate client secret: {}", e)))? {
-                return Err(ApplicationError::InvalidInput("Invalid client credentials".to_string()));
+            if !repository
+                .validate_client_secret(&self.client_id, client_secret)
+                .await
+                .map_err(|e| {
+                    ApplicationError::InternalError(format!(
+                        "Failed to validate client secret: {}",
+                        e
+                    ))
+                })?
+            {
+                return Err(ApplicationError::InvalidInput(
+                    "Invalid client credentials".to_string(),
+                ));
             }
         }
 
         // Get token
-        let oauth_token = repository.get_oauth_token(&self.token).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to get OAuth token: {}", e)))?;
+        let oauth_token = repository.get_oauth_token(&self.token).await.map_err(|e| {
+            ApplicationError::InternalError(format!("Failed to get OAuth token: {}", e))
+        })?;
 
         match oauth_token {
             Some(token) => {
@@ -944,15 +1390,29 @@ impl RevokeTokenRequest {
     ) -> Result<(), ApplicationError> {
         // Validate client
         if let Some(client_secret) = &self.client_secret {
-            if !repository.validate_client_secret(&self.client_id, client_secret).await
-                .map_err(|e| ApplicationError::InternalError(format!("Failed to validate client secret: {}", e)))? {
-                return Err(ApplicationError::InvalidInput("Invalid client credentials".to_string()));
+            if !repository
+                .validate_client_secret(&self.client_id, client_secret)
+                .await
+                .map_err(|e| {
+                    ApplicationError::InternalError(format!(
+                        "Failed to validate client secret: {}",
+                        e
+                    ))
+                })?
+            {
+                return Err(ApplicationError::InvalidInput(
+                    "Invalid client credentials".to_string(),
+                ));
             }
         }
 
         // Revoke token (both access and refresh tokens)
-        repository.revoke_oauth_token(&self.token).await
-            .map_err(|e| ApplicationError::InternalError(format!("Failed to revoke token: {}", e)))?;
+        repository
+            .revoke_oauth_token(&self.token)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to revoke token: {}", e))
+            })?;
 
         Ok(())
     }

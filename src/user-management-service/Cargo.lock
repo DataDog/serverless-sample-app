@@ -733,6 +733,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
@@ -1688,6 +1689,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "urlencoding",
 ]
 
 [[package]]
@@ -2632,6 +2634,7 @@ dependencies = [
  "thiserror 2.0.12",
  "tracing",
  "tracing-opentelemetry",
+ "urlencoding",
  "uuid",
 ]
 

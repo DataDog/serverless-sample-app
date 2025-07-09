@@ -8,7 +8,7 @@ use lambda_http::{
 use observability::observability;
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
-use shared::ports::{TokenRequest, ApplicationError};
+use shared::ports::{ApplicationError, TokenRequest};
 use shared::response::{empty_response, json_response};
 use shared::tokens::TokenGenerator;
 use std::env;
@@ -24,7 +24,11 @@ async fn function_handler<TRepository: Repository>(
 
     // OAuth token requests can come as form data or JSON
     let token_request = if let Some(content_type) = event.headers().get("content-type") {
-        if content_type.to_str().unwrap_or("").contains("application/x-www-form-urlencoded") {
+        if content_type
+            .to_str()
+            .unwrap_or("")
+            .contains("application/x-www-form-urlencoded")
+        {
             // Parse form data
             let body = event.body();
             let body_str = std::str::from_utf8(body).unwrap_or("");
@@ -48,15 +52,18 @@ async fn function_handler<TRepository: Repository>(
 
     match result {
         Ok(response) => json_response(&StatusCode::OK, &response),
-        Err(e) => match e {
-            ApplicationError::NotFound => empty_response(&StatusCode::NOT_FOUND),
-            ApplicationError::InvalidInput(_) => empty_response(&StatusCode::BAD_REQUEST),
-            ApplicationError::InvalidPassword() => empty_response(&StatusCode::BAD_REQUEST),
-            ApplicationError::InvalidToken() => empty_response(&StatusCode::BAD_REQUEST),
-            ApplicationError::InternalError(_) => {
-                empty_response(&StatusCode::INTERNAL_SERVER_ERROR)
+        Err(e) => {
+            tracing::error!("Error handling token request: {:?}", e);
+            match e {
+                ApplicationError::NotFound => empty_response(&StatusCode::NOT_FOUND),
+                ApplicationError::InvalidInput(_) => empty_response(&StatusCode::BAD_REQUEST),
+                ApplicationError::InvalidPassword() => empty_response(&StatusCode::BAD_REQUEST),
+                ApplicationError::InvalidToken() => empty_response(&StatusCode::BAD_REQUEST),
+                ApplicationError::InternalError(_) => {
+                    empty_response(&StatusCode::INTERNAL_SERVER_ERROR)
+                }
             }
-        },
+        }
     }
 }
 

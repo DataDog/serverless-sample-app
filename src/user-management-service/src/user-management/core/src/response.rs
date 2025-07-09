@@ -46,3 +46,31 @@ pub fn json_response(status: &StatusCode, body: &impl Serialize) -> Result<Respo
 
     Ok(response)
 }
+
+pub fn html_response(status: &StatusCode, html_content: &str) -> Result<Response<Body>, Error> {
+    Span::current().set_attribute("http.status_code", status.as_u16().to_string());
+    let response = Response::builder()
+        .status(status)
+        .header("content-type", "text/html; charset=utf-8")
+        .header("Access-Control-Allow-Origin", "*")
+        .header("Access-Control-Allow-Headers", "Content-Type")
+        .header("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE")
+        .body(Body::Text(html_content.to_string()))
+        .map_err(Box::new)?;
+
+    Ok(response)
+}
+
+pub fn redirect_response(status: &StatusCode, location: &str) -> Result<Response<Body>, Error> {
+    Span::current().set_attribute("http.status_code", status.as_u16().to_string());
+    let response = Response::builder()
+        .status(status)
+        .header("location", location)
+        .header("Access-Control-Allow-Origin", "*")
+        .header("Access-Control-Allow-Headers", "Content-Type")
+        .header("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE")
+        .body(Body::Empty)
+        .map_err(Box::new)?;
+
+    Ok(response)
+}

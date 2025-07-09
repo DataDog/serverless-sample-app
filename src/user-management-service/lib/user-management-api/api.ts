@@ -39,11 +39,15 @@ export class UserManagementApi extends Construct {
     super(scope, id);
 
     this._table = new Table(this, "UserManagementTable", {
-      tableName: `${props.serviceProps.sharedProps.serviceName}-Users-${props.serviceProps.sharedProps.environment}`,
+      tableName: `${props.serviceProps.sharedProps.serviceName}-Userss-${props.serviceProps.sharedProps.environment}`,
       tableClass: TableClass.STANDARD,
       billingMode: BillingMode.PAY_PER_REQUEST,
       partitionKey: {
         name: "PK",
+        type: AttributeType.STRING,
+      },
+      sortKey: {
+        name: "SK",
         type: AttributeType.STRING,
       },
       removalPolicy: RemovalPolicy.DESTROY,
@@ -89,12 +93,12 @@ export class UserManagementApi extends Construct {
 
     // OAuth endpoints
     const oauthResource = this.api.root.addResource("oauth");
-    
+
     // OAuth Authorization endpoints
     const authorizeResource = oauthResource.addResource("authorize");
     authorizeResource.addMethod("GET", oauthAuthorizeIntegration);
     authorizeResource.addMethod("POST", oauthAuthorizeIntegration);
-    
+
     const callbackResource = authorizeResource.addResource("callback");
     callbackResource.addMethod("GET", oauthAuthorizeCallbackIntegration);
     callbackResource.addMethod("POST", oauthAuthorizeCallbackIntegration);
@@ -114,7 +118,7 @@ export class UserManagementApi extends Construct {
     // OAuth Client Management endpoints
     const clientResource = oauthResource.addResource("client");
     clientResource.addMethod("POST", oauthDcrIntegration); // Dynamic Client Registration
-    
+
     const clientIdResource = clientResource.addResource("{clientId}");
     clientIdResource.addMethod("GET", oauthClientGetIntegration);
     clientIdResource.addMethod("PUT", oauthClientUpdateIntegration);

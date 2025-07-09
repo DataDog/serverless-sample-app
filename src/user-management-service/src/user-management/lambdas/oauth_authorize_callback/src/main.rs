@@ -1,36 +1,84 @@
-use aws_config::SdkConfig;
 use lambda_http::http::StatusCode;
 use lambda_http::{
     run, service_fn,
     tracing::{self, instrument},
-    Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
+    Error, Request, RequestExt, RequestPayloadExt, Response, Body,
 };
 use observability::observability;
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
-use shared::ports::{handle_login, ApplicationError, LoginCommand};
-use shared::response::{empty_response, json_response};
-use shared::tokens::TokenGenerator;
+use shared::ports::{AuthorizeCallbackCommand, ApplicationError};
+use shared::response::{empty_response, redirect_response};
 use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
 
-#[instrument(name = "POST /login", skip(client, token_generator, event), fields(http.method = event.method().as_str(), http.path_group = event.raw_http_path()))]
+#[instrument(name = "OAuth authorize callback", skip(repository, event), fields(http.method = event.method().as_str(), http.path_group = event.raw_http_path()))]
 async fn function_handler<TRepository: Repository>(
-    client: &TRepository,
-    token_generator: &TokenGenerator,
+    repository: &TRepository,
     event: Request,
-) -> Result<impl IntoResponse, Error> {
-    tracing::info!("Received event: {:?}", event);
+) -> Result<Response<Body>, Error> {
+    tracing::info!("Received OAuth authorize callback event: {:?}", event);
 
-    let request_body = event.payload::<LoginCommand>()?;
+    match event.method().as_str() {
+        "GET" => handle_callback_get(repository, event).await,
+        "POST" => handle_callback_post(repository, event).await,
+        _ => empty_response(&StatusCode::METHOD_NOT_ALLOWED),
+    }
+}
+
+async fn handle_callback_get<TRepository: Repository>(
+    _repository: &TRepository,
+    event: Request,
+) -> Result<Response<Body>, Error> {
+    // Extract query parameters (code, state, error, etc.)
+    let query_params = event.query_string_parameters();
+    
+    let code = query_params.first("code");
+    let state = query_params.first("state");
+    let error = query_params.first("error");
+    
+    if let Some(error) = error {
+        // OAuth error response
+        tracing::error!("OAuth error received: {}", error);
+        return empty_response(&StatusCode::BAD_REQUEST);
+    }
+    
+    let code = code.ok_or_else(|| {
+        tracing::error!("No authorization code received");
+        "Missing authorization code".to_string()
+    })?;
+    
+    // This endpoint is typically called by the client application to retrieve the authorization code
+    // In a real implementation, you might redirect to a success page or return the code to the client
+    tracing::info!("Authorization code received: {}", code);
+    
+    // For demonstration, we'll return a simple success response
+    // In practice, this would be handled by the client application
+    let success_message = format!("Authorization successful. Code: {} State: {:?}", code, state);
+    
+    Ok(Response::builder()
+        .status(StatusCode::OK)
+        .header("content-type", "text/plain")
+        .body(Body::Text(success_message))
+        .map_err(Box::new)?)
+}
+
+async fn handle_callback_post<TRepository: Repository>(
+    repository: &TRepository,
+    event: Request,
+) -> Result<Response<Body>, Error> {
+    let request_body = event.payload::<AuthorizeCallbackCommand>()?;
 
     match request_body {
         None => empty_response(&StatusCode::BAD_REQUEST),
         Some(command) => {
-            let result = handle_login(client, token_generator, command).await;
+            let result = command.handle(repository).await;
 
             match result {
-                Ok(response) => json_response(&StatusCode::OK, &response),
+                Ok(response) => {
+                    // Redirect to client with authorization code
+                    redirect_response(&StatusCode::FOUND, &response.redirect_url)
+                }
                 Err(e) => match e {
                     ApplicationError::NotFound => empty_response(&StatusCode::NOT_FOUND),
                     ApplicationError::InvalidInput(_) => empty_response(&StatusCode::BAD_REQUEST),
@@ -54,37 +102,8 @@ async fn main() -> Result<(), Error> {
     let repository: DynamoDbRepository =
         DynamoDbRepository::new(dynamodb_client, table_name.clone());
 
-    let secret = load_jwt_secret(&config)
-        .await
-        .expect("Failed to load JWT secret");
-    let expiration: usize = env::var("TOKEN_EXPIRATION")
-        .unwrap_or(String::from("86400"))
-        .parse()?;
-
-    let token_generator = TokenGenerator::new(secret, expiration);
-
     run(service_fn(|event| {
-        function_handler(&repository, &token_generator, event)
+        function_handler(&repository, event)
     }))
     .await
-}
-
-async fn load_jwt_secret(config: &SdkConfig) -> Result<String, ()> {
-    let ssm_client = aws_sdk_ssm::Client::new(&config);
-    let secret_key_name =
-        std::env::var("JWT_SECRET_PARAM_NAME").expect("JWT_SECRET_PARAM_NAME name set");
-
-    let jwt_secret_key = ssm_client
-        .get_parameter()
-        .with_decryption(true)
-        .name(secret_key_name)
-        .send()
-        .await
-        .expect("Failed to retrieve secret key")
-        .parameter
-        .expect("Secret key not found")
-        .value
-        .expect("Secret key value not found");
-
-    Ok(jwt_secret_key)
 }

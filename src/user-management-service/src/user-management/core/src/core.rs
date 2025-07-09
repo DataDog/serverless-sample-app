@@ -1,8 +1,8 @@
+use crate::utils::StringHasher;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use crate::utils::StringHasher;
 use uuid::Uuid;
 
 #[derive(Error, Debug)]
@@ -47,23 +47,46 @@ pub trait Repository {
 
     // OAuth Client management
     async fn create_oauth_client(&self, client: &OAuthClient) -> Result<(), RepositoryError>;
-    async fn get_oauth_client(&self, client_id: &str) -> Result<Option<OAuthClient>, RepositoryError>;
+    async fn get_oauth_client(
+        &self,
+        client_id: &str,
+    ) -> Result<Option<OAuthClient>, RepositoryError>;
     async fn update_oauth_client(&self, client: &OAuthClient) -> Result<(), RepositoryError>;
     async fn delete_oauth_client(&self, client_id: &str) -> Result<(), RepositoryError>;
-    async fn list_oauth_clients(&self, page: Option<u32>, limit: Option<u32>) -> Result<Vec<OAuthClient>, RepositoryError>;
-    async fn validate_client_secret(&self, client_id: &str, client_secret: &str) -> Result<bool, RepositoryError>;
+    async fn list_oauth_clients(
+        &self,
+        page: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<Vec<OAuthClient>, RepositoryError>;
+    async fn validate_client_secret(
+        &self,
+        client_id: &str,
+        client_secret: &str,
+    ) -> Result<bool, RepositoryError>;
 
     // Authorization Code management
-    async fn store_authorization_code(&self, code: &AuthorizationCode) -> Result<(), RepositoryError>;
-    async fn get_authorization_code(&self, code: &str) -> Result<Option<AuthorizationCode>, RepositoryError>;
+    async fn store_authorization_code(
+        &self,
+        code: &AuthorizationCode,
+    ) -> Result<(), RepositoryError>;
+    async fn get_authorization_code(
+        &self,
+        code: &str,
+    ) -> Result<Option<AuthorizationCode>, RepositoryError>;
     async fn revoke_authorization_code(&self, code: &str) -> Result<(), RepositoryError>;
     async fn mark_authorization_code_used(&self, code: &str) -> Result<(), RepositoryError>;
     async fn cleanup_expired_authorization_codes(&self) -> Result<(), RepositoryError>;
 
     // OAuth Token management
     async fn store_oauth_token(&self, token: &OAuthToken) -> Result<(), RepositoryError>;
-    async fn get_oauth_token(&self, access_token: &str) -> Result<Option<OAuthToken>, RepositoryError>;
-    async fn get_oauth_token_by_refresh(&self, refresh_token: &str) -> Result<Option<OAuthToken>, RepositoryError>;
+    async fn get_oauth_token(
+        &self,
+        access_token: &str,
+    ) -> Result<Option<OAuthToken>, RepositoryError>;
+    async fn get_oauth_token_by_refresh(
+        &self,
+        refresh_token: &str,
+    ) -> Result<Option<OAuthToken>, RepositoryError>;
     async fn revoke_oauth_token(&self, access_token: &str) -> Result<(), RepositoryError>;
     async fn revoke_all_tokens_for_client(&self, client_id: &str) -> Result<(), RepositoryError>;
     async fn cleanup_expired_oauth_tokens(&self) -> Result<(), RepositoryError>;
@@ -183,8 +206,8 @@ impl User {
             User::Premium(details) => details,
             User::Admin(details) => details,
         };
-        
-        let hashed_email_address = StringHasher::hash_string(details.email_address.clone());
+
+        let hashed_email_address = StringHasher::hash_string(details.email_address.to_uppercase());
 
         hashed_email_address
     }
@@ -240,9 +263,6 @@ pub struct OAuthClient {
     pub response_types: Vec<ResponseType>,
     pub scopes: Vec<String>,
     pub token_endpoint_auth_method: TokenEndpointAuthMethod,
-    pub client_uri: Option<String>,
-    pub logo_uri: Option<String>,
-    pub contacts: Vec<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub is_active: bool,
@@ -290,16 +310,18 @@ impl OAuthClient {
             response_types: vec![ResponseType::Code],
             scopes,
             token_endpoint_auth_method,
-            client_uri: None,
-            logo_uri: None,
-            contacts: Vec::new(),
             created_at: now,
             updated_at: now,
             is_active: true,
         }
     }
 
-    pub fn update(&mut self, client_name: Option<String>, redirect_uris: Option<Vec<String>>, scopes: Option<Vec<String>>) {
+    pub fn update(
+        &mut self,
+        client_name: Option<String>,
+        redirect_uris: Option<Vec<String>>,
+        scopes: Option<Vec<String>>,
+    ) {
         if let Some(name) = client_name {
             self.client_name = name;
         }
@@ -322,12 +344,13 @@ impl OAuthClient {
             client_id: self.client_id.clone(),
             client_name: self.client_name.clone(),
             redirect_uris: self.redirect_uris.clone(),
-            grant_types: self.grant_types.iter().map(|g| format!("{:?}", g)).collect(),
+            grant_types: self
+                .grant_types
+                .iter()
+                .map(|g| format!("{:?}", g))
+                .collect(),
             scopes: self.scopes.clone(),
             token_endpoint_auth_method: format!("{:?}", self.token_endpoint_auth_method),
-            client_uri: self.client_uri.clone(),
-            logo_uri: self.logo_uri.clone(),
-            contacts: self.contacts.clone(),
             created_at: self.created_at,
             updated_at: self.updated_at,
             is_active: self.is_active,
@@ -400,14 +423,12 @@ pub struct OAuthToken {
 }
 
 impl OAuthToken {
-    pub fn new(
-        client_id: String,
-        user_id: String,
-        scopes: Vec<String>,
-        expires_in: i64,
-    ) -> Self {
+    pub fn new(client_id: String, user_id: String, scopes: Vec<String>, expires_in: i64) -> Self {
         let access_token = format!("token_{}", Uuid::new_v4().to_string().replace('-', ""));
-        let refresh_token = Some(format!("refresh_{}", Uuid::new_v4().to_string().replace('-', "")));
+        let refresh_token = Some(format!(
+            "refresh_{}",
+            Uuid::new_v4().to_string().replace('-', "")
+        ));
         let now = Utc::now();
         let expires_at = now + chrono::Duration::seconds(expires_in);
 
@@ -459,11 +480,6 @@ pub struct OAuthClientDTO {
     pub scopes: Vec<String>,
     #[serde(rename = "tokenEndpointAuthMethod")]
     pub token_endpoint_auth_method: String,
-    #[serde(rename = "clientUri")]
-    pub client_uri: Option<String>,
-    #[serde(rename = "logoUri")]
-    pub logo_uri: Option<String>,
-    pub contacts: Vec<String>,
     #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
     #[serde(rename = "updatedAt")]

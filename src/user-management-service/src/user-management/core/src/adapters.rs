@@ -18,6 +18,7 @@ pub struct DynamoDbRepository {
 }
 
 const PARTITION_KEY: &str = "PK";
+const SORT_KEY: &str = "SK";
 const FIRST_NAME_KEY: &str = "FirstName";
 const LAST_NAME_KEY: &str = "LastName";
 const EMAIL_ADDRESS_KEY: &str = "EmailAddress";
@@ -56,6 +57,10 @@ impl DynamoDbRepository {
             .table_name(&self.table_name)
             .item(
                 PARTITION_KEY,
+                AttributeValue::S(user.email_address()),
+            )
+            .item(
+                SORT_KEY,
                 AttributeValue::S(user.email_address()),
             )
             .item(
@@ -145,13 +150,14 @@ impl Repository for DynamoDbRepository {
             format!("DynamoDB.GetItem {}", &self.table_name),
         );
         
-        let search_address = StringHasher::hash_string(email_address.to_string());
+        let search_address = StringHasher::hash_string(email_address.to_uppercase());
 
         let res = self
             .client
             .get_item()
             .table_name(&self.table_name)
-            .key(PARTITION_KEY, AttributeValue::S(search_address))
+            .key(PARTITION_KEY, AttributeValue::S(search_address.clone()))
+            .key(SORT_KEY, AttributeValue::S(search_address))
             .send()
             .await;
 
@@ -242,8 +248,8 @@ impl Repository for DynamoDbRepository {
             .client
             .put_item()
             .table_name(&self.table_name)
-            .item("PK", AttributeValue::S(format!("CLIENT#{}", client.client_id)))
-            .item("SK", AttributeValue::S("METADATA".to_string()))
+            .item(PARTITION_KEY, AttributeValue::S(format!("CLIENT#{}", client.client_id)))
+            .item(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .item("ClientId", AttributeValue::S(client.client_id.clone()))
             .item("ClientSecret", AttributeValue::S(client.client_secret.clone()))
             .item("ClientName", AttributeValue::S(client.client_name.clone()))
@@ -256,9 +262,6 @@ impl Repository for DynamoDbRepository {
             ))
             .item("Scopes", AttributeValue::Ss(client.scopes.clone()))
             .item("TokenEndpointAuthMethod", AttributeValue::S(format!("{:?}", client.token_endpoint_auth_method)))
-            .item("ClientUri", AttributeValue::S(client.client_uri.clone().unwrap_or_default()))
-            .item("LogoUri", AttributeValue::S(client.logo_uri.clone().unwrap_or_default()))
-            .item("Contacts", AttributeValue::Ss(client.contacts.clone()))
             .item("CreatedAt", AttributeValue::S(client.created_at.to_rfc3339()))
             .item("UpdatedAt", AttributeValue::S(client.updated_at.to_rfc3339()))
             .item("IsActive", AttributeValue::Bool(client.is_active))
@@ -286,8 +289,8 @@ impl Repository for DynamoDbRepository {
             .client
             .get_item()
             .table_name(&self.table_name)
-            .key("PK", AttributeValue::S(format!("CLIENT#{}", client_id)))
-            .key("SK", AttributeValue::S("METADATA".to_string()))
+            .key(PARTITION_KEY, AttributeValue::S(format!("CLIENT#{}", client_id)))
+            .key(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .send()
             .await;
 
@@ -323,8 +326,8 @@ impl Repository for DynamoDbRepository {
             .client
             .delete_item()
             .table_name(&self.table_name)
-            .key("PK", AttributeValue::S(format!("CLIENT#{}", client_id)))
-            .key("SK", AttributeValue::S("METADATA".to_string()))
+            .key(PARTITION_KEY, AttributeValue::S(format!("CLIENT#{}", client_id)))
+            .key(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .send()
             .await;
 
@@ -398,8 +401,8 @@ impl Repository for DynamoDbRepository {
             .client
             .put_item()
             .table_name(&self.table_name)
-            .item("PK", AttributeValue::S(format!("CODE#{}", code.code)))
-            .item("SK", AttributeValue::S("METADATA".to_string()))
+            .item(PARTITION_KEY, AttributeValue::S(format!("CODE#{}", code.code)))
+            .item(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .item("Code", AttributeValue::S(code.code.clone()))
             .item("ClientId", AttributeValue::S(code.client_id.clone()))
             .item("UserId", AttributeValue::S(code.user_id.clone()))
@@ -441,8 +444,8 @@ impl Repository for DynamoDbRepository {
             .client
             .get_item()
             .table_name(&self.table_name)
-            .key("PK", AttributeValue::S(format!("CODE#{}", code)))
-            .key("SK", AttributeValue::S("METADATA".to_string()))
+            .key(PARTITION_KEY, AttributeValue::S(format!("CODE#{}", code)))
+            .key(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .send()
             .await;
 
@@ -473,8 +476,8 @@ impl Repository for DynamoDbRepository {
             .client
             .delete_item()
             .table_name(&self.table_name)
-            .key("PK", AttributeValue::S(format!("CODE#{}", code)))
-            .key("SK", AttributeValue::S(format!("CODE#{}", code)))
+            .key(PARTITION_KEY, AttributeValue::S(format!("CODE#{}", code)))
+            .key(SORT_KEY, AttributeValue::S(format!("CODE#{}", code)))
             .send()
             .await;
 
@@ -499,8 +502,8 @@ impl Repository for DynamoDbRepository {
             .client
             .update_item()
             .table_name(&self.table_name)
-            .key("PK", AttributeValue::S(format!("CODE#{}", code)))
-            .key("SK", AttributeValue::S("METADATA".to_string()))
+            .key(PARTITION_KEY, AttributeValue::S(format!("CODE#{}", code)))
+            .key(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .update_expression("SET IsUsed = :used")
             .expression_attribute_values(":used", AttributeValue::Bool(true))
             .send()
@@ -534,8 +537,8 @@ impl Repository for DynamoDbRepository {
             .client
             .put_item()
             .table_name(&self.table_name)
-            .item("PK", AttributeValue::S(format!("TOKEN#{}", token.access_token)))
-            .item("SK", AttributeValue::S("METADATA".to_string()))
+            .item(PARTITION_KEY, AttributeValue::S(format!("TOKEN#{}", token.access_token)))
+            .item(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .item("AccessToken", AttributeValue::S(token.access_token.clone()))
             .item("TokenType", AttributeValue::S(token.token_type.clone()))
             .item("ExpiresIn", AttributeValue::N(token.expires_in.to_string()))
@@ -574,8 +577,8 @@ impl Repository for DynamoDbRepository {
             .client
             .get_item()
             .table_name(&self.table_name)
-            .key("PK", AttributeValue::S(format!("TOKEN#{}", access_token)))
-            .key("SK", AttributeValue::S("METADATA".to_string()))
+            .key(PARTITION_KEY, AttributeValue::S(format!("TOKEN#{}", access_token)))
+            .key(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .send()
             .await;
 
@@ -643,8 +646,8 @@ impl Repository for DynamoDbRepository {
             .client
             .update_item()
             .table_name(&self.table_name)
-            .key("PK", AttributeValue::S(format!("TOKEN#{}", access_token)))
-            .key("SK", AttributeValue::S("METADATA".to_string()))
+            .key(PARTITION_KEY, AttributeValue::S(format!("TOKEN#{}", access_token)))
+            .key(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .update_expression("SET IsRevoked = :revoked")
             .expression_attribute_values(":revoked", AttributeValue::Bool(true))
             .send()
@@ -777,21 +780,7 @@ impl DynamoDbRepository {
             "None" => TokenEndpointAuthMethod::None,
             _ => TokenEndpointAuthMethod::ClientSecretPost,
         };
-
-        let client_uri = item.get("ClientUri")
-            .and_then(|v| v.as_s().ok())
-            .filter(|s| !s.is_empty())
-            .map(|s| s.clone());
-
-        let logo_uri = item.get("LogoUri")
-            .and_then(|v| v.as_s().ok())
-            .filter(|s| !s.is_empty())
-            .map(|s| s.clone());
-
-        let contacts = item.get("Contacts")
-            .map(|v| v.as_ss().unwrap_or(&vec![]).clone())
-            .unwrap_or_default();
-
+        
         let created_at = item.get("CreatedAt")
             .ok_or_else(|| RepositoryError::InternalError("Missing CreatedAt".to_string()))?
             .as_s()
@@ -821,9 +810,6 @@ impl DynamoDbRepository {
             response_types,
             scopes,
             token_endpoint_auth_method,
-            client_uri,
-            logo_uri,
-            contacts,
             created_at,
             updated_at,
             is_active,
