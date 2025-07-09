@@ -183,7 +183,7 @@ impl User {
         };
 
         details.last_active = Option::Some(Utc::now());
-        details.order_count = details.order_count + 1;
+        details.order_count += 1;
 
         if details.order_count > 10 {
             *self = User::Premium(details.clone());
@@ -207,9 +207,9 @@ impl User {
             User::Admin(details) => details,
         };
 
-        let hashed_email_address = StringHasher::hash_string(details.email_address.to_uppercase());
+        
 
-        hashed_email_address
+        StringHasher::hash_string(details.email_address.to_uppercase())
     }
 
     pub(crate) fn user_type(&self) -> &str {

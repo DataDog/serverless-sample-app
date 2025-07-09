@@ -9,7 +9,6 @@ use aws_lambda_events::sns::{SnsMessage, SnsRecord};
 use aws_lambda_events::sqs::SqsMessage;
 use lambda_http::tracing::log::info;
 use serde::{de::DeserializeOwned, Serialize};
-use serde_json;
 use std::convert::From;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 

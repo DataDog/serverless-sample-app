@@ -109,7 +109,7 @@ impl CreateUserCommand {
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
         let hash = argon2
-            .hash_password(&self.password.as_bytes(), &salt)
+            .hash_password(self.password.as_bytes(), &salt)
             .map_err(|_e| ApplicationError::InternalError(_e.to_string()))?
             .to_string();
 
@@ -161,16 +161,16 @@ pub async fn handle_login<TRepo: Repository>(
         .get_user(&login_command.email_address)
         .await
         .map_err(|e| {
-            return match e {
+            match e {
                 RepositoryError::NotFound => ApplicationError::NotFound,
                 RepositoryError::InternalError(e) => ApplicationError::InternalError(e.to_string()),
                 _ => ApplicationError::InternalError(e.to_string()),
-            };
+            }
         })?;
 
-    let parsed_hash = PasswordHash::new(&user.get_password_hash())
+    let parsed_hash = PasswordHash::new(user.get_password_hash())
         .map_err(|_e| ApplicationError::InternalError(_e.to_string()))?;
-    let _verified_password = Argon2::default()
+    Argon2::default()
         .verify_password(login_command.password.as_bytes(), &parsed_hash)
         .map_err(|_e| ApplicationError::InvalidPassword())?;
 
@@ -195,11 +195,11 @@ impl OrderCompleted {
         Span::current().set_attribute("order.number", self.order_number.clone());
 
         let mut user = repository.get_user(&self.user_id).await.map_err(|e| {
-            return match e {
+            match e {
                 RepositoryError::NotFound => ApplicationError::NotFound,
                 RepositoryError::InternalError(e) => ApplicationError::InternalError(e.to_string()),
                 _ => ApplicationError::InternalError(e.to_string()),
-            };
+            }
         })?;
 
         user.order_placed();
@@ -779,7 +779,7 @@ impl LoginFormCommand {
                 // Validate password using Argon2 (same as existing login logic)
                 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 
-                let parsed_hash = PasswordHash::new(&u.get_password_hash())
+                let parsed_hash = PasswordHash::new(u.get_password_hash())
                     .map_err(|_e| ApplicationError::InternalError(_e.to_string()))?;
 
                 let password_valid = Argon2::default()
@@ -1000,7 +1000,7 @@ impl TokenRequest {
         }
 
         // Validate client
-        let client = repository
+        let _ = repository
             .get_oauth_client(&self.client_id)
             .await
             .map_err(|e| {
@@ -1187,7 +1187,7 @@ impl TokenRequest {
     async fn handle_client_credentials<TRepo: Repository>(
         &self,
         repository: &TRepo,
-        token_generator: &TokenGenerator,
+        _: &TokenGenerator,
     ) -> Result<TokenResponse, ApplicationError> {
         let client_secret = self
             .client_secret
@@ -1275,7 +1275,7 @@ impl TokenRequest {
                 let mut hasher = Sha256::new();
                 hasher.update(code_verifier.as_bytes());
                 let hash = hasher.finalize();
-                let encoded = general_purpose::URL_SAFE_NO_PAD.encode(&hash);
+                let encoded = general_purpose::URL_SAFE_NO_PAD.encode(hash);
                 encoded == code_challenge
             }
             Some("plain") | None => code_verifier == code_challenge,

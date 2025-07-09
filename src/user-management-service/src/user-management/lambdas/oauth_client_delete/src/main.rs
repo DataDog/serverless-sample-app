@@ -2,13 +2,13 @@ use lambda_http::http::StatusCode;
 use lambda_http::{
     run, service_fn,
     tracing::{self, instrument},
-    Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
+    Error, IntoResponse, Request, RequestExt,
 };
 use observability::observability;
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
 use shared::ports::{DeleteOAuthClientCommand, ApplicationError};
-use shared::response::{empty_response, json_response};
+use shared::response::empty_response;
 use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
 

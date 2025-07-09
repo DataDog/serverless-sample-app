@@ -10,7 +10,6 @@ use opentelemetry::trace::TraceContextExt;
 use opentelemetry::trace::{Span, SpanKind, Tracer};
 use opentelemetry::{global, Context, KeyValue};
 use std::env;
-use tracing;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 /// Create a trace for an AWS Lambda HTTP request

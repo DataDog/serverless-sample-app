@@ -8,7 +8,7 @@ use observability::observability;
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
 use shared::ports::{RevokeTokenRequest, ApplicationError};
-use shared::response::{empty_response, json_response};
+use shared::response::empty_response;
 use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
 

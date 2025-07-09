@@ -2,7 +2,7 @@ use lambda_http::http::StatusCode;
 use lambda_http::{
     run, service_fn,
     tracing::{self, instrument},
-    Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
+    Error, IntoResponse, Request, RequestExt,
 };
 use observability::observability;
 use shared::adapters::DynamoDbRepository;

@@ -93,7 +93,7 @@ impl DynamoDbRepository {
         let res = if details.last_active.is_some() {
             put_item_builder.clone().item(
                 LAST_ACTIVE_KEY,
-                AttributeValue::S(details.last_active.clone().unwrap().to_string()),
+                AttributeValue::S(details.last_active.unwrap().to_string()),
             );
 
             put_item_builder.send().await
@@ -202,10 +202,7 @@ impl Repository for DynamoDbRepository {
                         .unwrap()
                         .parse()
                         .unwrap(),
-                    last_active: match attributes.get(LAST_ACTIVE_KEY) {
-                        Some(value) => Some(value.as_s().unwrap().parse().unwrap()),
-                        None => None,
-                    },
+                    last_active: attributes.get(LAST_ACTIVE_KEY).map(|value| value.as_s().unwrap().parse().unwrap()),
                     order_count: attributes
                         .get(ORDER_COUNT_KEY)
                         .unwrap()
@@ -340,8 +337,8 @@ impl Repository for DynamoDbRepository {
         }
     }
 
-    #[instrument(name = "list_oauth_clients", skip(self, page, limit))]
-    async fn list_oauth_clients(&self, page: Option<u32>, limit: Option<u32>) -> Result<Vec<OAuthClient>, RepositoryError> {
+    #[instrument(name = "list_oauth_clients", skip(self, limit))]
+    async fn list_oauth_clients(&self, _: Option<u32>, limit: Option<u32>) -> Result<Vec<OAuthClient>, RepositoryError> {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
@@ -795,11 +792,10 @@ impl DynamoDbRepository {
             .parse()
             .map_err(|_| RepositoryError::InternalError("Invalid UpdatedAt format".to_string()))?;
 
-        let is_active = item.get("IsActive")
+        let is_active = *item.get("IsActive")
             .ok_or_else(|| RepositoryError::InternalError("Missing IsActive".to_string()))?
             .as_bool()
-            .map_err(|_| RepositoryError::InternalError("Invalid IsActive".to_string()))?
-            .clone();
+            .map_err(|_| RepositoryError::InternalError("Invalid IsActive".to_string()))?;
 
         Ok(OAuthClient {
             client_id,
@@ -848,12 +844,10 @@ impl DynamoDbRepository {
             .clone();
 
         let code_challenge = item.get("CodeChallenge")
-            .and_then(|v| v.as_s().ok())
-            .map(|s| s.clone());
+            .and_then(|v| v.as_s().ok()).cloned();
 
         let code_challenge_method = item.get("CodeChallengeMethod")
-            .and_then(|v| v.as_s().ok())
-            .map(|s| s.clone());
+            .and_then(|v| v.as_s().ok()).cloned();
 
         let expires_at = item.get("ExpiresAt")
             .ok_or_else(|| RepositoryError::InternalError("Missing ExpiresAt".to_string()))?
@@ -869,11 +863,10 @@ impl DynamoDbRepository {
             .parse()
             .map_err(|_| RepositoryError::InternalError("Invalid CreatedAt format".to_string()))?;
 
-        let is_used = item.get("IsUsed")
+        let is_used = *item.get("IsUsed")
             .ok_or_else(|| RepositoryError::InternalError("Missing IsUsed".to_string()))?
             .as_bool()
-            .map_err(|_| RepositoryError::InternalError("Invalid IsUsed".to_string()))?
-            .clone();
+            .map_err(|_| RepositoryError::InternalError("Invalid IsUsed".to_string()))?;
 
         Ok(AuthorizationCode {
             code,
@@ -910,8 +903,7 @@ impl DynamoDbRepository {
             .map_err(|_| RepositoryError::InternalError("Invalid ExpiresIn format".to_string()))?;
 
         let refresh_token = item.get("RefreshToken")
-            .and_then(|v| v.as_s().ok())
-            .map(|s| s.clone());
+            .and_then(|v| v.as_s().ok()).cloned();
 
         let scope = item.get("Scope")
             .ok_or_else(|| RepositoryError::InternalError("Missing Scope".to_string()))?
@@ -945,11 +937,10 @@ impl DynamoDbRepository {
             .parse()
             .map_err(|_| RepositoryError::InternalError("Invalid ExpiresAt format".to_string()))?;
 
-        let is_revoked = item.get("IsRevoked")
+        let is_revoked = *item.get("IsRevoked")
             .ok_or_else(|| RepositoryError::InternalError("Missing IsRevoked".to_string()))?
             .as_bool()
-            .map_err(|_| RepositoryError::InternalError("Invalid IsRevoked".to_string()))?
-            .clone();
+            .map_err(|_| RepositoryError::InternalError("Invalid IsRevoked".to_string()))?;
 
         Ok(OAuthToken {
             access_token,
@@ -995,7 +986,7 @@ impl EventPublisher for EventBridgeEventPublisher {
         let request = aws_sdk_eventbridge::types::builders::PutEventsRequestEntryBuilder::default()
             .set_source(Some(self.source.clone()))
             .set_detail_type(Some("users.userCreated.v1".to_string()))
-            .set_detail(Some(String::from(payload_string)))
+            .set_detail(Some(payload_string))
             .set_event_bus_name(Some(self.event_bus_name.clone()))
             .build();
         self.client
@@ -1005,7 +996,7 @@ impl EventPublisher for EventBridgeEventPublisher {
             .await
             .map_err(|err| {
                 tracing::error!("{}", err);
-                ()
+                
             })?;
 
         Ok(())

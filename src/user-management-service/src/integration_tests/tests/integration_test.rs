@@ -214,7 +214,7 @@ impl ApiDriver {
         });
 
         self.client
-            .post(&format!("{}/user", self.base_url))
+            .post(format!("{}/user", self.base_url))
             .header("Content-Type", "application/json")
             .body(register_body.to_string())
             .send()
@@ -229,7 +229,7 @@ impl ApiDriver {
         });
 
         self.client
-            .post(&format!("{}/login", self.base_url))
+            .post(format!("{}/login", self.base_url))
             .header("Content-Type", "application/json")
             .body(login_body.to_string())
             .send()
@@ -239,7 +239,7 @@ impl ApiDriver {
 
     pub async fn get_user_details(&self, email: &str, bearer_token: &str) -> reqwest::Response {
         self.client
-            .get(&format!("{}/user/{}", self.base_url, email))
+            .get(format!("{}/user/{}", self.base_url, email))
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", bearer_token))
             .send()
@@ -260,7 +260,7 @@ impl ApiDriver {
         let request = aws_sdk_eventbridge::types::builders::PutEventsRequestEntryBuilder::default()
             .set_source(Some(format!("{}.orders", &self.env)))
             .set_detail_type(Some("orders.orderCompleted.v1".to_string()))
-            .set_detail(Some(String::from(payload_string)))
+            .set_detail(Some(payload_string))
             .set_event_bus_name(Some(self.event_bus_name.clone()))
             .build();
         let _ = self
