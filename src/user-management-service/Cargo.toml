@@ -14,6 +14,7 @@ members = [
   "src/user-management/lambdas/oauth_introspect",
   "src/user-management/lambdas/oauth_revoke",
   "src/user-management/lambdas/oauth_token",
+  "src/user-management/lambdas/oauth_metadata",
   "src/user-management/core",
   "src/integration_tests",
   "src/observability",

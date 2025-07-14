@@ -1783,6 +1783,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "oauth_metadata"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-dynamodb",
+ "aws-sdk-ssm",
+ "lambda_http",
+ "observability",
+ "serde",
+ "serde_json",
+ "shared",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "oauth_revoke"
 version = "0.1.0"
 dependencies = [

@@ -99,8 +99,8 @@ async fn seed_default_client<TRepository: Repository>(repository: &TRepository) 
     let create_client_command = CreateOAuthClientCommand {
         client_name: "default".to_string(),
         grant_types: vec!["authorization_code".to_string()],
-        scopes: vec!["read".to_string(), "write".to_string()],
         redirect_uris: vec!["http://localhost:3000/callback".to_string()],
+        response_types: vec!["code".to_string()],
     };
     let _ = create_client_command.handle(repository).await;
 }

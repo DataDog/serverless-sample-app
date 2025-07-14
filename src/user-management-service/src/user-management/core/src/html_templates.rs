@@ -197,7 +197,7 @@ impl LoginPageTemplate {
         
         {error_html}
         
-        <form method="POST" action="/prod/oauth/authorize">
+        <form method="POST" action="/oauth/authorize">
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email" required>

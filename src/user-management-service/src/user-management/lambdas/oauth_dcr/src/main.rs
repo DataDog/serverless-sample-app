@@ -8,7 +8,7 @@ use observability::observability;
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
 use shared::ports::{CreateOAuthClientCommand, ApplicationError};
-use shared::response::{empty_response, json_response};
+use shared::response::{empty_response, raw_json_response};
 use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
 
@@ -27,7 +27,7 @@ async fn function_handler<TRepository: Repository>(
             let result = command.handle(repository).await;
 
             match result {
-                Ok(response) => json_response(&StatusCode::CREATED, &response),
+                Ok(response) => raw_json_response(&StatusCode::CREATED, &response),
                 Err(e) => match e {
                     ApplicationError::NotFound => empty_response(&StatusCode::NOT_FOUND),
                     ApplicationError::InvalidInput(_) => empty_response(&StatusCode::BAD_REQUEST),

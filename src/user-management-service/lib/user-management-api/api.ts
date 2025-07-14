@@ -17,7 +17,8 @@ import { Construct } from "constructs";
 import { SharedProps } from "../constructs/sharedFunctionProps";
 import { InstrumentedLambdaFunction } from "../constructs/lambdaFunction";
 import { RemovalPolicy } from "aws-cdk-lib";
-import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
+import { HttpApi, HttpMethod, CorsHttpMethod } from "aws-cdk-lib/aws-apigatewayv2";
+import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import { IStringParameter } from "aws-cdk-lib/aws-ssm";
 import { SnsTopic } from "aws-cdk-lib/aws-events-targets";
 import { ITopic, Topic } from "aws-cdk-lib/aws-sns";
@@ -32,7 +33,7 @@ export class UserManagementApi extends Construct {
   get table(): ITable {
     return this._table;
   }
-  api: RestApi;
+  api: HttpApi;
   private _table: ITable;
 
   constructor(scope: Construct, id: string, props: UserManagementApiProps) {
@@ -72,63 +73,120 @@ export class UserManagementApi extends Construct {
     const oauthIntrospectIntegration = this.buildOAuthIntrospectFunction(props);
     const oauthRevokeIntegration = this.buildOAuthRevokeFunction(props);
     const oauthTokenIntegration = this.buildOAuthTokenFunction(props);
+    const oauthWellKnownIntegration = this.buildAuthServerWellKnownFunction(
+      props
+    );
 
-    this.api = new RestApi(this, "UserManagementApi", {
-      restApiName: `${props.serviceProps.sharedProps.serviceName}-Api-${props.serviceProps.sharedProps.environment}`,
-      defaultCorsPreflightOptions: {
+    this.api = new HttpApi(this, "UserManagementHttpApi", {
+      apiName: `${props.serviceProps.sharedProps.serviceName}-HttpApi-${props.serviceProps.sharedProps.environment}`,
+      corsPreflight: {
         allowOrigins: ["*"],
         allowHeaders: ["*"],
-        allowMethods: ["GET,PUT,POST,DELETE"],
+        allowMethods: [
+          CorsHttpMethod.GET,
+          CorsHttpMethod.POST,
+          CorsHttpMethod.PUT,
+          CorsHttpMethod.DELETE,
+          CorsHttpMethod.OPTIONS,
+        ],
       },
     });
 
-    const userResource = this.api.root.addResource("user");
-    userResource.addMethod("POST", registerUserIntegration);
+    // Add routes using HTTP API syntax
+    this.api.addRoutes({
+      path: "/.well-known/oauth-authorization-server",
+      methods: [HttpMethod.GET],
+      integration: oauthWellKnownIntegration,
+    });
 
-    const userIdResource = userResource.addResource("{userId}");
-    userIdResource.addMethod("GET", getUserDetailsIntegration);
+    this.api.addRoutes({
+      path: "/user",
+      methods: [HttpMethod.POST],
+      integration: registerUserIntegration,
+    });
 
-    const loginResource = this.api.root.addResource("login");
-    loginResource.addMethod("POST", loginIntegration);
+    this.api.addRoutes({
+      path: "/user/{userId}",
+      methods: [HttpMethod.GET],
+      integration: getUserDetailsIntegration,
+    });
 
-    // OAuth endpoints
-    const oauthResource = this.api.root.addResource("oauth");
+    this.api.addRoutes({
+      path: "/login",
+      methods: [HttpMethod.POST],
+      integration: loginIntegration,
+    });
 
     // OAuth Authorization endpoints
-    const authorizeResource = oauthResource.addResource("authorize");
-    authorizeResource.addMethod("GET", oauthAuthorizeIntegration);
-    authorizeResource.addMethod("POST", oauthAuthorizeIntegration);
+    this.api.addRoutes({
+      path: "/oauth/authorize",
+      methods: [HttpMethod.GET, HttpMethod.POST],
+      integration: oauthAuthorizeIntegration,
+    });
 
-    const callbackResource = authorizeResource.addResource("callback");
-    callbackResource.addMethod("GET", oauthAuthorizeCallbackIntegration);
-    callbackResource.addMethod("POST", oauthAuthorizeCallbackIntegration);
+    this.api.addRoutes({
+      path: "/oauth/authorize/callback",
+      methods: [HttpMethod.GET, HttpMethod.POST],
+      integration: oauthAuthorizeCallbackIntegration,
+    });
 
-    // OAuth Token endpoints
-    const tokenResource = oauthResource.addResource("token");
-    tokenResource.addMethod("POST", oauthTokenIntegration);
+    // OAuth Token endpoint
+    this.api.addRoutes({
+      path: "/oauth/token",
+      methods: [HttpMethod.POST],
+      integration: oauthTokenIntegration,
+    });
 
     // OAuth Introspect endpoint
-    const introspectResource = oauthResource.addResource("introspect");
-    introspectResource.addMethod("POST", oauthIntrospectIntegration);
+    this.api.addRoutes({
+      path: "/oauth/introspect",
+      methods: [HttpMethod.POST],
+      integration: oauthIntrospectIntegration,
+    });
 
     // OAuth Revoke endpoint
-    const revokeResource = oauthResource.addResource("revoke");
-    revokeResource.addMethod("POST", oauthRevokeIntegration);
+    this.api.addRoutes({
+      path: "/oauth/revoke",
+      methods: [HttpMethod.POST],
+      integration: oauthRevokeIntegration,
+    });
 
-    // OAuth Client Management endpoints
-    const clientResource = oauthResource.addResource("client");
-    clientResource.addMethod("POST", oauthDcrIntegration); // Dynamic Client Registration
+    // OAuth Client Management endpoints - Dynamic Client Registration
+    this.api.addRoutes({
+      path: "/oauth/client",
+      methods: [HttpMethod.POST],
+      integration: oauthDcrIntegration,
+    });
+    // RFC 7591 - OAuth DCR should be on /oauth/register route
+    this.api.addRoutes({
+      path: "/oauth/register",
+      methods: [HttpMethod.POST],
+      integration: oauthDcrIntegration,
+    });
 
-    const clientIdResource = clientResource.addResource("{clientId}");
-    clientIdResource.addMethod("GET", oauthClientGetIntegration);
-    clientIdResource.addMethod("PUT", oauthClientUpdateIntegration);
-    clientIdResource.addMethod("DELETE", oauthClientDeleteIntegration);
+    this.api.addRoutes({
+      path: "/oauth/client/{clientId}",
+      methods: [HttpMethod.GET],
+      integration: oauthClientGetIntegration,
+    });
+
+    this.api.addRoutes({
+      path: "/oauth/client/{clientId}",
+      methods: [HttpMethod.PUT],
+      integration: oauthClientUpdateIntegration,
+    });
+
+    this.api.addRoutes({
+      path: "/oauth/client/{clientId}",
+      methods: [HttpMethod.DELETE],
+      integration: oauthClientDeleteIntegration,
+    });
   }
 
   buildRegisterUserFunction(
     props: SharedProps,
     sharedEventBus: IEventBus
-  ): LambdaIntegration {
+  ): HttpLambdaIntegration {
     const lambdaFunction = new InstrumentedLambdaFunction(
       this,
       "RegisterUserFunction",
@@ -144,7 +202,10 @@ export class UserManagementApi extends Construct {
       }
     );
     sharedEventBus.grantPutEventsTo(lambdaFunction.function);
-    const lambdaIntegration = new LambdaIntegration(lambdaFunction.function);
+    const lambdaIntegration = new HttpLambdaIntegration(
+      "RegisterUserIntegration",
+      lambdaFunction.function
+    );
     this._table.grantReadWriteData(lambdaFunction.function);
 
     return lambdaIntegration;
@@ -152,7 +213,7 @@ export class UserManagementApi extends Construct {
 
   buildGetUserDetailsFunction(
     props: UserManagementApiProps
-  ): LambdaIntegration {
+  ): HttpLambdaIntegration {
     const lambdaFunction = new InstrumentedLambdaFunction(
       this,
       "GetUserDetailsFunction",
@@ -173,12 +234,15 @@ export class UserManagementApi extends Construct {
     props.serviceProps.getJwtSecret().grantRead(lambdaFunction.function);
     this._table.grantReadData(lambdaFunction.function);
 
-    const lambdaIntegration = new LambdaIntegration(lambdaFunction.function);
+    const lambdaIntegration = new HttpLambdaIntegration(
+      "GetUserDetailsIntegration",
+      lambdaFunction.function
+    );
 
     return lambdaIntegration;
   }
 
-  buildLoginFunction(props: UserManagementApiProps): LambdaIntegration {
+  buildLoginFunction(props: UserManagementApiProps): HttpLambdaIntegration {
     const lambdaFunction = new InstrumentedLambdaFunction(
       this,
       "LoginFunction",
@@ -197,7 +261,10 @@ export class UserManagementApi extends Construct {
 
     props.serviceProps.getJwtSecret().grantRead(lambdaFunction.function);
 
-    const lambdaIntegration = new LambdaIntegration(lambdaFunction.function);
+    const lambdaIntegration = new HttpLambdaIntegration(
+      "LoginIntegration",
+      lambdaFunction.function
+    );
     this._table.grantReadData(lambdaFunction.function);
 
     return lambdaIntegration;
@@ -205,7 +272,7 @@ export class UserManagementApi extends Construct {
 
   buildOAuthAuthorizeFunction(
     props: UserManagementApiProps
-  ): LambdaIntegration {
+  ): HttpLambdaIntegration {
     const lambdaFunction = new InstrumentedLambdaFunction(
       this,
       "OAuthAuthorizeFunction",
@@ -226,14 +293,17 @@ export class UserManagementApi extends Construct {
     props.serviceProps.getJwtSecret().grantRead(lambdaFunction.function);
     this._table.grantReadWriteData(lambdaFunction.function);
 
-    const lambdaIntegration = new LambdaIntegration(lambdaFunction.function);
+    const lambdaIntegration = new HttpLambdaIntegration(
+      "OAuthAuthorizeIntegration",
+      lambdaFunction.function
+    );
 
     return lambdaIntegration;
   }
 
   buildOAuthAuthorizeCallbackFunction(
     props: UserManagementApiProps
-  ): LambdaIntegration {
+  ): HttpLambdaIntegration {
     const lambdaFunction = new InstrumentedLambdaFunction(
       this,
       "OAuthAuthorizeCallbackFunction",
@@ -254,14 +324,17 @@ export class UserManagementApi extends Construct {
     props.serviceProps.getJwtSecret().grantRead(lambdaFunction.function);
     this._table.grantReadWriteData(lambdaFunction.function);
 
-    const lambdaIntegration = new LambdaIntegration(lambdaFunction.function);
+    const lambdaIntegration = new HttpLambdaIntegration(
+      `OAuthAuthorizeCallbackIntegration`,
+      lambdaFunction.function
+    );
 
     return lambdaIntegration;
   }
 
   buildOAuthClientDeleteFunction(
     props: UserManagementApiProps
-  ): LambdaIntegration {
+  ): HttpLambdaIntegration {
     const lambdaFunction = new InstrumentedLambdaFunction(
       this,
       "OAuthClientDeleteFunction",
@@ -282,14 +355,17 @@ export class UserManagementApi extends Construct {
     props.serviceProps.getJwtSecret().grantRead(lambdaFunction.function);
     this._table.grantReadWriteData(lambdaFunction.function);
 
-    const lambdaIntegration = new LambdaIntegration(lambdaFunction.function);
+    const lambdaIntegration = new HttpLambdaIntegration(
+      `OAuthClientDeleteFunctionIntegration`,
+      lambdaFunction.function
+    );
 
     return lambdaIntegration;
   }
 
   buildOAuthClientGetFunction(
     props: UserManagementApiProps
-  ): LambdaIntegration {
+  ): HttpLambdaIntegration {
     const lambdaFunction = new InstrumentedLambdaFunction(
       this,
       "OAuthClientGetFunction",
@@ -310,14 +386,17 @@ export class UserManagementApi extends Construct {
     props.serviceProps.getJwtSecret().grantRead(lambdaFunction.function);
     this._table.grantReadData(lambdaFunction.function);
 
-    const lambdaIntegration = new LambdaIntegration(lambdaFunction.function);
+    const lambdaIntegration = new HttpLambdaIntegration(
+      `OAuthClientGetFunctionIntegration`,
+      lambdaFunction.function
+    );
 
     return lambdaIntegration;
   }
 
   buildOAuthClientUpdateFunction(
     props: UserManagementApiProps
-  ): LambdaIntegration {
+  ): HttpLambdaIntegration {
     const lambdaFunction = new InstrumentedLambdaFunction(
       this,
       "OAuthClientUpdateFunction",
@@ -338,12 +417,15 @@ export class UserManagementApi extends Construct {
     props.serviceProps.getJwtSecret().grantRead(lambdaFunction.function);
     this._table.grantReadWriteData(lambdaFunction.function);
 
-    const lambdaIntegration = new LambdaIntegration(lambdaFunction.function);
+    const lambdaIntegration = new HttpLambdaIntegration(
+      `OAuthClientUpdateFunctionIntegration`,
+      lambdaFunction.function
+    );
 
     return lambdaIntegration;
   }
 
-  buildOAuthDcrFunction(props: UserManagementApiProps): LambdaIntegration {
+  buildOAuthDcrFunction(props: UserManagementApiProps): HttpLambdaIntegration {
     const lambdaFunction = new InstrumentedLambdaFunction(
       this,
       "OAuthDcrFunction",
@@ -363,14 +445,45 @@ export class UserManagementApi extends Construct {
     props.serviceProps.getJwtSecret().grantRead(lambdaFunction.function);
     this._table.grantReadWriteData(lambdaFunction.function);
 
-    const lambdaIntegration = new LambdaIntegration(lambdaFunction.function);
+    const lambdaIntegration = new HttpLambdaIntegration(
+      `OAuthDcrFunctionIntegration`,
+      lambdaFunction.function
+    );
+
+    return lambdaIntegration;
+  }
+
+  buildAuthServerWellKnownFunction(props: UserManagementApiProps): HttpLambdaIntegration {
+    const lambdaFunction = new InstrumentedLambdaFunction(
+      this,
+      "AuthServerWellKnownFunction",
+      {
+        sharedProps: props.serviceProps.sharedProps,
+        functionName: "OAuthMetadata",
+        handler: "bootstrap",
+        environment: {
+          TABLE_NAME: this._table.tableName,
+          JWT_SECRET_PARAM_NAME:
+            props.serviceProps.getJwtSecret().parameterName,
+        },
+        manifestPath: "./src/user-management/lambdas/oauth_metadata/Cargo.toml",
+      }
+    );
+
+    props.serviceProps.getJwtSecret().grantRead(lambdaFunction.function);
+    this._table.grantReadWriteData(lambdaFunction.function);
+
+    const lambdaIntegration = new HttpLambdaIntegration(
+      `OAuthMetadataFunctionIntegration`,
+      lambdaFunction.function
+    );
 
     return lambdaIntegration;
   }
 
   buildOAuthIntrospectFunction(
     props: UserManagementApiProps
-  ): LambdaIntegration {
+  ): HttpLambdaIntegration {
     const lambdaFunction = new InstrumentedLambdaFunction(
       this,
       "OAuthIntrospectFunction",
@@ -391,12 +504,15 @@ export class UserManagementApi extends Construct {
     props.serviceProps.getJwtSecret().grantRead(lambdaFunction.function);
     this._table.grantReadData(lambdaFunction.function);
 
-    const lambdaIntegration = new LambdaIntegration(lambdaFunction.function);
+    const lambdaIntegration = new HttpLambdaIntegration(
+      `OAuthIntrospectFunctionIntegration`,
+      lambdaFunction.function
+    );
 
     return lambdaIntegration;
   }
 
-  buildOAuthRevokeFunction(props: UserManagementApiProps): LambdaIntegration {
+  buildOAuthRevokeFunction(props: UserManagementApiProps): HttpLambdaIntegration {
     const lambdaFunction = new InstrumentedLambdaFunction(
       this,
       "OAuthRevokeFunction",
@@ -416,12 +532,15 @@ export class UserManagementApi extends Construct {
     props.serviceProps.getJwtSecret().grantRead(lambdaFunction.function);
     this._table.grantReadWriteData(lambdaFunction.function);
 
-    const lambdaIntegration = new LambdaIntegration(lambdaFunction.function);
+    const lambdaIntegration = new HttpLambdaIntegration(
+      `OAuthRevokeFunctionIntegration`,
+      lambdaFunction.function
+    );
 
     return lambdaIntegration;
   }
 
-  buildOAuthTokenFunction(props: UserManagementApiProps): LambdaIntegration {
+  buildOAuthTokenFunction(props: UserManagementApiProps): HttpLambdaIntegration {
     const lambdaFunction = new InstrumentedLambdaFunction(
       this,
       "OAuthTokenFunction",
@@ -441,7 +560,10 @@ export class UserManagementApi extends Construct {
     props.serviceProps.getJwtSecret().grantRead(lambdaFunction.function);
     this._table.grantReadWriteData(lambdaFunction.function);
 
-    const lambdaIntegration = new LambdaIntegration(lambdaFunction.function);
+    const lambdaIntegration = new HttpLambdaIntegration(
+      `OAuthTokenFunctionIntegration`,
+      lambdaFunction.function
+    );
 
     return lambdaIntegration;
   }

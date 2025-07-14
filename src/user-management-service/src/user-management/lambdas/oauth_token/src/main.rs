@@ -1,5 +1,6 @@
 use aws_config::SdkConfig;
 use lambda_http::http::StatusCode;
+use lambda_http::tracing::log::info;
 use lambda_http::{
     run, service_fn,
     tracing::{self, instrument},
@@ -9,7 +10,7 @@ use observability::observability;
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
 use shared::ports::{ApplicationError, TokenRequest};
-use shared::response::{empty_response, json_response};
+use shared::response::{empty_response, raw_json_response};
 use shared::tokens::TokenGenerator;
 use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -51,7 +52,7 @@ async fn function_handler<TRepository: Repository>(
     let result = token_request.handle(repository, token_generator).await;
 
     match result {
-        Ok(response) => json_response(&StatusCode::OK, &response),
+        Ok(response) => raw_json_response(&StatusCode::OK, &response),
         Err(e) => {
             tracing::error!("Error handling token request: {:?}", e);
             match e {
@@ -78,6 +79,7 @@ fn parse_form_data(body: &str) -> TokenRequest {
     let mut code_verifier = None;
 
     for pair in body.split('&') {
+        info!("Parsing form data pair: {}", pair);
         let parts: Vec<&str> = pair.split('=').collect();
         if parts.len() == 2 {
             let key = parts[0];

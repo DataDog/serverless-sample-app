@@ -11,10 +11,10 @@ use argon2::{
     Argon2,
 };
 use chrono::{Duration, Utc};
-use lambda_http::tracing::log::warn;
+use lambda_http::tracing::log::{info, warn};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tracing::Span;
+use tracing::{instrument, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use urlencoding::decode;
 use uuid::Uuid;
@@ -160,12 +160,10 @@ pub async fn handle_login<TRepo: Repository>(
     let user = repository
         .get_user(&login_command.email_address)
         .await
-        .map_err(|e| {
-            match e {
-                RepositoryError::NotFound => ApplicationError::NotFound,
-                RepositoryError::InternalError(e) => ApplicationError::InternalError(e.to_string()),
-                _ => ApplicationError::InternalError(e.to_string()),
-            }
+        .map_err(|e| match e {
+            RepositoryError::NotFound => ApplicationError::NotFound,
+            RepositoryError::InternalError(e) => ApplicationError::InternalError(e.to_string()),
+            _ => ApplicationError::InternalError(e.to_string()),
         })?;
 
     let parsed_hash = PasswordHash::new(user.get_password_hash())
@@ -194,13 +192,14 @@ impl OrderCompleted {
         Span::current().set_attribute("user.id", self.user_id.clone());
         Span::current().set_attribute("order.number", self.order_number.clone());
 
-        let mut user = repository.get_user(&self.user_id).await.map_err(|e| {
-            match e {
+        let mut user = repository
+            .get_user(&self.user_id)
+            .await
+            .map_err(|e| match e {
                 RepositoryError::NotFound => ApplicationError::NotFound,
                 RepositoryError::InternalError(e) => ApplicationError::InternalError(e.to_string()),
                 _ => ApplicationError::InternalError(e.to_string()),
-            }
-        })?;
+            })?;
 
         user.order_placed();
 
@@ -214,20 +213,24 @@ impl OrderCompleted {
 
 #[derive(Deserialize)]
 pub struct CreateOAuthClientCommand {
-    #[serde(rename = "clientName")]
+    #[serde(rename = "client_name")]
     pub client_name: String,
-    #[serde(rename = "redirectUris")]
+    #[serde(rename = "redirect_uris")]
     pub redirect_uris: Vec<String>,
-    #[serde(rename = "grantTypes")]
+    #[serde(rename = "grant_types")]
     pub grant_types: Vec<String>,
-    pub scopes: Vec<String>,
+    #[serde(rename = "response_types")]
+    pub response_types: Vec<String>,
 }
 
 impl CreateOAuthClientCommand {
+    #[instrument(name = "handle", skip(self, repository))]
     pub async fn handle<TRepo: Repository>(
         &self,
         repository: &TRepo,
     ) -> Result<OAuthClientCreatedDTO, ApplicationError> {
+        info!("Creating OAuth client: {}", self.client_name);
+
         // Validate input
         if self.client_name.is_empty() {
             return Err(ApplicationError::InvalidInput(
@@ -274,19 +277,18 @@ impl CreateOAuthClientCommand {
             ));
         }
 
-        // Validate scopes
-        if self.scopes.is_empty() {
-            return Err(ApplicationError::InvalidInput(
-                "At least one scope is required".to_string(),
-            ));
-        }
-
         // Create OAuth client
         let client = OAuthClient::new(
             self.client_name.clone(),
             self.redirect_uris.clone(),
             grant_types,
-            self.scopes.clone(),
+            vec![
+                "read".to_string(),
+                "write".to_string(),
+                "email".to_string(),
+                "openid".to_string(),
+                "profile".to_string(),
+            ],
             TokenEndpointAuthMethod::ClientSecretPost,
         );
 
@@ -337,16 +339,16 @@ impl GetOAuthClientQuery {
 
 #[derive(Deserialize)]
 pub struct UpdateOAuthClientCommand {
-    #[serde(rename = "clientId")]
+    #[serde(rename = "client_id")]
     pub client_id: String,
-    #[serde(rename = "clientName")]
+    #[serde(rename = "client_name")]
     pub client_name: Option<String>,
-    #[serde(rename = "redirectUris")]
+    #[serde(rename = "redirect_uris")]
     pub redirect_uris: Option<Vec<String>>,
     pub scopes: Option<Vec<String>>,
-    #[serde(rename = "clientUri")]
+    #[serde(rename = "client_uri")]
     pub client_uri: Option<String>,
-    #[serde(rename = "logoUri")]
+    #[serde(rename = "logo_uri")]
     pub logo_uri: Option<String>,
     pub contacts: Option<Vec<String>>,
 }
@@ -960,12 +962,6 @@ impl TokenRequest {
             ));
         }
 
-        if auth_code.client_id != self.client_id {
-            return Err(ApplicationError::InvalidInput(
-                "Client ID mismatch".to_string(),
-            ));
-        }
-
         if decode(&auth_code.redirect_uri) != decode(redirect_uri) {
             warn!(
                 "Redirect URI mismatch: expected '{}', got '{}'",
@@ -998,17 +994,6 @@ impl TokenRequest {
                 }
             }
         }
-
-        // Validate client
-        let _ = repository
-            .get_oauth_client(&self.client_id)
-            .await
-            .map_err(|e| {
-                ApplicationError::InternalError(format!("Failed to get OAuth client: {}", e))
-            })?
-            .ok_or(ApplicationError::InvalidInput(
-                "Invalid client_id".to_string(),
-            ))?;
 
         // Validate client secret if not using PKCE
         if auth_code.code_challenge.is_none() {

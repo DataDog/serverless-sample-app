@@ -207,8 +207,6 @@ impl User {
             User::Admin(details) => details,
         };
 
-        
-
         StringHasher::hash_string(details.email_address.to_uppercase())
     }
 
@@ -469,22 +467,14 @@ impl OAuthToken {
 
 #[derive(Serialize)]
 pub struct OAuthClientDTO {
-    #[serde(rename = "clientId")]
     pub client_id: String,
-    #[serde(rename = "clientName")]
     pub client_name: String,
-    #[serde(rename = "redirectUris")]
     pub redirect_uris: Vec<String>,
-    #[serde(rename = "grantTypes")]
     pub grant_types: Vec<String>,
     pub scopes: Vec<String>,
-    #[serde(rename = "tokenEndpointAuthMethod")]
     pub token_endpoint_auth_method: String,
-    #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
-    #[serde(rename = "updatedAt")]
     pub updated_at: DateTime<Utc>,
-    #[serde(rename = "isActive")]
     pub is_active: bool,
 }
 
@@ -503,17 +493,11 @@ pub struct OAuthTokenDTO {
 
 #[derive(Serialize)]
 pub struct OAuthClientCreatedDTO {
-    #[serde(rename = "clientId")]
     pub client_id: String,
-    #[serde(rename = "clientSecret")]
     pub client_secret: String,
-    #[serde(rename = "clientName")]
     pub client_name: String,
-    #[serde(rename = "redirectUris")]
     pub redirect_uris: Vec<String>,
-    #[serde(rename = "grantTypes")]
     pub grant_types: Vec<String>,
     pub scopes: Vec<String>,
-    #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
 }

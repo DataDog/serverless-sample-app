@@ -1,8 +1,11 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import mcpServer from "./mcp-server.js";
 import mcpErrors from "./mcp-errors.js";
-import express, { RequestHandler } from "express";
+import express from "express";
 import { Logger } from "@aws-lambda-powertools/logger";
+import { getParameter } from "@aws-lambda-powertools/parameters/ssm";
+import { MetadataService } from "./oauth.js";
+import { AuthMiddleware } from "./middleware.js";
 
 const logger = new Logger({});
 
@@ -38,9 +41,164 @@ const getRawBody = (
 };
 
 const bootstrap = async (app: express.Express) => {
+  app.get(
+    "/.well-known/oauth-authorization-server",
+    authorizationServerResourceHandler
+  );
+  app.get("/.well-known/oauth-protected-resource", wellKnownResourceHandler);
+  app.get("/.well-known/jwks.json", jwksHandler);
   app.post(MCP_PATH, postRequestHandler);
   app.get(MCP_PATH, sessionRequestHandler);
   app.delete(MCP_PATH, sessionRequestHandler);
+};
+
+const jwksHandler = async (req: express.Request, res: express.Response) => {
+  const authServerParameterName = process.env.AUTH_SERVER_PARAMETER_NAME;
+
+  if (!authServerParameterName) {
+    logger.error("AUTH_SERVER_PARAMETER_NAME environment variable not set");
+    res.status(500).json("{}");
+    return;
+  }
+
+  const authServiceEndpoint = await getParameter(authServerParameterName, {
+    decrypt: true,
+  });
+
+  if (!authServiceEndpoint) {
+    logger.error("Auth service endpoint not configured");
+    res.status(500).json("{}");
+    return;
+  }
+
+  const mcpServerParameterName = process.env.MCP_SERVER_PARAMETER_NAME;
+
+  if (!mcpServerParameterName) {
+    logger.error("MCP_SERVER_PARAMETER_NAME environment variable not set");
+    res.status(500).json("{}");
+    return;
+  }
+
+  const mcpServiceEndpoint = await getParameter(mcpServerParameterName, {
+    decrypt: true,
+  });
+
+  if (!mcpServiceEndpoint) {
+    logger.error("MCP service endpoint not configured");
+    res.status(500).json("{}");
+    return;
+  }
+  const metadataService = new MetadataService(
+    mcpServiceEndpoint,
+    authServiceEndpoint
+  );
+  res.json(metadataService.getJWKS());
+  res.status(200);
+  res.setHeader("Content-Type", "application/json");
+  res.end();
+};
+
+const authorizationServerResourceHandler = async (
+  req: express.Request,
+  res: express.Response
+) => {
+  const authServerParameterName = process.env.AUTH_SERVER_PARAMETER_NAME;
+
+  if (!authServerParameterName) {
+    logger.error("AUTH_SERVER_PARAMETER_NAME environment variable not set");
+    res.status(500).json("{}");
+    return;
+  }
+
+  const authServiceEndpoint = await getParameter(authServerParameterName, {
+    decrypt: true,
+  });
+
+  if (!authServiceEndpoint) {
+    logger.error("Auth service endpoint not configured");
+    res.status(500).json("{}");
+    return;
+  }
+
+  const mcpServerParameterName = process.env.MCP_SERVER_ENDPOINT_PARAMETER_NAME;
+
+  if (!mcpServerParameterName) {
+    logger.error(
+      "MCP_SERVER_ENDPOINT_PARAMETER_NAME environment variable not set"
+    );
+    res.status(500).json("{}");
+    return;
+  }
+
+  const mcpServiceEndpoint = await getParameter(mcpServerParameterName, {
+    decrypt: true,
+  });
+
+  if (!mcpServiceEndpoint) {
+    logger.error("MCP service endpoint not configured");
+    res.status(500).json("{}");
+    return;
+  }
+  const metadataService = new MetadataService(
+    mcpServiceEndpoint,
+    authServiceEndpoint
+  );
+  res.setHeader("Content-Type", "application/json");
+  res.status(200);
+  res.json(metadataService.getAuthorizationServer());
+  res.end();
+};
+
+const wellKnownResourceHandler = async (
+  req: express.Request,
+  res: express.Response
+) => {
+  const authServerParameterName = process.env.AUTH_SERVER_PARAMETER_NAME;
+
+  if (!authServerParameterName) {
+    logger.error("AUTH_SERVER_PARAMETER_NAME environment variable not set");
+    res.status(500).json("{}");
+    return;
+  }
+
+  const authServiceEndpoint = await getParameter(authServerParameterName, {
+    decrypt: true,
+  });
+
+  if (!authServiceEndpoint) {
+    logger.error("Auth service endpoint not configured");
+    res.status(500).json("{}");
+    return;
+  }
+
+  const mcpServerParameterName = process.env.MCP_SERVER_ENDPOINT_PARAMETER_NAME;
+
+  if (!mcpServerParameterName) {
+    logger.error(
+      "MCP_SERVER_ENDPOINT_PARAMETER_NAME environment variable not set"
+    );
+    res.status(500).json("{}");
+    return;
+  }
+
+  const mcpServiceEndpoint = await getParameter(mcpServerParameterName, {
+    decrypt: true,
+  });
+
+  if (!mcpServiceEndpoint) {
+    logger.error("MCP service endpoint not configured");
+    res.status(500).json("{}");
+    return;
+  }
+  const metadataService = new MetadataService(
+    mcpServiceEndpoint,
+    authServiceEndpoint
+  );
+
+  res.setHeader("Content-Type", "application/json");
+  res.json(metadataService.getResourceMetadata());
+  res.status(200);
+  res.end();
 };
 
 const postRequestHandler = async (
@@ -48,6 +206,24 @@ const postRequestHandler = async (
   res: express.Response
 ) => {
   try {
+    const authServerParameterName = process.env.AUTH_SERVER_PARAMETER_NAME;
+    const authServiceEndpoint = await getParameter(authServerParameterName!, {
+      decrypt: true,
+    });
+    const jwtSecretParameterName = process.env.JWT_SECRET_PARAM_NAME;
+    const jwtSecret = await getParameter(jwtSecretParameterName!, {
+      decrypt: true,
+    });
+    const authMiddleware = new AuthMiddleware(authServiceEndpoint!, jwtSecret!);
+
+    const authResult = await authMiddleware.authenticate(req);
+
+    if (authResult.response?.status === 401) {
+      // If authentication failed, return the error response
+      res.status(401).json(mcpErrors.internalServerError);
+      return;
+    }
+
     // Create new instances of MCP Server and Transport for each incoming request
     const newMcpServer = mcpServer.create();
     const transport = new StreamableHTTPServerTransport({
@@ -93,6 +269,28 @@ const sessionRequestHandler = async (
   req: express.Request,
   res: express.Response
 ) => {
+  logger.info("Session request handler called");
+
+  const authServerParameterName = process.env.AUTH_SERVER_PARAMETER_NAME;
+  const authServiceEndpoint = await getParameter(authServerParameterName!, {
+    decrypt: true,
+  });
+  const jwtSecretParameterName = process.env.JWT_SECRET_PARAM_NAME;
+  const jwtSecret = await getParameter(jwtSecretParameterName!, {
+    decrypt: true,
+  });
+  const authMiddleware = new AuthMiddleware(authServiceEndpoint!, jwtSecret!);
+
+  logger.info("Authenticating request");
+
+  const authResult = await authMiddleware.authenticate(req);
+
+  if (authResult.response?.status === 401) {
+    // If authentication failed, return the error response
+    res.status(401).json(mcpErrors.internalServerError);
+    return;
+  }
+
   res.status(405).set("Allow", "POST").json(mcpErrors.methodNotAllowed);
 };
 

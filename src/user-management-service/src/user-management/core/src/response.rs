@@ -26,6 +26,26 @@ pub fn empty_response(status: &StatusCode) -> Result<Response<Body>, Error> {
     Ok(response)
 }
 
+pub fn raw_json_response(
+    status: &StatusCode,
+    body: &impl Serialize,
+) -> Result<Response<Body>, Error> {
+    Span::current().set_attribute("http.status_code", status.as_u16().to_string());
+
+    let response = Response::builder()
+        .status(status)
+        .header("content-type", "application/json")
+        .header("Access-Control-Allow-Origin", "*")
+        .header("Access-Control-Allow-Headers", "Content-Type")
+        .header("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE")
+        .body(Body::Text(
+            serde_json::to_string(&body).unwrap_or("".to_string()),
+        ))
+        .map_err(Box::new)?;
+
+    Ok(response)
+}
+
 pub fn json_response(status: &StatusCode, body: &impl Serialize) -> Result<Response<Body>, Error> {
     Span::current().set_attribute("http.status_code", status.as_u16().to_string());
     let wrapper = ResponseWrapper {
