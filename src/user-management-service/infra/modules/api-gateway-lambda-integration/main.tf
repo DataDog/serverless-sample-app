@@ -8,10 +8,10 @@
 resource "aws_apigatewayv2_integration" "lambda_integration" {
   api_id           = var.api_id
   integration_type = "AWS_PROXY"
-  
+
   integration_method = "POST"
   integration_uri    = var.function_arn
-  
+
   payload_format_version = "2.0"
 }
 
@@ -22,7 +22,7 @@ resource "aws_apigatewayv2_route" "lambda_route" {
 }
 
 resource "aws_lambda_permission" "lambda_permission" {
-  statement_id  = "AllowLambdaExecutionFromAPIGateway_${var.function_name}"
+  statement_id  = "LambdaAPIGW_${var.http_method}_${replace(replace(replace(replace(var.route_path, "/", "_"), "{", "_"), "}", "_"), ".", "")}_${var.function_name}"
   action        = "lambda:InvokeFunction"
   function_name = var.function_name
   principal     = "apigateway.amazonaws.com"

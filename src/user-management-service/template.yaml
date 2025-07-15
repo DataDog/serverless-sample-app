@@ -104,8 +104,8 @@ Resources:
   CreateUserFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/create_user/
-      Handler: create-user
+      CodeUri: ./out/registerUserFunction/registerUserFunction.zip
+      Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-CreateUser-${Env}
       Environment:
         Variables:
@@ -147,15 +147,12 @@ Resources:
               - IsIntegratedEnvironment
               - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
               - !Ref UserManagementEventBus
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: create-user
 
   LoginFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/login/
-      Handler: login
+      CodeUri: ./out/loginFunction/loginFunction.zip
+      Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-Login-${Env}
       Environment:
         Variables:
@@ -205,14 +202,11 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: login
 
   GetUserDetailsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/get_user_details/
+      CodeUri: ./out/getUserDetailsFunction/getUserDetailsFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-GetUserDetails-${Env}
       Environment:
@@ -262,9 +256,6 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: get-user-details
 
   ################################################
   ############### OAuth Endpoints ################
@@ -273,7 +264,7 @@ Resources:
   OAuthMetadataFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_metadata/
+      CodeUri: ./out/oauthMetadataFunction/oauthMetadataFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthMetadata-${Env}
       Environment:
@@ -321,14 +312,11 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth-metadata
 
   OAuthAuthorizeFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_authorize/
+      CodeUri: ./out/oauthAuthorizeFunction/oauthAuthorizeFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthAuthorize-${Env}
       Environment:
@@ -383,14 +371,11 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth-authorize
 
   OAuthAuthorizeCallbackFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_authorize_callback/
+      CodeUri: ./out/oauthAuthorizeCallbackFunction/oauthAuthorizeCallbackFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthAuthorizeCallback-${Env}
       Environment:
@@ -445,14 +430,11 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth-authorize-callback
 
   OAuthTokenFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_token/
+      CodeUri: ./out/oauthTokenFunction/oauthTokenFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthToken-${Env}
       Environment:
@@ -502,14 +484,11 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth-token
 
   OAuthIntrospectFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_introspect/
+      CodeUri: ./out/oauthIntrospectFunction/oauthIntrospectFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthIntrospect-${Env}
       Environment:
@@ -557,14 +536,11 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth-introspect
 
   OAuthRevokeFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_revoke/
+      CodeUri: ./out/oauthRevokeFunction/oauthRevokeFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthRevoke-${Env}
       Environment:
@@ -614,14 +590,11 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth-revoke
 
   OAuthDcrFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_dcr/
+      CodeUri: ./out/oauthDcrFunction/oauthDcrFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthDcr-${Env}
       Environment:
@@ -676,14 +649,11 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth-dcr
 
   OAuthClientGetFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_client_get/
+      CodeUri: ./out/oauthClientGetFunction/oauthClientGetFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthClientGet-${Env}
       Environment:
@@ -731,14 +701,11 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth-client-get
 
   OAuthClientUpdateFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_client_update/
+      CodeUri: ./out/oauthClientUpdateFunction/oauthClientUpdateFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthClientUpdate-${Env}
       Environment:
@@ -788,14 +755,11 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth-client-update
 
   OAuthClientDeleteFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_client_delete/
+      CodeUri: ./out/oauthClientDeleteFunction/oauthClientDeleteFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthClientDelete-${Env}
       Environment:
@@ -846,9 +810,6 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth-client-delete
 
   ################################################
   ############# Background Workers ###############
@@ -857,8 +818,8 @@ Resources:
   OrderCompletedFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/handle_order_completed_for_user/
-      Handler: handle-order-completed
+      CodeUri: ./out/handleOrderCompletedFunction/handleOrderCompletedFunction.zip
+      Handler: bootstrap
       FunctionName: !Sub ${ServiceName}-OrderCompleted-${Env}
       Environment:
         Variables:
@@ -877,9 +838,6 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecret
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: handle-order-completed
 
   OrderCompletedDLQ:
     Type: AWS::SQS::Queue
