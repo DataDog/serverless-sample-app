@@ -5,23 +5,22 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-variable "dd_api_key_secret_arn" {
+variable "api_id" {
   type        = string
-  description = "The ARN of the Datadog API key secret"
+  description = "ID of the HTTP API Gateway"
 }
 
-variable "dd_site" {
+variable "api_arn" {
   type        = string
-  description = "The Datadog site"
+  description = "ARN of the HTTP API Gateway"
 }
 
-variable "env" {
+variable "function_name" {
   type        = string
-  description = "The environment deploying to"
+  description = "Name of the Lambda function"
 }
 
-variable "app_version" {
+variable "function_invoke_arn" {
   type        = string
-  description = "The deployed version of the application"
-  default     = "latest"
+  description = "Invoke ARN of the Lambda function"
 }

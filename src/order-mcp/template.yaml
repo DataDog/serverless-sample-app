@@ -13,13 +13,13 @@ Transform:
       stackName: !Ref "AWS::StackName"
       apiKey: !Ref DDApiKey
       nodeLayerVersion: 125
-      extensionLayerVersion: 80
+      extensionLayerVersion: 82
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
       site: !Ref DDSite
       captureLambdaPayload: true
-Description: A sample SAM template for deploying Lambda functions.
+Description: A sample SAM template for deploying Order MCP Service.
 
 Conditions:
   IsNonProdEnvironment: !Not [!Equals [!Ref Env, prod]]
@@ -33,7 +33,7 @@ Conditions:
 Parameters: 
   ServiceName: 
     Type: String
-    Default: LoyaltyService
+    Default: OrderMcpService
   Env: 
     Type: String
     Default: dev
@@ -44,7 +44,7 @@ Parameters:
     Type: String
   DDSite:
     Type: String
-    Type: String
+    Default: datadoghq.com
 
 Globals:
   Function:
@@ -54,91 +54,108 @@ Globals:
     Environment:
       Variables:
         ENV: !Ref Env
-        TABLE_NAME: !Ref LoyaltyAccountTable
         POWERTOOLS_SERVICE_NAME: !Ref ServiceName
-        POWERTOOLS_LOG_LEVEL: 'INFO'
+        POWERTOOLS_LOG_LEVEL: !If [!Equals [!Ref Env, prod], 'WARN', 'INFO']
         DD_LOGS_INJECTION: "true"
         DD_DATA_STREAMS_ENABLED: "true"
         DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true"
-        DOMAIN: "products"
+        TEAM: "order-mcp"
+        DOMAIN: "order-mcp"
+        BUILD_ID: !Ref CommitHash
+        DEPLOYED_AT: !Ref "AWS::Timestamp"
     Architectures:
       - x86_64
-  Api:
-    Cors:
-      AllowMethods: "'POST, GET, PUT, DELETE'"
-      AllowHeaders: "'*'"
-      AllowOrigin: "'*'"
 
 Resources:
   DDApiKeySecret:
     Type: 'AWS::SecretsManager::Secret'
     Properties:
-      Name: !Sub "/${Env}/${ServiceName}/datadog-api-key"
+      Name: !Sub "/${Env}/${ServiceName}/dd-api-key"
       Description: "The Datadog API key"
       SecretString: !Ref DDApiKey
 
-  LoyaltyServiceEventBus:
+  OrderMcpServiceEventBus:
     Type: AWS::Events::EventBus
     Properties:
-      Name: !Sub "${ServiceName}-Bus-${Env}"
+      Name: !Sub "${ServiceName}-bus-${Env}"
 
-  LoyaltyBusNameParameter:
+  OrderMcpBusNameParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub /${Env}/${ServiceName}/event-bus-name
       Type: String
-      Value: !Ref LoyaltyServiceEventBus
+      Value: !Ref OrderMcpServiceEventBus
 
-  LoyaltyBusArnParameter:
+  OrderMcpBusArnParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub /${Env}/${ServiceName}/event-bus-arn
       Type: String
-      Value: !GetAtt LoyaltyServiceEventBus.Arn
+      Value: !GetAtt OrderMcpServiceEventBus.Arn
 
-  LoyaltysSecretAccessKeyParameter:
+  OrderMcpSecretAccessKeyParameter:
     Type: AWS::SSM::Parameter
     Condition: IsNotIntegratedEnvironment
     Properties:
       Name: !Sub /${Env}/${ServiceName}/secret-access-key
       Type: String
       Value: "This is a sample secret key that should not be used in production`"
+
+  OrderMcpHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Name: !Sub "${ServiceName}-API-${Env}"
+      CorsConfiguration:
+        AllowHeaders:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        AllowOrigins:
+          - "*"
+        MaxAge: 86400
       
 ################################################
 ################     API     ###################
 ################################################
 
-  GetLoyaltyPointsFunction:
+  OrderMcpServerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./out/getLoyaltyAccountFunction/getLoyaltyAccountFunction.zip
-      Handler: index.handler
-      FunctionName: !Sub GetLoyaltyPointsFunction-${Env}
+      CodeUri: ./out/order-mcp/order-mcp.zip
+      Handler: run.sh
+      FunctionName: !Sub OrderMcpFunction-${Env}
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:753240598075:layer:LambdaAdapterLayerX86:25"
       Environment:
         Variables:
-          EVENT_BUS_NAME: !If
-            - IsIntegratedEnvironment
-            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-            - !Ref LoyaltyServiceEventBus
+          AUTH_SERVER_PARAMETER_NAME: !Sub /${Env}/Users/api-endpoint
+          MCP_SERVER_ENDPOINT_PARAMETER_NAME: !Sub /${Env}/${ServiceName}/api-endpoint
           JWT_SECRET_PARAM_NAME: !If
             - IsIntegratedEnvironment
             - !Sub /${Env}/shared/secret-access-key
             - !Sub /${Env}/${ServiceName}/secret-access-key
+          DD_TRACE_PARTIAL_FLUSH_MIN_SPANS: "1"
+          DD_TRACE_PARTIAL_FLUSH_ENABLED: "false"
+          AWS_LAMBDA_EXEC_WRAPPER: "/opt/bootstrap"
+          AWS_LWA_PORT: "3000"
       Events:
-        GetProduct:
-          Type: Api
-          Properties: 
-            Path: /loyalty
-            Method: get
+        ProxyRoute:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref OrderMcpHttpApi
+            Path: /{proxy+}
+            Method: ANY
+        RootRoute:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref OrderMcpHttpApi
+            Path: /
+            Method: ANY
       Policies:
-        - DynamoDBReadPolicy:
-            TableName:
-              !Ref LoyaltyAccountTable
-        - EventBridgePutEventsPolicy:
-            EventBusName: !If
-              - IsIntegratedEnvironment
-              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-              - !Ref LoyaltyServiceEventBus
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -158,241 +175,79 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - "ssm:DescribeParameters"
                 - "ssm:GetParameter"
-                - "ssm:GetParameterHistory"
                 - "ssm:GetParameters"
-              Resource: !If
-                - IsIntegratedEnvironment
-                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
-                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+                - "ssm:GetParametersByPath"
+              Resource: 
+                - !If
+                  - IsIntegratedEnvironment
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Env}/shared/secret-access-key"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Env}/${ServiceName}/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Env}/OrdersService/api-endpoint"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Env}/ProductService/api-endpoint"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Env}/Users/api-endpoint"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Env}/${ServiceName}/api-endpoint"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "kms:Decrypt"
+              Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/ssm"
 
-  SpendLoyaltyPointsFunction:
+  OrderMcpAuthorizerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./out/spendLoyaltyPointsFunction/spendLoyaltyPointsFunction.zip
+      CodeUri: ./out/authorizerFunction/authorizerFunction.zip
       Handler: index.handler
-      FunctionName: !Sub SpendLoyaltyPointsFunction-${Env}
+      FunctionName: !Sub OrderMcpAuthorizerFunction-${Env}
       Environment:
         Variables:
           JWT_SECRET_PARAM_NAME: !If
             - IsIntegratedEnvironment
             - !Sub /${Env}/shared/secret-access-key
             - !Sub /${Env}/${ServiceName}/secret-access-key
-          DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
-      Events:
-        SpendPoints:
-          Type: Api
-          Properties: 
-            Path: /loyalty
-            Method: post
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName:
-              !Ref LoyaltyAccountTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecret
+        # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
-                - "ssm:DescribeParameters"
                 - "ssm:GetParameter"
-                - "ssm:GetParameterHistory"
                 - "ssm:GetParameters"
+                - "ssm:GetParametersByPath"
               Resource: !If
                 - IsIntegratedEnvironment
-                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
-                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-
-  HandleLoyaltyPointsUpdatedFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./out/handleLoyaltyPointsUpdated/handleLoyaltyPointsUpdated.zip
-      Handler: index.handler
-      FunctionName: !Sub HandleLoyaltyPointsUpdated-${Env}
-      Environment:
-        Variables:
-          DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
-          EVENT_BUS_NAME: !If
-              - IsIntegratedEnvironment
-              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-              - !Ref LoyaltyServiceEventBus
-      Events:
-        DDBEvent:
-          Type: DynamoDB
-          Properties:
-            Stream: 
-              !GetAtt LoyaltyAccountTable.StreamArn   # This must be the name of a DynamoDB table declared in the same template file
-            StartingPosition: LATEST
-            BatchSize: 5
-            Enabled: true
-      Policies:
-        - EventBridgePutEventsPolicy:
-            EventBusName: !If
-              - IsIntegratedEnvironment
-              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-              - !Ref LoyaltyServiceEventBus
-        - DynamoDBCrudPolicy:
-            TableName:
-              !Ref LoyaltyAccountTable
-        - DynamoDBStreamReadPolicy:
-            TableName:
-              !Ref LoyaltyAccountTable
-            StreamName: "*"
-        - EventBridgePutEventsPolicy:
-            EventBusName: !If
-              - IsIntegratedEnvironment
-              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-              - !Ref LoyaltyServiceEventBus
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Env}/${ServiceName}/secret-access-key"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "kms:Decrypt"
+              Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/ssm"
 
 ################################################
-############# Background Workers ###############
+############# EventBridge Integration ###########
 ################################################
-
-  HandleUserCreatedEventFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./out/handleUserCreatedFunction/handleUserCreatedFunction.zip
-      Handler: index.handler
-      FunctionName: !Sub HandleUserCreated-${Env}
-      Environment:
-        Variables:
-          DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
-      Events:
-        UserCreatedQueue:
-          Type: SQS
-          Properties:
-            Queue: !GetAtt UserCreatedQueue.Arn
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName:
-              !Ref LoyaltyAccountTable
-        - EventBridgePutEventsPolicy:
-            EventBusName: !If
-              - IsIntegratedEnvironment
-              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-              - !Ref LoyaltyServiceEventBus
-
-  UserCreatedDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub "${ServiceName}-UserCreatedDLQ-${Env}"
-
-  UserCreatedQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub "${ServiceName}-UserCreated-${Env}"
-      RedrivePolicy:
-        deadLetterTargetArn:
-          Fn::GetAtt:
-            - "UserCreatedDLQ"
-            - "Arn"
-        maxReceiveCount: 3
-
-  UserCreatedEventRule:
-    Type: AWS::Events::Rule
-    Properties:
-      EventBusName: !Ref LoyaltyServiceEventBus
-      Name: loyalty-user-created
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.users"
-        detail-type:
-          - "users.userCreated.v1"
-      Targets:
-        - Id: UserCreatedQueue
-          Arn: !GetAtt UserCreatedQueue.Arn
-
-  EBToUserCreatedQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !Ref UserCreatedQueue
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: allow-eb-send-message
-            Effect: Allow
-            Principal:
-              Service: "events.amazonaws.com"
-            Resource: !GetAtt UserCreatedQueue.Arn
-            Action: SQS:SendMessage
-
-  HandleOrderCompletedEventFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./out/handleOrderCompletedFunction/handleOrderCompletedFunction.zip
-      Handler: index.handler
-      FunctionName: !Sub HandleOrderCompleted-${Env}
-      Environment:
-        Variables:
-          DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
-      Events:
-        OrderCompletedQueue:
-          Type: SQS
-          Properties:
-            Queue: !GetAtt OrderCompletedQueue.Arn
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName:
-              !Ref LoyaltyAccountTable
-
-  OrderCompletedDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub "${ServiceName}-OrderCompletedDLQ-${Env}"
-
-  OrderCompletedQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub "${ServiceName}-OrderCompleted-${Env}"
-      RedrivePolicy:
-        deadLetterTargetArn:
-          Fn::GetAtt:
-            - "OrderCompletedDLQ"
-            - "Arn"
-        maxReceiveCount: 3
-
-  OrderCompletedEventRule:
-    Type: AWS::Events::Rule
-    Properties:
-      EventBusName: !Ref LoyaltyServiceEventBus
-      Name: loyalty-order-completed
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.orders"
-        detail-type:
-          - "orders.orderCompleted.v1"
-      Targets:
-        - Id: OrderCompletedQueue
-          Arn: !GetAtt OrderCompletedQueue.Arn
-
-  EBToOrderCompletedQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !Ref OrderCompletedQueue
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: allow-eb-send-message
-            Effect: Allow
-            Principal:
-              Service: "events.amazonaws.com"
-            Resource: !GetAtt OrderCompletedQueue.Arn
-            Action: SQS:SendMessage
 
 ################################################
 ######## Public Event Subscriptions ############
 ################################################
-  SharedEventBusToLoyaltyServiceEventBusRole:
+  SharedEventBusToOrderMcpServiceEventBusRole:
     Type: AWS::IAM::Role
     Condition: IsIntegratedEnvironment
     Properties:
@@ -414,59 +269,28 @@ Resources:
               - Effect: Allow
                 Action:
                   - "events:PutEvents"
-                Resource: [!GetAtt LoyaltyServiceEventBus.Arn]
+                Resource: [!GetAtt OrderMcpServiceEventBus.Arn]
 
-  SharedEventBusUserCreatedEventRule:
+  SharedEventBusOrderMcpEventRule:
     Type: AWS::Events::Rule
     Condition: IsIntegratedEnvironment
     Properties:
       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-      Name: shared-loyalty-user-created
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.users"
-        detail-type:
-          - "users.userCreated.v1"
-      Targets:
-        - Id: LoyaltyServiceEventBus
-          Arn: !GetAtt LoyaltyServiceEventBus.Arn
-          RoleArn: !GetAtt SharedEventBusToLoyaltyServiceEventBusRole.Arn
-          
-  SharedEventBusOrderCompletedEventRule:
-    Type: AWS::Events::Rule
-    Condition: IsIntegratedEnvironment
-    Properties:
-      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-      Name: shared-loyalty-order-completed
+      Name: shared-order-mcp-events
       State: ENABLED
       EventPattern:
         source:
           - !Sub "${Env}.orders"
-        detail-type:
-          - "orders.orderCompleted.v1"
+          - !Sub "${Env}.users"
+          - !Sub "${Env}.products"
       Targets:
-        - Id: LoyaltyServiceEventBus
-          Arn: !GetAtt LoyaltyServiceEventBus.Arn
-          RoleArn: !GetAtt SharedEventBusToLoyaltyServiceEventBusRole.Arn
-
-  LoyaltyAccountTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Sub ${ServiceName}-Accounts-${Env}
-      AttributeDefinitions:
-        - AttributeName: PK
-          AttributeType: S
-      BillingMode: PAY_PER_REQUEST
-      KeySchema:
-        - AttributeName: PK
-          KeyType: HASH
-      StreamSpecification:
-          StreamViewType: NEW_AND_OLD_IMAGES
+        - Id: OrderMcpServiceEventBus
+          Arn: !GetAtt OrderMcpServiceEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToOrderMcpServiceEventBusRole.Arn
 
   ApiEndpoint:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub /${Env}/${ServiceName}/api-endpoint
       Type: String
-      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+      Value: !Sub "https://${OrderMcpHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"

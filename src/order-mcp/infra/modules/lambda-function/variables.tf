@@ -64,3 +64,9 @@ variable "additional_policy_attachments" {
   type = list(string)
   default = []
 }
+
+variable "custom_layers" {
+  description = "Additional custom layers to attach to the Lambda function"
+  type        = list(string)
+  default     = []
+}

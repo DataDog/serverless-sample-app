@@ -94,10 +94,11 @@ module "aws_lambda_function" {
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
   source_code_hash         = filebase64sha256(var.zip_file)
   timeout                  = var.function_timeout
+  layers                   = var.custom_layers
 
   environment_variables = merge(tomap({
-    "TEAM": "loyalty"
-    "DOMAIN": "loyalty"
+    "TEAM": var.service_name == "OrderMcpService" ? "order-mcp" : "loyalty"
+    "DOMAIN": var.service_name == "OrderMcpService" ? "order-mcp" : "loyalty"
     "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
     "DD_EXTENSION_VERSION" : "next"
     "DD_CAPTURE_LAMBDA_PAYLOAD" : "true"
@@ -112,10 +113,10 @@ module "aws_lambda_function" {
     "DEPLOYED_AT" : timestamp()
     "ENV" : var.env
     "POWERTOOLS_SERVICE_NAME" : var.service_name
-    "POWERTOOLS_LOG_LEVEL" : "INFO" }),
+    "POWERTOOLS_LOG_LEVEL" : var.env == "prod" ? "WARN" : "INFO" }),
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 80
+  datadog_extension_layer_version = 82
   datadog_node_layer_version = 125
 }
