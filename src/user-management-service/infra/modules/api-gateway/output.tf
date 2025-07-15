@@ -6,13 +6,17 @@
 //
 
 output "api_id" {
-  value = aws_api_gateway_rest_api.rest_api.id
+  value = aws_apigatewayv2_api.http_api.id
 }
 
 output "api_arn" {
-  value = aws_api_gateway_rest_api.rest_api.arn
+  value = aws_apigatewayv2_api.http_api.arn
 }
 
-output "root_resource_id" {
-  value = aws_api_gateway_rest_api.rest_api.root_resource_id
+output "api_endpoint" {
+  value = aws_apigatewayv2_stage.default.invoke_url
+}
+
+output "stage_name" {
+  value = aws_apigatewayv2_stage.default.name
 }

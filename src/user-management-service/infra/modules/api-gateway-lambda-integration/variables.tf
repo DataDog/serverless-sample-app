@@ -15,13 +15,8 @@ variable "api_arn" {
   type        = string
 }
 
-variable "api_resource_id" {
-  description = "The API Gateway resource."
-  type        = string
-}
-
-variable "api_resource_path" {
-  description = "The path of the API Gateway resource."
+variable "route_path" {
+  description = "The route path for the HTTP API (e.g., /user, /user/{userId})."
   type        = string
 }
 
