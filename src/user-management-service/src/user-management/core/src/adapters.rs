@@ -152,11 +152,6 @@ impl Repository for DynamoDbRepository {
         
         let search_address = StringHasher::hash_string(email_address.to_uppercase());
 
-        Span::current().set_attribute(
-            "user.searchAddress",
-            search_address.clone,
-        );
-
         let res = self
             .client
             .get_item()
