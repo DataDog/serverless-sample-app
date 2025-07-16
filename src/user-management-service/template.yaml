@@ -936,7 +936,6 @@ Resources:
       AttributeDefinitions:
         - AttributeName: PK
           AttributeType: S
-          AttributeDefinitions:
         - AttributeName: SK
           AttributeType: S
       BillingMode: PAY_PER_REQUEST
