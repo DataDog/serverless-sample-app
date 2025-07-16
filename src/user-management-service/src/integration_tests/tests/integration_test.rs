@@ -47,6 +47,9 @@ async fn when_user_registers_then_should_be_able_to_login() {
     )
     .await;
 
+
+    println!("Email under test is {}", &email_under_test);
+
     let register_response = api_driver
         .register_user(&email_under_test, "Test", "Doe", password_under_test)
         .await;
