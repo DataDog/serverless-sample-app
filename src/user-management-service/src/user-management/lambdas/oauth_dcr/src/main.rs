@@ -24,7 +24,7 @@ async fn function_handler<TRepository: Repository>(
     match request_body {
         None => empty_response(&StatusCode::BAD_REQUEST),
         Some(command) => {
-            let result = command.handle(repository).await;
+            let result: Result<shared::core::OAuthClientCreatedDTO, ApplicationError> = command.handle(repository).await;
 
             match result {
                 Ok(response) => raw_json_response(&StatusCode::CREATED, &response),

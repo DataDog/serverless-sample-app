@@ -274,7 +274,7 @@ impl Repository for DynamoDbRepository {
         }
     }
 
-    #[instrument(name = "get_oauth_client", skip(self, client_id))]
+    #[instrument(name = "get_oauth_client", skip(self))]
     async fn get_oauth_client(&self, client_id: &str) -> Result<Option<OAuthClient>, RepositoryError> {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
@@ -301,6 +301,7 @@ impl Repository for DynamoDbRepository {
             }
             Err(e) => {
                 tracing::error!("Error getting OAuth client: {:?}", e);
+                Span::current().record("error.message", format!("{:?}", e));
                 Err(RepositoryError::InternalError("Failed to get OAuth client".to_string()))
             }
         }

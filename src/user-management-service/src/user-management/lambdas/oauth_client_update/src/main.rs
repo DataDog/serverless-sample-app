@@ -22,7 +22,7 @@ async fn function_handler<TRepository: Repository>(
     // Extract client_id from path parameters
     let client_id = event
         .path_parameters()
-        .first("client_id")
+        .first("clientId")
         .unwrap_or_default()
         .to_string();
 

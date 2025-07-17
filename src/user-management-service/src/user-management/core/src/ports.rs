@@ -576,7 +576,7 @@ impl AuthorizeRequest {
         // Validate response_type
         if self.response_type != "code" {
             return Err(ApplicationError::InvalidInput(
-                "Only 'code' response type is supported".to_string(),
+                format!("Only 'code' response type is supported. Current request is for '{}'", &self.response_type),
             ));
         }
 
