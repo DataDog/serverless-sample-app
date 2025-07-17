@@ -12,7 +12,7 @@ use shared::ports::{
 };
 use shared::response::{empty_response, html_response, redirect_response};
 use std::env;
-use tracing::{instrument, Span};
+use tracing::instrument;
 use tracing_subscriber::util::SubscriberInitExt;
 
 #[instrument(name = "GET /oauth/authorize", skip(repository, event), fields(http.method = event.method().as_str(), http.path_group = event.raw_http_path()))]
