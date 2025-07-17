@@ -37,3 +37,7 @@ popd
 pushd src/product-management-service
 make build &>../../build-logs/product-service.log
 popd
+
+pushd src/activity-service
+make dev && make build &>../../build-logs/activity-service.log
+popd

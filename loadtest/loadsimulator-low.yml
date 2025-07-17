@@ -5,19 +5,17 @@ config:
   processor: "generator.js"
   phases:
     # Arrival count is a fixed number of requests to be sent over the duration
-    # Over the course of 10 seconds, 10 requests will be sent
+    # Over the course of 10 seconds, 2 requests will be sent
     - duration: 10
-      arrivalCount: 10
-    - duration: 30
-      arrivalCount: 10
-    - duration: 60
+      arrivalCount: 2
+    - duration: 90
       arrivalCount: 20
     - duration: 120
-      arrivalCount: 30
+      arrivalCount: 5
+    - duration: 30
+      arrivalCount: 10
     - duration: 10
       arrivalCount: 10
-    - duration: 90
-      arrivalCount: 30
 
 scenarios:
   - name: "User create order"

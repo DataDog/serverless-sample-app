@@ -10,14 +10,6 @@ config:
       arrivalCount: 10
     - duration: 30
       arrivalCount: 10
-    - duration: 60
-      arrivalCount: 20
-    - duration: 120
-      arrivalCount: 30
-    - duration: 10
-      arrivalCount: 10
-    - duration: 90
-      arrivalCount: 30
 
 scenarios:
   - name: "User create order"

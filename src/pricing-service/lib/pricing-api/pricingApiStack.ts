@@ -61,14 +61,6 @@ export class PricingApiStack extends cdk.Stack {
     });
 
     // Paste PricingEventHandlers here.
-    const eventHandlers = new PricingEventHandlers(
-      this,
-      "PricingEventHandlers",
-      {
-        serviceProps: pricingServiceProps,
-        ddApiKeySecret: ddApiKey,
-      }
-    );
 
     const apiEndpoint = new StringParameter(this, "PricingAPIEndpoint", {
       parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/api-endpoint`,

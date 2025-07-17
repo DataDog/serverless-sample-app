@@ -4,20 +4,12 @@ config:
     timeout: 60
   processor: "generator.js"
   phases:
-    # Arrival count is a fixed number of requests to be sent over the duration
-    # Over the course of 10 seconds, 10 requests will be sent
-    - duration: 10
-      arrivalCount: 10
-    - duration: 30
-      arrivalCount: 10
+    # Arrival rate configures the number of requests per second, duration is for how long
+    # This first phase will send 100 req/s for 30 seconds
     - duration: 60
-      arrivalCount: 20
-    - duration: 120
-      arrivalCount: 30
-    - duration: 10
-      arrivalCount: 10
-    - duration: 90
-      arrivalCount: 30
+      arrivalRate: 100
+    - duration: 30
+      arrivalRate: 50
 
 scenarios:
   - name: "User create order"
@@ -137,7 +129,7 @@ scenarios:
             as: adminJwt
       - function: generateProductName
       - post:
-          url: "{{ $processEnvironment.INVENTORY_API_ENDPOINT }}/product"
+          url: "{{ $processEnvironment.PRODUCT_API_ENDPOINT }}/product"
           ifTrue: 'ProductName'
           headers:
             Content-Type: "application/json"
