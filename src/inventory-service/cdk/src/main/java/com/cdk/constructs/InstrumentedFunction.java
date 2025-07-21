@@ -8,6 +8,9 @@ package com.cdk.constructs;
 
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.Duration;
+import software.amazon.awscdk.services.iam.Effect;
+import software.amazon.awscdk.services.iam.PolicyStatement;
+import software.amazon.awscdk.services.iam.PolicyStatementProps;
 import software.amazon.awscdk.services.lambda.*;
 import software.amazon.awscdk.services.lambda.Runtime;
 import software.amazon.awscdk.services.lambda.VersionProps;
@@ -16,10 +19,7 @@ import software.amazon.awscdk.services.s3.IBucket;
 import software.amazon.awscdk.services.s3.assets.Asset;
 import software.constructs.Construct;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class InstrumentedFunction extends Construct {
     private final IFunction function;
@@ -51,7 +51,7 @@ public class InstrumentedFunction extends Construct {
 
         List<ILayerVersion> layers = new ArrayList<>(2);
         layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:21",System.getenv("AWS_REGION"))));
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:80", System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:83", System.getenv("AWS_REGION"))));
 
 
         Asset fileAsset = Asset.Builder.create(this, String.format("%sS3Asset", props.routingExpression()))
@@ -91,15 +91,15 @@ public class InstrumentedFunction extends Construct {
         }
 
         // The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
-//        if (System.getenv("ENABLE_CLOUDWATCH_LOGS") != "Y") {
-//            this.function.addToRolePolicy(new PolicyStatement(PolicyStatementProps.builder()
-//                    .actions(List.of("logs:CreateLogGroup",
-//                            "logs:CreateLogStream",
-//                            "logs:PutLogEvents"))
-//                    .resources(List.of("arn:aws:logs:*:*:*"))
-//                    .effect(Effect.DENY)
-//                    .build()));
-//        }
+        if (!Objects.equals(System.getenv("ENABLE_CLOUDWATCH_LOGS"), "Y")) {
+            this.function.addToRolePolicy(new PolicyStatement(PolicyStatementProps.builder()
+                    .actions(List.of("logs:CreateLogGroup",
+                            "logs:CreateLogStream",
+                            "logs:PutLogEvents"))
+                    .resources(List.of("arn:aws:logs:*:*:*"))
+                    .effect(Effect.DENY)
+                    .build()));
+        }
 
         props.sharedProps().ddApiKeySecret().grantRead(this.function);
     }

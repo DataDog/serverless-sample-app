@@ -31,7 +31,7 @@ export class LoyaltyApiStack extends cdk.Stack {
 
     const datadogConfiguration = new DatadogLambda(this, "Datadog", {
       nodeLayerVersion: 125,
-      extensionLayerVersion: 80,
+      extensionLayerVersion: 83,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
       service,
