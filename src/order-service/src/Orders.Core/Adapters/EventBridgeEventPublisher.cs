@@ -51,6 +51,7 @@ public class EventBridgeEventPublisher(
 
         scope.Span.SetTag("messaging.failedMessageCount", putEventsResponse.FailedEntryCount);
         scope.Span.SetTag("messaging.publishStatusCode", putEventsResponse.HttpStatusCode.ToString());
+        scope.Span.Finish();
     }
 
     public async Task Publish(OrderCreatedEventV1 evt)

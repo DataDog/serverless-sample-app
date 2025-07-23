@@ -237,8 +237,6 @@ try
 
     app.UseAuthorization();
 
-    var orders = app.NewVersionedApi("Orders");
-
     // Comprehensive health check endpoints
     app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
     {
@@ -306,6 +304,8 @@ try
             await context.Response.WriteAsync(result);
         }
     });
+
+    var orders = app.NewVersionedApi("Orders");
     // Version 1 API endpoints with specific rate limiting policies
     orders.MapGet("/orders", GetUserOrdersHandler.Handle)
         .HasApiVersion(1.0)

@@ -24,9 +24,6 @@ public class CreateOrderHandler
         ILogger<CreateOrderHandler> logger)
     {
         var correlationId = context.Items["CorrelationId"]?.ToString() ?? Guid.NewGuid().ToString();
-        var stopwatch = Stopwatch.StartNew();
-        
-        using var performanceScope = logger.BeginPerformanceScope("CreateOrder", correlationId);
         
         try
         {
@@ -38,10 +35,7 @@ public class CreateOrderHandler
             // Log operation start with safe context
             logger.LogOrderCreationStarted(request.Products.Length, userType);
             
-            // Validate request using FluentValidation
-            var validationStartTime = Stopwatch.GetTimestamp();
             var validationResult = await validator.ValidateAsync(request);
-            var validationDuration = Stopwatch.GetElapsedTime(validationStartTime);
             
             if (!validationResult.IsValid)
             {
@@ -57,8 +51,6 @@ public class CreateOrderHandler
                     errors,
                     correlationId));
             }
-            
-            logger.LogValidationPassed("CreateOrder", (long)validationDuration.TotalMilliseconds);
 
             Order? newOrder = null;
             string orderType;
@@ -79,24 +71,6 @@ public class CreateOrderHandler
             
             await orders.Store(newOrder);
             await orderWorkflow.StartWorkflowFor(newOrder);
-            
-            stopwatch.Stop();
-            
-            // Log successful completion with structured context
-            logger.LogOrderCreated(orderType, stopwatch.ElapsedMilliseconds);
-            
-            // Log business metrics (NO PII)
-            var businessContext = new BusinessMetricsContext
-            {
-                CorrelationId = correlationId,
-                EventType = "OrderCreated",
-                OrderType = orderType,
-                UserTier = userType,
-                ProductCount = request.Products.Length,
-                Timestamp = DateTime.UtcNow,
-                ProcessingStage = "Created"
-            };
-            logger.LogBusinessMetrics("Order creation completed", businessContext);
             
             return Results.Created($"/api/orders/{newOrder.OrderNumber}", new OrderDTO(newOrder));
         }
