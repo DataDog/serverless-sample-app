@@ -478,6 +478,7 @@ Resources:
                 - dynamodb:PutItem
                 - dynamodb:GetItem
                 - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
               Resource: !GetAtt UserTable.Arn
         - Version: "2012-10-17"
           Statement:
@@ -590,6 +591,7 @@ Resources:
                 - dynamodb:PutItem
                 - dynamodb:GetItem
                 - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
               Resource: !GetAtt UserTable.Arn
         - Version: "2012-10-17"
           Statement:
