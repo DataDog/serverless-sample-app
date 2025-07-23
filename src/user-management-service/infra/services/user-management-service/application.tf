@@ -15,8 +15,6 @@ resource "aws_ssm_parameter" "user_service_access_key" {
 module "api_gateway" {
   source            = "../../modules/api-gateway"
   api_name          = "${var.service_name}-API-${var.env}"
-  stage_name        = var.env
-  stage_auto_deploy = true
   env               = var.env
 }
 
