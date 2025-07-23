@@ -103,11 +103,8 @@ Resources:
 
   CreateUserFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: create-user
     Properties:
-      CodeUri: ./src/user-management/lambdas/create_user/
+      CodeUri: ./out/registerUserFunction/registerUserFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-CreateUser-${Env}
       Environment:
@@ -153,11 +150,8 @@ Resources:
 
   LoginFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: login
     Properties:
-      CodeUri: ./src/user-management/lambdas/login/
+      CodeUri: ./out/loginFunction/loginFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-Login-${Env}
       Environment:
@@ -211,11 +205,8 @@ Resources:
 
   GetUserDetailsFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: get-user-details
     Properties:
-      CodeUri: ./src/user-management/lambdas/get_user_details/
+      CodeUri: ./out/getUserDetailsFunction/getUserDetailsFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-GetUserDetails-${Env}
       Environment:
@@ -272,11 +263,8 @@ Resources:
 
   OAuthMetadataFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth_metadata
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_metadata/
+      CodeUri: ./out/oauthMetadataFunction/oauthMetadataFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthMetadata-${Env}
       Environment:
@@ -327,11 +315,8 @@ Resources:
 
   OAuthAuthorizeFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth_authorize
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_authorize/
+      CodeUri: ./out/oauthAuthorizeFunction/oauthAuthorizeFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthAuthorize-${Env}
       Environment:
@@ -389,11 +374,8 @@ Resources:
 
   OAuthAuthorizeCallbackFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth_authorize_callback
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_authorize_callback/
+      CodeUri: ./out/oauthAuthorizeCallbackFunction/oauthAuthorizeCallbackFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthAuthorizeCallback-${Env}
       Environment:
@@ -451,11 +433,8 @@ Resources:
 
   OAuthTokenFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth_token
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_token/
+      CodeUri: ./out/oauthTokenFunction/oauthTokenFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthToken-${Env}
       Environment:
@@ -509,11 +488,8 @@ Resources:
 
   OAuthIntrospectFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth_introspect
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_introspect/
+      CodeUri: ./out/oauthIntrospectFunction/oauthIntrospectFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthIntrospect-${Env}
       Environment:
@@ -564,11 +540,8 @@ Resources:
 
   OAuthRevokeFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth_revoke
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_revoke/
+      CodeUri: ./out/oauthRevokeFunction/oauthRevokeFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthRevoke-${Env}
       Environment:
@@ -622,11 +595,8 @@ Resources:
 
   OAuthDcrFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth_dcr
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_dcr/
+      CodeUri: ./out/oauthDcrFunction/oauthDcrFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthDcr-${Env}
       Environment:
@@ -684,11 +654,8 @@ Resources:
 
   OAuthClientGetFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth_client_get
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_client_get/
+      CodeUri: ./out/oauthClientGetFunction/oauthClientGetFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthClientGet-${Env}
       Environment:
@@ -739,11 +706,8 @@ Resources:
 
   OAuthClientUpdateFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth_client_update
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_client_update/
+      CodeUri: ./out/oauthClientUpdateFunction/oauthClientUpdateFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthClientUpdate-${Env}
       Environment:
@@ -796,11 +760,8 @@ Resources:
 
   OAuthClientDeleteFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: oauth_client_delete
     Properties:
-      CodeUri: ./src/user-management/lambdas/oauth_client_delete/
+      CodeUri: ./out/oauthClientDeleteFunction/oauthClientDeleteFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-OAuthClientDelete-${Env}
       Environment:
@@ -858,11 +819,8 @@ Resources:
 
   OrderCompletedFunction:
     Type: AWS::Serverless::Function
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: handle-order-completed
     Properties:
-      CodeUri: ./src/user-management/lambdas/handle_order_completed_for_user/
+      CodeUri: ./out/handleOrderCompletedFunction/handleOrderCompletedFunction.zip
       Handler: bootstrap
       FunctionName: !Sub ${ServiceName}-OrderCompleted-${Env}
       Environment:
