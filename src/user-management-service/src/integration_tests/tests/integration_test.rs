@@ -8,9 +8,6 @@ use tokio::time::sleep;
 use sha2::{Digest, Sha256};
 use base64::Engine;
 use std::collections::HashMap;
-use rand::Rng;
-use regex::Regex;
-use url::Url;
 
 struct ApiEndpoint(String);
 struct EventBusName(String);
@@ -960,48 +957,6 @@ impl ApiDriver {
             .expect("Create OAuth client request failed")
     }
 
-    pub async fn get_oauth_client(&self, client_id: &str) -> reqwest::Response {
-        self.client
-            .get(format!("{}/oauth/client/{}", self.base_url, client_id))
-            .header("Content-Type", "application/json")
-            .send()
-            .await
-            .expect("Get OAuth client request failed")
-    }
-
-    pub async fn update_oauth_client(
-        &self,
-        client_id: &str,
-        client_name: &str,
-        grant_types: Vec<&str>,
-        redirect_uris: Vec<&str>,
-        response_types: Vec<&str>,
-    ) -> reqwest::Response {
-        let client_body = json!({
-            "client_name": client_name,
-            "grant_types": grant_types,
-            "redirect_uris": redirect_uris,
-            "response_types": response_types
-        });
-
-        self.client
-            .put(format!("{}/oauth/client/{}", self.base_url, client_id))
-            .header("Content-Type", "application/json")
-            .body(client_body.to_string())
-            .send()
-            .await
-            .expect("Update OAuth client request failed")
-    }
-
-    pub async fn delete_oauth_client(&self, client_id: &str) -> reqwest::Response {
-        self.client
-            .delete(format!("{}/oauth/client/{}", self.base_url, client_id))
-            .header("Content-Type", "application/json")
-            .send()
-            .await
-            .expect("Delete OAuth client request failed")
-    }
-
     // OAuth Authorization Flow
     pub async fn oauth_authorize_get(
         &self,
@@ -1126,62 +1081,6 @@ impl ApiDriver {
             .expect("OAuth token exchange request failed")
     }
 
-    // OAuth Token Introspection
-    pub async fn oauth_introspect(
-        &self,
-        token: &str,
-        token_type_hint: Option<&str>,
-        client_id: &str,
-        client_secret: Option<&str>,
-    ) -> reqwest::Response {
-        let mut form_data = HashMap::new();
-        form_data.insert("token", token);
-        form_data.insert("client_id", client_id);
-
-        if let Some(token_type_hint) = token_type_hint {
-            form_data.insert("token_type_hint", token_type_hint);
-        }
-        if let Some(client_secret) = client_secret {
-            form_data.insert("client_secret", client_secret);
-        }
-
-        self.client
-            .post(format!("{}/oauth/introspect", self.base_url))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .form(&form_data)
-            .send()
-            .await
-            .expect("OAuth introspect request failed")
-    }
-
-    // OAuth Token Revocation
-    pub async fn oauth_revoke(
-        &self,
-        token: &str,
-        token_type_hint: Option<&str>,
-        client_id: &str,
-        client_secret: Option<&str>,
-    ) -> reqwest::Response {
-        let mut form_data = HashMap::new();
-        form_data.insert("token", token);
-        form_data.insert("client_id", client_id);
-
-        if let Some(token_type_hint) = token_type_hint {
-            form_data.insert("token_type_hint", token_type_hint);
-        }
-        if let Some(client_secret) = client_secret {
-            form_data.insert("client_secret", client_secret);
-        }
-
-        self.client
-            .post(format!("{}/oauth/revoke", self.base_url))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .form(&form_data)
-            .send()
-            .await
-            .expect("OAuth revoke request failed")
-    }
-
     // OAuth Discovery
     pub async fn get_oauth_metadata(&self) -> reqwest::Response {
         self.client
@@ -1190,19 +1089,6 @@ impl ApiDriver {
             .send()
             .await
             .expect("OAuth metadata request failed")
-    }
-
-    // PKCE Helper Methods
-    pub fn generate_code_verifier(&self) -> String {
-        let bytes: [u8; 32] = rand::random();
-        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&bytes)
-    }
-
-    pub fn generate_code_challenge(&self, code_verifier: &str) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(code_verifier.as_bytes());
-        let hash = hasher.finalize();
-        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&hash)
     }
 
     pub fn extract_authorization_code_from_redirect(&self, redirect_url: &str) -> Option<String> {
