@@ -30,7 +30,7 @@ Once installed, you can use the Construct to configure all of your Datadog setti
 ```typescript
 const datadogConfiguration = new Datadog(this, "Datadog", {
   nodeLayerVersion: 125,
-  extensionLayerVersion: 80,
+  extensionLayerVersion: 83,
   site: process.env.DD_SITE,
   apiKeySecret: ddApiKey,
   service,
@@ -171,7 +171,7 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 80
+  datadog_extension_layer_version = 83
   datadog_node_layer_version      = 125
 }
 ```

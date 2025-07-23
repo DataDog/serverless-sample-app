@@ -98,7 +98,7 @@ Transform:
       stackName: !Ref "AWS::StackName"
       apiKey: !Ref DDApiKey
       dotnetLayerVersion: "20"
-      extensionLayerVersion: "80"
+      extensionLayerVersion: '83'
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -171,7 +171,7 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 80
+  datadog_extension_layer_version = 83
   datadog_dotnet_layer_version      = 20
 }
 ```

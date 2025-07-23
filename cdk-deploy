@@ -38,7 +38,7 @@ popd
 pushd src/activity-service
 npm i
 ./package.sh
-npx cdk deploy --require-approval=never &>../../deployment-logs/activity-service.log &
+cdk deploy --require-approval=never &>../../deployment-logs/activity-service.log &
 popd
 
 # Print deployment status

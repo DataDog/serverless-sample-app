@@ -13,7 +13,6 @@ import { Api } from "./api";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { PricingServiceProps } from "./pricingServiceProps";
 import { PricingEventHandlers } from "./pricingEventHandlers";
-import { DatadogLambda } from "datadog-cdk-constructs-v2";
 
 // no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class PricingApiStack extends cdk.Stack {
@@ -29,27 +28,13 @@ export class PricingApiStack extends cdk.Stack {
     });
 
     // Paste Datadog configuration code here, replacing the SharedProps construct as well
-    const datadogConfiguration = new DatadogLambda(this, "Datadog", {
-      extensionLayerVersion: 80,
-      nodeLayerVersion: 125,
-      site: process.env.DD_SITE ?? "datadoghq.com",
-      apiKeySecret: ddApiKey,
-      service,
-      version,
-      env,
-      enableColdStartTracing: true,
-      enableDatadogTracing: true,
-      captureLambdaPayload: true,
-      injectLogContext: true,
-    });
-
     const sharedProps: SharedProps = {
       team: "pricing",
       domain: "pricing",
       environment: env,
       serviceName: service,
       version,
-      datadogConfiguration: datadogConfiguration,
+      datadogConfiguration: undefined,
     };
 
     const pricingServiceProps = new PricingServiceProps(this, sharedProps);

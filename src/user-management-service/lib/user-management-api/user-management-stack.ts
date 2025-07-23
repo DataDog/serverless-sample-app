@@ -34,7 +34,7 @@ export class UserManagementStack extends cdk.Stack {
     });
 
     const datadogConfiguration = new DatadogLambda(this, "Datadog", {
-      extensionLayerVersion: 80,
+      extensionLayerVersion: 83,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKeySecret: ddApiKey,
       service,

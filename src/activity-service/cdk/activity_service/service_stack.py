@@ -22,8 +22,8 @@ class ServiceStack(Stack):
         dd_site = os.environ.get("DD_SITE", "datadoghq.com")
 
         self.datadog_configuration = DatadogLambda(self, "DatadogLambda",
-            python_layer_version=109,
-            extension_layer_version=81,
+            python_layer_version=111,
+            extension_layer_version=83,
             service=SERVICE_NAME,
             env=environment,
             version=version,
