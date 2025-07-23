@@ -12,12 +12,8 @@ module.exports = {
       Math.random() * context.vars.products.length
     );
 
-    console.log(
-      `Setting order products with random index: ${randomIndex} from products length: ${context.vars.products.length}`
-    );
-
     console.log(context.vars.products[randomIndex]);
-    
+
     context.vars.OrderProducts = [context.vars.products[randomIndex].productId];
 
     return done();
@@ -39,13 +35,15 @@ module.exports = {
   getLatestConfirmedOrder: function (context, events, done) {
     if (
       !context.vars.confirmedOrders ||
-      context.vars.confirmedOrders.length === 0
+      context.vars.confirmedOrders.items.length === 0
     ) {
       return done();
     }
 
-    context.vars.ConfirmedOrderId = context.vars.confirmedOrders[0].orderId;
-    context.vars.ConfirmedOrderUserId = context.vars.confirmedOrders[0].userId;
+    context.vars.ConfirmedOrderId =
+      context.vars.confirmedOrders.items[0].orderId;
+    context.vars.ConfirmedOrderUserId =
+      context.vars.confirmedOrders.items[0].userId;
 
     return done();
   },
