@@ -972,8 +972,6 @@ impl ApiDriver {
             "{}oauth/authorize?response_type={}&client_id={}&redirect_uri={}",
             self.base_url, response_type, client_id, redirect_uri
         );
-        
-        println!("Full URL: {}", url);
 
         if let Some(scope) = scope {
             url.push_str(&format!("&scope={}", scope));
@@ -987,6 +985,8 @@ impl ApiDriver {
         if let Some(code_challenge_method) = code_challenge_method {
             url.push_str(&format!("&code_challenge_method={}", code_challenge_method));
         }
+
+        println!("Full URL: {}", url);
 
         self.client
             .get(&url)

@@ -482,5 +482,5 @@ module "oauth_client_delete_function_api" {
 resource "aws_ssm_parameter" "api_endpoint" {
   name  = "/${var.env}/${var.service_name}/api-endpoint"
   type  = "String"
-  value = module.api_gateway.api_endpoint
+  value = "${module.api_gateway.api_endpoint}/"
 }
