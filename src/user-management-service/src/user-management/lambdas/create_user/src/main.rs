@@ -17,7 +17,7 @@ use shared::response::{empty_response, json_response};
 use observability::{observability, trace_request};
 use shared::adapters::{DynamoDbRepository, EventBridgeEventPublisher};
 use shared::core::{EventPublisher, Repository};
-use shared::ports::CreateUserCommand;
+use shared::ports::{CreateOAuthClientCommand, CreateUserCommand};
 use std::env;
 use tracing_subscriber::util::SubscriberInitExt;
 
@@ -59,12 +59,13 @@ async fn main() -> Result<(), Error> {
 
     let event_bus_name = env::var("EVENT_BUS_NAME").expect("EVENT_BUS_NAME is not set");
     let env = env::var("ENV").expect("ENV is not set");
-    
+
     let sns_client = aws_sdk_eventbridge::Client::new(&config);
     let event_publisher = EventBridgeEventPublisher::new(sns_client, event_bus_name, env);
 
     // Seed default admin user
     seed_default_user(&repository, &event_publisher).await;
+    seed_default_client(&repository).await;
 
     run(service_fn(|event: Request| async {
         let mut handler_span = trace_request(&event);
@@ -92,4 +93,14 @@ async fn seed_default_user<TRepository: Repository, TEventPublisher: EventPublis
     let _ = create_user_command
         .handle(repository, sns_event_publisher)
         .await;
+}
+
+async fn seed_default_client<TRepository: Repository>(repository: &TRepository) {
+    let create_client_command = CreateOAuthClientCommand {
+        client_name: "default".to_string(),
+        grant_types: vec!["authorization_code".to_string()],
+        redirect_uris: vec!["http://localhost:3000/callback".to_string()],
+        response_types: vec!["code".to_string()],
+    };
+    let _ = create_client_command.handle(repository).await;
 }

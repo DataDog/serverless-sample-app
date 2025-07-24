@@ -1,8 +1,9 @@
+use crate::utils::StringHasher;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use crate::utils::StringHasher;
+use uuid::Uuid;
 
 #[derive(Error, Debug)]
 pub enum RepositoryError {
@@ -12,6 +13,22 @@ pub enum RepositoryError {
     InternalError(String),
     #[error("InvalidUserType: {0}")]
     InvalidUserType(String),
+    #[error("OAuth client not found")]
+    OAuthClientNotFound,
+    #[error("Authorization code not found")]
+    AuthorizationCodeNotFound,
+    #[error("OAuth token not found")]
+    OAuthTokenNotFound,
+    #[error("Invalid client credentials")]
+    InvalidClientCredentials,
+    #[error("Authorization code expired")]
+    AuthorizationCodeExpired,
+    #[error("Authorization code already used")]
+    AuthorizationCodeAlreadyUsed,
+    #[error("OAuth token expired")]
+    OAuthTokenExpired,
+    #[error("OAuth token revoked")]
+    OAuthTokenRevoked,
 }
 
 #[async_trait]
@@ -27,6 +44,52 @@ pub trait Repository {
     async fn get_user(&self, email_address: &str) -> Result<User, RepositoryError>;
 
     async fn update_user_details(&self, body: &User) -> Result<(), RepositoryError>;
+
+    // OAuth Client management
+    async fn create_oauth_client(&self, client: &OAuthClient) -> Result<(), RepositoryError>;
+    async fn get_oauth_client(
+        &self,
+        client_id: &str,
+    ) -> Result<Option<OAuthClient>, RepositoryError>;
+    async fn update_oauth_client(&self, client: &OAuthClient) -> Result<(), RepositoryError>;
+    async fn delete_oauth_client(&self, client_id: &str) -> Result<(), RepositoryError>;
+    async fn list_oauth_clients(
+        &self,
+        page: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<Vec<OAuthClient>, RepositoryError>;
+    async fn validate_client_secret(
+        &self,
+        client_id: &str,
+        client_secret: &str,
+    ) -> Result<bool, RepositoryError>;
+
+    // Authorization Code management
+    async fn store_authorization_code(
+        &self,
+        code: &AuthorizationCode,
+    ) -> Result<(), RepositoryError>;
+    async fn get_authorization_code(
+        &self,
+        code: &str,
+    ) -> Result<Option<AuthorizationCode>, RepositoryError>;
+    async fn revoke_authorization_code(&self, code: &str) -> Result<(), RepositoryError>;
+    async fn mark_authorization_code_used(&self, code: &str) -> Result<(), RepositoryError>;
+    async fn cleanup_expired_authorization_codes(&self) -> Result<(), RepositoryError>;
+
+    // OAuth Token management
+    async fn store_oauth_token(&self, token: &OAuthToken) -> Result<(), RepositoryError>;
+    async fn get_oauth_token(
+        &self,
+        access_token: &str,
+    ) -> Result<Option<OAuthToken>, RepositoryError>;
+    async fn get_oauth_token_by_refresh(
+        &self,
+        refresh_token: &str,
+    ) -> Result<Option<OAuthToken>, RepositoryError>;
+    async fn revoke_oauth_token(&self, access_token: &str) -> Result<(), RepositoryError>;
+    async fn revoke_all_tokens_for_client(&self, client_id: &str) -> Result<(), RepositoryError>;
+    async fn cleanup_expired_oauth_tokens(&self) -> Result<(), RepositoryError>;
 }
 
 #[derive(Serialize)]
@@ -120,7 +183,7 @@ impl User {
         };
 
         details.last_active = Option::Some(Utc::now());
-        details.order_count = details.order_count + 1;
+        details.order_count += 1;
 
         if details.order_count > 10 {
             *self = User::Premium(details.clone());
@@ -143,10 +206,8 @@ impl User {
             User::Premium(details) => details,
             User::Admin(details) => details,
         };
-        
-        let hashed_email_address = StringHasher::hash_string(details.email_address.clone());
 
-        hashed_email_address
+        StringHasher::hash_string(details.email_address.to_uppercase())
     }
 
     pub(crate) fn user_type(&self) -> &str {
@@ -186,4 +247,257 @@ impl From<User> for UserCreatedEvent {
             user_id: value.email_address().to_string(),
         }
     }
+}
+
+// OAuth Domain Models
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct OAuthClient {
+    pub client_id: String,
+    pub client_secret: String,
+    pub client_name: String,
+    pub redirect_uris: Vec<String>,
+    pub grant_types: Vec<GrantType>,
+    pub response_types: Vec<ResponseType>,
+    pub scopes: Vec<String>,
+    pub token_endpoint_auth_method: TokenEndpointAuthMethod,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub is_active: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub enum GrantType {
+    AuthorizationCode,
+    ClientCredentials,
+    RefreshToken,
+    Implicit,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub enum ResponseType {
+    Code,
+    Token,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub enum TokenEndpointAuthMethod {
+    ClientSecretBasic,
+    ClientSecretPost,
+    None,
+}
+
+impl OAuthClient {
+    pub fn new(
+        client_name: String,
+        redirect_uris: Vec<String>,
+        grant_types: Vec<GrantType>,
+        scopes: Vec<String>,
+        token_endpoint_auth_method: TokenEndpointAuthMethod,
+    ) -> Self {
+        let client_id = format!("client_{}", Uuid::new_v4().to_string().replace('-', ""));
+        let client_secret = Uuid::new_v4().to_string();
+        let now = Utc::now();
+
+        Self {
+            client_id,
+            client_secret,
+            client_name,
+            redirect_uris,
+            grant_types,
+            response_types: vec![ResponseType::Code],
+            scopes,
+            token_endpoint_auth_method,
+            created_at: now,
+            updated_at: now,
+            is_active: true,
+        }
+    }
+
+    pub fn update(
+        &mut self,
+        client_name: Option<String>,
+        redirect_uris: Option<Vec<String>>,
+        scopes: Option<Vec<String>>,
+    ) {
+        if let Some(name) = client_name {
+            self.client_name = name;
+        }
+        if let Some(uris) = redirect_uris {
+            self.redirect_uris = uris;
+        }
+        if let Some(scopes) = scopes {
+            self.scopes = scopes;
+        }
+        self.updated_at = Utc::now();
+    }
+
+    pub fn deactivate(&mut self) {
+        self.is_active = false;
+        self.updated_at = Utc::now();
+    }
+
+    pub fn as_dto(&self) -> OAuthClientDTO {
+        OAuthClientDTO {
+            client_id: self.client_id.clone(),
+            client_name: self.client_name.clone(),
+            redirect_uris: self.redirect_uris.clone(),
+            grant_types: self
+                .grant_types
+                .iter()
+                .map(|g| format!("{:?}", g))
+                .collect(),
+            scopes: self.scopes.clone(),
+            token_endpoint_auth_method: format!("{:?}", self.token_endpoint_auth_method),
+            created_at: self.created_at,
+            updated_at: self.updated_at,
+            is_active: self.is_active,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AuthorizationCode {
+    pub code: String,
+    pub client_id: String,
+    pub user_id: String,
+    pub redirect_uri: String,
+    pub scopes: Vec<String>,
+    pub code_challenge: Option<String>,
+    pub code_challenge_method: Option<String>,
+    pub expires_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub is_used: bool,
+}
+
+impl AuthorizationCode {
+    pub fn new(
+        client_id: String,
+        user_id: String,
+        redirect_uri: String,
+        scopes: Vec<String>,
+        code_challenge: Option<String>,
+        code_challenge_method: Option<String>,
+    ) -> Self {
+        let code = format!("auth_{}", Uuid::new_v4().to_string().replace('-', ""));
+        let now = Utc::now();
+        let expires_at = now + chrono::Duration::minutes(10);
+
+        Self {
+            code,
+            client_id,
+            user_id,
+            redirect_uri,
+            scopes,
+            code_challenge,
+            code_challenge_method,
+            expires_at,
+            created_at: now,
+            is_used: false,
+        }
+    }
+
+    pub fn is_expired(&self) -> bool {
+        Utc::now() > self.expires_at
+    }
+
+    pub fn mark_as_used(&mut self) {
+        self.is_used = true;
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct OAuthToken {
+    pub access_token: String,
+    pub token_type: String,
+    pub expires_in: i64,
+    pub refresh_token: Option<String>,
+    pub scope: String,
+    pub client_id: String,
+    pub user_id: String,
+    pub created_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+    pub is_revoked: bool,
+}
+
+impl OAuthToken {
+    pub fn new(client_id: String, user_id: String, scopes: Vec<String>, expires_in: i64) -> Self {
+        let access_token = format!("token_{}", Uuid::new_v4().to_string().replace('-', ""));
+        let refresh_token = Some(format!(
+            "refresh_{}",
+            Uuid::new_v4().to_string().replace('-', "")
+        ));
+        let now = Utc::now();
+        let expires_at = now + chrono::Duration::seconds(expires_in);
+
+        Self {
+            access_token,
+            token_type: "Bearer".to_string(),
+            expires_in,
+            refresh_token,
+            scope: scopes.join(" "),
+            client_id,
+            user_id,
+            created_at: now,
+            expires_at,
+            is_revoked: false,
+        }
+    }
+
+    pub fn is_expired(&self) -> bool {
+        Utc::now() > self.expires_at
+    }
+
+    pub fn revoke(&mut self) {
+        self.is_revoked = true;
+    }
+
+    pub fn as_dto(&self) -> OAuthTokenDTO {
+        OAuthTokenDTO {
+            access_token: self.access_token.clone(),
+            token_type: self.token_type.clone(),
+            expires_in: self.expires_in,
+            refresh_token: self.refresh_token.clone(),
+            scope: self.scope.clone(),
+        }
+    }
+}
+
+// DTOs for API responses
+
+#[derive(Serialize)]
+pub struct OAuthClientDTO {
+    pub client_id: String,
+    pub client_name: String,
+    pub redirect_uris: Vec<String>,
+    pub grant_types: Vec<String>,
+    pub scopes: Vec<String>,
+    pub token_endpoint_auth_method: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub is_active: bool,
+}
+
+#[derive(Serialize)]
+pub struct OAuthTokenDTO {
+    #[serde(rename = "access_token")]
+    pub access_token: String,
+    #[serde(rename = "token_type")]
+    pub token_type: String,
+    #[serde(rename = "expires_in")]
+    pub expires_in: i64,
+    #[serde(rename = "refresh_token")]
+    pub refresh_token: Option<String>,
+    pub scope: String,
+}
+
+#[derive(Serialize)]
+pub struct OAuthClientCreatedDTO {
+    pub client_id: String,
+    pub client_secret: String,
+    pub client_name: String,
+    pub redirect_uris: Vec<String>,
+    pub grant_types: Vec<String>,
+    pub scopes: Vec<String>,
+    pub created_at: DateTime<Utc>,
 }

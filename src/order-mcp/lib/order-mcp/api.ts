@@ -8,28 +8,22 @@
 import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 import { InstrumentedLambdaFunction } from "../constructs/lambdaFunction";
-import { Duration, RemovalPolicy, Stack } from "aws-cdk-lib";
-import {
-  IdentitySource,
-  LambdaIntegration,
-  ProxyResource,
-  RequestAuthorizer,
-  RestApi,
-} from "aws-cdk-lib/aws-apigateway";
+import { Duration, Stack } from "aws-cdk-lib";
 import { IStringParameter } from "aws-cdk-lib/aws-ssm";
 import { OrderMcpServiceProps } from "./orderMcpServiceProps";
 import {
-  DynamoEventSource,
-  SqsDlq,
-} from "aws-cdk-lib/aws-lambda-event-sources";
-import {
   IFunction,
   LayerVersion,
-  StartingPosition,
 } from "aws-cdk-lib/aws-lambda";
-import { Queue } from "aws-cdk-lib/aws-sqs";
-import { get } from "http";
 import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
+import {
+  HttpApi,
+  HttpRoute,
+  HttpMethod,
+  CorsHttpMethod,
+  HttpRouteKey,
+} from "aws-cdk-lib/aws-apigatewayv2";
+import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 
 export interface ApiProps {
   serviceProps: OrderMcpServiceProps;
@@ -38,7 +32,7 @@ export interface ApiProps {
 }
 
 export class Api extends Construct {
-  api: RestApi;
+  api: HttpApi;
 
   constructor(scope: Construct, id: string, props: ApiProps) {
     super(scope, id);
@@ -46,38 +40,50 @@ export class Api extends Construct {
     const orderMcpFunction = this.buildOrderMcpFunction(props);
     const customAuthorizerFunction = this.buildCustomAuthorizerFunction(props);
 
-    this.api = new RestApi(
+    this.api = new HttpApi(
       this,
-      `${props.serviceProps.getSharedProps().serviceName}-API-${
+      `${props.serviceProps.getSharedProps().serviceName}-HTTP-${
         props.serviceProps.getSharedProps().environment
       }`,
       {
-        defaultCorsPreflightOptions: {
-          allowOrigins: ["*"],
+        apiName: `${props.serviceProps.getSharedProps().serviceName}-API-${props.serviceProps.getSharedProps().environment}`,
+        corsPreflight: {
           allowHeaders: ["*"],
-          allowMethods: ["GET,PUT,POST,DELETE"],
+          allowMethods: [
+            CorsHttpMethod.GET,
+            CorsHttpMethod.POST,
+            CorsHttpMethod.PUT,
+            CorsHttpMethod.DELETE,
+            CorsHttpMethod.OPTIONS,
+          ],
+          allowOrigins: ["*"],
+          maxAge: Duration.days(10),
         },
       }
     );
 
-    const authorizer = new RequestAuthorizer(this, "CustomAuthorizer", {
-      handler: customAuthorizerFunction,
-      identitySources: [IdentitySource.header("Authorization")],
-      authorizerName: "OrderMcpAuthorizer",
-      resultsCacheTtl: Duration.seconds(30),
+    // Create Lambda integration
+    const integration = new HttpLambdaIntegration(
+      "OrderMcpIntegration",
+      orderMcpFunction
+    );
+
+    // Add {proxy+} route that catches all paths and methods
+    const proxyRoute = new HttpRoute(this, "ProxyRoute", {
+      httpApi: this.api,
+      routeKey: HttpRouteKey.with("/{proxy+}", HttpMethod.ANY),
+      integration: integration,
     });
 
-    const proxyResource = new ProxyResource(this, "ProxyResource", {
-      parent: this.api.root,
-      anyMethod: true,
-      defaultIntegration: orderMcpFunction,
-      defaultMethodOptions: {
-        authorizer: authorizer,
-      },
+    // Optional: Add a root route as well
+    const root = new HttpRoute(this, "RootRoute", {
+      httpApi: this.api,
+      routeKey: HttpRouteKey.with("/", HttpMethod.ANY),
+      integration: integration,
     });
   }
 
-  buildOrderMcpFunction(props: ApiProps): LambdaIntegration {
+  buildOrderMcpFunction(props: ApiProps): IFunction {
     const mcpServerFunction = new InstrumentedLambdaFunction(
       this,
       "OrderMcpFunction",
@@ -86,6 +92,12 @@ export class Api extends Construct {
         functionName: "OrderMcpFunction",
         handler: "run.sh",
         environment: {
+          AUTH_SERVER_PARAMETER_NAME: `/${
+            props.serviceProps.getSharedProps().environment
+          }/Users/api-endpoint`,
+          MCP_SERVER_ENDPOINT_PARAMETER_NAME: `/${
+            props.serviceProps.getSharedProps().environment
+          }/OrderMcpService/api-endpoint`,
           JWT_SECRET_PARAM_NAME: props.jwtSecret.parameterName,
           DD_TRACE_PARTIAL_FLUSH_MIN_SPANS: "1",
           DD_TRACE_PARTIAL_FLUSH_ENABLED: "false",
@@ -105,9 +117,9 @@ export class Api extends Construct {
         ],
       }
     );
-    const mcpIntegration = new LambdaIntegration(mcpServerFunction.function);
-    props.jwtSecret.grantRead(mcpServerFunction.function);
 
+    // Grant permissions and setup function
+    props.jwtSecret.grantRead(mcpServerFunction.function);
     mcpServerFunction.function.addToRolePolicy(
       new PolicyStatement({
         effect: Effect.ALLOW,
@@ -127,11 +139,21 @@ export class Api extends Construct {
           }:parameter/${
             props.serviceProps.getSharedProps().environment
           }/ProductService/api-endpoint`,
+          `arn:aws:ssm:${Stack.of(this).region}:${
+            Stack.of(this).account
+          }:parameter/${
+            props.serviceProps.getSharedProps().environment
+          }/Users/api-endpoint`,
+          `arn:aws:ssm:${Stack.of(this).region}:${
+            Stack.of(this).account
+          }:parameter/${
+            props.serviceProps.getSharedProps().environment
+          }/OrderMcpService/api-endpoint`,
         ],
       })
     );
 
-    return mcpIntegration;
+    return mcpServerFunction.function;
   }
 
   buildCustomAuthorizerFunction(props: ApiProps): IFunction {

@@ -70,7 +70,7 @@ async fn main() -> Result<(), Error> {
 }
 
 async fn load_jwt_secret(config: &SdkConfig) -> Result<String, ()> {
-    let ssm_client = aws_sdk_ssm::Client::new(&config);
+    let ssm_client = aws_sdk_ssm::Client::new(config);
     let secret_key_name =
         std::env::var("JWT_SECRET_PARAM_NAME").expect("JWT_SECRET_PARAM_NAME name set");
 

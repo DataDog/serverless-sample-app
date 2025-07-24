@@ -66,14 +66,8 @@ where T: serde::de::DeserializeOwned + serde::Serialize {
         record.receipt_handle.clone().unwrap_or_default(),
     ));
 
-    match record.attributes.get_key_value("ApproximateReceiveCount") {
-        Some((_key, val)) => span.set_attribute(KeyValue::new("retry_count", val.clone())),
-        None => (),
-    }
-    match record.attributes.get_key_value("SenderId") {
-        Some((_key, val)) => span.set_attribute(KeyValue::new("sender_id", val.clone())),
-        None => (),
-    }
+    if let Some((_key, val)) = record.attributes.get_key_value("ApproximateReceiveCount") { span.set_attribute(KeyValue::new("retry_count", val.clone())) }
+    if let Some((_key, val)) = record.attributes.get_key_value("SenderId") { span.set_attribute(KeyValue::new("sender_id", val.clone())) }
 
     timestamp
 }

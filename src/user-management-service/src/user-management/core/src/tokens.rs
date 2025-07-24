@@ -61,12 +61,12 @@ impl TokenGenerator {
         token: &str,
         email_address: &str,
     ) -> Result<Claims, ApplicationError> {
-        let hashed_email_address = StringHasher::hash_string(email_address.to_string());
+        let hashed_email_address = StringHasher::hash_string(email_address.to_uppercase());
         tracing::info!("Validating {} against {}", token, hashed_email_address);
 
         let token = if token.contains("Bearer ") {
-            let token = token.replace("Bearer ", "");
-            token
+            
+            token.replace("Bearer ", "")
         } else {
             token.to_string()
         };

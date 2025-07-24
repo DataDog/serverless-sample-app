@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - User Management Service</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    />
+  </head>
+  <body>
+    <div id="header"></div>
+    <main class="container">
+      <div class="logo">
+        <h1>User Management Service</h1>
+      </div>
+
+      {error_html}
+
+      <form method="POST" action="/oauth/authorize">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required />
+        </div>
+
+        <!-- Hidden OAuth parameters -->
+        <input type="hidden" name="client_id" value="{client_id}" />
+        <input type="hidden" name="redirect_uri" value="{redirect_uri}" />
+        <input type="hidden" name="scope" value="{scope}" />
+        <input type="hidden" name="state" value="{state}" />
+        <input type="hidden" name="code_challenge" value="{code_challenge}" />
+        <input
+          type="hidden"
+          name="code_challenge_method"
+          value="{code_challenge_method}"
+        />
+        <input type="hidden" name="csrf_token" value="{csrf_token}" />
+        <input type="hidden" name="action" value="login" />
+
+        <button type="submit" class="login-button">Login</button>
+      </form>
+
+      <details name="authorization_request_details">
+        <summary>Authorization Request Details</summary>
+        <p><strong>App:</strong> {client_id}</p>
+        <p><strong>Redirect:</strong> {redirect_uri}</p>
+        <p><strong>Requested Permissions:</strong></p>
+        <div style="margin-top: 5px">{scope_badges}</div>
+      </details>
+
+      <div class="oauth-info"></div>
+      <div id="footer"></div>
+    </main>
+  </body>
+</html>

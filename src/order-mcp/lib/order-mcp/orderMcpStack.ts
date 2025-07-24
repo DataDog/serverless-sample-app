@@ -61,7 +61,7 @@ export class OrderMcpStack extends cdk.Stack {
 
     const apiEndpoint = new StringParameter(this, "OrderMcpAPIEndpoint", {
       parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/api-endpoint`,
-      stringValue: api.api.url,
+      stringValue: api.api.url!,
     });
   }
 }

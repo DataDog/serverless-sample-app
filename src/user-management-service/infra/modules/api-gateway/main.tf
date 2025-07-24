@@ -5,10 +5,19 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-resource "aws_api_gateway_rest_api" "rest_api" {
-  name = "${var.api_name}-${var.env}"
+resource "aws_apigatewayv2_api" "http_api" {
+  name          = "${var.api_name}-${var.env}"
+  protocol_type = "HTTP"
 
-  endpoint_configuration {
-    types = ["REGIONAL"]
+  cors_configuration {
+    allow_origins = ["*"]
+    allow_headers = ["*"]
+    allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
   }
+}
+
+resource "aws_apigatewayv2_stage" "example" {
+  api_id      = aws_apigatewayv2_api.http_api.id
+  name        = "$default"
+  auto_deploy = true
 }

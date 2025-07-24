@@ -1,0 +1,139 @@
+config:
+  target: "https://"
+  http:
+    timeout: 60
+  processor: "generator.js"
+  phases:
+    # Arrival count is a fixed number of requests to be sent over the duration
+    # Over the course of 10 seconds, 10 requests will be sent
+    - duration: 10
+      arrivalCount: 10
+    - duration: 30
+      arrivalCount: 10
+
+scenarios:
+  - name: "User create order"
+    flow:
+      - function: "generateEmailAddress"
+      - post:
+          url: "{{ $processEnvironment.USER_API_ENDPOINT }}/user"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email_address: "{{ Email }}"
+            first_name: "Test"
+            last_name: "User"
+            password: "{{ Password }}"
+      - post:
+          url: "{{ $processEnvironment.USER_API_ENDPOINT }}/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email_address: "{{ Email }}"
+            password: "{{ Password }}"
+          capture:
+            json: "$.data.token"
+            as: jwt
+      - get:
+          url: "{{ $processEnvironment.PRODUCT_API_ENDPOINT }}/product"
+          capture:
+            json: "$.data"
+            as: products
+      - function: setOrderProducts
+      - post:
+          url: "{{ $processEnvironment.ORDER_API_ENDPOINT }}/orders"
+          headers:
+            Content-Type: "application/json"
+            Authorization: "Bearer {{jwt}}"
+          json:
+            products: "{{ OrderProducts }}"
+          capture:
+            json: "$.data.orderId"
+            as: OrderId
+  - name: "Admin complete order"
+    flow:
+      - post:
+          url: "{{ $processEnvironment.USER_API_ENDPOINT }}/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email_address: "admin@serverless-sample.com"
+            password: "Admin!23"
+          capture:
+            json: "$.data.token"
+            as: adminJwt
+      - get:
+          url: "{{ $processEnvironment.ORDER_API_ENDPOINT }}/orders/confirmed"
+          headers:
+            Authorization: "Bearer {{adminJwt}}"
+          capture:
+            json: "$"
+            as: confirmedOrders
+      - function: getLatestConfirmedOrder
+      - post:
+          url: "{{ $processEnvironment.ORDER_API_ENDPOINT }}/orders/{{ ConfirmedOrderId }}/complete"
+          ifTrue: 'ConfirmedOrderId'
+          headers:
+            Content-Type: "application/json"
+            Authorization: "Bearer {{adminJwt}}"
+          json:
+            orderId: "{{ ConfirmedOrderId }}"
+            userId: "{{ ConfirmedOrderUserId }}"
+  - name: "Admin re-stock products"
+    flow:
+      - post:
+          url: "{{ $processEnvironment.USER_API_ENDPOINT }}/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email_address: "admin@serverless-sample.com"
+            password: "Admin!23"
+          capture:
+            json: "$.data.token"
+            as: adminJwt
+      - get:
+          url: "{{ $processEnvironment.PRODUCT_API_ENDPOINT }}/product"
+          capture:
+            json: "$.data"
+            as: products
+      - function: setOutOfStockProductId
+      - get:
+          url: "{{ $processEnvironment.INVENTORY_API_ENDPOINT }}/inventory/{{ ProductId }}"
+          ifTrue: 'ProductId'
+          headers:
+            Authorization: "Bearer {{adminJwt}}"
+          capture:
+            json: "$.data.currentStockLevel"
+            as: currentStockLevel
+      - function: generateRestockAmount
+      - post:
+          url: "{{ $processEnvironment.INVENTORY_API_ENDPOINT }}/inventory"
+          ifTrue: 'ProductId'
+          headers:
+            Content-Type: "application/json"
+            Authorization: "Bearer {{adminJwt}}"
+          json:
+            productId: "{{ProductId}}"
+            stockLevel: "{{NewStockLevel}}"
+  - name: "Admin create products"
+    flow:
+      - post:
+          url: "{{ $processEnvironment.USER_API_ENDPOINT }}/login"
+          headers:
+            Content-Type: "application/json"
+          json:
+            email_address: "admin@serverless-sample.com"
+            password: "Admin!23"
+          capture:
+            json: "$.data.token"
+            as: adminJwt
+      - function: generateProductName
+      - post:
+          url: "{{ $processEnvironment.INVENTORY_API_ENDPOINT }}/product"
+          ifTrue: 'ProductName'
+          headers:
+            Content-Type: "application/json"
+            Authorization: "Bearer {{adminJwt}}"
+          json:
+            name: "{{ProductName}}"
+            price: "{{Price}}"

@@ -12,8 +12,6 @@ module.exports = {
       Math.random() * context.vars.products.length
     );
 
-    console.log(context.vars.products[randomIndex]);
-
     context.vars.OrderProducts = [context.vars.products[randomIndex].productId];
 
     return done();

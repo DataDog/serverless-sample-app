@@ -10,9 +10,9 @@ LATEST_OPENAPI := openapi_latest.json
 dev:
 	pip install --upgrade pip pre-commit poetry
 	pre-commit install
-# ensures poetry creates a local virtualenv (.venv)
 	poetry config --local virtualenvs.in-project true
 	poetry install --no-root
+	poetry self add poetry-plugin-export
 	npm ci
 
 format:

@@ -35,8 +35,7 @@ mod tests {
     use super::*;
     use aws_lambda_events::sqs::{SqsEvent, SqsMessage};
     use lambda_runtime::{Context, LambdaEvent};
-    use shared::core::User::{Premium, Standard};
-    use shared::core::{Repository, RepositoryError, User, UserDetails};
+    use shared::core::{Repository, RepositoryError, User};
     use std::collections::HashMap;
 
     #[tokio::test]

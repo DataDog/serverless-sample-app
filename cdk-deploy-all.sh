@@ -11,8 +11,10 @@ cdk deploy --require-approval never
 popd
 
 # Service deployments in parallel
-pushd src/inventory-service/cdk
+pushd src/inventory-service
 mvn clean package -DskipTests -q
+popd
+pushd  src/inventory-service/cdk
 cdk deploy --require-approval never &>../../../deployment-logs/inventory-service.log &
 popd
 
@@ -41,8 +43,16 @@ cdk deploy --require-approval never &>../../deployment-logs/loyalty-point-servic
 popd
 
 pushd src/activity-service
-npm i
-./package.sh
+pip install --upgrade pip pre-commit poetry
+pre-commit install
+poetry config --local virtualenvs.in-project true
+poetry install --no-root
+npm ci
+poetry export --only=dev --format=requirements.txt > dev_requirements.txt
+poetry export --without=dev --format=requirements.txt > lambda_requirements.txt
+rm -rf .build
+mkdir -p .build/lambdas ; cp -r activity_service .build/lambdas
+mkdir -p .build/common_layer ; poetry export --without=dev --format=requirements.txt > .build/common_layer/requirements.txt
 cdk deploy --require-approval=never &>../../deployment-logs/activity-service.log &
 popd
 

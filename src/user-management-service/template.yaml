@@ -45,14 +45,20 @@ Globals:
         DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true"
     Architectures:
       - x86_64
-  Api:
-    Cors:
-      AllowMethods: "'POST, GET, PUT, DELETE'"
-      AllowHeaders: "'*'"
-      AllowOrigin: "'*'"
+  HttpApi:
+    CorsConfiguration:
+      AllowOrigins:
+        - "*"
+      AllowHeaders:
+        - "*"
+      AllowMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
 
 Conditions:
-  IsNonProdEnvironment: !Not [!Equals [!Ref Env, prod]]
   IsIntegratedEnvironment: !Or
     - !Equals ["dev", !Ref Env]
     - !Equals ["prod", !Ref Env]
@@ -98,8 +104,8 @@ Resources:
   CreateUserFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/create_user/
-      Handler: create-user
+      CodeUri: ./out/registerUserFunction/registerUserFunction.zip
+      Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-CreateUser-${Env}
       Environment:
         Variables:
@@ -108,8 +114,8 @@ Resources:
             - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
             - !Ref UserManagementEventBus
       Events:
-        GetProduct:
-          Type: Api
+        CreateUser:
+          Type: HttpApi
           Properties:
             Path: /user
             Method: post
@@ -141,15 +147,12 @@ Resources:
               - IsIntegratedEnvironment
               - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
               - !Ref UserManagementEventBus
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: create-user
 
   LoginFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/login/
-      Handler: login
+      CodeUri: ./out/loginFunction/loginFunction.zip
+      Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-Login-${Env}
       Environment:
         Variables:
@@ -159,8 +162,8 @@ Resources:
             - !Sub /${Env}/${ServiceName}/secret-access-key
           TOKEN_EXPIRATION: 86400 # 1 day in seconds
       Events:
-        GetProduct:
-          Type: Api
+        Login:
+          Type: HttpApi
           Properties:
             Path: /login
             Method: post
@@ -199,14 +202,11 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: login
 
   GetUserDetailsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/get_user_details/
+      CodeUri: ./out/getUserDetailsFunction/getUserDetailsFunction.zip
       Handler: bootstrap
       FunctionName: !Sub SAM-${ServiceName}-GetUserDetails-${Env}
       Environment:
@@ -217,8 +217,8 @@ Resources:
             - !Sub /${Env}/${ServiceName}/secret-access-key
           TOKEN_EXPIRATION: 86400 # 1 day in seconds
       Events:
-        GetProduct:
-          Type: Api
+        GetUserDetails:
+          Type: HttpApi
           Properties:
             Path: /user/{userId}
             Method: get
@@ -256,9 +256,562 @@ Resources:
                 - IsIntegratedEnvironment
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
                 - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: get-user-details
+
+  ################################################
+  ############### OAuth Endpoints ################
+  ################################################
+
+  OAuthMetadataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/oauthMetadataFunction/oauthMetadataFunction.zip
+      Handler: bootstrap
+      FunctionName: !Sub SAM-${ServiceName}-OAuthMetadata-${Env}
+      Environment:
+        Variables:
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
+      Events:
+        OAuthMetadata:
+          Type: HttpApi
+          Properties:
+            Path: /.well-known/oauth-authorization-server
+            Method: get
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt UserTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+
+  OAuthAuthorizeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/oauthAuthorizeFunction/oauthAuthorizeFunction.zip
+      Handler: bootstrap
+      FunctionName: !Sub SAM-${ServiceName}-OAuthAuthorize-${Env}
+      Environment:
+        Variables:
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
+      Events:
+        OAuthAuthorizeGet:
+          Type: HttpApi
+          Properties:
+            Path: /oauth/authorize
+            Method: get
+        OAuthAuthorizePost:
+          Type: HttpApi
+          Properties:
+            Path: /oauth/authorize
+            Method: post
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt UserTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+
+  OAuthAuthorizeCallbackFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/oauthAuthorizeCallbackFunction/oauthAuthorizeCallbackFunction.zip
+      Handler: bootstrap
+      FunctionName: !Sub SAM-${ServiceName}-OAuthAuthorizeCallback-${Env}
+      Environment:
+        Variables:
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
+      Events:
+        OAuthAuthorizeCallbackGet:
+          Type: HttpApi
+          Properties:
+            Path: /oauth/authorize/callback
+            Method: get
+        OAuthAuthorizeCallbackPost:
+          Type: HttpApi
+          Properties:
+            Path: /oauth/authorize/callback
+            Method: post
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt UserTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+
+  OAuthTokenFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/oauthTokenFunction/oauthTokenFunction.zip
+      Handler: bootstrap
+      FunctionName: !Sub SAM-${ServiceName}-OAuthToken-${Env}
+      Environment:
+        Variables:
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
+      Events:
+        OAuthToken:
+          Type: HttpApi
+          Properties:
+            Path: /oauth/token
+            Method: post
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt UserTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+
+  OAuthIntrospectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/oauthIntrospectFunction/oauthIntrospectFunction.zip
+      Handler: bootstrap
+      FunctionName: !Sub SAM-${ServiceName}-OAuthIntrospect-${Env}
+      Environment:
+        Variables:
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
+      Events:
+        OAuthIntrospect:
+          Type: HttpApi
+          Properties:
+            Path: /oauth/introspect
+            Method: post
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt UserTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+
+  OAuthRevokeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/oauthRevokeFunction/oauthRevokeFunction.zip
+      Handler: bootstrap
+      FunctionName: !Sub SAM-${ServiceName}-OAuthRevoke-${Env}
+      Environment:
+        Variables:
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
+      Events:
+        OAuthRevoke:
+          Type: HttpApi
+          Properties:
+            Path: /oauth/revoke
+            Method: post
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt UserTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+
+  OAuthDcrFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/oauthDcrFunction/oauthDcrFunction.zip
+      Handler: bootstrap
+      FunctionName: !Sub SAM-${ServiceName}-OAuthDcr-${Env}
+      Environment:
+        Variables:
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
+      Events:
+        OAuthDcrClient:
+          Type: HttpApi
+          Properties:
+            Path: /oauth/client
+            Method: post
+        OAuthDcrRegister:
+          Type: HttpApi
+          Properties:
+            Path: /oauth/register
+            Method: post
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt UserTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+
+  OAuthClientGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/oauthClientGetFunction/oauthClientGetFunction.zip
+      Handler: bootstrap
+      FunctionName: !Sub SAM-${ServiceName}-OAuthClientGet-${Env}
+      Environment:
+        Variables:
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
+      Events:
+        OAuthClientGet:
+          Type: HttpApi
+          Properties:
+            Path: /oauth/client/{clientId}
+            Method: get
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt UserTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+
+  OAuthClientUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/oauthClientUpdateFunction/oauthClientUpdateFunction.zip
+      Handler: bootstrap
+      FunctionName: !Sub SAM-${ServiceName}-OAuthClientUpdate-${Env}
+      Environment:
+        Variables:
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
+      Events:
+        OAuthClientUpdate:
+          Type: HttpApi
+          Properties:
+            Path: /oauth/client/{clientId}
+            Method: put
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt UserTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+
+  OAuthClientDeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/oauthClientDeleteFunction/oauthClientDeleteFunction.zip
+      Handler: bootstrap
+      FunctionName: !Sub SAM-${ServiceName}-OAuthClientDelete-${Env}
+      Environment:
+        Variables:
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
+      Events:
+        OAuthClientDelete:
+          Type: HttpApi
+          Properties:
+            Path: /oauth/client/{clientId}
+            Method: delete
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt UserTable.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource: !If
+                - IsIntegratedEnvironment
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
 
   ################################################
   ############# Background Workers ###############
@@ -267,8 +820,8 @@ Resources:
   OrderCompletedFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/user-management/lambdas/handle_order_completed_for_user/
-      Handler: handle-order-completed
+      CodeUri: ./out/handleOrderCompletedFunction/handleOrderCompletedFunction.zip
+      Handler: bootstrap
       FunctionName: !Sub ${ServiceName}-OrderCompleted-${Env}
       Environment:
         Variables:
@@ -287,9 +840,6 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref DDApiKeySecret
-    Metadata:
-      BuildMethod: rust-cargolambda
-      Binary: handle-order-completed
 
   OrderCompletedDLQ:
     Type: AWS::SQS::Queue
@@ -388,21 +938,25 @@ Resources:
       AttributeDefinitions:
         - AttributeName: PK
           AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
       BillingMode: PAY_PER_REQUEST
       KeySchema:
         - AttributeName: PK
           KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
 
   ApiEndpoint:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub /${Env}/${ServiceName}/api-endpoint
       Type: String
-      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+      Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
 
 Outputs:
   RustProductApiEndpoint:
     Description: User API Endpoint
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
     Export:
       Name: UserApiEndpoint

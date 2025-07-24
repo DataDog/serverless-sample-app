@@ -6,7 +6,7 @@
 //
 
 resource "aws_secretsmanager_secret" "dd_api_key_secret" {
-  name                    = "/${var.env}/LoyaltyService/sls-sample-dd-api-key-secret"
+  name                    = "/${var.env}/shared/sls-sample-dd-api-key-secret"
   recovery_window_in_days = 0
 }
 
@@ -15,8 +15,8 @@ resource "aws_secretsmanager_secret_version" "dd_api_key_secret_version" {
   secret_string = var.dd_api_key
 }
 
-module "loyalty" {
-  source                = "./services/loyalty"
+module "order_mcp" {
+  source                = "./services/order-mcp"
   dd_api_key_secret_arn = aws_secretsmanager_secret.dd_api_key_secret.arn
   dd_site               = var.dd_site
   env                   = var.env

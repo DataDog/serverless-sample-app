@@ -281,7 +281,7 @@ func (repo *DSqlProductRepository) ApplyMigrations(ctx context.Context) error {
 	// https://docs.aws.amazon.com/aurora-dsql/latest/userguide/working-with-postgresql-compatibility.html
 	_, err := repo.conn.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS products (
-			id UUID PRIMARY KEY,
+			id VARCHAR(255) PRIMARY KEY,
 			name VARCHAR(255) NOT NULL,
 			previous_name VARCHAR(255),
 			price REAL NOT NULL,
@@ -294,11 +294,11 @@ func (repo *DSqlProductRepository) ApplyMigrations(ctx context.Context) error {
 		return err
 	}
 	_, err = repo.conn.ExecContext(ctx, `
-		CREATE TABLE IF NOT EXISTS product_prices (
-		product_id UUID NOT NULL,
-		quantity INTEGER NOT NULL,
-		price REAL NOT NULL
-	);
+			CREATE TABLE IF NOT EXISTS product_prices (
+			product_id VARCHAR(255) NOT NULL,
+			quantity INTEGER NOT NULL,
+			price REAL NOT NULL
+		);
 	`)
 	if err != nil {
 		return err

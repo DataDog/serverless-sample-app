@@ -12,9 +12,13 @@ async-trait = "0.1"
 argon2 = "0.5.3"
 jsonwebtoken = "9.3"
 chrono = "0.4.40"
+uuid = { version = "1.10", features = ["v4"] }
+sha2 = "0.10"
+base64 = "0.21"
 
 thiserror = {workspace = true}
 serde = {workspace = true}
 serde_json = {workspace = true}
 tracing = {workspace = true}
 tracing-opentelemetry = {workspace = true}
+urlencoding = "2.1.3"
