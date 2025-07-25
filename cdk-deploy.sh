@@ -42,7 +42,7 @@ cdk deploy --require-approval never &>../../deployment-logs/loyalty-point-servic
 popd
 
 pushd src/activity-service
-cdk deploy --require-approval=never &>../../deployment-logs/activity-service.log &
+make dev && make deps && cdk deploy --require-approval=never &>../../deployment-logs/activity-service.log &
 popd
 
 echo "All service deployments started in background"
