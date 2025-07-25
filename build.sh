@@ -47,5 +47,5 @@ popd
 
 pushd src/activity-service
 echo "Building activity service..."
-make dev && make build &>../../build-logs/activity-service.log
+make dev && make deps && make build &>../../build-logs/activity-service.log
 popd
