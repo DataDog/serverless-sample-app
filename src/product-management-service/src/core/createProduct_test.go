@@ -40,6 +40,11 @@ func (m *MockProductRepository) List(ctx context.Context) ([]Product, error) {
 	return args.Get(0).([]Product), args.Error(1)
 }
 
+func (m *MockProductRepository) ApplyMigrations(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
 type MockEventPublisher struct {
 	mock.Mock
 }
