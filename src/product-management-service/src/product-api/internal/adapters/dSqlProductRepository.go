@@ -12,13 +12,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"log"
 	"net/url"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	core "github.com/datadog/serverless-sample-product-core"
 	"github.com/google/uuid"
@@ -83,8 +84,6 @@ func (tm *DSQLTokenManager) GetToken(ctx context.Context) (string, error) {
 }
 
 func (tm *DSQLTokenManager) refreshToken(ctx context.Context) (string, error) {
-	span, _ := tracer.StartSpanFromContext(ctx, "db.refreshToken")
-	defer span.Finish()
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
@@ -142,9 +141,6 @@ func NewDSQLConnectionFactory(clusterEndpoint, user, region string) *DSQLConnect
 }
 
 func (cf *DSQLConnectionFactory) CreateConnection(ctx context.Context) (*sqlx.DB, error) {
-	span, _ := tracer.StartSpanFromContext(ctx, "db.init")
-	defer span.Finish()
-
 	token, err := cf.tokenManager.GetToken(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get auth token: %w", err)
@@ -216,9 +212,6 @@ func (repo *DSqlProductRepository) withConnection(ctx context.Context, fn func(*
 }
 
 func (repo *DSqlProductRepository) WithTransaction(ctx context.Context, fn func(*sqlx.Tx) error) error {
-	span, _ := tracer.StartSpanFromContext(ctx, "db.withTransaction")
-	defer span.Finish()
-
 	return repo.withConnection(ctx, func(conn *sqlx.DB) error {
 		tx, err := conn.BeginTxx(ctx, nil)
 		if err != nil {

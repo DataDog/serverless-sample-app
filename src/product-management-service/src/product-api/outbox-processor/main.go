@@ -11,21 +11,23 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	ddlambda "github.com/DataDog/datadog-lambda-go"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	awscfg "github.com/aws/aws-sdk-go-v2/config"
-	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
 	"log"
 	"os"
 	"strconv"
 
+	ddlambda "github.com/DataDog/datadog-lambda-go"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awscfg "github.com/aws/aws-sdk-go-v2/config"
+	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
+
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
+
+	"product-api/internal/adapters"
 
 	core "github.com/datadog/serverless-sample-product-core"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
-	"product-api/internal/adapters"
 )
 
 var (
@@ -58,6 +60,7 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 	span, _ := tracer.StartSpanFromContext(ctx,
 		fmt.Sprintf("outbox.process_entry.%s", entry.EventType),
 		tracer.WithSpanLinks(spanLinks),
+		tracer.ChildOf(activeSpanCtx),
 	)
 	defer span.Finish()
 
