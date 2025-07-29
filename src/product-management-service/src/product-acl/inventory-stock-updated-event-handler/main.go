@@ -11,13 +11,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	adapters "productacl/internal/adapters"
 	core "productacl/internal/core"
 	"strconv"
 	"strings"
+
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
@@ -89,6 +90,8 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 			ServiceOverride: "productservice-acl",
 		}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
 		processSpan, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(spanLinks), tracer.ChildOf(span.Context()))
+		defer processSpan.Finish()
+
 		_, err := eventTranslator.HandleStockUpdated(ctx, evt.Data)
 
 		if err != nil {
