@@ -10,7 +10,8 @@ package productacladapters
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	"log"
 	"os"
 
@@ -30,7 +31,8 @@ func NewSnsEventPublisher(client sns.Client) *SnsEventPublisher {
 }
 
 func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context, evt core.StockUpdatedEvent) {
-	_, _ = tracer.SpanFromContext(ctx)
+	span, _ := tracer.StartSpanFromContext(ctx, "publish product.stockUpdated")
+	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.stockUpdated", evt)
 
@@ -39,7 +41,12 @@ func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context,
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("STOCK_LEVEL_UPDATED_TOPIC_ARN")
 
-	fmt.Println("Publishing to '" + topicArn + "'")
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-acl",
+	}, "direction:out", "type:sns", "topic:product.stockUpdated", "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
+	}
 
 	input := &sns.PublishInput{
 		TopicArn: &topicArn,
@@ -54,7 +61,8 @@ func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context,
 }
 
 func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Context, evt core.PriceCalculatedEvent) {
-	_, _ = tracer.SpanFromContext(ctx)
+	span, _ := tracer.StartSpanFromContext(ctx, "publish product.pricingChanged")
+	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.pricingChanged", evt)
 
@@ -63,7 +71,12 @@ func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Contex
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRICE_CALCULATED_TOPIC_ARN")
 
-	fmt.Println("Publishing to '" + topicArn + "'")
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-acl",
+	}, "direction:out", "type:sns", "topic:product.pricingChanged", "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
+	}
 
 	input := &sns.PublishInput{
 		TopicArn: &topicArn,

@@ -10,6 +10,7 @@ package core
 import (
 	"context"
 	"strings"
+	"time"
 )
 
 type ProductRepository interface {
@@ -19,6 +20,25 @@ type ProductRepository interface {
 	Delete(ctx context.Context, productId string)
 	List(ctx context.Context) ([]Product, error)
 	ApplyMigrations(ctx context.Context) error
+	StoreProductWithOutboxEntry(ctx context.Context, product Product, outboxEntry OutboxEntry) error
+	UpdateProductWithOutboxEntry(ctx context.Context, product Product, outboxEntry OutboxEntry) error
+	DeleteProductWithOutboxEntry(ctx context.Context, productId string, outboxEntry OutboxEntry) error
+}
+
+type OutboxRepository interface {
+	StoreOutboxEntry(ctx context.Context, entry OutboxEntry) error
+	GetUnprocessedEntries(ctx context.Context) ([]OutboxEntry, error)
+	MarkAsProcessed(ctx context.Context, entryId string) error
+}
+
+type OutboxEntry struct {
+	Id         string    `json:"id"`
+	EventType  string    `json:"event_type"`
+	EventData  string    `json:"event_data"`
+	TraceId    string    `json:"trace_id"`
+	SpanId     string    `json:"span_id"`
+	CreatedAt  time.Time `json:"created_at"`
+	ProcessedAt *time.Time `json:"processed_at"`
 }
 
 type Product struct {

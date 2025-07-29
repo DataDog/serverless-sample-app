@@ -11,10 +11,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	adapters "productacl/internal/adapters"
 	core "productacl/internal/core"
+	"strconv"
+	"strings"
+
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
@@ -62,8 +66,31 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 		var evt observability.CloudEvent[core.PublicInventoryStockUpdatedEventV1]
 		json.Unmarshal(body, &evt)
 
-		ctx, _ := tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
-		span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
+		spanLinks := []ddtrace.SpanLink{}
+
+		if evt.TraceParent != "" {
+			// Split the traceparent header to extract trace ID and span ID. The traceparent should be a valid W3C trace context.
+			parts := strings.Split(evt.TraceParent, "-")
+
+			if len(parts) == 4 {
+				traceId, err := strconv.ParseUint(parts[1], 16, 64)
+				if err == nil {
+					spanId, err := strconv.ParseUint(parts[2], 16, 64)
+					if err == nil {
+						spanLinks = append(spanLinks, ddtrace.SpanLink{
+							TraceID: traceId,
+							SpanID:  spanId,
+						})
+					}
+				}
+			}
+		}
+
+		_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{
+			ServiceOverride: "productservice-acl",
+		}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
+		processSpan, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(spanLinks), tracer.ChildOf(span.Context()))
+		defer processSpan.Finish()
 
 		_, err := eventTranslator.HandleStockUpdated(ctx, evt.Data)
 

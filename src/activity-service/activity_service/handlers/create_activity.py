@@ -7,6 +7,7 @@ from aws_lambda_powertools.utilities.data_classes import SQSEvent
 from aws_lambda_powertools.utilities.data_classes.sqs_event import SQSRecord
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from ddtrace import tracer
+from ddtrace._trace.context import Context
 
 from activity_service.dal import get_dal_handler
 from activity_service.dal.db_handler import DalHandler
@@ -64,7 +65,6 @@ def process_message(record: SQSRecord, lambda_context: LambdaContext) -> None:
 
         process_cloud_event(cloud_event_wrapper, time, lambda_context)
 
-
     except Exception as e:
         logger.exception(f"Error processing message: {e}")
         # Re-raising the exception marks this specific record as failed
@@ -75,34 +75,36 @@ def process_cloud_event(cloud_event_wrapper: dict, time: int, lambda_context: La
     event_type = cloud_event_wrapper.get("type")
     event_data = cloud_event_wrapper.get("data")
     event_id = cloud_event_wrapper.get("id")
+    trace_parent = cloud_event_wrapper.get("traceparent")
 
     if event_type == PRODUCT_CREATED_EVENT_NAME:
-        handle_product_created(event_id, event_type, event_data, time)
+        handle_product_created(event_id, event_type, event_data, trace_parent, time)
     elif event_type == PRODUCT_UPDATED_EVENT_NAME:
-        handle_product_updated(event_id, event_type, event_data, time)
+        handle_product_updated(event_id, event_type, event_data, trace_parent, time)
     elif event_type == PRODUCT_DELETED_EVENT_NAME:
-        handle_product_deleted(event_id, event_type, event_data, time)
+        handle_product_deleted(event_id, event_type, event_data, trace_parent, time)
     elif event_type == USER_REGISTERED_EVENT_NAME:
-        handle_user_registered(event_id, event_type, event_data, time)
+        handle_user_registered(event_id, event_type, event_data, trace_parent, time)
     elif event_type == ORDER_CREATED_EVENT_NAME:
-        handle_order_created(event_id, event_type, event_data, time)
+        handle_order_created(event_id, event_type, event_data, trace_parent, time)
     elif event_type == ORDER_CONFIRMED_EVENT_NAME:
-        handle_order_confirmed(event_id, event_type, event_data, time)
+        handle_order_confirmed(event_id, event_type, event_data, trace_parent, time)
     elif event_type == ORDER_COMPLETED_EVENT_NAME:
-        handle_order_completed(event_id, event_type, event_data, time)
+        handle_order_completed(event_id, event_type, event_data, trace_parent, time)
     elif event_type == STOCK_UPDATED:
-        handle_stock_updated(event_id, event_type, event_data, time)
+        handle_stock_updated(event_id, event_type, event_data, trace_parent, time)
     elif event_type == STOCK_RESERVED_EVENT_NAME:
-        handle_stock_reserved(event_id, event_type, event_data, time)
+        handle_stock_reserved(event_id, event_type, event_data, trace_parent, time)
     elif event_type == STOCK_RESERVATION_FAILED_EVENT_NAME:
-        handle_stock_reservation_failed(event_id, event_type, event_data, time)
+        handle_stock_reservation_failed(event_id, event_type, event_data, trace_parent, time)
     else:
         logger.error(f"Unhandled event_type: {event_type}")
 
 @tracer.wrap(resource=f"process {PRODUCT_CREATED_EVENT_NAME}")
-def handle_product_created(event_id: str, activity_type: str, detail: dict, time: int) -> None:
+def handle_product_created(event_id: str, activity_type: str, detail: dict, trace_parent: str, time: int) -> None:
     """Handle product creation events"""
-    _add_default_span_tags(event_id, PRODUCT_CREATED_EVENT_NAME)
+    _add_default_span_tags(event_id, PRODUCT_CREATED_EVENT_NAME, trace_parent)
+    span = tracer.current_span()
 
     product_id = detail.get("productId")
 
@@ -120,9 +122,9 @@ def handle_product_created(event_id: str, activity_type: str, detail: dict, time
 
 
 @tracer.wrap(resource=f"process {PRODUCT_UPDATED_EVENT_NAME}")
-def handle_product_updated(event_id: str, activity_type: str, detail: dict,time: int) -> None:
+def handle_product_updated(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
     """Handle product update events"""
-    _add_default_span_tags(event_id, PRODUCT_UPDATED_EVENT_NAME)
+    _add_default_span_tags(event_id, PRODUCT_UPDATED_EVENT_NAME, trace_parent)
 
     product_id = detail.get("productId")
 
@@ -140,9 +142,9 @@ def handle_product_updated(event_id: str, activity_type: str, detail: dict,time:
 
 
 @tracer.wrap(resource=f"process {PRODUCT_DELETED_EVENT_NAME}")
-def handle_product_deleted(event_id: str, activity_type: str, detail: dict,time: int) -> None:
+def handle_product_deleted(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
     """Handle product update events"""
-    _add_default_span_tags(event_id, PRODUCT_DELETED_EVENT_NAME)
+    _add_default_span_tags(event_id, PRODUCT_DELETED_EVENT_NAME, trace_parent)
 
     product_id = detail.get("productId")
 
@@ -159,8 +161,8 @@ def handle_product_deleted(event_id: str, activity_type: str, detail: dict,time:
     logger.info("Successfully processed product update", product_id=detail.get("productId"))
 
 @tracer.wrap(resource=f"process {USER_REGISTERED_EVENT_NAME}")
-def handle_user_registered(event_id: str, activity_type: str, detail: dict, time: int) -> None:
-    _add_default_span_tags(event_id, USER_REGISTERED_EVENT_NAME)
+def handle_user_registered(event_id: str, activity_type: str, detail: dict,trace_parent: str,  time: int) -> None:
+    _add_default_span_tags(event_id, USER_REGISTERED_EVENT_NAME, trace_parent)
 
     user_id = detail.get("userId")
 
@@ -176,8 +178,8 @@ def handle_user_registered(event_id: str, activity_type: str, detail: dict, time
 
 
 @tracer.wrap(resource=f"process {ORDER_CREATED_EVENT_NAME}")
-def handle_order_created(event_id: str, activity_type: str, detail: dict,time: int) -> None:
-    _add_default_span_tags(event_id, ORDER_CREATED_EVENT_NAME)
+def handle_order_created(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
+    _add_default_span_tags(event_id, ORDER_CREATED_EVENT_NAME, trace_parent)
 
     order_number = detail.get("orderNumber")
 
@@ -208,8 +210,8 @@ def handle_order_created(event_id: str, activity_type: str, detail: dict,time: i
 
 
 @tracer.wrap(resource=f"process {ORDER_CONFIRMED_EVENT_NAME}")
-def handle_order_confirmed(event_id: str, activity_type: str, detail: dict,time: int) -> None:
-    _add_default_span_tags(event_id, ORDER_CONFIRMED_EVENT_NAME)
+def handle_order_confirmed(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
+    _add_default_span_tags(event_id, ORDER_CONFIRMED_EVENT_NAME, trace_parent)
 
     order_number = detail.get("orderNumber")
 
@@ -239,8 +241,8 @@ def handle_order_confirmed(event_id: str, activity_type: str, detail: dict,time:
     create_activity_handler(confirm_order_user_activity_request, dal_handler)
 
 @tracer.wrap(resource=f"process {ORDER_COMPLETED_EVENT_NAME}")
-def handle_order_completed(event_id: str, activity_type: str, detail: dict,time: int) -> None:
-    _add_default_span_tags(event_id, ORDER_COMPLETED_EVENT_NAME)
+def handle_order_completed(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
+    _add_default_span_tags(event_id, ORDER_COMPLETED_EVENT_NAME, trace_parent)
 
     order_number = detail.get("orderNumber")
 
@@ -270,8 +272,8 @@ def handle_order_completed(event_id: str, activity_type: str, detail: dict,time:
     create_activity_handler(user_activity_request, dal_handler)
 
 @tracer.wrap(resource=f"process {STOCK_UPDATED}")
-def handle_stock_updated(event_id: str, activity_type: str, detail: dict,time: int) -> None:
-    _add_default_span_tags(event_id, STOCK_UPDATED)
+def handle_stock_updated(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
+    _add_default_span_tags(event_id, STOCK_UPDATED, trace_parent)
 
     product_id = detail.get("productId")
     product_activity_request: CreateActivityRequest = CreateActivityRequest(
@@ -284,8 +286,8 @@ def handle_stock_updated(event_id: str, activity_type: str, detail: dict,time: i
     create_activity_handler(product_activity_request, dal_handler)
 
 @tracer.wrap(resource=f"process {STOCK_RESERVED_EVENT_NAME}")
-def handle_stock_reserved(event_id: str, activity_type: str, detail: dict,time: int) -> None:
-    _add_default_span_tags(event_id, STOCK_RESERVED_EVENT_NAME)
+def handle_stock_reserved(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
+    _add_default_span_tags(event_id, STOCK_RESERVED_EVENT_NAME, trace_parent)
 
     order_number = detail.get("orderNumber")
 
@@ -299,8 +301,8 @@ def handle_stock_reserved(event_id: str, activity_type: str, detail: dict,time: 
     create_activity_handler(activity_request, dal_handler)
 
 @tracer.wrap(resource=f"process {STOCK_RESERVATION_FAILED_EVENT_NAME}")
-def handle_stock_reservation_failed(event_id: str, activity_type: str, detail: dict,time: int) -> None:
-    _add_default_span_tags(event_id, STOCK_RESERVATION_FAILED_EVENT_NAME)
+def handle_stock_reservation_failed(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
+    _add_default_span_tags(event_id, STOCK_RESERVATION_FAILED_EVENT_NAME, trace_parent)
 
     order_number = detail.get("orderNumber")
 
@@ -313,8 +315,9 @@ def handle_stock_reservation_failed(event_id: str, activity_type: str, detail: d
     tracer.current_span().set_tag("order.number", order_number)
     create_activity_handler(activity_request, dal_handler)
 
-def _add_default_span_tags(event_id: str, event_type: str) -> None:
+def _add_default_span_tags(event_id: str, event_type: str, trace_parent: str) -> None:
     """Add default span tags using the current span from tracer"""
+
     span = tracer.current_span()
     span.set_tag("domain", "activity")
     span.set_tag("team", "activity")
@@ -324,6 +327,17 @@ def _add_default_span_tags(event_id: str, event_type: str) -> None:
     span.set_tag("messaging.operation.type", "process")
     span.set_tag("messaging.operation.name", "process")
     span.set_tag("messaging.batch.message_count", 1)
+
+    if trace_parent:
+        span.set_tag("traceparent", trace_parent)
+        traceParentSplit = trace_parent.split("-")
+        if len(traceParentSplit) == 4:
+            span.set_tag("traceparent.version", traceParentSplit[0])
+            span.set_tag("traceparent.trace_id", traceParentSplit[1])
+            span.set_tag("traceparent.span_id", traceParentSplit[2])
+            span.set_tag("traceparent.flags", traceParentSplit[3])
+            linkedContext = Context(trace_id=int(traceParentSplit[1], 16), span_id=int(traceParentSplit[2], 16))
+            span.link_span(linkedContext)
 
 def convert_date_time_string_to_epoch(date_time_string: str) -> int:
     """

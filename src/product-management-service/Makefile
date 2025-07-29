@@ -38,6 +38,7 @@ pre-build:
 	mkdir out/CreateProduct
 	mkdir out/DeleteProduct
 	mkdir out/UpdateProduct
+	mkdir out/OutboxProcessor
 	mkdir out/StockUpdated
 	mkdir out/ProductApiPricingChangedWorker
 	mkdir out/EventPublisher
@@ -46,7 +47,7 @@ pre-build:
 
 build: cleanup pre-build package-api-functions package-product-acl package-api-worker-functions package-event-publisher-functions
 
-package-api-functions: package-GetProductFunction package-CreateProductFunction package-DeleteProductFunction package-UpdateProductFunction package-ListProductsFunction
+package-api-functions: package-GetProductFunction package-CreateProductFunction package-DeleteProductFunction package-UpdateProductFunction package-ListProductsFunction package-OutboxProcessorFunction
 
 package-product-acl: package-InventoryStockUpdatedACL package-PriceUpdatedACLHandler
 
@@ -73,6 +74,10 @@ package-UpdateProductFunction:
 package-ListProductsFunction:
 	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap list-products/main.go;cp bootstrap ../../out/ListProducts/bootstrap
 	zip -r -j out/ListProducts/ListProducts.zip out/ListProducts/bootstrap
+
+package-OutboxProcessorFunction:
+	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap outbox-processor/main.go;cp bootstrap ../../out/OutboxProcessor/bootstrap
+	zip -r -j out/OutboxProcessor/OutboxProcessor.zip out/OutboxProcessor/bootstrap
 
 package-ProductApiStockUpdatedWorker:
 	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-stock-updated/main.go;cp bootstrap ../../out/StockUpdated/bootstrap
@@ -108,6 +113,9 @@ build-UpdateProductFunction:
 
 build-ListProductsFunction:
 	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap list-products/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
+
+build-OutboxProcessorFunction:
+	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap outbox-processor/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap
 
 build-ProductApiPricingWorker:
 	cd src/product-api;go mod tidy;GOOS=linux GOARCH=arm64 go build -o bootstrap handle-pricing-changed/main.go;cp bootstrap $(ARTIFACTS_DIR)/bootstrap

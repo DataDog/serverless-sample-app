@@ -9,7 +9,11 @@ package core
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"time"
 
+	"github.com/google/uuid"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -20,13 +24,13 @@ type CreateProductCommand struct {
 
 type CreateProductCommandHandler struct {
 	productRepository ProductRepository
-	eventPublisher    ProductEventPublisher
+	outboxRepository  OutboxRepository
 }
 
-func NewCreateProductCommandHandler(productRepository ProductRepository, eventPublisher ProductEventPublisher) CreateProductCommandHandler {
+func NewCreateProductCommandHandler(productRepository ProductRepository, outboxRepository OutboxRepository) CreateProductCommandHandler {
 	return CreateProductCommandHandler{
 		productRepository: productRepository,
-		eventPublisher:    eventPublisher,
+		outboxRepository:  outboxRepository,
 	}
 }
 
@@ -47,15 +51,45 @@ func (handler *CreateProductCommandHandler) Handle(ctx context.Context, command 
 		return existingProduct.AsDto(), nil
 	}
 
-	err = handler.productRepository.Store(ctx, *product)
+	event := ProductCreatedEvent{ProductId: product.Id, Name: product.Name, Price: product.Price}
+	outboxEntry, err := createOutboxEntry(ctx, "product.productCreated", event)
+	if err != nil {
+		return nil, err
+	}
+
+	err = handler.productRepository.StoreProductWithOutboxEntry(ctx, *product, outboxEntry)
 
 	if err != nil {
 		return nil, err
 	}
 
-	handler.eventPublisher.PublishProductCreated(ctx, ProductCreatedEvent{ProductId: product.Id, Name: product.Name, Price: product.Price})
-
 	span.SetTag("product.id", product.Id)
 
 	return product.AsDto(), nil
+}
+
+func createOutboxEntry(ctx context.Context, eventType string, eventData interface{}) (OutboxEntry, error) {
+	span, _ := tracer.SpanFromContext(ctx)
+	
+	traceId := ""
+	spanId := ""
+	if span != nil {
+		spanCtx := span.Context()
+		traceId = fmt.Sprintf("%d", spanCtx.TraceID())
+		spanId = fmt.Sprintf("%d", spanCtx.SpanID())
+	}
+
+	eventJson, err := json.Marshal(eventData)
+	if err != nil {
+		return OutboxEntry{}, err
+	}
+
+	return OutboxEntry{
+		Id:        uuid.New().String(),
+		EventType: eventType,
+		EventData: string(eventJson),
+		TraceId:   traceId,
+		SpanId:    spanId,
+		CreatedAt: time.Now(),
+	}, nil
 }

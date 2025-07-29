@@ -13,7 +13,10 @@ import {
 import { Span, tracer } from "dd-trace";
 import { CloudEvent } from "cloudevents";
 import { Logger } from "@aws-lambda-powertools/logger";
-import { MessagingType, startPublishSpanWithSemanticConventions } from "../../observability/observability";
+import {
+  MessagingType,
+  startPublishSpanWithSemanticConventions,
+} from "../../observability/observability";
 import { EventPublisher } from "../core/eventPublisher";
 import { PriceCalculatedEventV1 } from "../events/priceCalculatedEventV1";
 
@@ -28,7 +31,9 @@ export class EventBridgeEventPublisher implements EventPublisher {
     this.logger = new Logger({});
   }
 
-  async publishPriceCalculatedEvent(evt: PriceCalculatedEventV1): Promise<boolean> {
+  async publishPriceCalculatedEvent(
+    evt: PriceCalculatedEventV1
+  ): Promise<boolean> {
     const parentSpan = tracer.scope().active();
 
     let messagingSpan: Span | undefined = undefined;
@@ -58,14 +63,16 @@ export class EventBridgeEventPublisher implements EventPublisher {
           Detail: JSON.stringify(cloudEventWrapper),
           DetailType: "pricing.pricingCalculated.v1",
           Source: `${process.env.ENV}.pricing`,
-        }
-      ]
+        },
+      ];
 
       await this.client.send(
         new PutEventsCommand({
           Entries: evtEntries,
         })
       );
+
+      messagingSpan?.finish();
     } catch (error: unknown) {
       this.logger.error(JSON.stringify(error));
       if (error instanceof Error) {
@@ -81,9 +88,8 @@ export class EventBridgeEventPublisher implements EventPublisher {
           "error.type": "Error",
         });
       }
-      return false;
-    } finally {
       messagingSpan?.finish();
+      return false;
     }
 
     return true;

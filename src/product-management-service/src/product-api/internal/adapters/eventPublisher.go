@@ -36,12 +36,6 @@ func (publisher SnsEventPublisher) PublishProductCreated(ctx context.Context, ev
 	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productCreated")
 	defer span.Finish()
 
-	_, spanWasFound := tracer.SpanFromContext(ctx)
-
-	if !spanWasFound {
-		fmt.Println("EventPublisher: No span found in current context")
-	}
-
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated", evt)
 
 	fmt.Println(cloudEvent.TraceParent)
@@ -58,7 +52,9 @@ func (publisher SnsEventPublisher) PublishProductCreated(ctx context.Context, ev
 		Message:  &message,
 	}
 
-	ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-outbox",
+	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
 	}
@@ -72,7 +68,8 @@ func (publisher SnsEventPublisher) PublishProductCreated(ctx context.Context, ev
 }
 
 func (publisher SnsEventPublisher) PublishProductUpdated(ctx context.Context, evt core.ProductUpdatedEvent) {
-	_, _ = tracer.SpanFromContext(ctx)
+	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productUpdated")
+	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productUpdated", evt)
 
@@ -80,11 +77,16 @@ func (publisher SnsEventPublisher) PublishProductUpdated(ctx context.Context, ev
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRODUCT_UPDATED_TOPIC_ARN")
 
-	fmt.Println("Publishing to '" + topicArn + "'")
-
 	input := &sns.PublishInput{
 		TopicArn: &topicArn,
 		Message:  &message,
+	}
+
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-outbox",
+	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
 	}
 
 	_, err := publisher.client.Publish(ctx, input)
@@ -95,7 +97,8 @@ func (publisher SnsEventPublisher) PublishProductUpdated(ctx context.Context, ev
 }
 
 func (publisher SnsEventPublisher) PublishProductDeleted(ctx context.Context, evt core.ProductDeletedEvent) {
-	_, _ = tracer.SpanFromContext(ctx)
+	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productDeleted")
+	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productDeleted", evt)
 
@@ -103,11 +106,16 @@ func (publisher SnsEventPublisher) PublishProductDeleted(ctx context.Context, ev
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRODUCT_DELETED_TOPIC_ARN")
 
-	fmt.Println("Publishing to '" + topicArn + "'")
-
 	input := &sns.PublishInput{
 		TopicArn: &topicArn,
 		Message:  &message,
+	}
+
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-outbox",
+	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
 	}
 
 	_, err := publisher.client.Publish(ctx, input)

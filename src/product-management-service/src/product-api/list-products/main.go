@@ -9,8 +9,6 @@ package main
 
 import (
 	"context"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/sns"
 	core "github.com/datadog/serverless-sample-product-core"
 	"os"
 	"product-api/internal/adapters"
@@ -19,19 +17,14 @@ import (
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	awscfg "github.com/aws/aws-sdk-go-v2/config"
-	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
 )
 
 var (
-	awsCfg = func() aws.Config {
-		awsCfg, _ := awscfg.LoadDefaultConfig(context.TODO())
-		awstrace.AppendMiddleware(&awsCfg)
-		return awsCfg
-	}()
 	dSqlProductRepository, _ = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
-	createProductHandler     = core.NewCreateProductCommandHandler(dSqlProductRepository, adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg)))
-	handler                  = core.NewListProductsQueryHandler(dSqlProductRepository)
+	createProductHandler     = core.NewCreateProductCommandHandler(
+		dSqlProductRepository,
+		dSqlProductRepository)
+	handler = core.NewListProductsQueryHandler(dSqlProductRepository)
 )
 
 func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {

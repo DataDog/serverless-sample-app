@@ -12,21 +12,16 @@ func TestDeleteProductCommandHandler_Handle(t *testing.T) {
 	tests := []struct {
 		name       string
 		command    DeleteProductCommand
-		setupMocks func(*MockProductRepository, *MockEventPublisher)
+		setupMocks func(*MockProductRepository, *MockOutboxRepository)
 	}{
 		{
 			name: "Delete existing product",
 			command: DeleteProductCommand{
 				ProductId: "TESTPRODUCT",
 			},
-			setupMocks: func(repo *MockProductRepository, pub *MockEventPublisher) {
-				// Delete is called
-				repo.On("Delete", mock.Anything, "TESTPRODUCT").Return()
-
-				// Publish event
-				pub.On("PublishProductDeleted", mock.Anything, ProductDeletedEvent{
-					ProductId: "TESTPRODUCT",
-				}).Return()
+			setupMocks: func(repo *MockProductRepository, outbox *MockOutboxRepository) {
+				// Delete product with outbox entry
+				repo.On("DeleteProductWithOutboxEntry", mock.Anything, "TESTPRODUCT", mock.AnythingOfType("OutboxEntry")).Return(nil)
 			},
 		},
 		{
@@ -34,14 +29,9 @@ func TestDeleteProductCommandHandler_Handle(t *testing.T) {
 			command: DeleteProductCommand{
 				ProductId: "NONEXISTENT",
 			},
-			setupMocks: func(repo *MockProductRepository, pub *MockEventPublisher) {
+			setupMocks: func(repo *MockProductRepository, outbox *MockOutboxRepository) {
 				// Delete is still called even if product doesn't exist
-				repo.On("Delete", mock.Anything, "NONEXISTENT").Return()
-
-				// Publish event is still called
-				pub.On("PublishProductDeleted", mock.Anything, ProductDeletedEvent{
-					ProductId: "NONEXISTENT",
-				}).Return()
+				repo.On("DeleteProductWithOutboxEntry", mock.Anything, "NONEXISTENT", mock.AnythingOfType("OutboxEntry")).Return(nil)
 			},
 		},
 	}
@@ -50,21 +40,21 @@ func TestDeleteProductCommandHandler_Handle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup mocks
 			repo := new(MockProductRepository)
-			pub := new(MockEventPublisher)
+			outbox := new(MockOutboxRepository)
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(repo, pub)
+				tt.setupMocks(repo, outbox)
 			}
 
 			// Create handler
-			handler := NewDeleteProductCommandHandler(repo, pub)
+			handler := NewDeleteProductCommandHandler(repo, outbox)
 
 			// Execute
 			handler.Handle(context.Background(), tt.command)
 
 			// Verify mock expectations
 			repo.AssertExpectations(t)
-			pub.AssertExpectations(t)
+			outbox.AssertExpectations(t)
 		})
 	}
 }

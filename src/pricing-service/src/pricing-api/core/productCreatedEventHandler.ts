@@ -28,15 +28,17 @@ export class ProductCreatedEventHandler {
     // if (evt.productId === undefined) {
     //   throw new Error("Product ID is undefined");
     // }
-    // if (evt.price === undefined) {
-    //   throw new Error("Price is undefined");
+    // if (evt.previous === undefined || evt.previous.price === undefined) {
+    //   throw new Error("Previous is undefined");
+    // }
+    // if (evt.new === undefined || evt.new.price === undefined) {
+    //   throw new Error("New is undefined");
     // }
 
-    const span = tracer.scope().active();
-
-    span?.addTags({
+    const mainSpan = tracer.scope().active();
+    mainSpan?.addTags({
+      "pricing.price": evt.price,
       "product.id": evt.productId,
-      "pricing.newPrice": evt.price,
     });
 
     const priceResult = await this.pricingService.calculate({
