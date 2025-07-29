@@ -66,8 +66,16 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 
 	span.SetTag("outbox.entry_id", entry.Id)
 	span.SetTag("outbox.event_type", entry.EventType)
-	span.SetTag("outbox.original_trace_id", entry.TraceId)
-	span.SetTag("outbox.original_span_id", entry.SpanId)
+	if entry.TraceId != "" && entry.SpanId != "" {
+		traceId, err := strconv.ParseUint(entry.TraceId, 10, 64)
+		if err == nil {
+			spanId, err := strconv.ParseUint(entry.SpanId, 10, 64)
+			if err == nil {
+				span.SetTag("outbox.original_trace_id", fmt.Sprintf("%d", traceId))
+				span.SetTag("outbox.original_span_id", fmt.Sprintf("%d", spanId))
+			}
+		}
+	}
 
 	// Process the event based on its type
 	switch entry.EventType {
