@@ -189,8 +189,8 @@ func TestCreateProductCommandHandler_Handle(t *testing.T) {
 				// Product doesn't exist yet
 				repo.On("Get", mock.Anything, expectedProduct.Id).Return(nil, nil)
 
-				// Store returns an error
-				repo.On("Store", mock.Anything, *expectedProduct).Return(&UnknownError{Detail: "DB error"})
+				// StoreProductWithOutboxEntry returns an error
+				repo.On("StoreProductWithOutboxEntry", mock.Anything, *expectedProduct, mock.AnythingOfType("OutboxEntry")).Return(&UnknownError{Detail: "DB error"})
 
 				// No publish event call expected
 			},
@@ -227,7 +227,7 @@ func TestCreateProductCommandHandler_Handle(t *testing.T) {
 
 			// Verify mock expectations
 			repo.AssertExpectations(t)
-			pub.AssertExpectations(t)
+			outbox.AssertExpectations(t)
 		})
 	}
 }

@@ -138,11 +138,11 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	productDeletedTopic.GrantPublish(outboxProcessorFunction.Function)
 	outboxProcessorFunction.Function.Role().AttachInlinePolicy(dSqlConnectPolicy)
 
-	// Create EventBridge rule to trigger outbox processor every 5 minutes
+	// Create EventBridge rule to trigger outbox processor every 60 seconds
 	sixty_seconds := float64(60.0)
 	outboxProcessorRule := awsevents.NewRule(scope, jsii.String("OutboxProcessorRule"), &awsevents.RuleProps{
 		Schedule:    awsevents.Schedule_Rate(awscdk.Duration_Seconds(&sixty_seconds)),
-		Description: jsii.String("Trigger outbox processor every 5 minutes"),
+		Description: jsii.String("Trigger outbox processor every 60 seconds"),
 	})
 
 	outboxProcessorRule.AddTarget(awseventstargets.NewLambdaFunction(outboxProcessorFunction.Function, &awseventstargets.LambdaFunctionProps{}))
