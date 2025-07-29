@@ -11,12 +11,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"log"
 	"os"
 	"product-event-publisher/internal/core"
+
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 
@@ -34,6 +35,8 @@ func NewEventBridgeEventPublisher(client eventbridge.Client) *EventBridgeEventPu
 }
 
 func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Context, evt core.PublicProductCreatedEventV1) {
+	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productCreated.v1")
+	defer span.Finish()
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated.v1", evt)
 
 	evtData, _ := json.Marshal(cloudEvent)
@@ -70,6 +73,8 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 }
 
 func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Context, evt core.PublicProductUpdatedEventV1) {
+	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productUpdated.v1")
+	defer span.Finish()
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productUpdated.v1", evt)
 
 	evtData, _ := json.Marshal(cloudEvent)
@@ -106,6 +111,9 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 }
 
 func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Context, evt core.PublicProductDeletedEventV1) {
+	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productDeleted.v1")
+	defer span.Finish()
+
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productDeleted.v1", evt)
 
 	evtData, _ := json.Marshal(cloudEvent)
