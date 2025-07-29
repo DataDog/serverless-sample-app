@@ -7,7 +7,15 @@
 
 package core
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+)
 
 type DeleteProductCommand struct {
 	ProductId string `json:"productId"`
@@ -15,18 +23,48 @@ type DeleteProductCommand struct {
 
 type DeleteProductCommandHandler struct {
 	productRepository ProductRepository
-	eventPublisher    ProductEventPublisher
+	outboxRepository  OutboxRepository
 }
 
-func NewDeleteProductCommandHandler(productRepository ProductRepository, eventPublisher ProductEventPublisher) *DeleteProductCommandHandler {
+func NewDeleteProductCommandHandler(productRepository ProductRepository, outboxRepository OutboxRepository) *DeleteProductCommandHandler {
 	return &DeleteProductCommandHandler{
 		productRepository: productRepository,
-		eventPublisher:    eventPublisher,
+		outboxRepository:  outboxRepository,
 	}
 }
 
 func (handler *DeleteProductCommandHandler) Handle(ctx context.Context, command DeleteProductCommand) {
-	handler.productRepository.Delete(ctx, command.ProductId)
+	event := ProductDeletedEvent{ProductId: command.ProductId}
+	outboxEntry, err := createOutboxEntryForDelete(ctx, "product.productDeleted", event)
+	if err != nil {
+		return
+	}
 
-	handler.eventPublisher.PublishProductDeleted(ctx, ProductDeletedEvent{ProductId: command.ProductId})
+	handler.productRepository.DeleteProductWithOutboxEntry(ctx, command.ProductId, outboxEntry)
+}
+
+func createOutboxEntryForDelete(ctx context.Context, eventType string, eventData interface{}) (OutboxEntry, error) {
+	span, _ := tracer.SpanFromContext(ctx)
+	
+	traceId := ""
+	spanId := ""
+	if span != nil {
+		spanCtx := span.Context()
+		traceId = fmt.Sprintf("%d", spanCtx.TraceID())
+		spanId = fmt.Sprintf("%d", spanCtx.SpanID())
+	}
+
+	eventJson, err := json.Marshal(eventData)
+	if err != nil {
+		return OutboxEntry{}, err
+	}
+
+	return OutboxEntry{
+		Id:        uuid.New().String(),
+		EventType: eventType,
+		EventData: string(eventJson),
+		TraceId:   traceId,
+		SpanId:    spanId,
+		CreatedAt: time.Now(),
+	}, nil
 }

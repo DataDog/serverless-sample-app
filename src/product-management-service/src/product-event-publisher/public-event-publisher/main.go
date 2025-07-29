@@ -42,8 +42,6 @@ var (
 )
 
 func functionHandler(ctx context.Context, request events.SQSEvent) (events.SQSEventResponse, error) {
-	fmt.Printf("Received SQSEvent: %s\n\n", request)
-	
 	failures := []events.SQSBatchItemFailure{}
 
 	for index := range request.Records {
@@ -53,9 +51,6 @@ func functionHandler(ctx context.Context, request events.SQSEvent) (events.SQSEv
 
 		var snsMessage events.SNSEntity
 		json.Unmarshal(body, &snsMessage)
-
-		fmt.Printf("SNS Message body is %s", snsMessage.Message)
-		fmt.Printf("Topic is %s", snsMessage.TopicArn)
 
 		switch snsMessage.TopicArn {
 		case os.Getenv("PRODUCT_CREATED_TOPIC_ARN"):

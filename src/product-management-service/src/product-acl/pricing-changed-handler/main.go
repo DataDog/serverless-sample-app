@@ -65,8 +65,10 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 		var evt observability.CloudEvent[core.PublicPricingUpdatedEventV1]
 		json.Unmarshal(body, &evt)
 
-		ctx, _ := tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
-		span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
+		_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{
+			ServiceOverride: "productservice-acl",
+		}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
+		span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.ChildOf(span.Context()))
 
 		_, err := eventTranslator.HandleProductPricingChanged(ctx, evt.Data)
 

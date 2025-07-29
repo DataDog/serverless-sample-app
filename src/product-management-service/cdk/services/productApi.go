@@ -16,6 +16,8 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsdsql"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsevents"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awseventstargets"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssns"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsssm"
 	"github.com/aws/constructs-go/constructs/v10"
@@ -69,9 +71,6 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 	})
 
 	environmentVariables := make(map[string]*string)
-	environmentVariables["PRODUCT_CREATED_TOPIC_ARN"] = jsii.String(*productCreatedTopic.TopicArn())
-	environmentVariables["PRODUCT_UPDATED_TOPIC_ARN"] = jsii.String(*productUpdatedTopic.TopicArn())
-	environmentVariables["PRODUCT_DELETED_TOPIC_ARN"] = jsii.String(*productDeletedTopic.TopicArn())
 	environmentVariables["JWT_SECRET_PARAM_NAME"] = props.ServiceProps.JwtSecretAccessKeyParam.ParameterName()
 	environmentVariables["DSQL_CLUSTER_ENDPOINT"] = databaseClusterEndpoint
 
@@ -82,7 +81,6 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		EnvironmentVariables: environmentVariables,
 	})
 
-	productCreatedTopic.GrantPublish(listProductsFunction.Function)
 	listProductsFunction.Function.Role().AttachInlinePolicy(dSqlConnectPolicy)
 
 	createProductFunction := sharedconstructs.NewInstrumentedFunction(scope, "CreateProductFunction", &sharedconstructs.InstrumentedFunctionProps{
@@ -91,7 +89,6 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		FunctionName:         "CreateProduct",
 		EnvironmentVariables: environmentVariables,
 	})
-	productCreatedTopic.GrantPublish(createProductFunction.Function)
 	props.ServiceProps.JwtSecretAccessKeyParam.GrantRead(createProductFunction.Function)
 	createProductFunction.Function.Role().AttachInlinePolicy(dSqlConnectPolicy)
 
@@ -109,7 +106,6 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		FunctionName:         "UpdateProduct",
 		EnvironmentVariables: environmentVariables,
 	})
-	productUpdatedTopic.GrantPublish(updateProductFunction.Function)
 	props.ServiceProps.JwtSecretAccessKeyParam.GrantRead(updateProductFunction.Function)
 	updateProductFunction.Function.Role().AttachInlinePolicy(dSqlConnectPolicy)
 
@@ -119,9 +115,37 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		FunctionName:         "DeleteProduct",
 		EnvironmentVariables: environmentVariables,
 	})
-	productDeletedTopic.GrantPublish(deleteProductFunction.Function)
 	props.ServiceProps.JwtSecretAccessKeyParam.GrantRead(deleteProductFunction.Function)
 	deleteProductFunction.Function.Role().AttachInlinePolicy(dSqlConnectPolicy)
+
+	// Create outbox processor function
+	outboxProcessorEnvironmentVariables := make(map[string]*string)
+	outboxProcessorEnvironmentVariables["PRODUCT_CREATED_TOPIC_ARN"] = jsii.String(*productCreatedTopic.TopicArn())
+	outboxProcessorEnvironmentVariables["PRODUCT_UPDATED_TOPIC_ARN"] = jsii.String(*productUpdatedTopic.TopicArn())
+	outboxProcessorEnvironmentVariables["PRODUCT_DELETED_TOPIC_ARN"] = jsii.String(*productDeletedTopic.TopicArn())
+	outboxProcessorEnvironmentVariables["DSQL_CLUSTER_ENDPOINT"] = databaseClusterEndpoint
+
+	outboxProcessorFunction := sharedconstructs.NewInstrumentedFunction(scope, "OutboxProcessorFunction", &sharedconstructs.InstrumentedFunctionProps{
+		SharedProps:          props.ServiceProps.SharedProps,
+		Entry:                "../src/product-api/outbox-processor/",
+		FunctionName:         "OutboxProcessor",
+		EnvironmentVariables: outboxProcessorEnvironmentVariables,
+	})
+
+	// Grant permissions to publish to all topics
+	productCreatedTopic.GrantPublish(outboxProcessorFunction.Function)
+	productUpdatedTopic.GrantPublish(outboxProcessorFunction.Function)
+	productDeletedTopic.GrantPublish(outboxProcessorFunction.Function)
+	outboxProcessorFunction.Function.Role().AttachInlinePolicy(dSqlConnectPolicy)
+
+	// Create EventBridge rule to trigger outbox processor every 5 minutes
+	sixty_seconds := float64(60.0)
+	outboxProcessorRule := awsevents.NewRule(scope, jsii.String("OutboxProcessorRule"), &awsevents.RuleProps{
+		Schedule:    awsevents.Schedule_Rate(awscdk.Duration_Seconds(&sixty_seconds)),
+		Description: jsii.String("Trigger outbox processor every 5 minutes"),
+	})
+
+	outboxProcessorRule.AddTarget(awseventstargets.NewLambdaFunction(outboxProcessorFunction.Function, &awseventstargets.LambdaFunctionProps{}))
 
 	productResource := api.Root().AddResource(jsii.String("product"), &awsapigateway.ResourceOptions{})
 

@@ -10,6 +10,7 @@ package adapters
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"log"
@@ -20,6 +21,7 @@ import (
 	"time"
 
 	core "github.com/datadog/serverless-sample-product-core"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/stdlib"
 
 	_ "github.com/aws/aws-sdk-go-v2/aws"
@@ -204,9 +206,6 @@ func NewDSqlProductRepository(clusterEndpoint string) (*DSqlProductRepository, e
 }
 
 func (repo *DSqlProductRepository) withConnection(ctx context.Context, fn func(*sqlx.DB) error) error {
-	span, _ := tracer.StartSpanFromContext(ctx, "db.withConnection")
-	defer span.Finish()
-
 	conn, err := repo.connectionFactory.CreateConnection(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to create connection: %w", err)
@@ -243,23 +242,17 @@ func (repo *DSqlProductRepository) executeWithRetry(ctx context.Context, operati
 	const maxRetries = 2
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
-		span, _ := tracer.StartSpanFromContext(ctx, "db.executeWithRetry")
-		span.SetTag("attempt", attempt)
 
 		err := repo.withConnection(ctx, operation)
 		if err == nil {
-			span.Finish()
 			return nil // Success
 		}
 
 		// Check if it's an authentication error that might be resolved with a new connection
 		if isAuthError(err) && attempt < maxRetries {
 			log.Printf("Authentication error on attempt %d, will retry: %v", attempt+1, err)
-			span.Finish()
 			continue
 		}
-
-		span.Finish()
 
 		if attempt == maxRetries {
 			return fmt.Errorf("operation failed after %d attempts: %w", maxRetries+1, err)
@@ -502,6 +495,197 @@ func (repo *DSqlProductRepository) ApplyMigrations(ctx context.Context) error {
 			return err
 		}
 
+		_, err = conn.ExecContext(ctx, `
+			CREATE TABLE IF NOT EXISTS outbox (
+				id VARCHAR(255) PRIMARY KEY,
+				event_type VARCHAR(255) NOT NULL,
+				event_data TEXT NOT NULL,
+				trace_id VARCHAR(255) NOT NULL,
+				span_id VARCHAR(255) NOT NULL,
+				created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				processed_at TIMESTAMP NULL
+			);
+		`)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	})
+}
+
+func (repo *DSqlProductRepository) StoreOutboxEntry(ctx context.Context, entry core.OutboxEntry) error {
+	return repo.executeWithRetry(ctx, func(conn *sqlx.DB) error {
+		_, err := conn.ExecContext(ctx, `
+			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6)
+		`, entry.Id, entry.EventType, entry.EventData, entry.TraceId, entry.SpanId, entry.CreatedAt)
+		return err
+	})
+}
+
+func (repo *DSqlProductRepository) GetUnprocessedEntries(ctx context.Context) ([]core.OutboxEntry, error) {
+	var result []core.OutboxEntry
+	var resultErr error
+
+	err := repo.executeWithRetry(ctx, func(conn *sqlx.DB) error {
+		rows, err := conn.QueryContext(ctx, `
+			SELECT id, event_type, event_data, trace_id, span_id, created_at, processed_at
+			FROM outbox
+			WHERE processed_at IS NULL
+			ORDER BY created_at ASC
+		`)
+		if err != nil {
+			resultErr = err
+			return err
+		}
+		defer rows.Close()
+
+		var entries []core.OutboxEntry
+		for rows.Next() {
+			var entry core.OutboxEntry
+			if err := rows.Scan(&entry.Id, &entry.EventType, &entry.EventData, &entry.TraceId, &entry.SpanId, &entry.CreatedAt, &entry.ProcessedAt); err != nil {
+				resultErr = err
+				return err
+			}
+			entries = append(entries, entry)
+		}
+		result = entries
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return result, resultErr
+}
+
+func (repo *DSqlProductRepository) MarkAsProcessed(ctx context.Context, entryId string) error {
+	return repo.executeWithRetry(ctx, func(conn *sqlx.DB) error {
+		_, err := conn.ExecContext(ctx, `
+			UPDATE outbox
+			SET processed_at = CURRENT_TIMESTAMP
+			WHERE id = $1
+		`, entryId)
+		return err
+	})
+}
+
+func (repo *DSqlProductRepository) StoreProductWithOutboxEntry(ctx context.Context, product core.Product, outboxEntry core.OutboxEntry) error {
+	return repo.WithTransaction(ctx, func(tx *sqlx.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO products (id, name, previous_name, price, previous_price, stock_level, updated)
+			VALUES ($1, $2, NULL, $3, NULL, $4, FALSE)
+			ON CONFLICT (id) DO NOTHING
+		`, product.Id, product.Name, product.Price, product.StockLevel)
+		if err != nil {
+			return err
+		}
+
+		for _, pb := range product.PriceBreakdown {
+			_, err := tx.ExecContext(ctx, `
+				INSERT INTO product_prices (product_id, quantity, price)
+				VALUES ($1, $2, $3)
+			`, product.Id, pb.Quantity, pb.Price)
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6)
+		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, outboxEntry.CreatedAt)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (repo *DSqlProductRepository) UpdateProductWithOutboxEntry(ctx context.Context, product core.Product, outboxEntry core.OutboxEntry) error {
+	return repo.WithTransaction(ctx, func(tx *sqlx.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+			UPDATE products
+			SET name = $2, price = $3, stock_level = $4, updated = TRUE
+			WHERE id = $1
+		`, product.Id, product.Name, product.Price, product.StockLevel)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, `DELETE FROM product_prices WHERE product_id = $1`, product.Id)
+		if err != nil {
+			return err
+		}
+		for _, pb := range product.PriceBreakdown {
+			_, err := tx.ExecContext(ctx, `
+				INSERT INTO product_prices (product_id, quantity, price)
+				VALUES ($1, $2, $3)
+			`, product.Id, pb.Quantity, pb.Price)
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6)
+		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, outboxEntry.CreatedAt)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (repo *DSqlProductRepository) DeleteProductWithOutboxEntry(ctx context.Context, productId string, outboxEntry core.OutboxEntry) error {
+	return repo.WithTransaction(ctx, func(tx *sqlx.Tx) error {
+		_, err := tx.ExecContext(ctx, `DELETE FROM products WHERE id = $1`, productId)
+		if err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, `DELETE FROM product_prices WHERE product_id = $1`, productId)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6)
+		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, outboxEntry.CreatedAt)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func CreateOutboxEntry(ctx context.Context, eventType string, eventData interface{}) (core.OutboxEntry, error) {
+	span, _ := tracer.SpanFromContext(ctx)
+
+	traceId := ""
+	spanId := ""
+	if span != nil {
+		spanCtx := span.Context()
+		traceId = fmt.Sprintf("%d", spanCtx.TraceID())
+		spanId = fmt.Sprintf("%d", spanCtx.SpanID())
+	}
+
+	eventJson, err := json.Marshal(eventData)
+	if err != nil {
+		return core.OutboxEntry{}, err
+	}
+
+	return core.OutboxEntry{
+		Id:        uuid.New().String(),
+		EventType: eventType,
+		EventData: string(eventJson),
+		TraceId:   traceId,
+		SpanId:    spanId,
+		CreatedAt: time.Now(),
+	}, nil
 }

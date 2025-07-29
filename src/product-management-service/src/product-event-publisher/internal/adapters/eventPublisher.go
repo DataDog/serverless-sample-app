@@ -55,7 +55,9 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 		Entries: entiries,
 	}
 
-	ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-publiceventpublisher",
+	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
 	}
@@ -89,7 +91,9 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 		Entries: entiries,
 	}
 
-	ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{}, "direction:out", "type:sns", fmt.Sprintln("topic:%s", cloudEvent.Type))
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-publiceventpublisher",
+	}, "direction:out", "type:sns", fmt.Sprintln("topic:%s", cloudEvent.Type))
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
 	}
@@ -119,7 +123,9 @@ func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Con
 		},
 	}
 
-	ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{}, "direction:out", "type:sns", fmt.Sprintln("topic:%s", cloudEvent.Type))
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-publiceventpublisher",
+	}, "direction:out", "type:sns", fmt.Sprintln("topic:%s", cloudEvent.Type))
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
 	}
