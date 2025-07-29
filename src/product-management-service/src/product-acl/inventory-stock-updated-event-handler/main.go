@@ -72,9 +72,9 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 			parts := strings.Split(evt.TraceParent, "-")
 
 			if len(parts) == 4 {
-				traceId, err := strconv.ParseUint(parts[1], 10, 64)
+				traceId, err := strconv.ParseUint(parts[1], 16, 64)
 				if err == nil {
-					spanId, err := strconv.ParseUint(parts[2], 10, 64)
+					spanId, err := strconv.ParseUint(parts[2], 16, 64)
 					if err == nil {
 						spanLinks = append(spanLinks, ddtrace.SpanLink{
 							TraceID: traceId,
