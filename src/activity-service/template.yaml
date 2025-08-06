@@ -33,7 +33,7 @@ Conditions:
 Parameters:
   ServiceName:
     Type: String
-    Default: OrdersService
+    Default: ActivityService
   Env:
     Type: String
     Default: dev
