@@ -164,6 +164,7 @@ impl Repository for DynamoDbRepository {
         match res {
             Ok(item) => Ok({
                 if item.item.is_none() {
+                    Span::current().set_attribute("login.status", "user_not_found");
                     return Err(RepositoryError::NotFound);
                 }
 
