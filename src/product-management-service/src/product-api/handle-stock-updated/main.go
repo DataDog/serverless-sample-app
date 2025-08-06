@@ -71,6 +71,8 @@ func processMessage(ctx context.Context, record events.SNSEventRecord) error {
 	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 	defer span.Finish()
 
+	span.SetTag("product.id", evt.Data.ProductId)
+	span.SetTag("product.newStockLevel", evt.Data.StockLevel)
 	span.SetTag("messaging.message.id", evt.Id)
 	span.SetTag("messaging.message.type", evt.Type)
 	span.SetTag("messaging.message.envelope.size", len(record.SNS.Message))

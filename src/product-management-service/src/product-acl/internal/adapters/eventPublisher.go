@@ -41,6 +41,15 @@ func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context,
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("STOCK_LEVEL_UPDATED_TOPIC_ARN")
 
+	span.SetTag("product.id", evt.ProductId)
+	span.SetTag("messaging.message.id", cloudEvent.Id)
+	span.SetTag("messaging.message.type", cloudEvent.Type)
+	span.SetTag("messaging.message.destination", topicArn)
+	span.SetTag("messaging.message.envelope.size", len(message))
+	span.SetTag("messaging.operation.name", "publish")
+	span.SetTag("messaging.operation.type", "publish")
+	span.SetTag("messaging.system", "aws_sns")
+
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-acl",
 	}, "direction:out", "type:sns", "topic:product.stockUpdated", "manual_checkpoint:true")
@@ -70,6 +79,15 @@ func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Contex
 
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRICE_CALCULATED_TOPIC_ARN")
+
+	span.SetTag("product.id", evt.ProductId)
+	span.SetTag("messaging.message.id", cloudEvent.Id)
+	span.SetTag("messaging.message.type", cloudEvent.Type)
+	span.SetTag("messaging.message.destination", topicArn)
+	span.SetTag("messaging.message.envelope.size", len(message))
+	span.SetTag("messaging.operation.name", "publish")
+	span.SetTag("messaging.operation.type", "publish")
+	span.SetTag("messaging.system", "aws_sns")
 
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-acl",
