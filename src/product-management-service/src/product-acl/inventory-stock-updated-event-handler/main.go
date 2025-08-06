@@ -47,65 +47,86 @@ var (
 
 func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventResponse, error) {
 	span, _ := tracer.SpanFromContext(ctx)
-	defer span.Finish()
 
-	failures := []events.SQSBatchItemFailure{}
+	var failures []events.SQSBatchItemFailure
 
 	for index := range request.Records {
 		record := request.Records[index]
 
-		sqsBody := []byte(record.Body)
-
-		var eventBridgeEvent events.EventBridgeEvent
-		json.Unmarshal(sqsBody, &eventBridgeEvent)
-
-		fmt.Println("EventBridge body is %s", eventBridgeEvent.Detail)
-
-		body := []byte(eventBridgeEvent.Detail)
-
-		var evt observability.CloudEvent[core.PublicInventoryStockUpdatedEventV1]
-		json.Unmarshal(body, &evt)
-
-		spanLinks := []ddtrace.SpanLink{}
-
-		if evt.TraceParent != "" {
-			// Split the traceparent header to extract trace ID and span ID. The traceparent should be a valid W3C trace context.
-			parts := strings.Split(evt.TraceParent, "-")
-
-			if len(parts) == 4 {
-				traceId, err := strconv.ParseUint(parts[1], 16, 64)
-				if err == nil {
-					spanId, err := strconv.ParseUint(parts[2], 16, 64)
-					if err == nil {
-						spanLinks = append(spanLinks, ddtrace.SpanLink{
-							TraceID: traceId,
-							SpanID:  spanId,
-						})
-					}
-				}
-			}
-		}
-
-		_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{
-			ServiceOverride: "productservice-acl",
-		}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
-		processSpan, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(spanLinks), tracer.ChildOf(span.Context()))
-		defer processSpan.Finish()
-
-		_, err := eventTranslator.HandleStockUpdated(ctx, evt.Data)
+		err := processMessage(ctx, record)
 
 		if err != nil {
-			println(err.Error())
+			fmt.Printf("Error processing message %s: %v\n", record.MessageId, err)
+			span.SetTag("error", "true")
+			span.SetTag("error.message", err.Error())
 			failures = append(failures, events.SQSBatchItemFailure{
 				ItemIdentifier: record.MessageId,
 			})
 		}
-		span.Finish()
 	}
 
 	return events.SQSEventResponse{
 		BatchItemFailures: failures,
 	}, nil
+}
+
+func processMessage(ctx context.Context, record events.SQSMessage) error {
+	span, _ := tracer.SpanFromContext(ctx)
+	sqsBody := []byte(record.Body)
+
+	var eventBridgeEvent events.EventBridgeEvent
+	jsonErr := json.Unmarshal(sqsBody, &eventBridgeEvent)
+
+	if jsonErr != nil {
+		return jsonErr
+	}
+
+	body := []byte(eventBridgeEvent.Detail)
+
+	var evt observability.CloudEvent[core.PublicInventoryStockUpdatedEventV1]
+	jsonErr = json.Unmarshal(body, &evt)
+
+	if jsonErr != nil {
+		return jsonErr
+	}
+
+	var spanLinks []ddtrace.SpanLink
+
+	if evt.TraceParent != "" {
+		// Split the traceparent header to extract trace ID and span ID. The traceparent should be a valid W3C trace context.
+		parts := strings.Split(evt.TraceParent, "-")
+
+		if len(parts) == 4 {
+			traceId, err := strconv.ParseUint(parts[1], 16, 64)
+			if err == nil {
+				spanId, err := strconv.ParseUint(parts[2], 16, 64)
+				if err == nil {
+					spanLinks = append(spanLinks, ddtrace.SpanLink{
+						TraceID: traceId,
+						SpanID:  spanId,
+					})
+				}
+			}
+		}
+	}
+
+	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{
+		ServiceOverride: "productservice-acl",
+	}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
+	processSpan, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(spanLinks), tracer.ChildOf(span.Context()))
+	defer processSpan.Finish()
+
+	processSpan.SetTag("product.id", evt.Data.ProductId)
+	processSpan.SetTag("messaging.message.id", evt.Id)
+	processSpan.SetTag("messaging.message.type", evt.Type)
+	processSpan.SetTag("messaging.message.envelope.size", len(record.Body))
+	processSpan.SetTag("messaging.operation.name", "process")
+	processSpan.SetTag("messaging.operation.type", "process")
+	processSpan.SetTag("messaging.system", "aws_sqs")
+
+	_, err := eventTranslator.HandleStockUpdated(ctx, evt.Data)
+
+	return err
 }
 
 func main() {

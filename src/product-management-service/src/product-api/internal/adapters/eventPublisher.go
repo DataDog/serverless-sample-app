@@ -45,7 +45,14 @@ func (publisher SnsEventPublisher) PublishProductCreated(ctx context.Context, ev
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRODUCT_CREATED_TOPIC_ARN")
 
-	fmt.Println("Publishing to '" + topicArn + "'")
+	span.SetTag("product.id", evt.ProductId)
+	span.SetTag("messaging.message.id", cloudEvent.Id)
+	span.SetTag("messaging.message.type", cloudEvent.Type)
+	span.SetTag("messaging.message.destination", topicArn)
+	span.SetTag("messaging.message.envelope.size", len(message))
+	span.SetTag("messaging.operation.name", "publish")
+	span.SetTag("messaging.operation.type", "publish")
+	span.SetTag("messaging.system", "aws_sns")
 
 	input := &sns.PublishInput{
 		TopicArn: &topicArn,
@@ -77,6 +84,15 @@ func (publisher SnsEventPublisher) PublishProductUpdated(ctx context.Context, ev
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRODUCT_UPDATED_TOPIC_ARN")
 
+	span.SetTag("product.id", evt.ProductId)
+	span.SetTag("messaging.message.id", cloudEvent.Id)
+	span.SetTag("messaging.message.type", cloudEvent.Type)
+	span.SetTag("messaging.message.destination", topicArn)
+	span.SetTag("messaging.message.envelope.size", len(message))
+	span.SetTag("messaging.operation.name", "publish")
+	span.SetTag("messaging.operation.type", "publish")
+	span.SetTag("messaging.system", "aws_sns")
+
 	input := &sns.PublishInput{
 		TopicArn: &topicArn,
 		Message:  &message,
@@ -105,6 +121,15 @@ func (publisher SnsEventPublisher) PublishProductDeleted(ctx context.Context, ev
 	tracedMessageData, _ := json.Marshal(cloudEvent)
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRODUCT_DELETED_TOPIC_ARN")
+
+	span.SetTag("product.id", evt.ProductId)
+	span.SetTag("messaging.message.id", cloudEvent.Id)
+	span.SetTag("messaging.message.type", cloudEvent.Type)
+	span.SetTag("messaging.message.destination", topicArn)
+	span.SetTag("messaging.message.envelope.size", len(message))
+	span.SetTag("messaging.operation.name", "publish")
+	span.SetTag("messaging.operation.type", "publish")
+	span.SetTag("messaging.system", "aws_sns")
 
 	input := &sns.PublishInput{
 		TopicArn: &topicArn,

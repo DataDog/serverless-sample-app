@@ -49,7 +49,11 @@ func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest)
 	body := []byte(request.Body)
 
 	var command core.CreateProductCommand
-	json.Unmarshal(body, &command)
+	jsonErr := json.Unmarshal(body, &command)
+
+	if jsonErr != nil {
+		return utils.GenerateApiResponseForError(jsonErr)
+	}
 
 	res, err := handler.Handle(ctx, command)
 

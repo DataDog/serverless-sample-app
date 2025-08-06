@@ -36,6 +36,9 @@ func NewUpdateProductCommandHandler(productRepository ProductRepository, outboxR
 }
 
 func (handler *UpdateProductCommandHandler) Handle(ctx context.Context, command UpdateProductCommand) (*ProductDTO, error) {
+	span, _ := tracer.SpanFromContext(ctx)
+	span.SetTag("product.id", command.ProductId)
+	
 	product, err := handler.productRepository.Get(ctx, command.ProductId)
 
 	if err != nil {
@@ -69,7 +72,7 @@ func (handler *UpdateProductCommandHandler) Handle(ctx context.Context, command 
 
 func createOutboxEntryForUpdate(ctx context.Context, eventType string, eventData interface{}) (OutboxEntry, error) {
 	span, _ := tracer.SpanFromContext(ctx)
-	
+
 	traceId := ""
 	spanId := ""
 	if span != nil {

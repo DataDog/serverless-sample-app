@@ -45,6 +45,15 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 	busName := os.Getenv("EVENT_BUS_NAME")
 	source := fmt.Sprintf("%s.products", os.Getenv("ENV"))
 
+	span.SetTag("product.id", evt.ProductId)
+	span.SetTag("messaging.message.id", cloudEvent.Id)
+	span.SetTag("messaging.message.type", cloudEvent.Type)
+	span.SetTag("messaging.message.destination", busName)
+	span.SetTag("messaging.message.envelope.size", len(message))
+	span.SetTag("messaging.operation.name", "publish")
+	span.SetTag("messaging.operation.type", "publish")
+	span.SetTag("messaging.system", "aws_sns")
+
 	entiries := []types.PutEventsRequestEntry{
 		{
 			Detail:       &message,
@@ -82,6 +91,15 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 	detailType := cloudEvent.Type
 	busName := os.Getenv("EVENT_BUS_NAME")
 	source := fmt.Sprintf("%s.products", os.Getenv("ENV"))
+
+	span.SetTag("product.id", evt.ProductId)
+	span.SetTag("messaging.message.id", cloudEvent.Id)
+	span.SetTag("messaging.message.type", cloudEvent.Type)
+	span.SetTag("messaging.message.destination", busName)
+	span.SetTag("messaging.message.envelope.size", len(message))
+	span.SetTag("messaging.operation.name", "publish")
+	span.SetTag("messaging.operation.type", "publish")
+	span.SetTag("messaging.system", "aws_sns")
 
 	entiries := []types.PutEventsRequestEntry{
 		{
@@ -121,6 +139,15 @@ func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Con
 	detailType := cloudEvent.Type
 	busName := os.Getenv("EVENT_BUS_NAME")
 	source := fmt.Sprintf("%s.products", os.Getenv("ENV"))
+
+	span.SetTag("product.id", evt.ProductId)
+	span.SetTag("messaging.message.id", cloudEvent.Id)
+	span.SetTag("messaging.message.type", cloudEvent.Type)
+	span.SetTag("messaging.message.destination", busName)
+	span.SetTag("messaging.message.envelope.size", len(message))
+	span.SetTag("messaging.operation.name", "publish")
+	span.SetTag("messaging.operation.type", "publish")
+	span.SetTag("messaging.system", "aws_sns")
 
 	entiries := []types.PutEventsRequestEntry{
 		{

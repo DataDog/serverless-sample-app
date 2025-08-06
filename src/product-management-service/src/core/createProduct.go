@@ -45,6 +45,8 @@ func (handler *CreateProductCommandHandler) Handle(ctx context.Context, command 
 		return nil, err
 	}
 
+	span.SetTag("product.id", product.Id)
+
 	existingProduct, _ := handler.productRepository.Get(ctx, product.Id)
 
 	if existingProduct != nil {
@@ -63,14 +65,12 @@ func (handler *CreateProductCommandHandler) Handle(ctx context.Context, command 
 		return nil, err
 	}
 
-	span.SetTag("product.id", product.Id)
-
 	return product.AsDto(), nil
 }
 
 func createOutboxEntry(ctx context.Context, eventType string, eventData interface{}) (OutboxEntry, error) {
 	span, _ := tracer.SpanFromContext(ctx)
-	
+
 	traceId := ""
 	spanId := ""
 	if span != nil {

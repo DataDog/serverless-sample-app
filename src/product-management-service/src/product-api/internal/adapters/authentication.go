@@ -60,6 +60,10 @@ func (a *Authenticator) AuthenticateAPIGatewayRequest(ctx context.Context, reque
 		return nil, fmt.Errorf("user forbidden")
 	}
 
+	span, _ := tracer.SpanFromContext(ctx)
+	span.SetTag("user.id", claims.Sub)
+	span.SetTag("user.type", claims.UserType)
+
 	return claims, nil
 }
 

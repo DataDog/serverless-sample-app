@@ -58,7 +58,7 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 	}
 
 	span, _ := tracer.StartSpanFromContext(ctx,
-		fmt.Sprintf("outbox.process_entry.%s", entry.EventType),
+		fmt.Sprintf("outbox %s", entry.EventType),
 		tracer.WithSpanLinks(spanLinks),
 		tracer.ChildOf(activeSpanCtx),
 	)
@@ -84,6 +84,7 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 		if err := json.Unmarshal([]byte(entry.EventData), &event); err != nil {
 			return fmt.Errorf("failed to unmarshal ProductCreatedEvent: %w", err)
 		}
+		span.SetTag("product.id", event.ProductId)
 		eventPublisher.PublishProductCreated(ctx, event)
 
 	case "product.productUpdated":
@@ -91,6 +92,7 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 		if err := json.Unmarshal([]byte(entry.EventData), &event); err != nil {
 			return fmt.Errorf("failed to unmarshal ProductUpdatedEvent: %w", err)
 		}
+		span.SetTag("product.id", event.ProductId)
 		eventPublisher.PublishProductUpdated(ctx, event)
 
 	case "product.productDeleted":
@@ -98,15 +100,21 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 		if err := json.Unmarshal([]byte(entry.EventData), &event); err != nil {
 			return fmt.Errorf("failed to unmarshal ProductDeletedEvent: %w", err)
 		}
+		span.SetTag("product.id", event.ProductId)
 		eventPublisher.PublishProductDeleted(ctx, event)
 
 	default:
 		log.Printf("Unknown event type: %s", entry.EventType)
+		span.SetTag("event.event_type", entry.EventType)
+		span.SetTag("error", "true")
+		span.SetTag("error.message", "Unknown event type")
 		return fmt.Errorf("unknown event type: %s", entry.EventType)
 	}
 
 	// Mark as processed
 	if err := productRepository.MarkAsProcessed(ctx, entry.Id); err != nil {
+		span.SetTag("error", "true")
+		span.SetTag("error.message", "failed to mark entry as processed")
 		return fmt.Errorf("failed to mark entry as processed: %w", err)
 	}
 
@@ -119,15 +127,16 @@ type OutboxEvent struct {
 }
 
 func functionHandler(ctx context.Context, event OutboxEvent) error {
-	span, _ := tracer.StartSpanFromContext(ctx, "outbox.process")
+	span, _ := tracer.SpanFromContext(ctx)
 	defer span.Finish()
 
 	entries, err := productRepository.GetUnprocessedEntries(ctx)
 	if err != nil {
+		span.SetTag("error", "true")
+		span.SetTag("error.message", "failed to get unprocessed entries")
 		return fmt.Errorf("failed to get unprocessed entries: %w", err)
 	}
 
-	log.Printf("Processing %d outbox entries", len(entries))
 	span.SetTag("outbox.entries", len(entries))
 
 	for _, entry := range entries {
