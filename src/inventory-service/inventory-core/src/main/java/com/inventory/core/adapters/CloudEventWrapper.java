@@ -8,10 +8,14 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class CloudEventWrapper<T> implements Serializable {
+    @JsonProperty("_datadog")
+    private DatadogTelemetry datadog;
     @JsonProperty("id")
     private String id;
     @JsonProperty("source")
     private String source;
+    @JsonProperty("conversationId")
+    private String conversationId;
     @JsonProperty("type")
     private String type;
     @JsonProperty("time")
@@ -20,6 +24,8 @@ public class CloudEventWrapper<T> implements Serializable {
     private String traceparent;
     @JsonProperty("data")
     private T data;
+
+    public CloudEventWrapper() {}
 
     public CloudEventWrapper(String type, T data) {
         this.id = UUID.randomUUID().toString();
@@ -50,11 +56,29 @@ public class CloudEventWrapper<T> implements Serializable {
         return type;
     }
 
+    public String getConversationId() {
+        return conversationId;
+    }
+
+    public void setConversationId(String conversationId) {
+        this.conversationId = conversationId;
+    }
+
     public String getTime() {
         return time;
     }
 
     public String getTraceparent() {
-        return traceparent;
+
+        if (datadog != null) {
+            return datadog.getTraceparent();
+        }
+        else {
+            return traceparent;
+        }
+    }
+
+    public void setDatadog(DatadogTelemetry datadog) {
+        this.datadog = datadog;
     }
 }

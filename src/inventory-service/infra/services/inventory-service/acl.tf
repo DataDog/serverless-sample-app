@@ -51,6 +51,9 @@ module "inventory_acl_function" {
   environment_variables = {
     PRODUCT_ADDED_TOPIC_ARN : aws_sns_topic.java_inventory_new_product_added.arn
     EVENT_BUS_NAME: var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.inventory_service_bus.name
+    DD_TRACE_OTEL_ENABLED: true
+    DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
+    DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
@@ -105,6 +108,9 @@ module "order_created_function" {
   environment_variables = {
     TABLE_NAME : aws_dynamodb_table.inventory_api.name
     EVENT_BUS_NAME: var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.inventory_service_bus.name
+    DD_TRACE_OTEL_ENABLED: true
+    DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
+    DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
@@ -161,6 +167,9 @@ module "order_completed_function" {
   environment_variables = {
     TABLE_NAME : aws_dynamodb_table.inventory_api.name
     EVENT_BUS_NAME: var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.inventory_service_bus.name
+    DD_TRACE_OTEL_ENABLED: true
+    DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
+    DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site

@@ -210,6 +210,7 @@ class ApiConstruct(Construct):
                 constants.POWER_TOOLS_LOG_LEVEL: 'INFO',  # for logger
                 'TABLE_NAME': db.table_name,
                 'IDEMPOTENCY_TABLE_NAME': idempotency_table.table_name,
+                'DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT': 'ignore',
                 'DD_TRACE_PROPAGATION_STYLE_EXTRACT': "none",
             },
             tracing=_lambda.Tracing.ACTIVE,
