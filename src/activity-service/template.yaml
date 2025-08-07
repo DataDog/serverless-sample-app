@@ -220,6 +220,9 @@ Resources:
         Variables:
           TABLE_NAME: !Ref ActivitiesTable
           IDEMPOTENCY_TABLE_NAME: !Ref IdempotencyTable
+          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
+          DD_BOTOCORE_DISTRIBUTED_TRACING: "false"
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
       Events:
         SQSEvent:
           Type: SQS
