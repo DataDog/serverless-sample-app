@@ -11,7 +11,7 @@ use argon2::{
     Argon2,
 };
 use chrono::{Duration, Utc};
-use lambda_http::tracing::log::{info, warn};
+use lambda_http::tracing::log::warn;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::{instrument, Span};
@@ -47,6 +47,8 @@ impl GetUserDetailsQuery {
         &self,
         repository: &TRepo,
     ) -> Result<UserDTO, ApplicationError> {
+        Span::current().set_attribute("user.id", self.email_address.clone());
+        
         let res = repository.get_user(&self.email_address).await;
 
         match res {
@@ -157,12 +159,16 @@ pub async fn handle_login<TRepo: Repository>(
     token_generator: &TokenGenerator,
     login_command: LoginCommand,
 ) -> Result<LoginResponse, ApplicationError> {
+    Span::current().set_attribute("user.id", login_command.email_address.clone());
+    
     let user = repository
         .get_user(&login_command.email_address)
         .await
         .map_err(|e| match e {
             RepositoryError::NotFound => ApplicationError::NotFound,
-            RepositoryError::InternalError(e) => ApplicationError::InternalError(e.to_string()),
+            RepositoryError::InternalError(e) => {
+                Span::current().set_attribute("login.status", e.to_string());
+                ApplicationError::InternalError(e.to_string()) },
             _ => ApplicationError::InternalError(e.to_string()),
         })?;
 
@@ -170,7 +176,10 @@ pub async fn handle_login<TRepo: Repository>(
         .map_err(|_e| ApplicationError::InternalError(_e.to_string()))?;
     Argon2::default()
         .verify_password(login_command.password.as_bytes(), &parsed_hash)
-        .map_err(|_e| ApplicationError::InvalidPassword())?;
+        .map_err(|_e| {
+            Span::current().set_attribute("login.status", "invalid_password");
+            ApplicationError::InvalidPassword()
+        })?;
 
     let token = token_generator.generate_token(user);
 
@@ -229,7 +238,7 @@ impl CreateOAuthClientCommand {
         &self,
         repository: &TRepo,
     ) -> Result<OAuthClientCreatedDTO, ApplicationError> {
-        info!("Creating OAuth client: {}", self.client_name);
+        Span::current().set_attribute("oauth.client_name", self.client_name.clone());
 
         // Validate input
         if self.client_name.is_empty() {
@@ -325,6 +334,8 @@ impl GetOAuthClientQuery {
         &self,
         repository: &TRepo,
     ) -> Result<OAuthClientDTO, ApplicationError> {
+        Span::current().set_attribute("oauth.client_id", self.client_id.clone());
+        
         let client = repository
             .get_oauth_client(&self.client_id)
             .await
@@ -358,6 +369,8 @@ impl UpdateOAuthClientCommand {
         &self,
         repository: &TRepo,
     ) -> Result<OAuthClientDTO, ApplicationError> {
+        Span::current().set_attribute("oauth.client_id", self.client_id.clone());
+        
         let mut client = repository
             .get_oauth_client(&self.client_id)
             .await
@@ -404,6 +417,8 @@ impl DeleteOAuthClientCommand {
         &self,
         repository: &TRepo,
     ) -> Result<(), ApplicationError> {
+        Span::current().set_attribute("oauth.client_id", self.client_id.clone());
+        
         // Check if client exists
         let client = repository
             .get_oauth_client(&self.client_id)
@@ -468,6 +483,7 @@ impl ValidateClientCredentialsQuery {
         &self,
         repository: &TRepo,
     ) -> Result<bool, ApplicationError> {
+        Span::current().set_attribute("oauth.client_id", self.client_id.clone());
         let is_valid = repository
             .validate_client_secret(&self.client_id, &self.client_secret)
             .await
@@ -510,6 +526,7 @@ impl AuthorizeRequest {
         &self,
         repository: &TRepo,
     ) -> Result<AuthorizeResponse, ApplicationError> {
+        Span::current().set_attribute("oauth.client_id", self.client_id.clone());
         // Validate response_type
         if self.response_type != "code" {
             return Err(ApplicationError::InvalidInput(
@@ -573,6 +590,7 @@ impl AuthorizeRequest {
         &self,
         repository: &TRepo,
     ) -> Result<AuthorizeHtmlResponse, ApplicationError> {
+        Span::current().set_attribute("oauth.client_id", self.client_id.clone());
         // Validate response_type
         if self.response_type != "code" {
             return Err(ApplicationError::InvalidInput(
@@ -662,6 +680,8 @@ impl AuthorizeCallbackCommand {
         &self,
         repository: &TRepo,
     ) -> Result<AuthorizeCallbackResponse, ApplicationError> {
+        Span::current().set_attribute("oauth.client_id", self.client_id.clone());
+        Span::current().set_attribute("user.id", self.user_id.clone());
         // Validate client
         let client = repository
             .get_oauth_client(&self.client_id)
@@ -750,6 +770,7 @@ impl LoginFormCommand {
         &self,
         repository: &TRepo,
     ) -> Result<LoginFormResponse, ApplicationError> {
+        Span::current().set_attribute("oauth.client_id", self.client_id.clone());
         // Validate action
         if self.action != "login" {
             return Err(ApplicationError::InvalidInput("Invalid action".to_string()));
@@ -910,6 +931,7 @@ impl TokenRequest {
         repository: &TRepo,
         token_generator: &TokenGenerator,
     ) -> Result<TokenResponse, ApplicationError> {
+        Span::current().set_attribute("oauth.client_id", self.client_id.clone());
         match self.grant_type.as_str() {
             "authorization_code" => {
                 self.handle_authorization_code(repository, token_generator)
@@ -1076,6 +1098,8 @@ impl TokenRequest {
         repository: &TRepo,
         token_generator: &TokenGenerator,
     ) -> Result<TokenResponse, ApplicationError> {
+        Span::current().set_attribute("oauth.client_id", self.client_id.clone());
+        
         let refresh_token = self
             .refresh_token
             .as_ref()
@@ -1174,6 +1198,8 @@ impl TokenRequest {
         repository: &TRepo,
         _: &TokenGenerator,
     ) -> Result<TokenResponse, ApplicationError> {
+        Span::current().set_attribute("oauth.client_id", self.client_id.clone());
+        
         let client_secret = self
             .client_secret
             .as_ref()
@@ -1298,6 +1324,8 @@ impl IntrospectTokenRequest {
         &self,
         repository: &TRepo,
     ) -> Result<IntrospectTokenResponse, ApplicationError> {
+        Span::current().set_attribute("oauth.client_id", self.client_id.clone());
+        
         // Validate client
         if let Some(client_secret) = &self.client_secret {
             if !repository
@@ -1326,6 +1354,8 @@ impl IntrospectTokenRequest {
                 // Check if token is still valid
                 let now = Utc::now();
                 let active = token.expires_at > now && !token.is_revoked;
+
+                Span::current().set_attribute("user.id", token.user_id.clone());
 
                 Ok(IntrospectTokenResponse {
                     active,
@@ -1373,6 +1403,8 @@ impl RevokeTokenRequest {
         &self,
         repository: &TRepo,
     ) -> Result<(), ApplicationError> {
+        Span::current().set_attribute("user.id", self.client_id.clone());
+        
         // Validate client
         if let Some(client_secret) = &self.client_secret {
             if !repository

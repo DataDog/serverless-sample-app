@@ -84,8 +84,18 @@
             <version>0.33.0</version>
         </dependency>
         <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
+            <version>1.52.0</version>
+        </dependency>
+        <dependency>
             <groupId>com.datadoghq</groupId>
             <artifactId>dd-trace-api</artifactId>
+            <version>1.49.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datadoghq</groupId>
+            <artifactId>dd-trace-ot</artifactId>
             <version>1.49.0</version>
         </dependency>
         <dependency>

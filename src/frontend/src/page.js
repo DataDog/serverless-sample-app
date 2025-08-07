@@ -66,7 +66,7 @@ function createOrder() {
     })
   );
   xhr.onload = () => {
-    if (xhr.readyState == 4 && xhr.status == 200) {
+    if (xhr.readyState == 4 && (xhr.status == 200 || xhr.status == 201)) {
       orderItems = [];
       orderItemsIDS = [];
       updateOrderDisplay();

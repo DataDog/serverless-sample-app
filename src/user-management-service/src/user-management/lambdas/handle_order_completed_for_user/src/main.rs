@@ -35,7 +35,7 @@ mod tests {
     use super::*;
     use aws_lambda_events::sqs::{SqsEvent, SqsMessage};
     use lambda_runtime::{Context, LambdaEvent};
-    use shared::core::{Repository, RepositoryError, User};
+    use shared::core::{AuthorizationCode, OAuthClient, OAuthToken, Repository, RepositoryError, User};
     use std::collections::HashMap;
 
     #[tokio::test]
@@ -108,6 +108,74 @@ mod tests {
 
             async fn update_user_details(&self, body: &User) -> Result<(), RepositoryError> {
                 Ok(())
+            }
+
+            async fn create_oauth_client(&self, client: &OAuthClient) -> Result<(), RepositoryError> {
+                todo!()
+            }
+
+            async fn get_oauth_client(&self, client_id: &str) -> Result<Option<OAuthClient>, RepositoryError> {
+                todo!()
+            }
+
+            async fn update_oauth_client(&self, client: &OAuthClient) -> Result<(), RepositoryError> {
+                todo!()
+            }
+
+            async fn delete_oauth_client(&self, client_id: &str) -> Result<(), RepositoryError> {
+                todo!()
+            }
+
+            async fn list_oauth_clients(&self, page: Option<u32>, limit: Option<u32>) -> Result<Vec<OAuthClient>, RepositoryError> {
+                todo!()
+            }
+
+            async fn validate_client_secret(&self, client_id: &str, client_secret: &str) -> Result<bool, RepositoryError> {
+                todo!()
+            }
+
+            async fn store_authorization_code(&self, code: &AuthorizationCode) -> Result<(), RepositoryError> {
+                todo!()
+            }
+
+            async fn get_authorization_code(&self, code: &str) -> Result<Option<AuthorizationCode>, RepositoryError> {
+                todo!()
+            }
+
+            async fn revoke_authorization_code(&self, code: &str) -> Result<(), RepositoryError> {
+                todo!()
+            }
+
+            async fn mark_authorization_code_used(&self, code: &str) -> Result<(), RepositoryError> {
+                todo!()
+            }
+
+            async fn cleanup_expired_authorization_codes(&self) -> Result<(), RepositoryError> {
+                todo!()
+            }
+
+            async fn store_oauth_token(&self, token: &OAuthToken) -> Result<(), RepositoryError> {
+                todo!()
+            }
+
+            async fn get_oauth_token(&self, access_token: &str) -> Result<Option<OAuthToken>, RepositoryError> {
+                todo!()
+            }
+
+            async fn get_oauth_token_by_refresh(&self, refresh_token: &str) -> Result<Option<OAuthToken>, RepositoryError> {
+                todo!()
+            }
+
+            async fn revoke_oauth_token(&self, access_token: &str) -> Result<(), RepositoryError> {
+                todo!()
+            }
+
+            async fn revoke_all_tokens_for_client(&self, client_id: &str) -> Result<(), RepositoryError> {
+                todo!()
+            }
+
+            async fn cleanup_expired_oauth_tokens(&self) -> Result<(), RepositoryError> {
+                todo!()
             }
         }
 

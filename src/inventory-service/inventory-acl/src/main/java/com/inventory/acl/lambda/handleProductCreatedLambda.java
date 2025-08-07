@@ -14,19 +14,16 @@ import com.inventory.core.DataAccessException;
 import com.inventory.core.InventoryItemNotFoundException;
 import com.inventory.core.adapters.Carrier;
 import com.inventory.core.adapters.Headers;
+import com.inventory.core.utils.TraceUtils;
 import datadog.trace.api.experimental.DataStreamsCheckpointer;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.log.Fields;
-import io.opentracing.tag.Tags;
-import io.opentracing.util.GlobalTracer;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.*;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Named("handleProductCreated")
@@ -39,46 +36,55 @@ public class handleProductCreatedLambda implements RequestHandler<SQSEvent, SQSB
 
     @Override
     public SQSBatchResponse handleRequest(SQSEvent sqsEvent, Context context) {
-        final Span span = GlobalTracer.get().activeSpan();
-        span.setTag("messaging.batch.message_count", sqsEvent.getRecords().size());
-        span.setTag("messaging.operation.type", "receive");
-        span.setTag("messaging.system", "aws_sqs");
+        Tracer tracer = GlobalOpenTelemetry
+                .getTracer("com.inventory.acl.lambda.handleProductCreatedLambda");
+        Span span = TraceUtils.startChildSpanFromLambdaInvoke(tracer);
+        span.setAttribute("messaging.batch.message_count", sqsEvent.getRecords().size());
+        span.setAttribute("messaging.operation.type", "receive");
+        span.setAttribute("messaging.system", "aws_sqs");
 
         List<SQSBatchResponse.BatchItemFailure> batchItemFailures = new ArrayList<>();
 
         for (SQSEvent.SQSMessage message : sqsEvent.getRecords()) {
+            Span processSpan = null;
+
             try {
                 TypeReference<EventBridgeMessageWrapper<ProductCreatedEventV1>> typeRef = new TypeReference<EventBridgeMessageWrapper<ProductCreatedEventV1>>() {};
                 EventBridgeMessageWrapper<ProductCreatedEventV1> evtWrapper = objectMapper.readValue(message.getBody(), typeRef);
 
-                final Span processSpan = GlobalTracer
-                        .get()
-                        .buildSpan(String.format("process %s", evtWrapper.getDetailType()))
-                        .asChildOf(span)
-                        .start();
+                var processSpanBuilder = tracer.spanBuilder(String.format("process %s", evtWrapper.getDetailType()))
+                        .setParent(io.opentelemetry.context.Context.current().with(Span.wrap(span.getSpanContext())));
 
-                try (Scope scope = GlobalTracer.get().activateSpan(processSpan)) {
-                    var carrier = new Carrier(new Headers());
-                    DataStreamsCheckpointer.get().setConsumeCheckpoint("sns", evtWrapper.getDetailType(), carrier);
-                    processSpan.setTag("messaging.id", message.getMessageId());
-                    processSpan.setTag("messaging.operation.type", "process");
-                    processSpan.setTag("messaging.system", "aws_sqs");
-                    processSpan.setTag("product.id", evtWrapper.getDetail().getData().getProductId());
+                var upstreamContext = TraceUtils.extractSpanContextFromMessage(evtWrapper.getDetail(), logger);
 
-                    this.eventHandler.handleProductCreatedV1Event(evtWrapper.getDetail().getData());
+                if (upstreamContext != null) {
+                    logger.info("Adding link to upstream context: TraceId: '{}'. SpanId: '{}'", upstreamContext.getTraceId(), upstreamContext.getSpanId());
+                    processSpanBuilder.addLink(upstreamContext);
                 }
 
-                processSpan.finish();
+                processSpan = processSpanBuilder.startSpan();
+
+                var carrier = new Carrier(new Headers());
+                DataStreamsCheckpointer.get().setConsumeCheckpoint("sns", evtWrapper.getDetailType(), carrier);
+                processSpan.setAttribute("messaging.id", message.getMessageId());
+                processSpan.setAttribute("messaging.operation.type", "process");
+                processSpan.setAttribute("messaging.system", "aws_sqs");
+                processSpan.setAttribute("product.id", evtWrapper.getDetail().getData().getProductId());
+
+                this.eventHandler.handleProductCreatedV1Event(evtWrapper.getDetail().getData());
 
             } catch (JsonProcessingException | DataAccessException | InventoryItemNotFoundException | Error exception) {
                 batchItemFailures.add(SQSBatchResponse.BatchItemFailure.builder().withItemIdentifier(message.getMessageId()).build());
                 logger.error("An exception occurred!", exception);
-                span.setTag(Tags.ERROR, true);
-                span.log(Collections.singletonMap(Fields.ERROR_OBJECT, exception));
+                span.recordException(exception);
             } finally {
-                span.finish();
+                if (processSpan != null) {
+                    processSpan.end();
+                }
             }
         }
+
+        span.end();
 
         return SQSBatchResponse.builder()
                 .withBatchItemFailures(batchItemFailures)

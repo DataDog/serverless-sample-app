@@ -116,6 +116,9 @@ module "handle_events_lambda" {
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.activities_table.name
     "IDEMPOTENCY_TABLE_NAME" : aws_dynamodb_table.idempotency_table.name
+    "DD_BOTOCORE_DISTRIBUTED_TRACING": "false"
+    "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": "ignore"
+    "DD_TRACE_PROPAGATION_STYLE_EXTRACT": "none"
   }
   additional_policy_attachments = [
     aws_iam_policy.activities_table_read.arn,

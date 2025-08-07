@@ -7,6 +7,7 @@
 package com.inventory.acl.adapters;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.inventory.core.adapters.CloudEventWrapper;
 
 import java.io.Serializable;
 

@@ -36,7 +36,7 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.put("DD_ENV", props.sharedProps().env());
         lambdaEnvironment.put("ENV", props.sharedProps().env());
         lambdaEnvironment.put("DD_VERSION", props.sharedProps().version());
-        lambdaEnvironment.put("DD_API_KEY", props.sharedProps().ddApiKeySecret().getSecretValue().unsafeUnwrap());
+        lambdaEnvironment.put("DD_API_KEY_SECRET_ARN", props.sharedProps().ddApiKeySecret().getSecretArn());
         lambdaEnvironment.put("DD_CAPTURE_LAMBDA_PAYLOAD", "true");
         lambdaEnvironment.put("DD_LOGS_INJECTION", "true");
         lambdaEnvironment.put("DD_DATA_STREAMS_ENABLED", "true");

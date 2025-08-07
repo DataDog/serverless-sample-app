@@ -40,6 +40,26 @@ func (m *MockProductRepository) List(ctx context.Context) ([]Product, error) {
 	return args.Get(0).([]Product), args.Error(1)
 }
 
+func (m *MockProductRepository) ApplyMigrations(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
+func (m *MockProductRepository) StoreProductWithOutboxEntry(ctx context.Context, product Product, outboxEntry OutboxEntry) error {
+	args := m.Called(ctx, product, outboxEntry)
+	return args.Error(0)
+}
+
+func (m *MockProductRepository) UpdateProductWithOutboxEntry(ctx context.Context, product Product, outboxEntry OutboxEntry) error {
+	args := m.Called(ctx, product, outboxEntry)
+	return args.Error(0)
+}
+
+func (m *MockProductRepository) DeleteProductWithOutboxEntry(ctx context.Context, productId string, outboxEntry OutboxEntry) error {
+	args := m.Called(ctx, productId, outboxEntry)
+	return args.Error(0)
+}
+
 type MockEventPublisher struct {
 	mock.Mock
 }
@@ -56,12 +76,31 @@ func (m *MockEventPublisher) PublishProductDeleted(ctx context.Context, evt Prod
 	m.Called(ctx, evt)
 }
 
+type MockOutboxRepository struct {
+	mock.Mock
+}
+
+func (m *MockOutboxRepository) StoreOutboxEntry(ctx context.Context, entry OutboxEntry) error {
+	args := m.Called(ctx, entry)
+	return args.Error(0)
+}
+
+func (m *MockOutboxRepository) GetUnprocessedEntries(ctx context.Context) ([]OutboxEntry, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]OutboxEntry), args.Error(1)
+}
+
+func (m *MockOutboxRepository) MarkAsProcessed(ctx context.Context, entryId string) error {
+	args := m.Called(ctx, entryId)
+	return args.Error(0)
+}
+
 func TestCreateProductCommandHandler_Handle(t *testing.T) {
 	// Test cases
 	tests := []struct {
 		name           string
 		command        CreateProductCommand
-		setupMocks     func(*MockProductRepository, *MockEventPublisher)
+		setupMocks     func(*MockProductRepository, *MockOutboxRepository)
 		expectedResult *ProductDTO
 		expectedError  error
 	}{
@@ -71,21 +110,14 @@ func TestCreateProductCommandHandler_Handle(t *testing.T) {
 				Name:  "Test Product",
 				Price: 10.99,
 			},
-			setupMocks: func(repo *MockProductRepository, pub *MockEventPublisher) {
+			setupMocks: func(repo *MockProductRepository, outbox *MockOutboxRepository) {
 				expectedProduct, _ := NewProduct("Test Product", 10.99)
 
 				// Product doesn't exist yet
 				repo.On("Get", mock.Anything, expectedProduct.Id).Return(nil, nil)
 
-				// Store the product
-				repo.On("Store", mock.Anything, *expectedProduct).Return(nil)
-
-				// Publish event
-				pub.On("PublishProductCreated", mock.Anything, mock.MatchedBy(func(evt ProductCreatedEvent) bool {
-					return evt.ProductId == expectedProduct.Id &&
-						evt.Name == expectedProduct.Name &&
-						evt.Price == expectedProduct.Price
-				})).Return()
+				// Store the product with outbox entry
+				repo.On("StoreProductWithOutboxEntry", mock.Anything, *expectedProduct, mock.AnythingOfType("OutboxEntry")).Return(nil)
 			},
 			expectedResult: func() *ProductDTO {
 				product, _ := NewProduct("Test Product", 10.99)
@@ -99,7 +131,7 @@ func TestCreateProductCommandHandler_Handle(t *testing.T) {
 				Name:  "Ab",
 				Price: 10.99,
 			},
-			setupMocks: func(repo *MockProductRepository, pub *MockEventPublisher) {
+			setupMocks: func(repo *MockProductRepository, outbox *MockOutboxRepository) {
 				// No repository or publisher calls expected
 			},
 			expectedResult: nil,
@@ -115,7 +147,7 @@ func TestCreateProductCommandHandler_Handle(t *testing.T) {
 				Name:  "Valid Name",
 				Price: -5.0,
 			},
-			setupMocks: func(repo *MockProductRepository, pub *MockEventPublisher) {
+			setupMocks: func(repo *MockProductRepository, outbox *MockOutboxRepository) {
 				// No repository or publisher calls expected
 			},
 			expectedResult: nil,
@@ -131,7 +163,7 @@ func TestCreateProductCommandHandler_Handle(t *testing.T) {
 				Name:  "Existing Product",
 				Price: 15.99,
 			},
-			setupMocks: func(repo *MockProductRepository, pub *MockEventPublisher) {
+			setupMocks: func(repo *MockProductRepository, outbox *MockOutboxRepository) {
 				existingProduct, _ := NewProduct("Existing Product", 15.99)
 
 				// Product already exists
@@ -151,14 +183,14 @@ func TestCreateProductCommandHandler_Handle(t *testing.T) {
 				Name:  "Error Product",
 				Price: 20.00,
 			},
-			setupMocks: func(repo *MockProductRepository, pub *MockEventPublisher) {
+			setupMocks: func(repo *MockProductRepository, outbox *MockOutboxRepository) {
 				expectedProduct, _ := NewProduct("Error Product", 20.00)
 
 				// Product doesn't exist yet
 				repo.On("Get", mock.Anything, expectedProduct.Id).Return(nil, nil)
 
-				// Store returns an error
-				repo.On("Store", mock.Anything, *expectedProduct).Return(&UnknownError{Detail: "DB error"})
+				// StoreProductWithOutboxEntry returns an error
+				repo.On("StoreProductWithOutboxEntry", mock.Anything, *expectedProduct, mock.AnythingOfType("OutboxEntry")).Return(&UnknownError{Detail: "DB error"})
 
 				// No publish event call expected
 			},
@@ -171,14 +203,14 @@ func TestCreateProductCommandHandler_Handle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup mocks
 			repo := new(MockProductRepository)
-			pub := new(MockEventPublisher)
+			outbox := new(MockOutboxRepository)
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(repo, pub)
+				tt.setupMocks(repo, outbox)
 			}
 
 			// Create handler
-			handler := NewCreateProductCommandHandler(repo, pub)
+			handler := NewCreateProductCommandHandler(repo, outbox)
 
 			// Execute
 			result, err := handler.Handle(context.Background(), tt.command)
@@ -195,7 +227,7 @@ func TestCreateProductCommandHandler_Handle(t *testing.T) {
 
 			// Verify mock expectations
 			repo.AssertExpectations(t)
-			pub.AssertExpectations(t)
+			outbox.AssertExpectations(t)
 		})
 	}
 }
