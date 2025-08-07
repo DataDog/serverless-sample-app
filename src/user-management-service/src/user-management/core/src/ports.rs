@@ -11,7 +11,7 @@ use argon2::{
     Argon2,
 };
 use chrono::{Duration, Utc};
-use lambda_http::tracing::log::{info, warn};
+use lambda_http::tracing::log::warn;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::{instrument, Span};
