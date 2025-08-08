@@ -2,6 +2,7 @@
 set -ex
 
 echo "Pre-compile code to speed up first deployment."
+apt-get install git-all -y
 git clone https://github.com/DataDog/serverless-sample-app.git /serverless-sample-app
 cd /serverless-sample-app && ./build.sh
 
@@ -34,8 +35,8 @@ export NVM_DIR="$HOME/.nvm"
 tee -a /root/.bashrc <<EOF
 export DOTNET_ROOT=$HOME/.dotnet
 export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
-export M3_HOME=/opt/apache-maven-3.9.9
-export MAVEN_HOME=/opt/apache-maven-3.9.9
+export M3_HOME=/opt/apache-maven-3.9.11
+export MAVEN_HOME=/opt/apache-maven-3.9.11
 export PATH=${M3_HOME}/bin:${PATH}
 export GOROOT=/usr/local/go
 export GOPATH=$HOME/go

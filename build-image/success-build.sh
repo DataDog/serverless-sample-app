@@ -69,6 +69,3 @@ echo "Installing Rust"
 curl https://sh.rustup.rs -sSf | sh -s -- -y
 . "$HOME/.cargo/env"
 pip3 install cargo-lambda
-
-echo "Cloning GitHub repo"
-git clone https://github.com/DataDog/serverless-sample-app.git /root/lab/serverless-sample-app
