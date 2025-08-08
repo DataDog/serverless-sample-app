@@ -4,7 +4,7 @@ set -ex
 echo "Pre-compile code to speed up first deployment."
 apt-get install git-all -y
 git clone https://github.com/DataDog/serverless-sample-app.git /serverless-sample-app
-cd /serverless-sample-app && ./build.sh
+cd /serverless-sample-app && ./build-all.sh
 
 # #############################################################
 # ### Install frontend and loadtesting dependencies         ###
