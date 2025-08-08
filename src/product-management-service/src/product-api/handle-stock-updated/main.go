@@ -42,28 +42,47 @@ var (
 
 func functionHandler(ctx context.Context, request events.SNSEvent) {
 	span, _ := tracer.SpanFromContext(ctx)
-	defer span.Finish()
 
 	for index := range request.Records {
 		record := request.Records[index]
 
-		fmt.Printf("SNS message body is %s", record.SNS.Message)
-
-		body := []byte(record.SNS.Message)
-
-		var evt observability.CloudEvent[core.StockUpdatedEvent]
-		json.Unmarshal(body, &evt)
-
-		span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
-
-		_, err := handler.Handle(ctx, evt.Data)
-
-		span.Finish()
+		err := processMessage(ctx, record)
 
 		if err != nil {
+			span.SetTag("error", true)
+			span.SetTag("error.message", err.Error())
 			println(err.Error())
+			// Panic here to return an error to the Lambda runtime
+			panic(err)
 		}
 	}
+}
+
+func processMessage(ctx context.Context, record events.SNSEventRecord) error {
+	body := []byte(record.SNS.Message)
+
+	var evt observability.CloudEvent[core.StockUpdatedEvent]
+	jsonErr := json.Unmarshal(body, &evt)
+
+	if jsonErr != nil {
+		return jsonErr
+	}
+
+	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
+	defer span.Finish()
+
+	span.SetTag("product.id", evt.Data.ProductId)
+	span.SetTag("product.newStockLevel", evt.Data.StockLevel)
+	span.SetTag("messaging.message.id", evt.Id)
+	span.SetTag("messaging.message.type", evt.Type)
+	span.SetTag("messaging.message.envelope.size", len(record.SNS.Message))
+	span.SetTag("messaging.operation.name", "process")
+	span.SetTag("messaging.operation.type", "process")
+	span.SetTag("messaging.system", "aws_sns")
+
+	_, err := handler.Handle(ctx, evt.Data)
+
+	return err
 }
 
 func main() {

@@ -11,6 +11,9 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inventory.acl.adapters.EventBridgeMessageWrapper;
 import com.inventory.acl.core.events.external.ProductCreatedEventV1;
+import com.inventory.core.SpanLink;
+import datadog.trace.api.DDTraceId;
+import ddtrot.dd.trace.bootstrap.instrumentation.api.AgentSpanLink;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -33,5 +36,12 @@ public class EventTests {
         
         var productId = evtWrapper.getDetail().getData().getProductId();
         assertEquals("1235", productId);
+    }
+
+    @Test
+    public void spanLinkTest() {
+        var spanLink = new SpanLink(DDTraceId.from("1980053316360325065"), 443086618547378631L, AgentSpanLink.SAMPLED_FLAG, null, null);
+
+        assertEquals("1980053316360325065", spanLink.traceId().toString());
     }
 }

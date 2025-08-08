@@ -7,7 +7,10 @@
 
 package core
 
-import "context"
+import (
+	"context"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+)
 
 type ProductStockUpdatedEventHandler struct {
 	productRepository ProductRepository
@@ -20,15 +23,28 @@ func NewProductStockUpdatedEventHandler(productRepository ProductRepository) *Pr
 }
 
 func (handler *ProductStockUpdatedEventHandler) Handle(ctx context.Context, evt StockUpdatedEvent) (*ProductDTO, error) {
+	span, _ := tracer.SpanFromContext(ctx)
+	span.SetTag("product.id", evt.ProductId)
+
 	product, err := handler.productRepository.Get(ctx, evt.ProductId)
 
 	if err != nil {
+
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
 		return nil, err
 	}
 
 	product.UpdateStockLevel(evt.StockLevel)
 
-	handler.productRepository.Update(ctx, *product)
+	updateErr := handler.productRepository.Update(ctx, *product)
+
+	if updateErr != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", updateErr.Error())
+
+		return nil, err
+	}
 
 	return product.AsDto(), nil
 }

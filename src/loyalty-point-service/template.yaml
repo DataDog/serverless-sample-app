@@ -263,6 +263,8 @@ Resources:
       Environment:
         Variables:
           DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
+          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "none"
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "false"
       Events:
         UserCreatedQueue:
           Type: SQS
@@ -333,6 +335,8 @@ Resources:
       Environment:
         Variables:
           DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
+          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "none"
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "false"
       Events:
         OrderCompletedQueue:
           Type: SQS

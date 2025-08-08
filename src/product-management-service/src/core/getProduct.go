@@ -7,7 +7,10 @@
 
 package core
 
-import "context"
+import (
+	"context"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+)
 
 type GetProductQuery struct {
 	ProductId string `json:"productId"`
@@ -24,6 +27,9 @@ func NewGetProductQueryHandler(productRepository ProductRepository) *GetProductQ
 }
 
 func (handler *GetProductQueryHandler) Handle(ctx context.Context, command GetProductQuery) (*ProductDTO, error) {
+	span, _ := tracer.SpanFromContext(ctx)
+	span.SetTag("product.id", command.ProductId)
+	
 	product, err := handler.productRepository.Get(ctx, command.ProductId)
 
 	if err != nil {
