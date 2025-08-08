@@ -1,35 +1,57 @@
 #!/usr/bin/bash
 set -ex
 
-apt-get install git -y
-apt install zip -y
-apt install unzip -y
+echo "Pre-compile code to speed up first deployment."
+apt-get install git-all -y
+git clone https://github.com/DataDog/serverless-sample-app.git /serverless-sample-app
+cd /serverless-sample-app && ./build-all.sh
 
-echo "Installing Go"
-# Clean up any previous installation
-rm -f go.tar.gz
-rm -rf /usr/local/go
+# #############################################################
+# ### Install frontend and loadtesting dependencies         ###
+# #############################################################
 
-# Download and install Go
-wget https://go.dev/dl/go1.24.1.linux-amd64.tar.gz -O go.tar.gz
-tar -xzvf go.tar.gz -C /usr/local
+pushd /serverless-sample-app/src/frontend
+npm i && docker build .
+popd
 
-# Set up Go environment
+pushd /serverless-sample-app/loadtest
+npm i && docker build .
+popd
+
+export DOTNET_ROOT=$HOME/.dotnet
+export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
+export M3_HOME=/opt/apache-maven-3.9.11
+export MAVEN_HOME=/opt/apache-maven-3.9.11
+export PATH=${M3_HOME}/bin:${PATH}
 export GOROOT=/usr/local/go
 export GOPATH=$HOME/go
 export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"                   # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion
+. "$HOME/.cargo/env"
 
-# Verify installation
-which go
-go version
+# set environment variables
+tee -a /root/.bashrc <<EOF
+export DOTNET_ROOT=$HOME/.dotnet
+export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
+export M3_HOME=/opt/apache-maven-3.9.11
+export MAVEN_HOME=/opt/apache-maven-3.9.11
+export PATH=${M3_HOME}/bin:${PATH}
+export GOROOT=/usr/local/go
+export GOPATH=$HOME/go
+export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+. "$HOME/.cargo/env"
+EOF
 
-# Add to profile for persistence
-echo "export GOROOT=/usr/local/go" >> ~/.bashrc
-echo "export GOPATH=\$HOME/go" >> ~/.bashrc
-echo "export PATH=\$GOROOT/bin:\$GOPATH/bin:\$PATH" >> ~/.bashrc
+source /root/.bashrc
 
-echo "Cloning GitHub repo"
-git clone https://github.com/DataDog/serverless-sample-app.git
-
-echo "Compile Go, Rust & Java code to speed up first deployment"
-cd serverless-sample-app && ./build.sh
+# Print app version information
+# node --version
+# dotnet --version
+# java --version
+# go version
+# cargo --version

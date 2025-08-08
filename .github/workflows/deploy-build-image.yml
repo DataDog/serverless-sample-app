@@ -26,29 +26,36 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: "us-east-1"
-      - name: Declare some variables
-        shell: bash
+      - name: Get Commit Info
+        id: get_sha
         run: |
-          echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
-      -
-        name: Build and push
-        uses: docker/build-push-action@v5
+          echo "COMMIT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
-          push: false
-          load: true
-          tags: ${{ secrets.BUILD_IMAGE_NAME }}:latest
-          context: ./build-image
-          file: ./build-image/Dockerfile
+          images: ${{ secrets.BUILD_IMAGE_ECR_REPOSITORY }}/${{ secrets.BUILD_IMAGE_NAME }}
+          tags: |
+            latest
+            ${{ env.COMMIT_SHA }}
+
       - uses: aws-actions/amazon-ecr-login@v2
         name: Login to Amazon ECR Public
         id: login-ecr-public
         with:
           registry-type: public
-      - name: Tag With Commit Hash
-        run: docker tag ${{secrets.BUILD_IMAGE_NAME}}:latest ${{secrets.BUILD_IMAGE_ECR_REPOSITORY}}/${{secrets.BUILD_IMAGE_NAME}}:${{ env.sha_short }}
-      - name: Tag With LatestCommit Hash
-        run: docker tag ${{secrets.BUILD_IMAGE_NAME}}:latest ${{secrets.BUILD_IMAGE_ECR_REPOSITORY}}/${{secrets.BUILD_IMAGE_NAME}}:latest
-      - name: Push Commit Hash to Registry
-        run: docker push ${{secrets.BUILD_IMAGE_ECR_REPOSITORY}}/${{secrets.BUILD_IMAGE_NAME}}:${{ env.sha_short }}
-      - name: Push Latest image to Registry
-        run: docker push ${{secrets.BUILD_IMAGE_ECR_REPOSITORY}}/${{secrets.BUILD_IMAGE_NAME}}:latest
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: ./build-image
+          file: ./build-image/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
