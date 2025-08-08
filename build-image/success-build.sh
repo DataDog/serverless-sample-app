@@ -15,7 +15,7 @@ npm install -g aws-cdk
 cdk --help
 
 echo "Installing .NET"
-apt install -y dotnet-sdk-8.0
+apt install -y dotnet-sdk-9.0
 export DOTNET_ROOT=$HOME/.dotnet
 export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
 dotnet --version
