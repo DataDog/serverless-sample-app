@@ -82,7 +82,6 @@ If you wish to deploy the entire application there is a custom Docker image avai
 3. Run docker image in interactive mode
    ```sh
    docker run -it \
-       -v "$(pwd):/serverless-sample-app" \
        -w "/serverless-sample-app" \
        -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
        -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
@@ -95,6 +94,8 @@ If you wish to deploy the entire application there is a custom Docker image avai
    ```
 4. Deploy CDK implementation of app
    ```sh
+   cd serverless-sample-app
+   git pull
    source ~/.profile
    ./cdk-deploy-all.sh
    ```
