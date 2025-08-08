@@ -10,19 +10,9 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash 
 # Now we can use nvm
 nvm install v22.14.0
 
-echo "Installing serverless framework"
-npm i -g serverless@3.x
-
 echo "Installing AWS CDK"
 npm install -g aws-cdk
 cdk --help
-
-echo "Installing AWS SAM CLI"
-wget https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-${TARGET_ARCHITECTURE}.zip
-unzip aws-sam-cli-linux-${TARGET_ARCHITECTURE}.zip -d sam-installation
-./sam-installation/install
-sam --version
-
 
 echo "Installing .NET"
 apt install -y dotnet-sdk-8.0
@@ -38,12 +28,6 @@ wget -O - https://apt.corretto.aws/corretto.key | gpg --dearmor -o /usr/share/ke
 apt-get update -y
 apt-get install -y java-22-amazon-corretto-jdk
 java -version
-
-echo "Installing Terraform"
-wget -O - https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
-apt update && apt install terraform -y
-terraform --version
 
 echo "Installing Maven"
 wget https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz -P /tmp

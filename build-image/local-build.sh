@@ -44,13 +44,6 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 . "$HOME/.cargo/env"
-
-export ENV=dev
-export COMMIT_HASH=latest
-export DD_SITE=datadoghq.com
-
-alias finish='touch /root/done'
-creds
 EOF
 
 source /root/.bashrc
