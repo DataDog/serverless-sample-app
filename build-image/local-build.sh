@@ -25,14 +25,14 @@ export GOROOT=/usr/local/go
 export GOPATH=$HOME/go
 export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"                   # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion
 . "$HOME/.cargo/env"
 EOF
 
 source /root/.bashrc
 
-echo "Pre-compile code to speed up first deployment."
+# echo "Pre-compile code to speed up first deployment."
 git clone https://github.com/DataDog/serverless-sample-app.git /serverless-sample-app
 cd /serverless-sample-app
 
@@ -90,11 +90,11 @@ popd
 # #############################################################
 
 pushd /serverless-sample-app/src/frontend
-npm i && docker build .
+npm i
 popd
 
 pushd /serverless-sample-app/loadtest
-npm i && docker build .
+npm i
 popd
 
 # Print app version information

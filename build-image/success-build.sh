@@ -14,11 +14,19 @@ echo "Installing AWS CDK"
 npm install -g aws-cdk
 cdk --help
 
-echo "Installing .NET"
-apt install -y dotnet-sdk-9.0
+wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+dpkg -i packages-microsoft-prod.deb
+rm packages-microsoft-prod.deb
+apt-get update
+
+# echo "Installing .NET"
+wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
+chmod +x ./dotnet-install.sh
+./dotnet-install.sh --channel 9.0
+
 export DOTNET_ROOT=$HOME/.dotnet
 export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
-dotnet --version
+
 dotnet new install Amazon.Lambda.Templates
 dotnet tool install -g Amazon.Lambda.Tools
 
