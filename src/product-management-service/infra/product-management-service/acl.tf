@@ -52,6 +52,8 @@ module "product_acl_function" {
   lambda_handler = "index.handler"
   environment_variables = {
     STOCK_LEVEL_UPDATED_TOPIC_ARN : aws_sns_topic.product_stock_level_updated.arn
+    DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
+    DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
@@ -116,6 +118,8 @@ module "product_pricing_updated_acl_function" {
   lambda_handler = "index.handler"
   environment_variables = {
     PRICE_CALCULATED_TOPIC_ARN : aws_sns_topic.product_price_calculated.arn
+    DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
+    DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site = var.dd_site
