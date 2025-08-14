@@ -129,7 +129,7 @@ scenarios:
             as: adminJwt
       - function: generateProductName
       - post:
-          url: "{{ $processEnvironment.INVENTORY_API_ENDPOINT }}/product"
+          url: "{{ $processEnvironment.PRODUCT_API_ENDPOINT }}/product"
           ifTrue: 'ProductName'
           headers:
             Content-Type: "application/json"
