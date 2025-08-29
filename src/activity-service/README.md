@@ -20,6 +20,31 @@ Ensure you have set the below environment variables before starting deployment:
 - `AWS_REGION`: The AWS region you want to deploy to
 - `ENV`: The environment suffix you want to deploy to, this defaults to `dev`
 
+## Observability for Asynchronous Systems
+
+### Span Links
+
+The default behavious of the Datadog tracer when working with serverless is to automatically create parent-child relationships. For example, if you consume a message from Amazon SNS and that message contains the `_datadog` trace context, the context is automatically extracted and your Lambda handler is set as a child of the upstream call.
+
+This is useful in some cases, but can cause more confusion by creating traces that are extremely long, or have hundreds of spans underneath them. [Span Links](https://docs.datadoghq.com/tracing/trace_collection/span_links/) are an alternative approach that link together causally related spans, that you don't neccessarily want to include as a parent-child relationship. This can be useful when events are crossing service boundaries, or if you're processing a batch of messages.
+
+To configure Span Links in Python, you can see an example in the [`create_activity.py` handler on line 339](./activity_service/handlers/create_activity.py#L339). The trace and span ID's are parsed from the inbound event, and then used to create a link to the upstream context.
+
+For this to work, you must also set the below three environment variables on your Lambda function to disable automatic propagation.
+
+```py
+'DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT': 'ignore',
+'DD_TRACE_PROPAGATION_STYLE_EXTRACT': "none",
+# This flag disables automatic propagation of traces from incoming events.
+'DD_BOTOCORE_DISTRIBUTED_TRACING': 'false',
+```
+
+### Semantic Conventions
+
+The [Open Telemetry Semantic Conventions for Messaging Spans](https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/) define a set of best practices that all spans related to messaging should follow.
+
+You can see examples of this in [the handle events handler](./activity_service/handlers/create_activity.py#L103) for starting a span and [here for adding the default attributes](./activity_service/handlers/create_activity.py#L318).
+
 ## AWS CDK
 
 The [Datadog CDK Construct](https://docs.datadoghq.com/serverless/libraries_integrations/cdk/) simplifies the setup when instrumenting with Datadog. To get started:
@@ -64,9 +89,9 @@ cdk deploy --all --require-approval never
 
 Alternatively, if you have `make` installed you can simply run:
 
-``sh
+`sh
 make cdk-deploy
-``
+`
 
 ### Cleanup
 
@@ -94,7 +119,7 @@ Transform:
       stackName: !Ref "AWS::StackName"
       apiKey: !Ref DDApiKey
       dotnetLayerVersion: "20"
-      extensionLayerVersion: '83'
+      extensionLayerVersion: "83"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -128,7 +153,8 @@ sam delete --stack-name DotnetTracing --region $AWS_REGION --no-prompts
 //TODO: Add Terraform docs
 
 ### Deploy
-The root of the repository contains a  Makefile, this will compile all .NET code, generate the ZIP files and run `terraform apply`. To deploy the Terraform example, simply run:
+
+The root of the repository contains a Makefile, this will compile all .NET code, generate the ZIP files and run `terraform apply`. To deploy the Terraform example, simply run:
 
 ```sh
 export TF_STATE_BUCKET_NAME=<THE NAME OF THE S3 BUCKET>

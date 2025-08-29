@@ -27,15 +27,10 @@ export function startProcessSpanWithSemanticConventions(
   const messageProcessingSpan = tracer.startSpan(`process ${evt.type}`, {
     childOf: conventions.parentSpan ?? undefined,
   });
+  const headers = {};
+  tracer.dataStreamsCheckpointer.setConsumeCheckpoint("sns", evt.type, headers);
 
   try {
-    const headers = {};
-    tracer.dataStreamsCheckpointer.setConsumeCheckpoint(
-      "sns",
-      evt.type,
-      headers
-    );
-
     messageProcessingSpan.addTags({
       domain: process.env.DOMAIN,
       "messaging.message.eventType":
@@ -61,6 +56,12 @@ export function startProcessSpanWithSemanticConventions(
       messageProcessingSpan.addTags({
         "messaging.message.age": Date.now() - Date.parse(evt.time),
       });
+    }
+
+    if (evt.traceparent !== undefined) {
+      const manualContext = new ManualContext(evt.traceparent!.toString());
+
+      messageProcessingSpan.addLink(manualContext);
     }
   } catch (e) {
     logger.error(JSON.stringify(e));

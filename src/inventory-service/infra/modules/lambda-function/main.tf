@@ -125,8 +125,8 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 83
-  datadog_java_layer_version      = 21
+  datadog_extension_layer_version = 84
+  datadog_java_layer_version      = 24
 }
 
 resource "aws_lambda_alias" "SnapStartAlias" {

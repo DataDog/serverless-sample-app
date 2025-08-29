@@ -108,8 +108,6 @@
             <artifactId>logback-json-classic</artifactId>
             <version>0.1.5</version>
         </dependency>
-
-
         <dependency>
             <groupId>ch.qos.logback.contrib</groupId>
             <artifactId>logback-jackson</artifactId>
@@ -129,6 +127,11 @@
             <groupId>com.datadoghq</groupId>
             <artifactId>dd-trace-api</artifactId>
             <version>1.49.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
+            <version>1.52.0</version>
         </dependency>
     </dependencies>
 

@@ -50,6 +50,8 @@ module "handle_user_created_lambda" {
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.loyalty_table.name
     "DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS": "{\"${aws_dynamodb_table.loyalty_table.id}\": [\"PK\"]}"
+    "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": "none"
+    "DD_TRACE_PROPAGATION_STYLE_EXTRACT": "false"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -113,6 +115,8 @@ module "handle_order_completed_lambda" {
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.loyalty_table.name
     "DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS": "{\"${aws_dynamodb_table.loyalty_table.id}\": [\"PK\"]}"
+    "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": "none"
+    "DD_TRACE_PROPAGATION_STYLE_EXTRACT": "false"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site

@@ -26,13 +26,61 @@ Ensure you have set the below environment variables before starting deployment:
 - `AWS_REGION`: The AWS region you want to deploy to
 - `ENV`: The environment suffix you want to deploy to, this defaults to `dev`
 
+## Observability for Asynchronous Systems
+
+### Span Links
+
+The default behavious of the Datadog tracer when working with serverless is to automatically create parent-child relationships. For example, if you consume a message from Amazon SNS and that message contains the `_datadog` trace context, the context is automatically extracted and your Lambda handler is set as a child of the upstream call.
+
+This is useful in some cases, but can cause more confusion by creating traces that are extremely long, or have hundreds of spans underneath them. [Span Links](https://docs.datadoghq.com/tracing/trace_collection/span_links/) are an alternative approach that link together causally related spans, that you don't neccessarily want to include as a parent-child relationship. This can be useful when events are crossing service boundaries, or if you're processing a batch of messages.
+
+To configure Span Links, you can see an example in the [`handleProductCreatedLambda.java` handler on line 60](./inventory-acl/src/main/java/com/inventory/acl/lambda/handleProductCreatedLambda.java#L60). The trace and span ID's are parsed from the inbound event, and then used to create a link to the upstream context.
+
+```java
+var processSpanBuilder = tracer.spanBuilder(String.format("process %s", evtWrapper.getDetailType()))
+  .setParent(io.opentelemetry.context.Context.current().with(Span.wrap(span.getSpanContext())));
+
+var upstreamContext = TraceUtils.extractSpanContextFromMessage(evtWrapper.getDetail(), logger);
+
+if (upstreamContext != null) {
+    logger.info("Adding link to upstream context: TraceId: '{}'. SpanId: '{}'", upstreamContext.getTraceId(), upstreamContext.getSpanId());
+    processSpanBuilder.addLink(upstreamContext);
+}
+```
+
+For this to work, you must also set the below three environment variables on your Lambda function to disable automatic propagation. `DD_TRACE_OTEL_ENABLED` is required, as well as the inclusion of the OpenTelemetry SDK package, to create the SpanLink. The `DD_TRACE_OTEL_ENABLED` variable enables the interop between the Datadog tracer and the OpenTelemetry API.
+
+```py
+'DD_TRACE_OTEL_ENABLED': 'true',
+'DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT': "none",
+# This flag disables automatic propagation of traces from incoming events.
+'DD_TRACE_PROPAGATION_STYLE_EXTRACT': 'false',
+```
+
+### Semantic Conventions
+
+The [Open Telemetry Semantic Conventions for Messaging Spans](https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/) define a set of best practices that all spans related to messaging should follow.
+
+You can see examples of this in [the `EventPublisherImpl`](./inventory-core/src/main/java/com/inventory/core/adapters/EventPublisherImpl.java#L188) for starting a span and [here for adding the default attributes](./inventory-core/src/main/java/com/inventory/core/adapters/EventPublisherImpl.java#L194).
+
+### Datadog Data Streams Monitoring
+
+The service also demonstrates the use of [Datadog Data Streams Monitoring (DSM)](https://docs.datadoghq.com/data_streams/). DSM doesn't support all messaging transports automatically, so manual checkpoint is used to record both the *in* and *out* message channels. An example can be found in [the `EventPublisherImpl`](./inventory-core/src/main/java/com/inventory/core/adapters/EventPublisherImpl.java#L73).
+
+```java
+import datadog.trace.api.experimental.DataStreamsCheckpointer;
+
+var carrier = new Carrier(new Headers());
+DataStreamsCheckpointer.get().setProduceCheckpoint("sns", evtWrapper.getType(), carrier);
+```
+
 ## AWS CDK
 
 When using Java as your language of choice with the AWS CDK, you need to manually configure the Datadog Lambda Extension and the `dd-trace-java` layer. To simplify this configuration, a custom [`InstrumentFunction`](./cdk/src/main/java/com/cdk/constructs/InstrumentedFunction.java) construct is used to centralise all of the configuration.
 
 ```java
 List<ILayerVersion> layers = new ArrayList<>(2);
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:21",System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:24",System.getenv("AWS_REGION"))));
         layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:80", System.getenv("AWS_REGION"))));
 
 var builder = Function.Builder.create(this, props.routingExpression())
@@ -97,7 +145,7 @@ Transform:
       stackName: !Ref "AWS::StackName"
       apiKey: !Ref DDApiKey
       dotnetLayerVersion: "20"
-      extensionLayerVersion: '83'
+      extensionLayerVersion: '84'
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -176,8 +224,8 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 83
-  datadog_java_layer_version      = 21
+  datadog_extension_layer_version = 84
+  datadog_java_layer_version      = 24
 }
 ```
 

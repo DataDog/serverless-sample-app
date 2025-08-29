@@ -36,7 +36,7 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.put("DD_ENV", props.sharedProps().env());
         lambdaEnvironment.put("ENV", props.sharedProps().env());
         lambdaEnvironment.put("DD_VERSION", props.sharedProps().version());
-        lambdaEnvironment.put("DD_API_KEY", props.sharedProps().ddApiKeySecret().getSecretValue().unsafeUnwrap());
+        lambdaEnvironment.put("DD_API_KEY_SECRET_ARN", props.sharedProps().ddApiKeySecret().getSecretArn());
         lambdaEnvironment.put("DD_CAPTURE_LAMBDA_PAYLOAD", "true");
         lambdaEnvironment.put("DD_LOGS_INJECTION", "true");
         lambdaEnvironment.put("DD_DATA_STREAMS_ENABLED", "true");
@@ -50,8 +50,8 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.putAll(props.environmentVariables());
 
         List<ILayerVersion> layers = new ArrayList<>(2);
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:21",System.getenv("AWS_REGION"))));
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:83", System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:24",System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:84", System.getenv("AWS_REGION"))));
 
 
         Asset fileAsset = Asset.Builder.create(this, String.format("%sS3Asset", props.routingExpression()))

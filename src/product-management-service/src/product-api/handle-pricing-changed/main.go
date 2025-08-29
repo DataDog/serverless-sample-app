@@ -27,6 +27,8 @@ import (
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -43,29 +45,49 @@ var (
 
 func functionHandler(ctx context.Context, request events.SNSEvent) {
 	span, _ := tracer.SpanFromContext(ctx)
-	defer span.Finish()
 
 	for index := range request.Records {
 		record := request.Records[index]
 
-		fmt.Printf("SNS message body is %s", record.SNS.Message)
-
-		body := []byte(record.SNS.Message)
-
-		var evt observability.CloudEvent[core.PriceCalculatedEvent]
-		json.Unmarshal(body, &evt)
-
-		span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
-
-		_, err := handler.Handle(ctx, evt.Data)
-
-		span.Finish()
+		err := processMessage(ctx, record)
 
 		if err != nil {
+			span.SetTag("error", true)
+			span.SetTag("error.message", err.Error())
 			println(err.Error())
 			panic(err.Error())
 		}
 	}
+}
+
+func processMessage(ctx context.Context, record events.SNSEventRecord) error {
+	body := []byte(record.SNS.Message)
+
+	var evt observability.CloudEvent[core.PriceCalculatedEvent]
+	jsonErr := json.Unmarshal(body, &evt)
+
+	if jsonErr != nil {
+		return jsonErr
+	}
+
+	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
+	defer span.Finish()
+	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{
+		ServiceOverride: "productservice",
+	}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
+
+	span.SetTag("product.id", evt.Data.ProductId)
+	span.SetTag("product.priceCount", len(evt.Data.PriceBrackets))
+	span.SetTag("messaging.message.id", evt.Id)
+	span.SetTag("messaging.message.type", evt.Type)
+	span.SetTag("messaging.message.envelope.size", len(record.SNS.Message))
+	span.SetTag("messaging.operation.name", "process")
+	span.SetTag("messaging.operation.type", "process")
+	span.SetTag("messaging.system", "aws_sns")
+
+	_, err := handler.Handle(ctx, evt.Data)
+
+	return err
 }
 
 func main() {

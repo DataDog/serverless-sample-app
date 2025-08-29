@@ -13,7 +13,7 @@ func TestUpdateProductCommandHandler_Handle(t *testing.T) {
 	tests := []struct {
 		name           string
 		command        UpdateProductCommand
-		setupMocks     func(*MockProductRepository, *MockEventPublisher)
+		setupMocks     func(*MockProductRepository, *MockOutboxRepository)
 		expectedResult *ProductDTO
 		expectedError  error
 	}{
@@ -24,7 +24,7 @@ func TestUpdateProductCommandHandler_Handle(t *testing.T) {
 				Name:      "Updated Product",
 				Price:     15.99,
 			},
-			setupMocks: func(repo *MockProductRepository, pub *MockEventPublisher) {
+			setupMocks: func(repo *MockProductRepository, pub *MockOutboxRepository) {
 				// Create existing product for test
 				existingProduct, _ := NewProduct("Test Product", 10.99)
 
@@ -32,23 +32,15 @@ func TestUpdateProductCommandHandler_Handle(t *testing.T) {
 				repo.On("Get", mock.Anything, "TESTPRODUCT").Return(existingProduct, nil)
 
 				// The product should be updated
-				repo.On("Update", mock.Anything, mock.MatchedBy(func(p Product) bool {
+				repo.On("UpdateProductWithOutboxEntry", mock.Anything, mock.MatchedBy(func(p Product) bool {
 					return p.Id == "TESTPRODUCT" &&
 						p.Name == "Updated Product" &&
 						p.Price == 15.99 &&
 						p.PreviousName == "Test Product" &&
 						p.PreviousPrice == 10.99 &&
 						p.Updated == true
-				})).Return(nil)
+				}), mock.AnythingOfType("OutboxEntry")).Return(nil)
 
-				// Publish event
-				pub.On("PublishProductUpdated", mock.Anything, mock.MatchedBy(func(evt ProductUpdatedEvent) bool {
-					return evt.ProductId == "TESTPRODUCT" &&
-						evt.New.Name == "Updated Product" &&
-						evt.New.Price == 15.99 &&
-						evt.Previous.Name == "Test Product" &&
-						evt.Previous.Price == 10.99
-				})).Return()
 			},
 			expectedResult: func() *ProductDTO {
 				product, _ := NewProduct("Test Product", 10.99)
@@ -64,7 +56,7 @@ func TestUpdateProductCommandHandler_Handle(t *testing.T) {
 				Name:      "Updated Product",
 				Price:     15.99,
 			},
-			setupMocks: func(repo *MockProductRepository, pub *MockEventPublisher) {
+			setupMocks: func(repo *MockProductRepository, pub *MockOutboxRepository) {
 				// Get returns an error
 				repo.On("Get", mock.Anything, "NONEXISTENT").Return(nil, &ProductNotFoundError{ProductId: "NONEXISTENT"})
 
@@ -80,7 +72,7 @@ func TestUpdateProductCommandHandler_Handle(t *testing.T) {
 				Name:      "Ab",
 				Price:     15.99,
 			},
-			setupMocks: func(repo *MockProductRepository, pub *MockEventPublisher) {
+			setupMocks: func(repo *MockProductRepository, pub *MockOutboxRepository) {
 				// Create existing product for test
 				existingProduct, _ := NewProduct("Test Product", 10.99)
 
@@ -103,7 +95,7 @@ func TestUpdateProductCommandHandler_Handle(t *testing.T) {
 				Name:      "Updated Product",
 				Price:     -5.0,
 			},
-			setupMocks: func(repo *MockProductRepository, pub *MockEventPublisher) {
+			setupMocks: func(repo *MockProductRepository, pub *MockOutboxRepository) {
 				// Create existing product for test
 				existingProduct, _ := NewProduct("Test Product", 10.99)
 
@@ -126,7 +118,7 @@ func TestUpdateProductCommandHandler_Handle(t *testing.T) {
 				Name:      "Test Product",
 				Price:     10.99,
 			},
-			setupMocks: func(repo *MockProductRepository, pub *MockEventPublisher) {
+			setupMocks: func(repo *MockProductRepository, pub *MockOutboxRepository) {
 				// Create existing product for test
 				existingProduct, _ := NewProduct("Test Product", 10.99)
 
@@ -148,15 +140,15 @@ func TestUpdateProductCommandHandler_Handle(t *testing.T) {
 				Name:      "Updated Product",
 				Price:     15.99,
 			},
-			setupMocks: func(repo *MockProductRepository, pub *MockEventPublisher) {
+			setupMocks: func(repo *MockProductRepository, pub *MockOutboxRepository) {
 				// Create existing product for test
 				existingProduct, _ := NewProduct("Test Product", 10.99)
 
 				// Get returns the existing product
 				repo.On("Get", mock.Anything, "TESTPRODUCT").Return(existingProduct, nil)
 
-				// Update returns an error
-				repo.On("Update", mock.Anything, mock.Anything).Return(&UnknownError{Detail: "DB error"})
+				// UpdateProductWithOutboxEntry returns an error
+				repo.On("UpdateProductWithOutboxEntry", mock.Anything, mock.Anything, mock.AnythingOfType("OutboxEntry")).Return(&UnknownError{Detail: "DB error"})
 
 				// No publish event call expected
 			},
@@ -169,14 +161,14 @@ func TestUpdateProductCommandHandler_Handle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup mocks
 			repo := new(MockProductRepository)
-			pub := new(MockEventPublisher)
+			outbox := new(MockOutboxRepository)
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(repo, pub)
+				tt.setupMocks(repo, outbox)
 			}
 
 			// Create handler
-			handler := NewUpdateProductCommandHandler(repo, pub)
+			handler := NewUpdateProductCommandHandler(repo, outbox)
 
 			// Execute
 			result, err := handler.Handle(context.Background(), tt.command)
@@ -193,7 +185,7 @@ func TestUpdateProductCommandHandler_Handle(t *testing.T) {
 
 			// Verify mock expectations
 			repo.AssertExpectations(t)
-			pub.AssertExpectations(t)
+			outbox.AssertExpectations(t)
 		})
 	}
 }

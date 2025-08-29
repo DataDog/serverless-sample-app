@@ -28,8 +28,6 @@ import org.springframework.context.annotation.Bean;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 
 @SpringBootApplication(scanBasePackages = "com.inventory.ordering")
@@ -49,13 +47,14 @@ public class FunctionConfiguration {
     public Function<SNSEvent, String> handleNewProductAdded() {
         return value -> {
             final Span span = GlobalTracer.get().activeSpan();
+            Span processSpan = null;
 
             try {
                 for (SNSEvent.SNSRecord record : value.getRecords()) {
                     TypeReference<CloudEventWrapper<NewProductAddedEvent>> typeRef = new TypeReference<CloudEventWrapper<NewProductAddedEvent>>() {};
                     CloudEventWrapper<NewProductAddedEvent> evtWrapper = objectMapper.readValue(record.getSNS().getMessage(), typeRef);
 
-                    final Span processSpan = GlobalTracer
+                    processSpan = GlobalTracer
                             .get()
                             .buildSpan(String.format("process %s", "inventory.productAdded"))
                             .asChildOf(span)
@@ -88,8 +87,10 @@ public class FunctionConfiguration {
                 logger.error("An exception occurred!", exception);
                 span.setTag(Tags.ERROR, true);
                 span.log(Collections.singletonMap(Fields.ERROR_OBJECT, exception));
-
-                span.finish();
+            } finally {
+                if (processSpan != null) {
+                    processSpan.finish();
+                }
             }
 
             return "OK";

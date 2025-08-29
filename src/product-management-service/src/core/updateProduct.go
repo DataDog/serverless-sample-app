@@ -7,7 +7,15 @@
 
 package core
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+)
 
 type UpdateProductCommand struct {
 	ProductId string  `json:"id"`
@@ -17,17 +25,20 @@ type UpdateProductCommand struct {
 
 type UpdateProductCommandHandler struct {
 	productRepository ProductRepository
-	eventPublisher    ProductEventPublisher
+	outboxRepository  OutboxRepository
 }
 
-func NewUpdateProductCommandHandler(productRepository ProductRepository, eventPublisher ProductEventPublisher) *UpdateProductCommandHandler {
+func NewUpdateProductCommandHandler(productRepository ProductRepository, outboxRepository OutboxRepository) *UpdateProductCommandHandler {
 	return &UpdateProductCommandHandler{
 		productRepository: productRepository,
-		eventPublisher:    eventPublisher,
+		outboxRepository:  outboxRepository,
 	}
 }
 
 func (handler *UpdateProductCommandHandler) Handle(ctx context.Context, command UpdateProductCommand) (*ProductDTO, error) {
+	span, _ := tracer.SpanFromContext(ctx)
+	span.SetTag("product.id", command.ProductId)
+	
 	product, err := handler.productRepository.Get(ctx, command.ProductId)
 
 	if err != nil {
@@ -44,13 +55,43 @@ func (handler *UpdateProductCommandHandler) Handle(ctx context.Context, command 
 		return product.AsDto(), &UpdateNotRequiredError{}
 	}
 
-	err = handler.productRepository.Update(ctx, *product)
+	event := ProductUpdatedEvent{ProductId: command.ProductId, New: ProductDetails{Name: product.Name, Price: product.Price}, Previous: ProductDetails{Name: product.PreviousName, Price: product.PreviousPrice}}
+	outboxEntry, err := createOutboxEntryForUpdate(ctx, "product.productUpdated", event)
+	if err != nil {
+		return nil, err
+	}
+
+	err = handler.productRepository.UpdateProductWithOutboxEntry(ctx, *product, outboxEntry)
 
 	if err != nil {
 		return nil, err
 	}
 
-	handler.eventPublisher.PublishProductUpdated(ctx, ProductUpdatedEvent{ProductId: command.ProductId, New: ProductDetails{Name: product.Name, Price: product.Price}, Previous: ProductDetails{Name: product.PreviousName, Price: product.PreviousPrice}})
-
 	return product.AsDto(), nil
+}
+
+func createOutboxEntryForUpdate(ctx context.Context, eventType string, eventData interface{}) (OutboxEntry, error) {
+	span, _ := tracer.SpanFromContext(ctx)
+
+	traceId := ""
+	spanId := ""
+	if span != nil {
+		spanCtx := span.Context()
+		traceId = fmt.Sprintf("%d", spanCtx.TraceID())
+		spanId = fmt.Sprintf("%d", spanCtx.SpanID())
+	}
+
+	eventJson, err := json.Marshal(eventData)
+	if err != nil {
+		return OutboxEntry{}, err
+	}
+
+	return OutboxEntry{
+		Id:        uuid.New().String(),
+		EventType: eventType,
+		EventData: string(eventJson),
+		TraceId:   traceId,
+		SpanId:    spanId,
+		CreatedAt: time.Now(),
+	}, nil
 }
