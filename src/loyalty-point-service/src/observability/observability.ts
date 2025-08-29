@@ -24,13 +24,6 @@ export function startProcessSpanWithSemanticConventions(
   evt: CloudEvent<any>,
   conventions: SemanticConventions
 ): Span {
-  const options: SpanOptions = {
-    references: [
-      {
-        referencedContext: undefined
-      }
-    ]
-  }
   
   const messageProcessingSpan = tracer.startSpan(`process ${evt.type}`, {
     childOf: conventions.parentSpan ?? undefined,
