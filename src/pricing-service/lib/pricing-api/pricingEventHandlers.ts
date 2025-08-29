@@ -75,6 +75,8 @@ export class PricingEventHandlers extends Construct {
           EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
           DD_DATA_STREAMS_ENABLED: "true",
           DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true",
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none",
+          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore",
         },
         bundling: {
           platform: "node",
@@ -156,6 +158,8 @@ export class PricingEventHandlers extends Construct {
           EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
           DD_DATA_STREAMS_ENABLED: "true",
           DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true",
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none",
+          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore",
         },
         bundling: {
           platform: "node",

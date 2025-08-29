@@ -10,6 +10,9 @@ import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.services.apigateway.*;
+import software.amazon.awscdk.services.cloudfront.*;
+import software.amazon.awscdk.services.cloudfront.origins.LoadBalancerV2Origin;
+import software.amazon.awscdk.services.cloudfront.origins.LoadBalancerV2OriginProps;
 import software.amazon.awscdk.services.dynamodb.*;
 import software.amazon.awscdk.services.ec2.*;
 import software.amazon.awscdk.services.ecs.*;
@@ -117,13 +120,17 @@ public class InventoryApiContainer extends Construct {
                 .publicLoadBalancer(true)
                 .build();
 
-        var allowHttpSecurityGroup = new SecurityGroup(this, "AllowHttpSecurityGroup", SecurityGroupProps.builder()
+        var allowCloudfrontPrefixList = new SecurityGroup(this, "AllowHttpSecurityGroup", SecurityGroupProps.builder()
                 .vpc(vpc)
                 .allowAllOutbound(true)
                 .build());
-        allowHttpSecurityGroup.addIngressRule(Peer.anyIpv4(), Port.tcp(80));
+        var cloudfrontPrefixList = PrefixList.fromLookup(this, "CloudfrontPrefixList", PrefixListLookupOptions.builder()
+                .prefixListName("com.amazonaws.global.cloudfront.origin-facing") // Replace with the actual CloudFront prefix list ID
+                .build());
 
-        application.getLoadBalancer().addSecurityGroup(allowHttpSecurityGroup);
+        allowCloudfrontPrefixList.addIngressRule(Peer.prefixList(cloudfrontPrefixList.getPrefixListId()), Port.tcp(80));
+
+        application.getLoadBalancer().addSecurityGroup(allowCloudfrontPrefixList);
 
         application.getTaskDefinition().addFirelensLogRouter("firelens", FirelensLogRouterDefinitionOptions.builder()
                 .essential(true)
@@ -193,77 +200,24 @@ public class InventoryApiContainer extends Construct {
                 ))
                 .build());
 
-        var restApi = createApiGatewayForAlb(props, application);
+        var cloudfrontDistribution = new Distribution(this, "InventoryApiDistribution", DistributionProps.builder()
+                .defaultBehavior(BehaviorOptions.builder()
+                        .origin(new LoadBalancerV2Origin(application.getLoadBalancer(), LoadBalancerV2OriginProps.builder()
+                                .protocolPolicy(OriginProtocolPolicy.HTTP_ONLY)
+                                .build()))
+                        .originRequestPolicy(OriginRequestPolicy.ALL_VIEWER)
+                        .viewerProtocolPolicy(ViewerProtocolPolicy.ALLOW_ALL)
+                        .cachePolicy(CachePolicy.CACHING_DISABLED)
+                        .allowedMethods(AllowedMethods.ALLOW_ALL)
+                        .build())
+                .minimumProtocolVersion(SecurityPolicyProtocol.TLS_V1_2_2021)
+                .build());
 
         StringParameter apiEndpoint = new StringParameter(this, "ApiEndpoint", StringParameterProps.builder()
                 .parameterName(String.format("/%s/%s/api-endpoint", props.serviceProps().getSharedProps().env(), props.serviceProps().getSharedProps().service()))
-                .stringValue(String.format("http://%s", application
-                                        .getLoadBalancer()
-                                        .getLoadBalancerDnsName()))
+                .stringValue(String.format("http://%s", cloudfrontDistribution.getDistributionDomainName()))
                 .build());
         
-    }
-
-    private RestApi createApiGatewayForAlb(InventoryApiContainerProps props, ApplicationLoadBalancedFargateService application) {
-        RestApi api = RestApi.Builder.create(this, "OrdersApi")
-                .restApiName(String.format("%s-Orders-Api-%s", props.serviceProps().getSharedProps().service(), props.serviceProps().getSharedProps().env()))
-                .description("API Gateway for Orders Service")
-                .deployOptions(StageOptions.builder()
-                        .stageName(props.serviceProps().getSharedProps().env())
-                        .build())
-                .defaultCorsPreflightOptions(CorsOptions.builder()
-                        .allowOrigins(Cors.ALL_ORIGINS)
-                        .allowMethods(Cors.ALL_METHODS)
-                        .allowHeaders(List.of("Content-Type", "Authorization"))
-                        .build())
-                .build();
-
-        // Create integration with the ALB
-        String albDnsName = application.getLoadBalancer().getLoadBalancerDnsName();
-        HttpIntegration integration = HttpIntegration.Builder.create(String.format("http://%s/{proxy}", albDnsName))
-                .httpMethod("ANY")
-                .proxy(true)
-                .options(IntegrationOptions.builder()
-                        .integrationResponses(List.of(IntegrationResponse.builder()
-                                .statusCode("200")
-                                .responseParameters(Map.of(
-                                        "method.response.header.Access-Control-Allow-Origin", "'*'"
-                                ))
-                                .build()))
-                        .requestParameters(Map.of(
-                                "integration.request.path.proxy", "method.request.path.proxy"
-                        ))
-                        .build())
-                .build();
-
-        // Proxy all requests to the ALB
-        IResource proxyResource = api.getRoot().addResource("{proxy+}");
-        proxyResource.addMethod("ANY", integration, MethodOptions.builder()
-                .requestParameters(Map.of(
-                        "method.request.path.proxy", true
-                ))
-                .methodResponses(List.of(MethodResponse.builder()
-                        .statusCode("200")
-                        .responseParameters(Map.of(
-                                "method.response.header.Access-Control-Allow-Origin", true
-                        ))
-                        .build()))
-                .build());
-
-        // Also route the root path
-        api.getRoot().addMethod("ANY", integration, MethodOptions.builder()
-                .requestParameters(Map.of(
-                        "method.request.path.proxy", true
-                ))
-                .methodResponses(List.of(MethodResponse.builder()
-                        .statusCode("200")
-                        .responseParameters(Map.of(
-                                "method.response.header.Access-Control-Allow-Origin", true
-                        ))
-                        .build()))
-                .build());
-
-        return api;
     }
 
     public ITable getTable(){

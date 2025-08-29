@@ -125,6 +125,8 @@ Resources:
 #             - IsIntegratedEnvironment
 #             - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
 #             - !Ref PricingServiceEventBus
+#           DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
+#           DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
 #       Events:
 #         ProductCreatedQueue:
 #           Type: SQS
@@ -195,6 +197,8 @@ Resources:
 #             - IsIntegratedEnvironment
 #             - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
 #             - !Ref PricingServiceEventBus
+#           DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
+#           DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
 #       Events:
 #         ProductUpdatedQueue:
 #           Type: SQS

@@ -68,6 +68,8 @@
 #   lambda_handler = "index.handler"
 #   environment_variables = {
 #     "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.pricing_service_bus.name
+#     "DD_TRACE_PROPAGATION_STYLE_EXTRACT": "none"
+#     "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": "ignore"
 #   }
 #   dd_api_key_secret_arn = var.dd_api_key_secret_arn
 #   dd_site               = var.dd_site
@@ -129,6 +131,8 @@
 #   lambda_handler = "index.handler"
 #   environment_variables = {
 #     "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.pricing_service_bus.name
+#     "DD_TRACE_PROPAGATION_STYLE_EXTRACT": "none"
+#     "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": "ignore"
 #   }
 #   dd_api_key_secret_arn = var.dd_api_key_secret_arn
 #   dd_site               = var.dd_site

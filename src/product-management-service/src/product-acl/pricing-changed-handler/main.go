@@ -11,14 +11,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"strconv"
 	"strings"
+
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
 	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
 	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
-	
+
 	adapters "productacl/internal/adapters"
 	core "productacl/internal/core"
 
@@ -49,6 +50,7 @@ var (
 
 func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventResponse, error) {
 	span, _ := tracer.SpanFromContext(ctx)
+	span.SetTag("messaging.batch.size", len(request.Records))
 
 	var failures []events.SQSBatchItemFailure
 
@@ -73,7 +75,6 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 }
 
 func processMessage(ctx context.Context, record events.SQSMessage) error {
-	span, _ := tracer.SpanFromContext(ctx)
 	sqsBody := []byte(record.Body)
 
 	var eventBridgeEvent events.EventBridgeEvent
@@ -117,7 +118,7 @@ func processMessage(ctx context.Context, record events.SQSMessage) error {
 	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{
 		ServiceOverride: "productservice-acl",
 	}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
-	processSpan, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(spanLinks), tracer.ChildOf(span.Context()))
+	processSpan, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(spanLinks))
 	defer processSpan.Finish()
 
 	processSpan.SetTag("product.id", evt.Data.ProductId)

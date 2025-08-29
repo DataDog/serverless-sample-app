@@ -472,6 +472,8 @@ Resources:
       Environment:
         Variables:
           STOCK_LEVEL_UPDATED_TOPIC_ARN: !Ref StockUpdatedTopic
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
+          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
       Events:
         IntegrationQueue:
           Type: SQS
@@ -513,6 +515,8 @@ Resources:
       Environment:
         Variables:
           PRICE_CALCULATED_TOPIC_ARN: !Ref PriceCalculatedTopic
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
+          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
       Events:
         IntegrationQueue:
           Type: SQS
