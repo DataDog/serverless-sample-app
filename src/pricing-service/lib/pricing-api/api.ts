@@ -87,6 +87,23 @@ export class Api extends Construct {
     calculatePricingFunction.logGroup.applyRemovalPolicy(RemovalPolicy.DESTROY);
 
     // Paste Datadog configuration from the workshop here.
+    // Add Datadog configuration to your Lambda function
+    props.serviceProps
+      .getSharedProps()
+      .datadogConfiguration?.addLambdaFunctions([calculatePricingFunction]);
+
+    // The Datadog extension sends log data to Datadog using the telemetry API. So you no longer need to use CloudWatch for viewing these logs. Disabling it prevents  'double paying' for logs.
+    calculatePricingFunction.addToRolePolicy(
+      new PolicyStatement({
+        actions: [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+        ],
+        resources: ["arn:aws:logs:*:*:*"],
+        effect: Effect.DENY,
+      })
+    );
 
     const kmsAlias = Alias.fromAliasName(this, "SSMAlias", "aws/ssm");
     kmsAlias.grantDecrypt(calculatePricingFunction);

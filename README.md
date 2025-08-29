@@ -99,10 +99,9 @@ If you wish to deploy the entire application there is a custom Docker image avai
    source ~/.profile
    ./cdk-deploy-all.sh
    ```
-5. Once deployment is complete exit the interactive shell by typing `exit`
-6. Open your AWS console and check that all CloudFormation stacks deployments are complete
+5. Open your AWS console and check that all CloudFormation stacks deployments are complete. The deployments run as background tasks, so it can take several minutes for the full deployment to complete.
 
-   There should be 7 stacks in total:
+   There should be 8 stacks in total:
 
    - SharedResourcesStack
    - OrdersService
@@ -111,6 +110,9 @@ If you wish to deploy the entire application there is a custom Docker image avai
    - ProductService
    - LoyaltyService
    - PricingService
+   - ActivityService
+
+6. Once deployment is complete exit the interactive shell by typing `exit`
 
 ### Delete Resources
 
@@ -120,7 +122,6 @@ Once you are finished testing, run the below commands to delete resources from y
 
    ```sh
    docker run -it \
-       -v "$(pwd):/serverless-sample-app" \
        -w "/serverless-sample-app" \
        -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
        -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \

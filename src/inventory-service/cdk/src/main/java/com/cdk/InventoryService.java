@@ -7,6 +7,7 @@
 package com.cdk;
 
 import software.amazon.awscdk.App;
+import software.amazon.awscdk.Environment;
 import software.amazon.awscdk.StackProps;
 
 public class InventoryService {
@@ -17,6 +18,10 @@ public class InventoryService {
 
         new InventoryServiceStack(app, "InventoryService", StackProps.builder()
                 .stackName(String.format("InventoryService-%s", env))
+                .env(Environment.builder()
+                        .account(System.getenv("CDK_DEFAULT_ACCOUNT"))
+                        .region(System.getenv("CDK_DEFAULT_REGION"))
+                        .build())
                 .build());
         
         app.synth();
