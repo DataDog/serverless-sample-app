@@ -58,7 +58,7 @@ export function startProcessSpanWithSemanticConventions(
       });
     }
 
-    if (evt.traceparent !== undefined && evt.traceparent !== undefined) {
+    if (evt.traceparent !== undefined) {
       const manualContext = new ManualContext(evt.traceparent!.toString());
 
       messageProcessingSpan.addLink(manualContext);
