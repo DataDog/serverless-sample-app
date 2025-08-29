@@ -71,7 +71,7 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 	}, nil
 }
 
-func processMessage(ctx context.Context, record events.SQSMessage, span ddtrace.Span) error {
+func processMessage(ctx context.Context, record events.SQSMessage) error {
 	sqsBody := []byte(record.Body)
 
 	var eventBridgeEvent events.EventBridgeEvent
