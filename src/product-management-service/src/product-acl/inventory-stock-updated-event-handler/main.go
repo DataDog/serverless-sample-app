@@ -54,7 +54,7 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 	for index := range request.Records {
 		record := request.Records[index]
 
-		err := processMessage(ctx, record, span)
+		err := processMessage(ctx, record)
 
 		if err != nil {
 			fmt.Printf("Error processing message %s: %v\n", record.MessageId, err)
