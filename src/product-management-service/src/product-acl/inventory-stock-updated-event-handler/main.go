@@ -47,13 +47,14 @@ var (
 
 func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventResponse, error) {
 	span, _ := tracer.SpanFromContext(ctx)
+	span.SetTag("messaging.batch.size", len(request.Records))
 
 	var failures []events.SQSBatchItemFailure
 
 	for index := range request.Records {
 		record := request.Records[index]
 
-		err := processMessage(ctx, record)
+		err := processMessage(ctx, record, span)
 
 		if err != nil {
 			fmt.Printf("Error processing message %s: %v\n", record.MessageId, err)
@@ -70,8 +71,7 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 	}, nil
 }
 
-func processMessage(ctx context.Context, record events.SQSMessage) error {
-	span, _ := tracer.SpanFromContext(ctx)
+func processMessage(ctx context.Context, record events.SQSMessage, span ddtrace.Span) error {
 	sqsBody := []byte(record.Body)
 
 	var eventBridgeEvent events.EventBridgeEvent
@@ -113,7 +113,7 @@ func processMessage(ctx context.Context, record events.SQSMessage) error {
 	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{
 		ServiceOverride: "productservice-acl",
 	}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
-	processSpan, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(spanLinks), tracer.ChildOf(span.Context()))
+	processSpan, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(spanLinks))
 	defer processSpan.Finish()
 
 	processSpan.SetTag("product.id", evt.Data.ProductId)

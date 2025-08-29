@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
 	"github.com/aws/aws-cdk-go/awscdklambdagoalpha/v2"
@@ -24,6 +25,7 @@ type InstrumentedFunctionProps struct {
 	Entry                string
 	EnvironmentVariables map[string]*string
 	MemorySize           float64
+	Timeout              awscdk.Duration
 }
 
 type InstrumentedFunction struct {
@@ -74,6 +76,7 @@ func NewInstrumentedFunction(scope constructs.Construct, id string, props *Instr
 		Environment:  &defaultEnvironmentVariables,
 		Architecture: awslambda.Architecture_ARM_64(),
 		Tracing:      awslambda.Tracing_ACTIVE,
+		Timeout:      props.Timeout,
 	})
 
 	// The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs

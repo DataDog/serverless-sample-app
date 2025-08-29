@@ -1,6 +1,6 @@
 import { Logger } from "@aws-lambda-powertools/logger";
 import { CloudEvent } from "cloudevents";
-import { Span, SpanContext, tracer } from "dd-trace";
+import { Span, SpanContext, SpanOptions, TraceOptions, tracer } from "dd-trace";
 import * as os from "os";
 
 const textEncoder = new TextEncoder();
@@ -24,6 +24,14 @@ export function startProcessSpanWithSemanticConventions(
   evt: CloudEvent<any>,
   conventions: SemanticConventions
 ): Span {
+  const options: SpanOptions = {
+    references: [
+      {
+        referencedContext: undefined
+      }
+    ]
+  }
+  
   const messageProcessingSpan = tracer.startSpan(`process ${evt.type}`, {
     childOf: conventions.parentSpan ?? undefined,
   });
