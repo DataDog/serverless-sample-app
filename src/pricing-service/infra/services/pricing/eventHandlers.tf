@@ -71,7 +71,6 @@
 #     "DD_TRACE_PROPAGATION_STYLE_EXTRACT": "none"
 #     "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": "ignore"
 #     "DD_DATA_STREAMS_ENABLED": "true"
-#     "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED": "true"
 #   }
 #   dd_api_key_secret_arn = var.dd_api_key_secret_arn
 #   dd_site               = var.dd_site
@@ -136,7 +135,6 @@
 #     "DD_TRACE_PROPAGATION_STYLE_EXTRACT": "none"
 #     "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": "ignore"
 #     "DD_DATA_STREAMS_ENABLED": "true"
-#     "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED": "true"
 #   }
 #   dd_api_key_secret_arn = var.dd_api_key_secret_arn
 #   dd_site               = var.dd_site

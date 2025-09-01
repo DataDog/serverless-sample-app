@@ -119,13 +119,12 @@ module "aws_lambda_function" {
     "DD_CAPTURE_LAMBDA_PAYLOAD" : "true"
     "DD_LOGS_INJECTION" : "true"
     "DD_DATA_STREAMS_ENABLED" = "true"
-    "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED" = "true"
     "spring_cloud_function_definition" : var.routing_expression
     "QUARKUS_LAMBDA_HANDLER": var.routing_expression}),
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 84
+  datadog_extension_layer_version = 85
   datadog_java_layer_version      = 24
 }
 

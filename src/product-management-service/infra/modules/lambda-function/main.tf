@@ -104,10 +104,9 @@ module "aws_lambda_function" {
     "DD_SITE" : var.dd_site
     "DD_VERSION" : var.app_version
     "DD_DATA_STREAMS_ENABLED"                           = "true"
-    "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED" = "true"
     "ENV" : var.env }),
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 83
+  datadog_extension_layer_version = 85
 }

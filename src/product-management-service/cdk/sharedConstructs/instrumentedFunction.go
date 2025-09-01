@@ -38,7 +38,6 @@ func NewInstrumentedFunction(scope constructs.Construct, id string, props *Instr
 	defaultEnvironmentVariables := make(map[string]*string)
 	defaultEnvironmentVariables["ENV"] = jsii.String(props.SharedProps.Env)
 	defaultEnvironmentVariables["DD_DATA_STREAMS_ENABLED"] = jsii.String("true")
-	defaultEnvironmentVariables["DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED"] = jsii.String("true")
 	defaultEnvironmentVariables["DD_FLUSH_TO_LOG"] = jsii.String("true")
 	defaultEnvironmentVariables["DD_TRACE_ENABLED"] = jsii.String("true")
 	defaultEnvironmentVariables["DD_APM_REPLACE_TAGS"] = jsii.String(`[
