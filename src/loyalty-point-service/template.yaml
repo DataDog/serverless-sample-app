@@ -59,7 +59,6 @@ Globals:
         POWERTOOLS_LOG_LEVEL: 'INFO'
         DD_LOGS_INJECTION: "true"
         DD_DATA_STREAMS_ENABLED: "true"
-        DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true"
         DOMAIN: "products"
     Architectures:
       - x86_64

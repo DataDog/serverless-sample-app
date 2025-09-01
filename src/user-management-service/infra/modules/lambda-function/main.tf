@@ -103,7 +103,6 @@ module "aws_lambda_function" {
     "ENV": var.env
     "RUST_LOG": "info",
     "DD_DATA_STREAMS_ENABLED" = "true"
-    "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED" = "true"
     "POWERTOOLS_SERVICE_NAME": var.service_name
     "POWERTOOLS_LOG_LEVEL": "INFO" }),
     var.environment_variables

@@ -58,7 +58,6 @@ Globals:
         POWERTOOLS_LOG_LEVEL: !If [!Equals [!Ref Env, prod], 'WARN', 'INFO']
         DD_LOGS_INJECTION: "true"
         DD_DATA_STREAMS_ENABLED: "true"
-        DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true"
         TEAM: "order-mcp"
         DOMAIN: "order-mcp"
         BUILD_ID: !Ref CommitHash

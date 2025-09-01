@@ -57,7 +57,6 @@ Globals:
         DSQL_CLUSTER_ENDPOINT: !Sub "${ProductApiCluster}.dsql.${AWS::Region}.on.aws"
 
         DD_DATA_STREAMS_ENABLED: "true"
-        DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true"
     Architectures:
       - arm64
   Api:
