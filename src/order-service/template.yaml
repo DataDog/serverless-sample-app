@@ -13,7 +13,7 @@ Transform:
       stackName: !Ref "AWS::StackName"
       apiKey: !Ref DDApiKey
       dotnetLayerVersion: "20"
-      extensionLayerVersion: '84'
+      extensionLayerVersion: '85'
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
