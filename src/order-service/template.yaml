@@ -13,7 +13,7 @@ Transform:
       stackName: !Ref "AWS::StackName"
       apiKey: !Ref DDApiKey
       dotnetLayerVersion: "20"
-      extensionLayerVersion: '84'
+      extensionLayerVersion: '85'
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -60,7 +60,6 @@ Globals:
         POWERTOOLS_LOG_LEVEL: "INFO"
         AWS_LAMBDA_EXEC_WRAPPER: /opt/datadog_wrapper
         DD_DATA_STREAMS_ENABLED: "true"
-        DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true"
     Architectures:
       - x86_64
 

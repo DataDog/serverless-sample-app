@@ -120,7 +120,6 @@ module "aws_lambda_function" {
     "DD_VERSION" : var.app_version
     "BUILD_ID" : var.app_version
     "DD_DATA_STREAMS_ENABLED"                           = "true"
-    "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED" = "true"
     "DEPLOYED_AT" : timestamp()
     "ENV" : var.env
     "POWERTOOLS_SERVICE_NAME" : var.service_name
@@ -129,6 +128,6 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 83
-  datadog_python_layer_version    = 111
+  datadog_extension_layer_version = 85
+  datadog_python_layer_version    = 113
 }
