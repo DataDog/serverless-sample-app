@@ -84,7 +84,6 @@ export class Api extends Construct {
         },
       }
     );
-    calculatePricingFunction.logGroup.applyRemovalPolicy(RemovalPolicy.DESTROY);
 
     // Paste Datadog configuration from the workshop here.
     // Add Datadog configuration to your Lambda function
