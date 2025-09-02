@@ -11,12 +11,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"log"
 	"os"
 	"product-event-publisher/internal/core"
+
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 
@@ -34,6 +35,8 @@ func NewEventBridgeEventPublisher(client eventbridge.Client) *EventBridgeEventPu
 }
 
 func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Context, evt core.PublicProductCreatedEventV1) {
+	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productCreated.v1")
+	defer span.Finish()
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated.v1", evt)
 
 	evtData, _ := json.Marshal(cloudEvent)
@@ -41,6 +44,15 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 	detailType := cloudEvent.Type
 	busName := os.Getenv("EVENT_BUS_NAME")
 	source := fmt.Sprintf("%s.products", os.Getenv("ENV"))
+
+	span.SetTag("product.id", evt.ProductId)
+	span.SetTag("messaging.message.id", cloudEvent.Id)
+	span.SetTag("messaging.message.type", cloudEvent.Type)
+	span.SetTag("messaging.message.destination", busName)
+	span.SetTag("messaging.message.envelope.size", len(message))
+	span.SetTag("messaging.operation.name", "publish")
+	span.SetTag("messaging.operation.type", "publish")
+	span.SetTag("messaging.system", "aws_sns")
 
 	entiries := []types.PutEventsRequestEntry{
 		{
@@ -55,7 +67,9 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 		Entries: entiries,
 	}
 
-	ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-publiceventpublisher",
+	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
 	}
@@ -68,6 +82,8 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 }
 
 func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Context, evt core.PublicProductUpdatedEventV1) {
+	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productUpdated.v1")
+	defer span.Finish()
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productUpdated.v1", evt)
 
 	evtData, _ := json.Marshal(cloudEvent)
@@ -75,6 +91,15 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 	detailType := cloudEvent.Type
 	busName := os.Getenv("EVENT_BUS_NAME")
 	source := fmt.Sprintf("%s.products", os.Getenv("ENV"))
+
+	span.SetTag("product.id", evt.ProductId)
+	span.SetTag("messaging.message.id", cloudEvent.Id)
+	span.SetTag("messaging.message.type", cloudEvent.Type)
+	span.SetTag("messaging.message.destination", busName)
+	span.SetTag("messaging.message.envelope.size", len(message))
+	span.SetTag("messaging.operation.name", "publish")
+	span.SetTag("messaging.operation.type", "publish")
+	span.SetTag("messaging.system", "aws_sns")
 
 	entiries := []types.PutEventsRequestEntry{
 		{
@@ -89,7 +114,9 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 		Entries: entiries,
 	}
 
-	ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{}, "direction:out", "type:sns", fmt.Sprintln("topic:%s", cloudEvent.Type))
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-publiceventpublisher",
+	}, "direction:out", "type:sns", fmt.Sprintf("topic:%s", cloudEvent.Type))
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
 	}
@@ -102,6 +129,9 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 }
 
 func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Context, evt core.PublicProductDeletedEventV1) {
+	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productDeleted.v1")
+	defer span.Finish()
+
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productDeleted.v1", evt)
 
 	evtData, _ := json.Marshal(cloudEvent)
@@ -109,6 +139,15 @@ func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Con
 	detailType := cloudEvent.Type
 	busName := os.Getenv("EVENT_BUS_NAME")
 	source := fmt.Sprintf("%s.products", os.Getenv("ENV"))
+
+	span.SetTag("product.id", evt.ProductId)
+	span.SetTag("messaging.message.id", cloudEvent.Id)
+	span.SetTag("messaging.message.type", cloudEvent.Type)
+	span.SetTag("messaging.message.destination", busName)
+	span.SetTag("messaging.message.envelope.size", len(message))
+	span.SetTag("messaging.operation.name", "publish")
+	span.SetTag("messaging.operation.type", "publish")
+	span.SetTag("messaging.system", "aws_sns")
 
 	entiries := []types.PutEventsRequestEntry{
 		{
@@ -119,7 +158,9 @@ func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Con
 		},
 	}
 
-	ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{}, "direction:out", "type:sns", fmt.Sprintln("topic:%s", cloudEvent.Type))
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-publiceventpublisher",
+	}, "direction:out", "type:sns", fmt.Sprintf("topic:%s", cloudEvent.Type))
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
 	}

@@ -6,13 +6,14 @@ using System;
 using System.Collections.Generic;
 using Amazon.CDK;
 using Amazon.CDK.AWS.APIGateway;
+using Amazon.CDK.AWS.CloudFront;
+using Amazon.CDK.AWS.CloudFront.Origins;
 using Amazon.CDK.AWS.DynamoDB;
 using Amazon.CDK.AWS.EC2;
 using Amazon.CDK.AWS.ECS;
 using Amazon.CDK.AWS.ECS.Patterns;
 using Amazon.CDK.AWS.Events;
 using Amazon.CDK.AWS.IAM;
-using Amazon.CDK.AWS.Lambda;
 using Amazon.CDK.AWS.Logs;
 using Amazon.CDK.AWS.SNS;
 using Amazon.CDK.AWS.SSM;
@@ -20,8 +21,10 @@ using Amazon.CDK.AWS.StepFunctions;
 using Constructs;
 using OrdersService.CDK.Constructs;
 using Attribute = Amazon.CDK.AWS.DynamoDB.Attribute;
+using Distribution = Amazon.CDK.AWS.CloudFront.Distribution;
 using FunctionProps = OrdersService.CDK.Constructs.FunctionProps;
 using HealthCheck = Amazon.CDK.AWS.ElasticLoadBalancingV2.HealthCheck;
+using IFunction = Amazon.CDK.AWS.Lambda.IFunction;
 using Policy = Amazon.CDK.AWS.IAM.Policy;
 
 namespace OrdersService.CDK.Services;
@@ -244,14 +247,19 @@ public class OrdersApi : Construct
                 PublicLoadBalancer = true
             });
 
-        var allowHttpSecurityGroup = new SecurityGroup(this, "AllowHttpSecurityGroup", new SecurityGroupProps
+        var allowCloudfrontPrefixListSecurityGroup = new SecurityGroup(this, "AllowHttpSecurityGroup", new SecurityGroupProps
         {
             Vpc = vpc,
             SecurityGroupName = "AllowHttpSecurityGroup",
             AllowAllOutbound = true
         });
-        allowHttpSecurityGroup.AddIngressRule(Peer.AnyIpv4(), Port.Tcp(80));
-        application.LoadBalancer.AddSecurityGroup(allowHttpSecurityGroup);
+        var cloudfrontPrefixList = PrefixList.FromLookup(this, "CloudfrontOrigins", new PrefixListLookupOptions()
+        {
+            PrefixListName = "com.amazonaws.global.cloudfront.origin-facing"
+        });
+        
+        allowCloudfrontPrefixListSecurityGroup.AddIngressRule(Peer.PrefixList(cloudfrontPrefixList.PrefixListId), Port.Tcp(80));
+        application.LoadBalancer.AddSecurityGroup(allowCloudfrontPrefixListSecurityGroup);
 
         application.TaskDefinition.AddFirelensLogRouter("firelens", new FirelensLogRouterDefinitionOptions
         {
@@ -320,107 +328,29 @@ public class OrdersApi : Construct
             }
         });
 
+        var cloudfrontDistribution = new Distribution(this, "OrderApiDistribution", new DistributionProps()
+        {
+            DefaultBehavior = new BehaviorOptions()
+            {
+                Origin = new LoadBalancerV2Origin(application.LoadBalancer, new LoadBalancerV2OriginProps()
+                {
+                    ProtocolPolicy = OriginProtocolPolicy.HTTP_ONLY
+                }),
+                OriginRequestPolicy = OriginRequestPolicy.ALL_VIEWER,
+                ViewerProtocolPolicy = ViewerProtocolPolicy.ALLOW_ALL,
+                CachePolicy = CachePolicy.CACHING_DISABLED,
+                AllowedMethods = AllowedMethods.ALLOW_ALL,
+            },
+            MinimumProtocolVersion = SecurityPolicyProtocol.TLS_V1_2_2021,
+        });
+
         // Add API Gateway endpoint to parameters
         new StringParameter(this, "ApiGatewayEndpoint", new StringParameterProps
         {
             ParameterName = $"/{props.SharedProps.Env}/{props.SharedProps.ServiceName}/api-endpoint",
-            StringValue = $"http://{application.LoadBalancer.LoadBalancerDnsName}"
+            StringValue = $"http://{cloudfrontDistribution.DistributionDomainName}"
         });
-
-        CreateApiGatewayForAlb(props, application);
-
+        
         return application;
-    }
-
-    private IRestApi CreateApiGatewayForAlb(OrdersApiProps props, ApplicationLoadBalancedFargateService application)
-    {
-        var api = new RestApi(this, "OrdersApi", new RestApiProps
-        {
-            RestApiName = $"{props.SharedProps.ServiceName}-Orders-Api-{props.SharedProps.Env}",
-            Description = "API Gateway for Orders Service",
-            DeployOptions = new StageOptions
-            {
-                StageName = props.SharedProps.Env
-            },
-            DefaultCorsPreflightOptions = new CorsOptions
-            {
-                AllowOrigins = Cors.ALL_ORIGINS,
-                AllowMethods = Cors.ALL_METHODS,
-                AllowHeaders = new[] { "Content-Type", "Authorization" }
-            }
-        });
-
-        // Create integration with the ALB
-        var albDnsName = application.LoadBalancer.LoadBalancerDnsName;
-        var integration = new HttpIntegration($"http://{albDnsName}/{{proxy}}", new HttpIntegrationProps
-        {
-            HttpMethod = "ANY",
-            Proxy = true,
-            Options = new IntegrationOptions
-            {
-                IntegrationResponses = new[]
-                {
-                    new IntegrationResponse
-                    {
-                        StatusCode = "200",
-                        ResponseParameters = new Dictionary<string, string>
-                        {
-                            {
-                                "method.response.header.Access-Control-Allow-Origin", "'*'"
-                            }
-                        }
-                    }
-                },
-                RequestParameters = new Dictionary<string, string>
-                {
-                    {
-                        "integration.request.path.proxy", "method.request.path.proxy"
-                    }
-                }
-            }
-        });
-
-        // Proxy all requests to the ALB
-        var proxyResource = api.Root.AddResource("{proxy+}");
-        proxyResource.AddMethod("ANY", integration, new MethodOptions
-        {
-            RequestParameters = new Dictionary<string, bool>
-            {
-                { "method.request.path.proxy", true }
-            },
-            MethodResponses = new[]
-            {
-                new MethodResponse
-                {
-                    StatusCode = "200",
-                    ResponseParameters = new Dictionary<string, bool>
-                    {
-                        { "method.response.header.Access-Control-Allow-Origin", true }
-                    }
-                }
-            }
-        });
-
-        // Also route the root path
-        api.Root.AddMethod("ANY", integration, new MethodOptions
-        {
-            RequestParameters = new Dictionary<string, bool>
-            {
-                { "method.request.path.proxy", true }
-            },
-            MethodResponses = new[]
-            {
-                new MethodResponse
-                {
-                    StatusCode = "200",
-                    ResponseParameters = new Dictionary<string, bool>
-                    {
-                        { "method.response.header.Access-Control-Allow-Origin", true }
-                    }
-                }
-            }
-        });
-
-        return api;
     }
 }

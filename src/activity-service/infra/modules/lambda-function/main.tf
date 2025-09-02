@@ -86,18 +86,18 @@ module "aws_lambda_function" {
   version = "2.0.0"
 
   filename                 = var.zip_file
-  function_name            = "tf-node-${var.function_name}-${var.env}"
+  function_name            = "tf-python-${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = var.lambda_handler
-  runtime                  = "nodejs22.x"
+  runtime                  = "python3.13"
   memory_size              = var.memory_size
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
   source_code_hash         = filebase64sha256(var.zip_file)
   timeout                  = var.function_timeout
 
   environment_variables = merge(tomap({
-    "TEAM": "loyalty"
-    "DOMAIN": "loyalty"
+    "TEAM": "activity"
+    "DOMAIN": "activity"
     "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
     "DD_EXTENSION_VERSION" : "next"
     "DD_CAPTURE_LAMBDA_PAYLOAD" : "true"
@@ -108,7 +108,6 @@ module "aws_lambda_function" {
     "DD_VERSION" : var.app_version
     "BUILD_ID" : var.app_version
     "DD_DATA_STREAMS_ENABLED" = "true"
-    "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED" = "true"
     "DEPLOYED_AT" : timestamp()
     "ENV" : var.env
     "POWERTOOLS_SERVICE_NAME" : var.service_name
@@ -116,6 +115,6 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 83
-  datadog_node_layer_version = 125
+  datadog_extension_layer_version = 85
+  datadog_python_layer_version = 113
 }

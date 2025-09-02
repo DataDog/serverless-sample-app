@@ -31,6 +31,62 @@ Ensure you have set the below environment variables before starting deployment:
 - `AWS_REGION`: The AWS region you want to deploy to
 - `ENV`: The environment suffix you want to deploy to, this defaults to `dev`
 
+## Observability for Asynchronous Systems
+
+### Span Links
+
+The default behavious of the Datadog tracer when working with serverless is to automatically create parent-child relationships. For example, if you consume a message from Amazon SNS and that message contains the `_datadog` trace context, the context is automatically extracted and your Lambda handler is set as a child of the upstream call.
+
+This is useful in some cases, but can cause more confusion by creating traces that are extremely long, or have hundreds of spans underneath them. [Span Links](https://docs.datadoghq.com/tracing/trace_collection/span_links/) are an alternative approach that link together causally related spans, that you don't neccessarily want to include as a parent-child relationship. This can be useful when events are crossing service boundaries, or if you're processing a batch of messages.
+
+To configure Span Links, you can see an example in the [`main.go` handler on line 93](./src/product-acl/inventory-stock-updated-event-handler/main.go#93). The trace and span ID's are parsed from the inbound event, and then used to create a link to the upstream context.
+
+```go
+var spanLinks []ddtrace.SpanLink
+
+if evt.TraceParent != "" {
+  // Split the traceparent header to extract trace ID and span ID. The traceparent should be a valid W3C trace context.
+  parts := strings.Split(evt.TraceParent, "-")
+
+  if len(parts) == 4 {
+    traceId, err := strconv.ParseUint(parts[1], 16, 64)
+    if err == nil {
+      spanId, err := strconv.ParseUint(parts[2], 16, 64)
+      if err == nil {
+        spanLinks = append(spanLinks, ddtrace.SpanLink{
+          TraceID: traceId,
+          SpanID:  spanId,
+        })
+      }
+    }
+  }
+}
+
+processSpan, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(spanLinks), tracer.ChildOf(span.Context()))
+```
+
+For this to work, you must also set the below three environment variables on your Lambda function to disable automatic propagation.
+
+```py
+'DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT': "none",
+# This flag disables automatic propagation of traces from incoming events.
+'DD_TRACE_PROPAGATION_STYLE_EXTRACT': 'false',
+```
+
+### Semantic Conventions
+
+The [Open Telemetry Semantic Conventions for Messaging Spans](https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/) define a set of best practices that all spans related to messaging should follow.
+
+You can see examples of this in [`main.go` handler on line 116](./src/product-acl/inventory-stock-updated-event-handler/main.go#116) for starting a span and [here for adding the default attributes](./src/product-acl/inventory-stock-updated-event-handler/main.go#119).
+
+### Datadog Data Streams Monitoring
+
+The service also demonstrates the use of [Datadog Data Streams Monitoring (DSM)](https://docs.datadoghq.com/data_streams/). DSM doesn't support all messaging transports automatically, so manual checkpoint is used to record both the *in* and *out* message channels. An example can be found in [the `main.go`](./src/product-acl/inventory-stock-updated-event-handler/main.go#113).
+
+```go
+_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{ServiceOverride: "productservice-acl",}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
+```
+
 ## AWS CDK
 
 The [Datadog CDK Construct](https://docs.datadoghq.com/serverless/libraries_integrations/cdk/) simplifies the setup when instrumenting with Datadog. To get started:
@@ -176,7 +232,7 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 83
+  datadog_extension_layer_version = 85
 }
 ```
 

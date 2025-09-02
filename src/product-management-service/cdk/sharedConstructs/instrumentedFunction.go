@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
 	"github.com/aws/aws-cdk-go/awscdklambdagoalpha/v2"
@@ -24,6 +25,7 @@ type InstrumentedFunctionProps struct {
 	Entry                string
 	EnvironmentVariables map[string]*string
 	MemorySize           float64
+	Timeout              awscdk.Duration
 }
 
 type InstrumentedFunction struct {
@@ -36,7 +38,6 @@ func NewInstrumentedFunction(scope constructs.Construct, id string, props *Instr
 	defaultEnvironmentVariables := make(map[string]*string)
 	defaultEnvironmentVariables["ENV"] = jsii.String(props.SharedProps.Env)
 	defaultEnvironmentVariables["DD_DATA_STREAMS_ENABLED"] = jsii.String("true")
-	defaultEnvironmentVariables["DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED"] = jsii.String("true")
 	defaultEnvironmentVariables["DD_FLUSH_TO_LOG"] = jsii.String("true")
 	defaultEnvironmentVariables["DD_TRACE_ENABLED"] = jsii.String("true")
 	defaultEnvironmentVariables["DD_APM_REPLACE_TAGS"] = jsii.String(`[
@@ -74,6 +75,7 @@ func NewInstrumentedFunction(scope constructs.Construct, id string, props *Instr
 		Environment:  &defaultEnvironmentVariables,
 		Architecture: awslambda.Architecture_ARM_64(),
 		Tracing:      awslambda.Tracing_ACTIVE,
+		Timeout:      props.Timeout,
 	})
 
 	// The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs

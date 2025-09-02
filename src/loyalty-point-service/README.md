@@ -17,6 +17,72 @@ The repo includes an integration test that hits all 4 of the CRUD API endpoints.
 npm run test -- product-service
 ```
 
+## Observability for Asynchronous Systems
+
+### Span Links
+
+The default behavious of the Datadog tracer when working with serverless is to automatically create parent-child relationships. For example, if you consume a message from Amazon SNS and that message contains the `_datadog` trace context, the context is automatically extracted and your Lambda handler is set as a child of the upstream call.
+
+This is useful in some cases, but can cause more confusion by creating traces that are extremely long, or have hundreds of spans underneath them. [Span Links](https://docs.datadoghq.com/tracing/trace_collection/span_links/) are an alternative approach that link together causally related spans, that you don't neccessarily want to include as a parent-child relationship. This can be useful when events are crossing service boundaries, or if you're processing a batch of messages.
+
+To configure Span Links, you can see an example in the [`observability.ts` file on line 61](./src/observability/observability.ts#L61). The trace and span ID's are parsed from the inbound event, and then used to create a link to the upstream context.
+
+```ts
+if (evt.traceparent !== undefined && evt.traceparent !== undefined) {
+  const manualContext = new ManualContext(evt.traceparent!.toString());
+
+  messageProcessingSpan.addLink(manualContext);
+}
+
+class ManualContext implements SpanContext {
+  private traceId: string;
+  private spanId: string;
+  private traceParent: string;
+
+  constructor(traceParent: string) {
+    this.traceParent = traceParent;
+    const splitParent = traceParent.split("-");
+    this.traceId = splitParent[1];
+    this.spanId = splitParent[2];
+  }
+
+  toTraceId(): string {
+    return this.traceId;
+  }
+  toSpanId(): string {
+    return this.spanId;
+  }
+  toTraceparent(): string {
+    return this.traceParent;
+  }
+}
+```
+
+For this to work, you must also set the below two environment variables on your Lambda function to disable automatic propagation.
+
+```ts
+'DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT': "none",
+'DD_TRACE_PROPAGATION_STYLE_EXTRACT': 'false',
+```
+
+### Semantic Conventions
+
+The [Open Telemetry Semantic Conventions for Messaging Spans](https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/) define a set of best practices that all spans related to messaging should follow.
+
+You can see examples of this in [the `observability.ts`](./src/observability/observability.ts#L77) for starting a span and [here for adding the default attributes](./src/observability/observability.ts#L89).
+
+### Datadog Data Streams Monitoring
+
+The loyalty point service also demonstrates the use of [Datadog Data Streams Monitoring (DSM)](https://docs.datadoghq.com/data_streams/). DSM doesn't support all messaging transports automatically, so manual checkpoint is used to record both the *in* and *out* message channels. An example can be found in [observability.ts](./src/observability/observability.ts#L82).
+
+```ts
+tracer.dataStreamsCheckpointer.setProduceCheckpoint(
+  "sns",
+  evt.type,
+  headers
+);
+```
+
 ## AWS CDK
 
 The [Datadog CDK Construct](https://docs.datadoghq.com/serverless/libraries_integrations/cdk/) simplifies the setup when instrumenting with Datadog. To get started:
@@ -29,8 +95,8 @@ Once installed, you can use the Construct to configure all of your Datadog setti
 
 ```typescript
 const datadogConfiguration = new Datadog(this, "Datadog", {
-  nodeLayerVersion: 125,
-  extensionLayerVersion: '83'
+  nodeLayerVersion: 127,
+  extensionLayerVersion: '85'
   site: process.env.DD_SITE,
   apiKeySecret: ddApiKey,
   service,
@@ -171,8 +237,8 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 83
-  datadog_node_layer_version      = 125
+  datadog_extension_layer_version = 85
+  datadog_node_layer_version      = 127
 }
 ```
 

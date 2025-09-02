@@ -10,14 +10,14 @@
         <version>1.0.1-SNAPSHOT</version>
     </parent>
     <properties>
-        <compiler-plugin.version>3.13.0</compiler-plugin.version>
+        <compiler-plugin.version>3.14.0</compiler-plugin.version>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.version>3.24.1</quarkus.platform.version>
-        <aws.sdk.version>2.31.74</aws.sdk.version>
+        <aws.sdk.version>2.32.13</aws.sdk.version>
         <skipITs>true</skipITs>
         <surefire-plugin.version>3.5.3</surefire-plugin.version>
     </properties>
@@ -84,8 +84,18 @@
             <version>0.33.0</version>
         </dependency>
         <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
+            <version>1.52.0</version>
+        </dependency>
+        <dependency>
             <groupId>com.datadoghq</groupId>
             <artifactId>dd-trace-api</artifactId>
+            <version>1.49.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datadoghq</groupId>
+            <artifactId>dd-trace-ot</artifactId>
             <version>1.49.0</version>
         </dependency>
         <dependency>
@@ -121,7 +131,7 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>1.21.1</version>
+            <version>1.21.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>

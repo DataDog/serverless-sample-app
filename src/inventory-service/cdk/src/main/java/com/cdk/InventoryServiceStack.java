@@ -36,7 +36,7 @@ public class InventoryServiceStack extends Stack {
 
         ISecret ddApiKeySecret = new Secret(this, "DDApiKeySecret",
                 SecretProps.builder()
-                        .secretName(String.format("%s/%s/dd-api-key", env, serviceName))
+                        .secretName(String.format("/%s/%s/dd-api-key", env, serviceName))
                         .secretStringValue(new SecretValue(ddApiKey))
                         .build());
 

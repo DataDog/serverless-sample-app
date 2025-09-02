@@ -29,7 +29,8 @@ public class OrdersBackgroundWorker : Construct
         var environmentVariables = new Dictionary<string, string>(2)
         {
             { "EVENT_BUS_NAME", props.ServiceProps.OrdersEventBus.EventBusName },
-            { "TABLE_NAME", props.OrdersTable.TableName }
+            { "TABLE_NAME", props.OrdersTable.TableName },
+            { "DD_TRACE_OTEL_ENABLED", "true" },
         };
 
         var describeEventBusPolicy = new Policy(this, "DescribeEventBusPolicy", new PolicyProps()

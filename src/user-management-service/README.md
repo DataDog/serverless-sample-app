@@ -33,6 +33,48 @@ tracing::Span::current().set_parent(inflight_ctx.clone());
 
 This README contains relevant instructions for deploying the sample application with each of the available IaC tools. As well as details on any Node specific implementation details when instrumenting with Datadog.
 
+## Observability for Asynchronous Systems
+
+### Span Links
+
+The default behavious of the Datadog tracer when working with serverless is to automatically create parent-child relationships. For example, if you consume a message from Amazon SNS and that message contains the `_datadog` trace context, the context is automatically extracted and your Lambda handler is set as a child of the upstream call.
+
+This is useful in some cases, but can cause more confusion by creating traces that are extremely long, or have hundreds of spans underneath them. [Span Links](https://docs.datadoghq.com/tracing/trace_collection/span_links/) are an alternative approach that link together causally related spans, that you don't neccessarily want to include as a parent-child relationship. This can be useful when events are crossing service boundaries, or if you're processing a batch of messages.
+
+To configure Span Links, you can see an example in [`event_bridge.rs` on line 40](./src/observability/src/spans/event_bridge.rs#40). The trace and span ID's are parsed from the inbound event, and then used to create a link to the upstream context.
+
+```rust
+let mut span_links = vec![];
+let span_link = cloud_event.generate_span_link();
+
+if let Some(span_link) = span_link {
+    span_links.push(span_link);
+}
+
+let mut span: global::BoxedSpan = tracer
+    .span_builder(
+        record
+            .source
+            .clone()
+            .unwrap_or("aws.eventbridge".to_string()),
+    )
+    .with_kind(SpanKind::Internal)
+    .with_start_time(record.time)
+    .with_end_time(end_time)
+    .with_links(span_links)
+    .start_with_context(&tracer, &current_span);
+
+if cloud_event.remote_span_context.is_some() {
+    span.add_link(cloud_event.remote_span_context.clone().unwrap(), vec![]);
+}
+```
+
+### Semantic Conventions
+
+The [Open Telemetry Semantic Conventions for Messaging Spans](https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/) define a set of best practices that all spans related to messaging should follow.
+
+You can see examples of this in [`handler.rs` handler on line 26](./src/user-management/lambdas/handle_order_completed_for_user/src/handler.rs#L26) for starting a span and [here for adding the default attributes](./src/user-management/lambdas/handle_order_completed_for_user/src/handler.rs#L34).
+
 ## AWS CDK
 
 **There is no CDK for Rust. The CDK implementation uses `NodeJS` for the IaC, and Rust for the application code**
@@ -47,8 +89,8 @@ Once installed, you can use the Construct to configure all of your Datadog setti
 
 ```typescript
 const datadogConfiguration = new Datadog(this, "Datadog", {
-  nodeLayerVersion: 125,
-  extensionLayerVersion: 83,
+  nodeLayerVersion: 127,
+  extensionLayerVersion: 85,
   site: process.env.DD_SITE,
   apiKeySecret: ddApiKey,
   service,
@@ -195,7 +237,7 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 83
+  datadog_extension_layer_version = 85
 }
 ```
 

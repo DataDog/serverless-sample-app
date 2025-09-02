@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aws_lambda_events = "0.16.0"
+aws_lambda_events = "0.18.0"
 lambda_http = "0.15"
 serde = { version = "1.0.218", features = ["derive"] }
 uuid = { version = "1.16.0", features = ["v4"] }

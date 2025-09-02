@@ -30,7 +30,7 @@ Globals:
     Timeout: 29
     MemorySize: 512
     Layers:
-      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:80
+      - !Sub arn:aws:lambda:${AWS::Region}:464622532012:layer:Datadog-Extension:85
     Environment:
       Variables:
         ENV: !Ref Env
@@ -42,7 +42,6 @@ Globals:
         TABLE_NAME: !Ref UserTable
         RUST_LOG: "info"
         DD_DATA_STREAMS_ENABLED: "true"
-        DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true"
     Architectures:
       - x86_64
   HttpApi:

@@ -12,7 +12,6 @@ import { SharedProps } from "../constructs/sharedFunctionProps";
 import { Api } from "./api";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { PricingServiceProps } from "./pricingServiceProps";
-import { PricingEventHandlers } from "./pricingEventHandlers";
 
 // no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class PricingApiStack extends cdk.Stack {
@@ -45,7 +44,7 @@ export class PricingApiStack extends cdk.Stack {
       jwtSecret: pricingServiceProps.getJwtSecret(),
     });
 
-    // Paste PricingEventHandlers here.
+    // Paste event handlers configuration here
 
     const apiEndpoint = new StringParameter(this, "PricingAPIEndpoint", {
       parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/api-endpoint`,

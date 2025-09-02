@@ -105,12 +105,11 @@ module "aws_lambda_function" {
     "AWS_LAMBDA_EXEC_WRAPPER": "/opt/datadog_wrapper"
     "DD_LOGS_INJECTION": "true"
     "DD_DATA_STREAMS_ENABLED" = "true"
-    "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED" = "true"
     "POWERTOOLS_SERVICE_NAME": var.service_name
     "POWERTOOLS_LOG_LEVEL": "DEBUG"}),
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 83
+  datadog_extension_layer_version = 85
   datadog_dotnet_layer_version      = 20
 }

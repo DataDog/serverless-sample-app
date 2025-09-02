@@ -25,6 +25,31 @@ Ensure you have set the below environment variables before starting deployment:
 - `AWS_REGION`: The AWS region you want to deploy to
 - `ENV`: The environment suffix you want to deploy to, this defaults to `dev`
 
+## Observability for Asynchronous Systems
+
+### Span Links
+
+*Add Span Links Example*
+
+### Semantic Conventions
+
+The [Open Telemetry Semantic Conventions for Messaging Spans](https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/) define a set of best practices that all spans related to messaging should follow.
+
+You can see examples of this in [the `EventBridgeEventPublisher.cs`](./src/Orders.Core/Adapters/EventBridgeEventPublisher.cs#L27) for starting a span and [the `MessagingExtensions.cs` for adding the default attributes](./src/Orders.Core/Adapters/MessagingExtensions.cs#L46).
+
+### Datadog Data Streams Monitoring
+
+The service also demonstrates the use of [Datadog Data Streams Monitoring (DSM)](https://docs.datadoghq.com/data_streams/). DSM doesn't support all messaging transports automatically, so manual checkpoint is used to record both the _in_ and _out_ message channels. An example can be found in [the `EventBridgeEventPublisher.cs`](./src/Orders.Core/Adapters/EventBridgeEventPublisher.cs#L37).
+
+```c#
+new SpanContextInjector().InjectIncludingDsm(
+  evt.Detail,
+  SetHeader,
+  scope.Span.Context,
+  "sns",
+  evt.DetailType);
+```
+
 ## AWS CDK
 
 When using .NET as your language of choice with the AWS CDK, you can use the `Amazon.CDK.AWS.Lambda.DotNet` Nuget package to compile your Lambda Functions. This Nuget package provides a `DotNetFunction` class that handles the compilation of your .NET code.
@@ -74,9 +99,9 @@ cdk deploy --all --require-approval never
 
 Alternatively, if you have `make` installed you can simply run:
 
-``sh
+`sh
 make cdk-deploy
-``
+`
 
 ### Cleanup
 
@@ -98,7 +123,7 @@ Transform:
       stackName: !Ref "AWS::StackName"
       apiKey: !Ref DDApiKey
       dotnetLayerVersion: "20"
-      extensionLayerVersion: '83'
+      extensionLayerVersion: "83"
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -171,13 +196,14 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 83
+  datadog_extension_layer_version = 85
   datadog_dotnet_layer_version      = 20
 }
 ```
 
 ### Deploy
-The root of the repository contains a  Makefile, this will compile all .NET code, generate the ZIP files and run `terraform apply`. To deploy the Terraform example, simply run:
+
+The root of the repository contains a Makefile, this will compile all .NET code, generate the ZIP files and run `terraform apply`. To deploy the Terraform example, simply run:
 
 ```sh
 export TF_STATE_BUCKET_NAME=<THE NAME OF THE S3 BUCKET>

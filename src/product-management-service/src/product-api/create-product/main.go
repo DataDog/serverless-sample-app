@@ -21,7 +21,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/sns"
 
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
@@ -36,7 +35,7 @@ var (
 	dSqlProductRepository, _ = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
 	handler                  = core.NewCreateProductCommandHandler(
 		dSqlProductRepository,
-		adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg)))
+		dSqlProductRepository)
 	authenticator = adapters.NewAuthenticator(context.Background(), *ssm.NewFromConfig(awsCfg))
 )
 
@@ -50,7 +49,11 @@ func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest)
 	body := []byte(request.Body)
 
 	var command core.CreateProductCommand
-	json.Unmarshal(body, &command)
+	jsonErr := json.Unmarshal(body, &command)
+
+	if jsonErr != nil {
+		return utils.GenerateApiResponseForError(jsonErr)
+	}
 
 	res, err := handler.Handle(ctx, command)
 
