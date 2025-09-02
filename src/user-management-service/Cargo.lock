@@ -515,22 +515,6 @@ dependencies = [
 
 [[package]]
 name = "aws_lambda_events"
-version = "0.16.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "144ec7565561115498a288850cc6a42b279e09b6c4b88f623eecb9c8ca96c08c"
-dependencies = [
- "base64 0.22.1",
- "bytes",
- "http 1.1.0",
- "http-body 1.0.1",
- "http-serde",
- "query_map",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "aws_lambda_events"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "831de96bc2c9d2e570664f4f016c8d56d86ce2a58b3a1d6268c4ba2f269684fe"
@@ -1163,7 +1147,7 @@ dependencies = [
  "async-trait",
  "aws-config",
  "aws-sdk-dynamodb",
- "aws_lambda_events 0.18.0",
+ "aws_lambda_events",
  "lambda_runtime",
  "observability",
  "opentelemetry",
@@ -1625,15 +1609,13 @@ dependencies = [
 
 [[package]]
 name = "lambda_http"
-version = "0.15.1"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8dfc9f1bd9a56576319c1fe37f84e8551c9f9757f7f2307aa03c5b5d4a3c4d1c"
+checksum = "c11fef0236dc427a2968c701697ae2ed3353cd6936be4d4f9ab471b0d6cf753b"
 dependencies = [
- "aws_lambda_events 0.16.1",
- "base64 0.22.1",
+ "aws_lambda_events",
  "bytes",
  "encoding_rs",
- "futures",
  "futures-util",
  "http 1.1.0",
  "http-body 1.0.1",
@@ -1984,7 +1966,7 @@ dependencies = [
 name = "observability"
 version = "0.1.0"
 dependencies = [
- "aws_lambda_events 0.18.0",
+ "aws_lambda_events",
  "lambda_http",
  "opentelemetry",
  "opentelemetry-datadog",
