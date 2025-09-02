@@ -20,9 +20,9 @@
         <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
         <PackageReference Include="Amazon.Lambda.Annotations" Version="1.7.0" />
         <PackageReference Include="AWS.Lambda.Powertools.Logging" Version="2.0.2" />
-        <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.408.1" />
-        <PackageReference Include="Datadog.Trace" Version="3.20.0" />
-        <PackageReference Include="NJsonSchema" Version="11.3.2" />
+        <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.3.1" />
+        <PackageReference Include="Datadog.Trace" Version="3.22.0" />
+        <PackageReference Include="NJsonSchema" Version="11.4.0" />
     </ItemGroup>
     <ItemGroup>
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
