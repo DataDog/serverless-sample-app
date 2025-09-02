@@ -9,7 +9,7 @@
 
     <ItemGroup>
         <PackageReference Include="Amazon.Lambda.CloudWatchEvents" Version="4.4.0" />
-        <PackageReference Include="AWSSDK.EventBridge" Version="3.7.406.1" />
+        <PackageReference Include="AWSSDK.EventBridge" Version="4.0.4.1" />
         <PackageReference Include="coverlet.collector" Version="6.0.4">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
