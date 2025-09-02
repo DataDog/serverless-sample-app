@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 observability = {path = "../../../observability"}
 shared = { path = "../../core" }
-lambda_http = "0.15"
+lambda_http = "0.17"
 aws-config = { version = "1.5", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1.67"
 aws-sdk-ssm = "1.67"

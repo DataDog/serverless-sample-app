@@ -14,7 +14,7 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^22.13.14",
     "aws-cdk": "2.1006.0",
-    "aws-cdk-lib": "^2.186.0",
+    "aws-cdk-lib": "^2.213.0",
     "cargo-lambda-cdk": "^0.0.33",
     "constructs": "^10.4.2",
     "datadog-cdk-constructs-v2": "^2.2.0",
@@ -22,12 +22,12 @@
     "serverless-plugin-datadog": "^5.88.0",
     "serverless-plugin-resource-tagging": "^1.2.0",
     "source-map-support": "^0.5.21",
-    "ts-jest": "^29.3.1",
+    "ts-jest": "^29.4.1",
     "ts-node": "^10.9.2",
     "typescript": "~5.8.2"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.171.1",
+    "aws-cdk-lib": "2.213.0",
     "constructs": "^10.0.0",
     "serverless-plugin-datadog": "^5.80.0",
     "serverless-plugin-resource-tagging": "^1.2.0",
