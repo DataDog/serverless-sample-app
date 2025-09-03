@@ -2788,7 +2788,7 @@ dependencies = [
  "async-trait",
  "aws-sdk-dynamodb",
  "aws-sdk-eventbridge",
- "base64 0.21.7",
+ "base64 0.22.1",
  "chrono",
  "jsonwebtoken",
  "lambda_http",
