@@ -1310,14 +1310,14 @@ reports = ["lxml"]
 
 [[package]]
 name = "mypy-boto3-dynamodb"
-version = "1.39.0"
-description = "Type annotations for boto3 DynamoDB 1.39.0 service generated with mypy-boto3-builder 8.11.0"
+version = "1.40.20"
+description = "Type annotations for boto3 DynamoDB 1.40.20 service generated with mypy-boto3-builder 8.11.0"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "mypy_boto3_dynamodb-1.39.0-py3-none-any.whl", hash = "sha256:3a136f9d764fa5e1b2ff464fa9599533fd00e65affe47bd28a40d920ece707a4"},
-    {file = "mypy_boto3_dynamodb-1.39.0.tar.gz", hash = "sha256:c3bafc7b4f8d59bac9a7436c7ccfb6fe32991bc7fc88c62264eaad06ae63f8a8"},
+    {file = "mypy_boto3_dynamodb-1.40.20-py3-none-any.whl", hash = "sha256:276f12132b19e5cd9c8c2e551899128acfad39fb56fc77c7e0b005b29d86c844"},
+    {file = "mypy_boto3_dynamodb-1.40.20.tar.gz", hash = "sha256:2f424315d299ccf0b3b4e3b2b2300f90f09cd0b7c69fc473d0cdc0b6be6c30d6"},
 ]
 
 [[package]]
@@ -2287,4 +2287,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.13.0"
-content-hash = "00b42e6be261fac7f27ea3b25d31441f947c3993f96ad0590d0efc362e930c4b"
+content-hash = "5bfef3625b19d4e2ebb440fb11a5b7ee3140263bbb6514b717c4ca4a699c0c4a"
