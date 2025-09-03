@@ -88,7 +88,6 @@ export class InstrumentedLambdaFunction extends Construct {
         target: "node22",
       },
     });
-    this.function.logGroup.applyRemovalPolicy(RemovalPolicy.DESTROY);
 
     const kmsAlias = Alias.fromAliasName(this, "SSMAlias", "aws/ssm");
     kmsAlias.grantDecrypt(this.function);
