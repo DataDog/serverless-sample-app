@@ -14,7 +14,7 @@ jsonwebtoken = "9.3"
 chrono = "0.4.41"
 uuid = { version = "1.10", features = ["v4"] }
 sha2 = "0.10"
-base64 = "0.21"
+base64 = "0.22"
 
 thiserror = {workspace = true}
 serde = {workspace = true}
