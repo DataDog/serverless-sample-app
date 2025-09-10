@@ -167,7 +167,6 @@ export class PricingEventHandlers extends Construct {
         },
       }
     );
-    handleProductUpdatedFunction.logGroup.applyRemovalPolicy(RemovalPolicy.DESTROY);
 
     props.serviceProps
       .getPublisherBus()
