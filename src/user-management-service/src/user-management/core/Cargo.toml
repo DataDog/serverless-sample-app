@@ -11,7 +11,7 @@ aws-sdk-eventbridge = "1.64"
 async-trait = "0.1"
 argon2 = "0.5.3"
 jsonwebtoken = "9.3"
-chrono = "0.4.41"
+chrono = "0.4.42"
 uuid = { version = "1.10", features = ["v4"] }
 sha2 = "0.10"
 base64 = "0.22"
