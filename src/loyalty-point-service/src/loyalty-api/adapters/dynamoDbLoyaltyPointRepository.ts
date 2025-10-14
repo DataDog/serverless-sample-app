@@ -12,16 +12,15 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { loyaltyPointRepository } from "../core/loyaltyPointRepository";
 import { LoyaltyPoints } from "../core/loyaltyPoints";
-import { Table } from "sst/constructs";
 import { Logger } from "@aws-lambda-powertools/logger";
 
 export class DynamoDbLoyaltyPointRepository implements loyaltyPointRepository {
   private client: DynamoDBClient;
   private logger: Logger;
 
-  constructor(client: DynamoDBClient) {
+  constructor(client: DynamoDBClient, logger: Logger) {
     this.client = client;
-    this.logger = new Logger();
+    this.logger = logger;
   }
   async forUser(userId: string): Promise<LoyaltyPoints | undefined> {
     this.logger.info("Getting loyalty points for user", { userId });
@@ -29,7 +28,7 @@ export class DynamoDbLoyaltyPointRepository implements loyaltyPointRepository {
     const params = {
       TableName: process.env.TABLE_NAME,
       Key: {
-        "PK": {
+        PK: {
           S: userId,
         },
       },

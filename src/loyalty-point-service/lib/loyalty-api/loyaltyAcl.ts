@@ -56,7 +56,7 @@ export class LoyaltyACL extends Construct {
           TABLE_NAME: props.loyaltyTable.tableName,
           DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${props.loyaltyTable.tableName}": ["PK"]}`,
           DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "none",
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "false",
+          // DD_TRACE_PROPAGATION_STYLE_EXTRACT: "false",
         },
         buildDef:
           "./src/loyalty-api/adapters/buildHandleUserCreatedFunction.js",
@@ -100,7 +100,7 @@ export class LoyaltyACL extends Construct {
           TABLE_NAME: props.loyaltyTable.tableName,
           DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${props.loyaltyTable.tableName}": ["PK"]}`,
           DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "none",
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "false",
+          //DD_TRACE_PROPAGATION_STYLE_EXTRACT: "false",
         },
         buildDef:
           "./src/loyalty-api/adapters/buildHandleOrderCompletedFunction.js",
@@ -117,7 +117,7 @@ export class LoyaltyACL extends Construct {
     );
 
     const rule = props.serviceProps.addSubscriptionRule(this, `${props.serviceProps.getSharedProps().serviceName}-OrderCompleted`, {
-      detailType: ["orders.orderCompleted.v1"],
+      detailType: ["orders.orderCompleted.v1", "orders.orderCompleted.v2"],
       source: [`${props.serviceProps.getSharedProps().environment}.orders`],
     });
     rule.addTarget(new SqsQueue(this.orderCompletedEventQueue));

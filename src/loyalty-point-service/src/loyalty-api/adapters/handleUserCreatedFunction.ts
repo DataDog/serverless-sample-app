@@ -23,11 +23,11 @@ import { UpdatePointsCommandHandler } from "../core/update-points/update-points-
 import { DynamoDbLoyaltyPointRepository } from "./dynamoDbLoyaltyPointRepository";
 import { UserCreatedEventV1 } from "../core/events/userCreatedEventV1";
 
+const logger = new Logger({});
 const dynamoDbClient = new DynamoDBClient();
 const updatePointsCommandHandler = new UpdatePointsCommandHandler(
-  new DynamoDbLoyaltyPointRepository(dynamoDbClient)
+  new DynamoDbLoyaltyPointRepository(dynamoDbClient, logger)
 );
-const logger = new Logger({});
 
 export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
   const mainSpan = tracer.scope().active()!;

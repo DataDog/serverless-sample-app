@@ -15,11 +15,11 @@ import { DynamoDbLoyaltyPointRepository } from "./dynamoDbLoyaltyPointRepository
 import { JwtPayload, verify } from "jsonwebtoken";
 import { Logger } from "@aws-lambda-powertools/logger";
 
+const logger = new Logger({});
 const dynamoDbClient = new DynamoDBClient();
 const queryHandler = new GetProductHandler(
-  new DynamoDbLoyaltyPointRepository(dynamoDbClient)
+  new DynamoDbLoyaltyPointRepository(dynamoDbClient, logger)
 );
-const logger = new Logger({});
 
 export const handler = async (
   event: APIGatewayProxyEventV2

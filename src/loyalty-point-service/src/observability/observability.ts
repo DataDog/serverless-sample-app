@@ -29,7 +29,7 @@ export function startProcessSpanWithSemanticConventions(
     childOf: conventions.parentSpan ?? undefined,
   });
   const headers = {};
-  tracer.dataStreamsCheckpointer.setConsumeCheckpoint("sns", evt.type, headers);
+  tracer.dataStreamsCheckpointer.setConsumeCheckpoint("sqs", evt.type, headers);
 
   try {
     messageProcessingSpan.addTags({

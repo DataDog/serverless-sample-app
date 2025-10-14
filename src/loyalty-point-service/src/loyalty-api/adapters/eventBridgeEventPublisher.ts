@@ -20,6 +20,7 @@ import {
   startPublishSpanWithSemanticConventions,
 } from "../../observability/observability";
 import { LoyaltyPointsAddedV1 } from "../core/events/loyaltyPointsUpdatedV1";
+import { LoyaltyPointsAddedV2 } from "../core/events/loyaltyPointsUpdatedV2";
 
 export class EventBridgeEventPublisher implements EventPublisher {
   private client: EventBridgeClient;
@@ -31,18 +32,32 @@ export class EventBridgeEventPublisher implements EventPublisher {
     this.textEncoder = new TextEncoder();
     this.logger = new Logger({});
   }
-  async publishLoyaltyPointsUpdated(evt: LoyaltyPointsAddedV1): Promise<void> {
+  async publishLoyaltyPointsUpdated(evt: LoyaltyPointsAddedV2): Promise<void> {
     const parentSpan = tracer.scope().active();
 
     let messagingSpan: Span | undefined = undefined;
 
     try {
-      const cloudEventWrapper = new CloudEvent({
+      // Still publish V2 for backwards compatibility, with a depreciation date.
+      const v1Event: LoyaltyPointsAddedV1 = {
+        newPointsTotal: evt.totalPoints,
+        userId: evt.userId,
+      };
+      const v1CloudEventWrapper = new CloudEvent({
         source: process.env.DOMAIN,
         type: "loyalty.pointsAdded.v1",
         datacontenttype: "application/json",
-        data: evt,
+        data: v1Event,
         traceparent: parentSpan?.context().toTraceparent(),
+        deprecationdate: new Date(2025, 11, 31).toISOString(),
+      });
+
+      const cloudEventWrapper = new CloudEvent({
+        source: process.env.DOMAIN,
+        type: "loyalty.pointsAdded.v2",
+        datacontenttype: "application/json",
+        data: evt,
+        traceparent: parentSpan?.context().toTraceparent()
       });
 
       messagingSpan = startPublishSpanWithSemanticConventions(
@@ -58,8 +73,14 @@ export class EventBridgeEventPublisher implements EventPublisher {
       const evtEntries: PutEventsRequestEntry[] = [
         {
           EventBusName: process.env.EVENT_BUS_NAME,
-          Detail: JSON.stringify(cloudEventWrapper),
+          Detail: JSON.stringify(v1CloudEventWrapper),
           DetailType: "loyalty.pointsAdded.v1",
+          Source: `${process.env.ENV}.loyalty`,
+        },
+        {
+          EventBusName: process.env.EVENT_BUS_NAME,
+          Detail: JSON.stringify(cloudEventWrapper),
+          DetailType: "loyalty.pointsAdded.v2",
           Source: `${process.env.ENV}.loyalty`,
         },
       ];
@@ -67,7 +88,7 @@ export class EventBridgeEventPublisher implements EventPublisher {
       const headers = {};
       tracer.dataStreamsCheckpointer.setProduceCheckpoint(
         "sns",
-        "loyalty.pointsAdded.v1",
+        "loyalty.pointsAdded.v2",
         headers
       );
 

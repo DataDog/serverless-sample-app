@@ -1,4 +1,4 @@
-.PHONY: dev lint mypy-lint complex coverage pre-commit sort deploy destroy deps unit infra-tests integration e2e coverage-tests docs lint-docs build build-terraform terraform-deploy terraform-destroy format format-fix compare-openapi openapi pr watch update-deps
+.PHONY: dev lint mypy-lint complex coverage sort deploy destroy deps unit infra-tests integration e2e coverage-tests docs lint-docs build build-terraform terraform-deploy terraform-destroy format format-fix compare-openapi openapi pr watch update-deps
 PYTHON := ".venv/bin/python3"
 .ONESHELL:  # run all commands in a single shell, ensuring it runs within a local virtual env
 
@@ -8,8 +8,7 @@ LATEST_OPENAPI := openapi_latest.json
 
 
 dev:
-	pip install --upgrade pip pre-commit poetry
-	pre-commit install
+	pip install --upgrade pip poetry
 	poetry config --local virtualenvs.in-project true
 	poetry install --no-root
 	poetry self add poetry-plugin-export
@@ -30,9 +29,6 @@ complex:
 	poetry run radon cc -e 'tests/*,cdk.out/*,node_modules/*' .
 	@echo "Running xenon"
 	poetry run xenon --max-absolute B --max-modules A --max-average A -e 'tests/*,.venv/*,cdk.out/*,node_modules/*' .
-
-pre-commit:
-	poetry run pre-commit run -a --show-diff-on-failure
 
 mypy-lint:
 	poetry run mypy --pretty activity_service cdk tests
@@ -57,7 +53,7 @@ build-terraform: build
 integration-test:
 	poetry run pytest tests/integration  --cov-config=.coveragerc --cov=activity_service --cov-report xml
 
-pr: deps format pre-commit complex lint lint-docs unit deploy coverage-tests e2e openapi
+pr: deps format complex lint lint-docs unit deploy coverage-tests e2e openapi
 
 coverage-tests:
 	poetry run pytest tests/unit tests/integration  --cov-config=.coveragerc --cov=activity_service --cov-report xml
@@ -79,7 +75,6 @@ watch:
 
 update-deps:
 	poetry update
-	pre-commit autoupdate
 	npm i --package-lock-only
 
 sam: build

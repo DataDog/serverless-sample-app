@@ -40,23 +40,19 @@ async function processLoyaltyPointsRecord(
   activeSpan: Span,
   record: DynamoDBRecord
 ): Promise<void> {
-  const messageProcessingSpan = tracer.startSpan(
-    "processLoyaltyPointsRecord",
-    {
-      childOf: activeSpan,
-      tags: {
-        "messaging.operation.type": "process",
-        "messaging.system": "dynamodb",
-        "messaging.destination": record.eventSource,
-        "messaging.destination_kind": "stream",
-        "messaging.message_id": record.eventID,
-        "messaging.message_type": record.eventName,
-      },
-    }
-  );
+  const messageProcessingSpan = tracer.startSpan("processLoyaltyPointsRecord", {
+    childOf: activeSpan,
+    tags: {
+      "messaging.operation.type": "process",
+      "messaging.system": "dynamodb",
+      "messaging.destination": record.eventSource,
+      "messaging.destination_kind": "stream",
+      "messaging.message_id": record.eventID,
+      "messaging.message_type": record.eventName,
+    },
+  });
 
   if (!record.dynamodb?.NewImage) {
-    
     logger.info("No new image found in the record, skipping");
     return;
   }
@@ -71,18 +67,16 @@ async function processLoyaltyPointsRecord(
       JSON.parse(loyaltyData["Orders"].S!)
     );
 
-    
-
     await eventPublisher.publishLoyaltyPointsUpdated({
       userId: loyaltyAccount.userId,
-      newPointsTotal: loyaltyAccount.currentPoints,
+      totalPoints: loyaltyAccount.currentPoints,
+      difference: 50,
     });
   } catch (error) {
     logger.error(JSON.stringify(error));
     messageProcessingSpan?.logEvent("error", error);
     throw error;
-  }
-  finally{
+  } finally {
     messageProcessingSpan?.finish();
   }
 }
