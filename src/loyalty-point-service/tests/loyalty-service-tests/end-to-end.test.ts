@@ -75,7 +75,6 @@ describe("integration-tests", () => {
 
     const loyaltyPoints = await apiDriver.getLoyaltyPoints(bearerToken);
 
-    console.log(loyaltyPoints);
     expect(loyaltyPoints.userId).toBe(testUserId);
     expect(loyaltyPoints.currentPoints).toBe(100);
   }, 10000);
@@ -87,14 +86,30 @@ describe("integration-tests", () => {
 
     await delay(asyncDelay);
 
-    apiDriver.injectOrderCompletedEvent(testUserId, testOrderNumber);
+    await apiDriver.injectOrderCompletedEvent(testUserId, testOrderNumber);
 
     await delay(asyncDelay);
 
     const bearerToken = generateJwt(jwtSecretValue!, testUserId);
 
     const loyaltyPoints = await apiDriver.getLoyaltyPoints(bearerToken);
-    console.log(loyaltyPoints);
+    expect(loyaltyPoints.currentPoints).toBe(150);
+  }, 20000);
+
+  it("when order completed (v2), should be able to retrieve loyalty account", async () => {
+    const testUserId = randomUUID().toString();
+    const testOrderNumber = randomUUID().toString();
+    await apiDriver.injectUserCreatedEvent(testUserId);
+
+    await delay(asyncDelay);
+
+    await apiDriver.injectOrderCompletedV2Event(testUserId, testOrderNumber);
+
+    await delay(asyncDelay);
+
+    const bearerToken = generateJwt(jwtSecretValue!, testUserId);
+
+    const loyaltyPoints = await apiDriver.getLoyaltyPoints(bearerToken);
     expect(loyaltyPoints.currentPoints).toBe(150);
   }, 20000);
 
@@ -105,15 +120,32 @@ describe("integration-tests", () => {
 
     await delay(asyncDelay);
 
-    apiDriver.injectOrderCompletedEvent(testUserId, testOrderNumber);
-    apiDriver.injectOrderCompletedEvent(testUserId, testOrderNumber);
+    await apiDriver.injectOrderCompletedEvent(testUserId, testOrderNumber);
+    await apiDriver.injectOrderCompletedEvent(testUserId, testOrderNumber);
 
     await delay(asyncDelay);
 
     const bearerToken = generateJwt(jwtSecretValue!, testUserId);
 
     const loyaltyPoints = await apiDriver.getLoyaltyPoints(bearerToken);
-    console.log(loyaltyPoints);
+    expect(loyaltyPoints.currentPoints).toBe(150);
+  }, 20000);
+
+  it("when order completed v1 and v2 received, should only add one set of points", async () => {
+    const testUserId = randomUUID().toString();
+    const testOrderNumber = randomUUID().toString();
+    await apiDriver.injectUserCreatedEvent(testUserId);
+
+    await delay(asyncDelay);
+
+    await apiDriver.injectOrderCompletedEvent(testUserId, testOrderNumber);
+    await apiDriver.injectOrderCompletedV2Event(testUserId, testOrderNumber);
+
+    await delay(asyncDelay);
+
+    const bearerToken = generateJwt(jwtSecretValue!, testUserId);
+
+    const loyaltyPoints = await apiDriver.getLoyaltyPoints(bearerToken);
     expect(loyaltyPoints.currentPoints).toBe(150);
   }, 20000);
 

@@ -5,12 +5,7 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-import {
-  EventBridgeEvent,
-  SQSBatchItemFailure,
-  SQSBatchResponse,
-  SQSEvent,
-} from "aws-lambda";
+import { SQSBatchItemFailure, SQSBatchResponse, SQSEvent } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { Span, tracer } from "dd-trace";
 import { CloudEvent } from "cloudevents";
@@ -22,20 +17,27 @@ import {
 import { UpdatePointsCommandHandler } from "../core/update-points/update-points-handler";
 import { DynamoDbLoyaltyPointRepository } from "./dynamoDbLoyaltyPointRepository";
 import { OrderCompletedEventV1 } from "../core/events/orderCompletedEventV1";
+import { OrderCompletedEventV2 } from "../core/events/orderCompletedEventV2";
 import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
 import { EventBridgeEventPublisher } from "./eventBridgeEventPublisher";
+import { EventBridgeEvent } from "./eventBridgeEvent";
 
+const logger = new Logger();
 const dynamoDbClient = new DynamoDBClient();
-const eventBridgeClient = new EventBridgeClient();
 const updatePointsCommandHandler = new UpdatePointsCommandHandler(
-  new DynamoDbLoyaltyPointRepository(dynamoDbClient)
+  new DynamoDbLoyaltyPointRepository(dynamoDbClient, logger)
 );
-const logger = new Logger({});
 
 export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
   const mainSpan = tracer.scope().active()!;
   mainSpan.addTags({
     "messaging.operation.type": "receive",
+  });
+  mainSpan.addTags({
+    "messaging.batch.size": event.Records.length,
+  });
+  logger.info("Loyalty function received event with record count", {
+    recordCount: event.Records.length,
   });
 
   const batchItemFailures: SQSBatchItemFailure[] = [];
@@ -44,10 +46,11 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
     let messageProcessingSpan: Span | undefined = undefined;
 
     try {
-      const evtWrapper: EventBridgeEvent<
-        "order.orderCompleted.v1",
-        CloudEvent<OrderCompletedEventV1>
-      > = JSON.parse(message.body);
+      const evtWrapper: EventBridgeEvent<CloudEvent<any>> = JSON.parse(
+        message.body
+      );
+
+      logger.info(evtWrapper.detail.type);
 
       messageProcessingSpan = startProcessSpanWithSemanticConventions(
         evtWrapper.detail,
@@ -59,22 +62,33 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
         }
       );
 
-      await updatePointsCommandHandler.handle({
-        orderNumber: evtWrapper.detail.data!.orderNumber,
-        userId: evtWrapper.detail.data!.userId,
-        pointsToAdd: 50,
-      });
+      if (evtWrapper.detail.type.indexOf("v1") > 0) {
+        const evtData = evtWrapper.detail.data as OrderCompletedEventV1;
+        await updatePointsCommandHandler.handle({
+          orderNumber: evtData.orderNumber,
+          userId: evtData.userId,
+          pointsToAdd: 50,
+        });
+      } else if (evtWrapper.detail.type.indexOf("v2") > 0) {
+        const evtData = evtWrapper.detail.data as OrderCompletedEventV2;
+        await updatePointsCommandHandler.handle({
+          orderNumber: evtData.orderId,
+          userId: evtData.userId,
+          pointsToAdd: 50,
+        });
+      } else {
+        logger.warn("Loyalty function received unsupported event version");
+        throw new Error(`Unsupported event version ${evtWrapper.detail.type}`);
+      }
     } catch (error) {
       batchItemFailures.push({
         itemIdentifier: message.messageId,
       });
       logger.error(JSON.stringify(error));
       messageProcessingSpan?.logEvent("error", error);
-
-      messageProcessingSpan?.finish();
-    } finally {
-      messageProcessingSpan?.finish();
     }
+
+    messageProcessingSpan?.finish();
   }
 
   return {

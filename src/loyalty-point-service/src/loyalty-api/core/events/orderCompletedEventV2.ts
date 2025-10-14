@@ -5,8 +5,7 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-import { LoyaltyPointsAddedV2 } from "./events/loyaltyPointsUpdatedV2";
-
-export interface EventPublisher {
-  publishLoyaltyPointsUpdated(evt: LoyaltyPointsAddedV2): Promise<void>;
+export interface OrderCompletedEventV2 {
+    orderId: string
+    userId: string
 }
