@@ -9,7 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.6.5" />
+        <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.9.3" />
         <PackageReference Include="AWSSDK.SimpleNotificationService" Version="4.0.1.1" />
         <PackageReference Include="AWSSDK.EventBridge" Version="4.0.4.5" />
         <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="4.0.3.1" />
