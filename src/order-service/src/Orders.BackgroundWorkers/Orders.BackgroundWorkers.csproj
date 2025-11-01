@@ -17,7 +17,7 @@
         <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
         <PackageReference Include="Amazon.Lambda.Annotations" Version="1.7.0" />
         <PackageReference Include="Amazon.Lambda.SQSEvents" Version="2.2.0" />
-        <PackageReference Include="AWS.Lambda.Powertools.Logging" Version="2.0.2" />
+        <PackageReference Include="AWS.Lambda.Powertools.Logging" Version="3.0.1" />
         <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.6.5" />
         <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="4.0.3.1" />
         <PackageReference Include="Datadog.Trace" Version="3.22.0" />
