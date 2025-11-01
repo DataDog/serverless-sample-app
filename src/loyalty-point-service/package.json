@@ -34,7 +34,7 @@
     "constructs": "^10.4.2",
     "datadog-cdk-constructs-v2": "^2.5.0",
     "datadog-lambda-js": "^12.128.0",
-    "dd-trace": "^5.53.0",
+    "dd-trace": "^5.75.0",
     "esbuild": "^0.20.2",
     "jest": "^30.0.5",
     "moq.ts": "^10.1.0",
