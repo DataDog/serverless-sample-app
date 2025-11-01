@@ -46,7 +46,7 @@
   },
   "dependencies": {
     "@aws-lambda-powertools/logger": "^2.20.0",
-    "@aws-lambda-powertools/parameters": "^2.20.0",
+    "@aws-lambda-powertools/parameters": "^2.28.1",
     "@types/jsonwebtoken": "^9.0.10",
     "cloudevents": "^9.0.0",
     "jsonwebtoken": "^9.0.2",
