@@ -21,6 +21,7 @@ import {
 } from "../../observability/observability";
 import { LoyaltyPointsAddedV1 } from "../core/events/loyaltyPointsUpdatedV1";
 import { LoyaltyPointsAddedV2 } from "../core/events/loyaltyPointsUpdatedV2";
+import { uuidv4 } from "zod";
 
 export class EventBridgeEventPublisher implements EventPublisher {
   private client: EventBridgeClient;
@@ -43,7 +44,11 @@ export class EventBridgeEventPublisher implements EventPublisher {
         newPointsTotal: evt.totalPoints,
         userId: evt.userId,
       };
+
+      const eventId = uuidv4();
+
       const v1CloudEventWrapper = new CloudEvent({
+        id: eventId,
         source: process.env.DOMAIN,
         type: "loyalty.pointsAdded.v1",
         datacontenttype: "application/json",
@@ -53,6 +58,7 @@ export class EventBridgeEventPublisher implements EventPublisher {
       });
 
       const cloudEventWrapper = new CloudEvent({
+        id: eventId,
         source: process.env.DOMAIN,
         type: "loyalty.pointsAdded.v2",
         datacontenttype: "application/json",
