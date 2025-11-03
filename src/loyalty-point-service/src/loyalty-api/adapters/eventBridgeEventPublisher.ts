@@ -21,7 +21,6 @@ import {
 } from "../../observability/observability";
 import { LoyaltyPointsAddedV1 } from "../core/events/loyaltyPointsUpdatedV1";
 import { LoyaltyPointsAddedV2 } from "../core/events/loyaltyPointsUpdatedV2";
-import { uuidv4 } from "zod";
 
 export class EventBridgeEventPublisher implements EventPublisher {
   private client: EventBridgeClient;
@@ -45,7 +44,7 @@ export class EventBridgeEventPublisher implements EventPublisher {
         userId: evt.userId,
       };
 
-      const eventId = uuidv4();
+      const eventId = randomUUID();
 
       const v1CloudEventWrapper = new CloudEvent({
         id: eventId,
@@ -55,6 +54,7 @@ export class EventBridgeEventPublisher implements EventPublisher {
         data: v1Event,
         traceparent: parentSpan?.context().toTraceparent(),
         deprecationdate: new Date(2025, 11, 31).toISOString(),
+        supercededby: "loyalty.pointsAdded.v2",
       });
 
       const cloudEventWrapper = new CloudEvent({
@@ -63,7 +63,7 @@ export class EventBridgeEventPublisher implements EventPublisher {
         type: "loyalty.pointsAdded.v2",
         datacontenttype: "application/json",
         data: evt,
-        traceparent: parentSpan?.context().toTraceparent()
+        traceparent: parentSpan?.context().toTraceparent(),
       });
 
       messagingSpan = startPublishSpanWithSemanticConventions(
