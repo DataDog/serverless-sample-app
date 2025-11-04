@@ -11,7 +11,6 @@ import { EventBus } from "aws-cdk-lib/aws-events";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { randomUUID } from "crypto";
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
-import { Bucket } from "aws-cdk-lib/aws-s3";
 
 // no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class SharedResourcesStack extends cdk.Stack {
