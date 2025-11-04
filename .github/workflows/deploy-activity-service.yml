@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - src/activity-service/**
+      - .github/workflows/deploy-activity-service.yml
     branches:
       - "main"
   pull_request:
