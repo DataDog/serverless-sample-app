@@ -36,7 +36,7 @@ public class OrdersServiceStack : Stack
 
         var team = "orders";
         var domain = "orders";
-        var sharedProps = new SharedProps(serviceName, env, version, team, domain, secret, ddSite, sharedDistribution);
+        var sharedProps = new SharedProps(serviceName, env, version, team, domain, secret, ddSite);
 
         var orderServiceProps = new OrderServiceProps(this, "OrderServiceProps", sharedProps);
 
