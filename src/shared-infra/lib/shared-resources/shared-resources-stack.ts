@@ -25,17 +25,6 @@ export class SharedResourcesStack extends cdk.Stack {
       eventBusName: `SharedEventBus-${env}`,
     });
 
-    const frontendApplicationS3Bucket = new Bucket(
-      this,
-      "FrontendApplicationS3Bucket",
-      {
-        bucketName: `serverless-sample-frontend-app-${env}-${this.account}`,
-        objectOwnership: cdk.aws_s3.ObjectOwnership.BUCKET_OWNER_ENFORCED,
-        websiteIndexDocument: "index.html",
-        websiteErrorDocument: "index.html",
-      }
-    );
-
     const sharedEventBusNameParameter = new StringParameter(
       this,
       "SharedEventBusName",
