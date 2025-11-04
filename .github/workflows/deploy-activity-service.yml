@@ -281,17 +281,6 @@ jobs:
         run: |
           cd src/activity-service
           make dev
-      - name: Deploy ephermal environment
-        shell: bash
-        env:
-          COMMIT_HASH: ${{ env.sha_short }}
-          VERSION: ${{ env.sha_short }}
-          ENV: ${{ env.sha_short }}
-          DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
-        run: |
-          cd src/activity-service
-          make cdk-deploy
       - name: Deploy to prod
         if: github.event_name == 'push'
         shell: bash
