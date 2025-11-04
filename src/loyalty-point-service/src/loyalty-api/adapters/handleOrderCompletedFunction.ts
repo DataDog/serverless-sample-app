@@ -64,10 +64,10 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
 
       if (deprecationDate) {
         messageProcessingSpan?.setTag(
-          "messaging.message.depreciation_date",
+          "messaging.message.deprecation_date",
           deprecationDate
         );
-        messageProcessingSpan.setTag("messaging.message.depreciated", true );
+        messageProcessingSpan.setTag("messaging.message.deprecated", true);
       }
 
       if (evtWrapper.detail.type.indexOf("v1") > 0) {
