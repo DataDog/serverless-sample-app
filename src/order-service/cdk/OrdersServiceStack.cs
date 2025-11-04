@@ -34,25 +34,6 @@ public class OrdersServiceStack : Stack
                                                 throw new Exception("DD_API_KEY environment variable is not set"))
         });
 
-        IDistribution? sharedDistribution = null;
-
-        try
-        {
-            sharedDistribution = Distribution.FromDistributionAttributes(this, "SharedDistribution",
-                new DistributionAttributes
-                {
-                    DistributionId = StringParameter.ValueFromLookup(this, $"/{env}/shared/cloudfront-distribution-id"),
-                    DomainName =
-                        StringParameter.ValueFromLookup(this, $"/{env}/shared/cloudfront-distribution-domain-name")
-                });
-        }
-        catch (Exception ex)
-        {
-            // Log the exception but continue without a shared distribution
-            Console.WriteLine($"Could not import shared distribution: {ex.Message}");
-            throw;
-        }
-
         var team = "orders";
         var domain = "orders";
         var sharedProps = new SharedProps(serviceName, env, version, team, domain, secret, ddSite, sharedDistribution);
