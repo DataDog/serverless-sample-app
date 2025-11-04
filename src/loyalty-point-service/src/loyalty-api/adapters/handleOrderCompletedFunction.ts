@@ -18,8 +18,6 @@ import { UpdatePointsCommandHandler } from "../core/update-points/update-points-
 import { DynamoDbLoyaltyPointRepository } from "./dynamoDbLoyaltyPointRepository";
 import { OrderCompletedEventV1 } from "../core/events/orderCompletedEventV1";
 import { OrderCompletedEventV2 } from "../core/events/orderCompletedEventV2";
-import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
-import { EventBridgeEventPublisher } from "./eventBridgeEventPublisher";
 import { EventBridgeEvent } from "./eventBridgeEvent";
 
 const logger = new Logger();
@@ -62,6 +60,16 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
         }
       );
 
+      const deprecationDate = evtWrapper.detail.deprecationdate;
+
+      if (deprecationDate) {
+        messageProcessingSpan?.setTag(
+          "messaging.message.deprecation_date",
+          deprecationDate
+        );
+        messageProcessingSpan.setTag("messaging.message.deprecated", true);
+      }
+
       if (evtWrapper.detail.type.indexOf("v1") > 0) {
         const evtData = evtWrapper.detail.data as OrderCompletedEventV1;
         await updatePointsCommandHandler.handle({
@@ -94,4 +102,4 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
   return {
     batchItemFailures: batchItemFailures,
   };
-};
+}

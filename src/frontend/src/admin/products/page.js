@@ -133,7 +133,6 @@ function viewProduct(productId, btnElement) {
     method: "GET",
     contentType: "application/json",
     success: function (response) {
-      console.log(response);
       let updateNameElement = document.getElementById("updateProductName");
       updateNameElement.value = response.data.name;
       let updatePriceElement = document.getElementById("updateProductPrice");
@@ -145,7 +144,7 @@ function viewProduct(productId, btnElement) {
       let productTitle = document.getElementById("productName");
       productTitle.innerText = response.data.name;
 
-      response.data.pricingBrackets.forEach((breakdown) => {
+      (response.data.pricingBrackets ?? []).forEach((breakdown) => {
         const price = breakdown.price;
         const quantity = breakdown.quantity;
 

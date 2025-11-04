@@ -215,7 +215,7 @@ public class InventoryApiContainer extends Construct {
 
         StringParameter apiEndpoint = new StringParameter(this, "ApiEndpoint", StringParameterProps.builder()
                 .parameterName(String.format("/%s/%s/api-endpoint", props.serviceProps().getSharedProps().env(), props.serviceProps().getSharedProps().service()))
-                .stringValue(String.format("http://%s", cloudfrontDistribution.getDistributionDomainName()))
+                .stringValue(String.format("https://%s", cloudfrontDistribution.getDistributionDomainName()))
                 .build());
         
     }

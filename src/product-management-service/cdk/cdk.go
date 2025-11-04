@@ -22,11 +22,17 @@ func main() {
 		localEnv = "dev"
 	}
 
-	NewProductService(app, "ProductService", &ProductServiceStackProps{
+	stack := NewProductService(app, "ProductService", &ProductServiceStackProps{
 		StackProps: awscdk.StackProps{
 			StackName: jsii.Sprintf("ProductService-%s", localEnv),
 		},
 	})
+
+	awscdk.Tags_Of(stack).Add(jsii.String("env"), &localEnv, &awscdk.TagProps{})
+	awscdk.Tags_Of(stack).Add(jsii.String("project"), jsii.String("serverless-sample-app"), &awscdk.TagProps{})
+	awscdk.Tags_Of(stack).Add(jsii.String("service"), jsii.String("product-service"), &awscdk.TagProps{})
+	awscdk.Tags_Of(stack).Add(jsii.String("team"), jsii.String("advocacy"), &awscdk.TagProps{})
+	awscdk.Tags_Of(stack).Add(jsii.String("primary-owner"), jsii.String("james@datadog.com"), &awscdk.TagProps{})
 
 	app.Synth(nil)
 }

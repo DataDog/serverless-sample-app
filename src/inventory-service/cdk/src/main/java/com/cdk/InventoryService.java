@@ -7,6 +7,7 @@
 package com.cdk;
 
 import software.amazon.awscdk.App;
+import software.amazon.awscdk.Tags;
 import software.amazon.awscdk.Environment;
 import software.amazon.awscdk.StackProps;
 
@@ -16,13 +17,19 @@ public class InventoryService {
 
         String env = System.getenv("ENV") == null ? "dev" : System.getenv("ENV");
 
-        new InventoryServiceStack(app, "InventoryService", StackProps.builder()
+        var stack = new InventoryServiceStack(app, "InventoryService", StackProps.builder()
                 .stackName(String.format("InventoryService-%s", env))
                 .env(Environment.builder()
                         .account(System.getenv("CDK_DEFAULT_ACCOUNT"))
                         .region(System.getenv("CDK_DEFAULT_REGION"))
                         .build())
                 .build());
+
+        Tags.of(stack).add("env", env);
+        Tags.of(stack).add("project", "serverless-sample-app");
+        Tags.of(stack).add("service", "inventory-service");
+        Tags.of(stack).add("team", "advocacy");
+        Tags.of(stack).add("primary-owner", "james@datadog.com");
         
         app.synth();
     }
