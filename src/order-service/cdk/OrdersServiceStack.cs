@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using Amazon.CDK;
+using Amazon.CDK.AWS.CloudFront;
 using Amazon.CDK.AWS.Events;
 using Amazon.CDK.AWS.SecretsManager;
 using Amazon.CDK.AWS.SNS;
@@ -26,16 +27,35 @@ public class OrdersServiceStack : Stack
         var version = System.Environment.GetEnvironmentVariable("COMMIT_HASH") ?? "latest";
         var ddSite = System.Environment.GetEnvironmentVariable("DD_SITE") ?? "datadoghq.com";
 
-        var secret = new Secret(this, "DDApiKeySecret", new SecretProps()
+        var secret = new Secret(this, "DDApiKeySecret", new SecretProps
         {
             SecretName = $"/{env}/{serviceName}/dd-api-key",
             SecretStringValue = new SecretValue(System.Environment.GetEnvironmentVariable("DD_API_KEY") ??
                                                 throw new Exception("DD_API_KEY environment variable is not set"))
         });
 
+        IDistribution? sharedDistribution = null;
+
+        try
+        {
+            sharedDistribution = Distribution.FromDistributionAttributes(this, "SharedDistribution",
+                new DistributionAttributes
+                {
+                    DistributionId = StringParameter.ValueFromLookup(this, $"/{env}/shared/cloudfront-distribution-id"),
+                    DomainName =
+                        StringParameter.ValueFromLookup(this, $"/{env}/shared/cloudfront-distribution-domain-name")
+                });
+        }
+        catch (Exception ex)
+        {
+            // Log the exception but continue without a shared distribution
+            Console.WriteLine($"Could not import shared distribution: {ex.Message}");
+            throw;
+        }
+
         var team = "orders";
         var domain = "orders";
-        var sharedProps = new SharedProps(serviceName, env, version, team, domain, secret, ddSite);
+        var sharedProps = new SharedProps(serviceName, env, version, team, domain, secret, ddSite, sharedDistribution);
 
         var orderServiceProps = new OrderServiceProps(this, "OrderServiceProps", sharedProps);
 

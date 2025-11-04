@@ -327,7 +327,7 @@ public class OrdersApi : Construct
                 { "DD_API_KEY", Secret.FromSecretsManager(props.SharedProps.DDApiKeySecret) }
             }
         });
-
+        
         var cloudfrontDistribution = new Distribution(this, "OrderApiDistribution", new DistributionProps()
         {
             DefaultBehavior = new BehaviorOptions()
@@ -348,7 +348,7 @@ public class OrdersApi : Construct
         new StringParameter(this, "ApiGatewayEndpoint", new StringParameterProps
         {
             ParameterName = $"/{props.SharedProps.Env}/{props.SharedProps.ServiceName}/api-endpoint",
-            StringValue = $"http://{cloudfrontDistribution.DistributionDomainName}"
+            StringValue = $"https://{cloudfrontDistribution.DistributionDomainName}"
         });
         
         return application;

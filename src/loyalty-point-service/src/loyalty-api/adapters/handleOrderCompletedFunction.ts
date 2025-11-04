@@ -102,3 +102,4 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
   return {
     batchItemFailures: batchItemFailures,
   };
+}

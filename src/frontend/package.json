@@ -5,10 +5,10 @@
     "config-and-start": "node generateConfig.mjs && rm -r -f dist && mkdir dist && cp -r ./src/ ./dist && browserify -e ./src/app.js -o ./dist/app.js && cd dist && npx http-server ./src -c-1"
   },
   "devDependencies": {
-    "babel-core": "6.26.3",
+    "@aws-sdk/client-ssm": "^3.777.0",
     "@babel/preset-env": "^7.26.9",
-    "babelify": "10.0.0",
-    "@aws-sdk/client-ssm": "^3.777.0"
+    "babel-core": "6.26.3",
+    "babelify": "10.0.0"
   },
   "browserify": {
     "transform": [
@@ -23,6 +23,7 @@
     ]
   },
   "dependencies": {
+    "amplify": "^0.0.11",
     "browserify": "^17.0.1"
   }
 }
