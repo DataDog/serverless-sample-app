@@ -90,7 +90,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.PRODUCTION_AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "eu-west-1"
+          aws-region: "eu-west-2"
       - name: Deploy to AWS Prod
         shell: bash
         env:
