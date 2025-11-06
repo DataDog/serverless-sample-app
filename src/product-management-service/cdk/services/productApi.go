@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awskms"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
@@ -40,9 +41,18 @@ type ProductApi struct {
 func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps) ProductApi {
 	region := awscdk.Stack_Of(scope).Region()
 
-	productCreatedTopic := awssns.NewTopic(scope, jsii.String("ProductCreatedTopic"), &awssns.TopicProps{})
-	productUpdatedTopic := awssns.NewTopic(scope, jsii.String("ProductUpdatedTopic"), &awssns.TopicProps{})
-	productDeletedTopic := awssns.NewTopic(scope, jsii.String("ProductDeletedTopic"), &awssns.TopicProps{})
+	snsKey := awskms.Alias_FromAliasName(scope, jsii.String("SNSEncrtytionKey"), jsii.String("alias/aws/sns"))
+
+	productCreatedTopic := awssns.NewTopic(scope, jsii.String("ProductCreatedTopic"), &awssns.TopicProps{
+		EnforceSSL: jsii.Bool(true),
+		MasterKey:  snsKey,
+	})
+	productUpdatedTopic := awssns.NewTopic(scope, jsii.String("ProductUpdatedTopic"), &awssns.TopicProps{
+		EnforceSSL: jsii.Bool(true),
+		MasterKey:  snsKey})
+	productDeletedTopic := awssns.NewTopic(scope, jsii.String("ProductDeletedTopic"), &awssns.TopicProps{
+		EnforceSSL: jsii.Bool(true),
+		MasterKey:  snsKey})
 
 	dsqlCluster := awsdsql.NewCfnCluster(scope, jsii.String("DSQLCluster"), &awsdsql.CfnClusterProps{
 		DeletionProtectionEnabled: jsii.Bool(false),

@@ -13,6 +13,7 @@ import (
 
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsevents"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awseventstargets"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awskms"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambdaeventsources"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssns"
 	"github.com/aws/constructs-go/constructs/v10"
@@ -29,11 +30,18 @@ type ProductAcl struct {
 }
 
 func NewProductAclService(scope constructs.Construct, id string, props *ProductAclServiceProps) ProductAcl {
+
+	snsKey := awskms.Alias_FromAliasName(scope, jsii.String("SNSEncrtytionKey"), jsii.String("alias/aws/sns"))
+
 	productStockUpdatedTopic := awssns.NewTopic(scope, jsii.String("ProductProductAddedTopic"), &awssns.TopicProps{
-		TopicName: jsii.Sprintf("%s-InventoryStockUpdated-%s", props.ServiceProps.SharedProps.ServiceName, props.ServiceProps.SharedProps.Env),
+		TopicName:  jsii.Sprintf("%s-InventoryStockUpdated-%s", props.ServiceProps.SharedProps.ServiceName, props.ServiceProps.SharedProps.Env),
+		MasterKey:  snsKey,
+		EnforceSSL: jsii.Bool(true),
 	})
 	productPriceCalculatedTopic := awssns.NewTopic(scope, jsii.String("ProductPriceCalculatedTopic"), &awssns.TopicProps{
-		TopicName: jsii.Sprintf("%s-PriceCalculated-%s", props.ServiceProps.SharedProps.ServiceName, props.ServiceProps.SharedProps.Env),
+		TopicName:  jsii.Sprintf("%s-PriceCalculated-%s", props.ServiceProps.SharedProps.ServiceName, props.ServiceProps.SharedProps.Env),
+		MasterKey:  snsKey,
+		EnforceSSL: jsii.Bool(true),
 	})
 
 	productStockUpdatedEventQueue := sharedconstructs.NewResiliantQueue(scope, "ProductStockUpdatedEventQueue", &sharedconstructs.ResiliantQueueProps{
