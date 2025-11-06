@@ -31,7 +31,7 @@ type ProductAcl struct {
 
 func NewProductAclService(scope constructs.Construct, id string, props *ProductAclServiceProps) ProductAcl {
 
-	snsKey := awskms.Alias_FromAliasName(scope, jsii.String("SNSEncrtytionKey"), jsii.String("alias/aws/sns"))
+	snsKey := awskms.Alias_FromAliasName(scope, jsii.String("AclSnsEncryptionKey"), jsii.String("alias/aws/sns"))
 
 	productStockUpdatedTopic := awssns.NewTopic(scope, jsii.String("ProductProductAddedTopic"), &awssns.TopicProps{
 		TopicName:  jsii.Sprintf("%s-InventoryStockUpdated-%s", props.ServiceProps.SharedProps.ServiceName, props.ServiceProps.SharedProps.Env),

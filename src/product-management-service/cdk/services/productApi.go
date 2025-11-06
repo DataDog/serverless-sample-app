@@ -41,7 +41,7 @@ type ProductApi struct {
 func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps) ProductApi {
 	region := awscdk.Stack_Of(scope).Region()
 
-	snsKey := awskms.Alias_FromAliasName(scope, jsii.String("SNSEncrtytionKey"), jsii.String("alias/aws/sns"))
+	snsKey := awskms.Alias_FromAliasName(scope, jsii.String("ApiSnsEncryptionKey"), jsii.String("alias/aws/sns"))
 
 	productCreatedTopic := awssns.NewTopic(scope, jsii.String("ProductCreatedTopic"), &awssns.TopicProps{
 		EnforceSSL: jsii.Bool(true),
