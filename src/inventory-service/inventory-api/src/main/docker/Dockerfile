@@ -1,4 +1,4 @@
-FROM openjdk:21
+FROM amazoncorretto:21
 
 RUN curl -Lo dd-java-agent.jar https://dtdg.co/latest-java-tracer 
 

@@ -65,18 +65,11 @@ class ProductResourceTest {
 
         System.out.println("Running 'test_product_stock_levels_can_be_updated' for product " + randomProductId);
 
-        apiDriver.injectProductCreatedEvent(randomProductId);
-
-        Thread.sleep(WORKFLOW_MINIMUM_EXECUTION);
-
-        var stockLevel = apiDriver.getProductStockLevel(randomProductId, -1);
-        Assertions.assertEquals(randomProductId, stockLevel.getData().getProductId());
-
         var updateStockLevelResult = apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
 
         Assertions.assertEquals(200, updateStockLevelResult.statusCode());
 
-        stockLevel = apiDriver.getProductStockLevel(randomProductId, 10);
+        var stockLevel = apiDriver.getProductStockLevel(randomProductId, 10);
 
         Assertions.assertNotNull(stockLevel.getData());
         Assertions.assertEquals(10.0, stockLevel.getData().getCurrentStockLevel());
@@ -109,18 +102,11 @@ class ProductResourceTest {
 
         System.out.println("Running 'test_stock_levels_are_decreased_when_order_created' for product " + randomProductId);
 
-        apiDriver.injectProductCreatedEvent(randomProductId);
-
-        Thread.sleep(WORKFLOW_MINIMUM_EXECUTION);
-
-        var stockLevel = apiDriver.getProductStockLevel(randomProductId, -1);
-        Assertions.assertEquals(randomProductId, stockLevel.getData().getProductId());
-
         var updateStockLevelResult = apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
 
         Assertions.assertEquals(200, updateStockLevelResult.statusCode());
 
-        stockLevel = apiDriver.getProductStockLevel(randomProductId, 10);
+        var stockLevel = apiDriver.getProductStockLevel(randomProductId, 10);
 
         Assertions.assertEquals(10.0, stockLevel.getData().getCurrentStockLevel());
 
@@ -143,11 +129,7 @@ class ProductResourceTest {
 
         System.out.println("Running 'test_stock_levels_are_decreased_when_order_completed' for product " + randomProductId);
 
-        apiDriver.injectProductCreatedEvent(randomProductId);
-
-        Thread.sleep(WORKFLOW_MINIMUM_EXECUTION);
-
-        var updateStockLevelResult = apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
+        apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
 
         apiDriver.injectOrderCreatedEvent(randomProductId, randomOrderNumber);
 

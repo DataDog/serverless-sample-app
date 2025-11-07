@@ -117,7 +117,7 @@ export class LoyaltyACL extends Construct {
     );
 
     const rule = props.serviceProps.addSubscriptionRule(this, `${props.serviceProps.getSharedProps().serviceName}-OrderCompleted`, {
-      detailType: ["orders.orderCompleted.v1", "orders.orderCompleted.v2"],
+      detailType: ["orders.orderCompleted.v1", "orders.orderCompleted.v1"],
       source: [`${props.serviceProps.getSharedProps().environment}.orders`],
     });
     rule.addTarget(new SqsQueue(this.orderCompletedEventQueue));

@@ -96,23 +96,6 @@ describe("integration-tests", () => {
     expect(loyaltyPoints.currentPoints).toBe(150);
   }, 20000);
 
-  it("when order completed (v2), should be able to retrieve loyalty account", async () => {
-    const testUserId = randomUUID().toString();
-    const testOrderNumber = randomUUID().toString();
-    await apiDriver.injectUserCreatedEvent(testUserId);
-
-    await delay(asyncDelay);
-
-    await apiDriver.injectOrderCompletedV2Event(testUserId, testOrderNumber);
-
-    await delay(asyncDelay);
-
-    const bearerToken = generateJwt(jwtSecretValue!, testUserId);
-
-    const loyaltyPoints = await apiDriver.getLoyaltyPoints(bearerToken);
-    expect(loyaltyPoints.currentPoints).toBe(150);
-  }, 20000);
-
   it("when order completed twice, should only add one set of points", async () => {
     const testUserId = randomUUID().toString();
     const testOrderNumber = randomUUID().toString();

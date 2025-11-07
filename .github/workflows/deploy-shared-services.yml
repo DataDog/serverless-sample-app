@@ -85,6 +85,23 @@ jobs:
           cd src/shared-infra
           npm i
           make cdk
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
+        with:
+          role-to-assume: ${{ secrets.PRODUCTION_AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: "eu-west-2"
+      - name: Deploy to AWS Prod
+        shell: bash
+        env:
+          COMMIT_HASH: ${{ env.sha_short }}
+          ENV: "prod"
+          DD_SITE: "datadoghq.eu"
+          DD_API_KEY: ${{secrets.DD_API_KEY}}
+        run: |
+          cd src/shared-infra
+          npm i
+          make cdk
 
   deploy-sam:
     runs-on: ubuntu-latest

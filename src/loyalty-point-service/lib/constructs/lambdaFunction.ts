@@ -11,8 +11,6 @@ import { Code, IDestination, Runtime } from "aws-cdk-lib/aws-lambda";
 import { Duration, RemovalPolicy, Tags } from "aws-cdk-lib";
 import { Alias } from "aws-cdk-lib/aws-kms";
 import { SharedProps } from "./sharedFunctionProps";
-import path = require("path");
-import { effect } from "zod";
 import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 export class InstrumentedLambdaFunctionProps {

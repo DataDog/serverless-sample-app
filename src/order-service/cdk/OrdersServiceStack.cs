@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using Amazon.CDK;
+using Amazon.CDK.AWS.CloudFront;
 using Amazon.CDK.AWS.Events;
 using Amazon.CDK.AWS.SecretsManager;
 using Amazon.CDK.AWS.SNS;
@@ -26,7 +27,7 @@ public class OrdersServiceStack : Stack
         var version = System.Environment.GetEnvironmentVariable("COMMIT_HASH") ?? "latest";
         var ddSite = System.Environment.GetEnvironmentVariable("DD_SITE") ?? "datadoghq.com";
 
-        var secret = new Secret(this, "DDApiKeySecret", new SecretProps()
+        var secret = new Secret(this, "DDApiKeySecret", new SecretProps
         {
             SecretName = $"/{env}/{serviceName}/dd-api-key",
             SecretStringValue = new SecretValue(System.Environment.GetEnvironmentVariable("DD_API_KEY") ??
