@@ -10,7 +10,7 @@ lambda_http = "0.17"
 aws-config = { version = "1.5", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1.67"
 aws-sdk-eventbridge = "1.64"
-uuid = { version = "1.10", features = ["v4"] }
+uuid = { version = "1.18", features = ["v4"] }
 
 tokio = {workspace = true}
 tracing = {workspace = true}
