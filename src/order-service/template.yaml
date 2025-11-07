@@ -1005,6 +1005,23 @@ Resources:
           Arn: !GetAtt OrdersServiceEventBus.Arn
           RoleArn: !GetAtt SharedEventBusToOrdersServiceEventBusRole.Arn
 
+  SharedEventBusOrderCompletedV2EventRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: shared-orders-order-completed
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.orders"
+        detail-type:
+          - "orders.orderCompleted.v2"
+      Targets:
+        - Id: OrdersServiceEventBus
+          Arn: !GetAtt OrdersServiceEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToOrdersServiceEventBusRole.Arn
+
   TestHarnessTable:
     Type: AWS::DynamoDB::Table
     Condition: IsNonProdEnvironment
@@ -1090,6 +1107,15 @@ Resources:
                 - !Sub "${Env}.orders"
               detail-type:
                 - "orders.orderCompleted.v1"
+        OrderCompletedV2:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Ref OrdersServiceEventBus
+            Pattern:
+              source:
+                - !Sub "${Env}.orders"
+              detail-type:
+                - "orders.orderCompleted.v2"
       Policies:
         - Version: "2012-10-17"
           Statement:

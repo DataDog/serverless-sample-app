@@ -3,6 +3,7 @@
 // Copyright 2025 Datadog, Inc.
 
 using System.Text.Json;
+using CloudNative.CloudEvents;
 using Orders.Api.Models;
 using Orders.Core.Common;
 

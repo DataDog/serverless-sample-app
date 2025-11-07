@@ -241,6 +241,29 @@ module "shared_bus_order_completed_subscription" {
 EOF
 }
 
+# ORDER COMPLETED V2
+module "shared_bus_order_completed_v2_subscription" {
+  count           = var.env == "prod" ? 0 : 1
+  source          = "../../modules/shared_bus_to_domain"
+  rule_name       = "OrderCompletedV2_TestHarness_Rule"
+  env             = var.env
+  shared_bus_name = var.env == "prod" || var.env == "dev" ? data.aws_ssm_parameter.shared_eb_name[0].value : ""
+  domain_bus_arn  = aws_cloudwatch_event_bus.orders_service_bus.arn
+  domain_bus_name = aws_cloudwatch_event_bus.orders_service_bus.name
+  function_arn    = module.event_harness_event_bridge_lambda[count.index].function_arn
+  function_name   = module.event_harness_event_bridge_lambda[count.index].function_name
+  event_pattern   = <<EOF
+{
+  "detail-type": [
+    "orders.orderCompleted.v2"
+  ],
+  "source": [
+    "${var.env}.orders"
+  ]
+}
+EOF
+}
+
 resource "aws_ssm_parameter" "test_harness_api_endpoint" {
   count = var.env == "prod" ? 0 : 1
   name  = "/${var.env}/OrdersService_TestHarness/api-endpoint"

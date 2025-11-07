@@ -11,4 +11,6 @@ public interface IPublicEventPublisher
     Task Publish(OrderConfirmedEventV1 evt);
     
     Task Publish(OrderCompletedEventV1 evt);
+    
+    Task Publish(OrderCompletedEventV2 evt);
 }

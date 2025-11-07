@@ -26,4 +26,10 @@ public class NoOpEventPublisher(ILogger<NoOpEventPublisher> logger) : IPublicEve
         logger.LogWarning("Call to NoOp Event Publisher!");
         return Task.CompletedTask;
     }
+
+    public Task Publish(OrderCompletedEventV2 evt)
+    {
+        logger.LogWarning("Call to NoOp Event Publisher!");
+        return Task.CompletedTask;
+    }
 }

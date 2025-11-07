@@ -10,11 +10,18 @@ namespace OrdersService.CDK.Events;
 
 public sealed class OrderCompletedEventRule : Rule
 {
-    public OrderCompletedEventRule(Construct scope, string id, SharedProps sharedProps, IRuleProps props = null) : base(scope, id, props)
+    public OrderCompletedEventRule(Construct scope, string id, SharedProps sharedProps, IRuleProps props = null) : base(
+        scope, id, props)
     {
-        AddEventPattern(new EventPattern()
+        AddEventPattern(new EventPattern
         {
             DetailType = ["orders.orderCompleted.v1"],
+            Source = [$"{sharedProps.Env}.orders"]
+        });
+
+        AddEventPattern(new EventPattern
+        {
+            DetailType = ["orders.orderCompleted.v2"],
             Source = [$"{sharedProps.Env}.orders"]
         });
     }

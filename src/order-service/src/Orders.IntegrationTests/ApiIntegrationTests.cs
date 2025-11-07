@@ -111,6 +111,7 @@ public class ApiIntegrationTests
         await _apiDriver.OrderCompleted(order.OrderId, order.UserId);
 
         await _apiDriver.VerifyEventPublishedFor(order.OrderId, "orders.orderCompleted.v1");
+        await _apiDriver.VerifyEventPublishedFor(order.OrderId, "orders.orderCompleted.v2");
     }
 
     [Fact]

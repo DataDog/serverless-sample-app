@@ -8,33 +8,40 @@ public class EventGateway(IPublicEventPublisher publisher) : IEventGateway
 {
     public async Task HandleOrderCreated(Order order)
     {
-        var v1OrderCreatedEvent = new OrderCreatedEventV1()
+        var v1OrderCreatedEvent = new OrderCreatedEventV1
         {
             OrderNumber = order.OrderNumber,
             Products = order.Products
         };
-        
+
         await publisher.Publish(v1OrderCreatedEvent);
     }
-    
+
     public async Task HandleOrderConfirmed(Order order)
     {
-        var v1OrderConfirmedEvent = new OrderConfirmedEventV1()
+        var v1OrderConfirmedEvent = new OrderConfirmedEventV1
         {
-            OrderNumber = order.OrderNumber,
+            OrderNumber = order.OrderNumber
         };
-        
+
         await publisher.Publish(v1OrderConfirmedEvent);
     }
-    
+
     public async Task HandleOrderCompleted(Order order)
     {
-        var v1OrderCompletedEvent = new OrderCompletedEventV1()
+        var v1OrderCompletedEvent = new OrderCompletedEventV1
         {
             OrderNumber = order.OrderNumber,
-            UserId = order.UserId,
+            UserId = order.UserId
         };
-        
+
+        var v2OrderCompletedEvent = new OrderCompletedEventV2
+        {
+            OrderId = order.OrderNumber,
+            UserId = order.UserId
+        };
+
         await publisher.Publish(v1OrderCompletedEvent);
+        await publisher.Publish(v2OrderCompletedEvent);
     }
 }
