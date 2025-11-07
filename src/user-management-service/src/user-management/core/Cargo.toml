@@ -10,7 +10,7 @@ aws-sdk-dynamodb = "1.67"
 aws-sdk-eventbridge = "1.64"
 async-trait = "0.1"
 argon2 = "0.5.3"
-jsonwebtoken = "9.3"
+jsonwebtoken = "10.2"
 chrono = "0.4.42"
 uuid = { version = "1.18", features = ["v4"] }
 sha2 = "0.10"
