@@ -1040,12 +1040,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "glob"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
-
-[[package]]
 name = "group"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2006,7 +2000,6 @@ dependencies = [
  "futures-channel",
  "futures-executor",
  "futures-util",
- "glob",
  "lazy_static",
  "once_cell",
  "opentelemetry 0.23.0",
@@ -3185,15 +3178,16 @@ dependencies = [
 
 [[package]]
 name = "tracing-opentelemetry"
-version = "0.24.0"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f68803492bf28ab40aeccaecc7021096bd256baf7ca77c3d425d89b35a7be4e4"
+checksum = "1e6e5658463dd88089aba75c7791e1d3120633b1bfde22478b28f625a9bb1b8e"
 dependencies = [
  "js-sys",
- "once_cell",
- "opentelemetry 0.23.0",
- "opentelemetry_sdk 0.23.0",
+ "opentelemetry 0.31.0",
+ "opentelemetry_sdk 0.31.0",
+ "rustversion",
  "smallvec",
+ "thiserror 2.0.16",
  "tracing",
  "tracing-core",
  "tracing-log",
