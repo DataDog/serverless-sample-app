@@ -106,28 +106,6 @@ module "shared_bus_order_completed_subscription" {
 EOF
 }
 
-module "shared_bus_order_completed_v2_subscription" {
-  source          = "../../modules/shared_bus_to_domain"
-  rule_name       = "LoyaltyService_OrderCompleted_Rule"
-  env             = var.env
-  shared_bus_name = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : ""
-  domain_bus_arn  = aws_cloudwatch_event_bus.loyalty_service_bus.arn
-  domain_bus_name = aws_cloudwatch_event_bus.loyalty_service_bus.name
-  queue_arn       = aws_sqs_queue.order_completed_queue.arn
-  queue_name      = aws_sqs_queue.order_completed_queue.name
-  queue_id        = aws_sqs_queue.order_completed_queue.id
-  event_pattern   = <<EOF
-{
-  "detail-type": [
-    "orders.orderCompleted.v2"
-  ],
-  "source": [
-    "${var.env}.orders"
-  ]
-}
-EOF
-}
-
 module "handle_order_completed_lambda" {
   service_name   = "LoyaltyService"
   source         = "../../modules/lambda-function"

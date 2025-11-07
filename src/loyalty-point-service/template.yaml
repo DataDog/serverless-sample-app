@@ -377,21 +377,6 @@ Resources:
         - Id: OrderCompletedQueue
           Arn: !GetAtt OrderCompletedQueue.Arn
 
-  OrderCompletedV2EventRule:
-    Type: AWS::Events::Rule
-    Properties:
-      EventBusName: !Ref LoyaltyServiceEventBus
-      Name: loyalty-order-completed-v2
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.orders"
-        detail-type:
-          - "orders.orderCompleted.v2"
-      Targets:
-        - Id: OrderCompletedQueue
-          Arn: !GetAtt OrderCompletedQueue.Arn
-
   EBToOrderCompletedQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
@@ -463,23 +448,6 @@ Resources:
           - !Sub "${Env}.orders"
         detail-type:
           - "orders.orderCompleted.v1"
-      Targets:
-        - Id: LoyaltyServiceEventBus
-          Arn: !GetAtt LoyaltyServiceEventBus.Arn
-          RoleArn: !GetAtt SharedEventBusToLoyaltyServiceEventBusRole.Arn
-
-  SharedEventBusOrderCompletedV2EventRule:
-    Type: AWS::Events::Rule
-    Condition: IsIntegratedEnvironment
-    Properties:
-      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-      Name: shared-loyalty-order-completed-v2
-      State: ENABLED
-      EventPattern:
-        source:
-          - !Sub "${Env}.orders"
-        detail-type:
-          - "orders.orderCompleted.v2"
       Targets:
         - Id: LoyaltyServiceEventBus
           Arn: !GetAtt LoyaltyServiceEventBus.Arn
