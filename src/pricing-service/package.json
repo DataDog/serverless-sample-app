@@ -25,7 +25,7 @@
     "@types/aws-lambda": "8.10.149",
     "@types/jest": "^29.5.14",
     "@types/node": "22.15.29",
-    "aws-cdk": "2.1030.0",
+    "aws-cdk": "2.1031.2",
     "aws-cdk-lib": "^2.213.0",
     "axios": "^1.9.0",
     "constructs": "^10.4.2",
