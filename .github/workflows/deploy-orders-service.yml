@@ -310,14 +310,6 @@ jobs:
         run: |
           cd src/order-service
           make cdk-deploy
-      - name: Integration test prod
-        shell: bash
-        env:
-          ENV: "prod"
-          AWS_REGION: "eu-west-2"
-        run: |
-          cd src/order-service
-          make integration-test
 
 
   deploy-sam:

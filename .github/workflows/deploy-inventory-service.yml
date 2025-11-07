@@ -349,7 +349,7 @@ jobs:
       - name: Integration test prod
         shell: bash
         env:
-          ENV: ${{ env.sha_short }}
+          ENV: prod
           VERSION: ${{ env.sha_short }}
           AWS_REGION: "eu-west-2"
         run: |
