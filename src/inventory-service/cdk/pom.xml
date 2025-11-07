@@ -15,9 +15,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <cdk.version>2.199.0</cdk.version>
+        <cdk.version>2.222.0</cdk.version>
         <constructs.version>[10.0.0,11.0.0)</constructs.version>
-        <junit.version>5.13.0</junit.version>
+        <junit.version>6.0.1</junit.version>
     </properties>
 
     <build>
