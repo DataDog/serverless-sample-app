@@ -21,7 +21,6 @@ internal sealed class Program
                 Region = System.Environment.GetEnvironmentVariable("CDK_DEFAULT_REGION"),
             }
         });
-
         Tags.Of(ordersService).Add("env", System.Environment.GetEnvironmentVariable("ENV") ?? "dev");
         Tags.Of(ordersService).Add("project", "serverless-sample-app");
         Tags.Of(ordersService).Add("service", "order-service");
