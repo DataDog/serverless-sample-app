@@ -11,6 +11,7 @@ using CloudNative.CloudEvents;
 using CloudNative.CloudEvents.SystemTextJson;
 using Datadog.Trace;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Orders.Core.PublicEvents;
 using Serilog;
 
@@ -19,6 +20,7 @@ namespace Orders.Core.Adapters;
 internal record DeprecationInfo(DateTime Date, string SupercededBy);
 
 public class EventBridgeEventPublisher(
+    ILogger<EventBridgeEventPublisher> logger,
     IConfiguration configuration,
     AmazonEventBridgeClient eventBridgeClient) : IPublicEventPublisher
 {
@@ -31,18 +33,25 @@ public class EventBridgeEventPublisher(
 
         var cloudEvent = evt.GenerateCloudEventFrom();
         var evtFormatter = new JsonEventFormatter();
-        if (cloudEvent != null)
-        {
-            evt.Detail = evtFormatter.ConvertToJsonElement(cloudEvent).ToString();
-            scope.Span.AddSemConvFrom(evt, cloudEvent);
-        }
 
         // Set deprecation info if applicable
         if (deprecationInfo != null)
         {
+            logger.LogWarning("Publishing deprecated event {EventDetailType} which will be superceded by {SupercededBy} on {DeprecationDate}",
+                evt.DetailType,
+                deprecationInfo.SupercededBy,
+                deprecationInfo.Date.ToString("o", CultureInfo.InvariantCulture));
+            scope.Span.SetTag("event.deprecated", "true");
+            
             cloudEvent?.SetAttributeFromString("supercededby", deprecationInfo.SupercededBy);
             cloudEvent?.SetAttributeFromString("deprecationdate",
                 deprecationInfo.Date.ToString("o", CultureInfo.InvariantCulture));
+        }
+        
+        if (cloudEvent != null)
+        {
+            evt.Detail = evtFormatter.ConvertToJsonElement(cloudEvent).ToString();
+            scope.Span.AddSemConvFrom(evt, cloudEvent);
         }
 
         new SpanContextInjector().InjectIncludingDsm(
