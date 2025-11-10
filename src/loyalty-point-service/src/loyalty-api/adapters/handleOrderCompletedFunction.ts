@@ -67,6 +67,10 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
           "messaging.message.deprecation_date",
           deprecationDate
         );
+        messageProcessingSpan.setTag(
+          "messaging.message.superceded_by",
+          evtWrapper.detail.supercededby ?? "unknown"
+        );
         messageProcessingSpan.setTag("messaging.message.deprecated", true);
       }
 
@@ -102,4 +106,4 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
   return {
     batchItemFailures: batchItemFailures,
   };
-}
+};
