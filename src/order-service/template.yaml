@@ -993,7 +993,7 @@ Resources:
     Condition: IsIntegratedEnvironment
     Properties:
       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-      Name: shared-orders-order-completed
+      Name: shared-orders-order-completed-v1
       State: ENABLED
       EventPattern:
         source:
@@ -1010,7 +1010,7 @@ Resources:
     Condition: IsIntegratedEnvironment
     Properties:
       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
-      Name: shared-orders-order-completed
+      Name: shared-orders-order-completed-v2
       State: ENABLED
       EventPattern:
         source:
