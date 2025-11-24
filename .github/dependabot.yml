@@ -1,6 +1,5 @@
 version: 2
 updates:
-
   - package-ecosystem: "maven"
     directory: "/src/inventory-service"
     schedule:
@@ -9,7 +8,6 @@ updates:
       maven-dependencies:
         patterns:
           - "*"
-
   - package-ecosystem: "npm"
     directories:
       - "/src/loyalty-point-service"
@@ -21,7 +19,7 @@ updates:
       npm-dependencies:
         patterns:
           - "*"
-
+    open-pull-requests-limit: 0
   - package-ecosystem: "nuget"
     directory: "/src/order-service"
     schedule:
@@ -30,7 +28,6 @@ updates:
       nuget-dependencies:
         patterns:
           - "*"
-
   - package-ecosystem: "terraform"
     directories:
       - "/src/inventory-service/infra"
@@ -46,7 +43,6 @@ updates:
       terraform-dependencies:
         patterns:
           - "*"
-
   - package-ecosystem: "cargo"
     directories:
       - "/src/user-management-service"
@@ -56,7 +52,6 @@ updates:
       rust-dependencies:
         patterns:
           - "*"
-
   - package-ecosystem: "pip"
     directories:
       - "/src/activity-service"
