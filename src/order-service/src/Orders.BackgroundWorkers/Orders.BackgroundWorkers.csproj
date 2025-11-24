@@ -13,18 +13,18 @@
         <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Amazon.Lambda.Core" Version="2.7.1" />
+        <PackageReference Include="Amazon.Lambda.Core" Version="2.8.0" />
         <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
         <PackageReference Include="Amazon.Lambda.Annotations" Version="1.7.0" />
         <PackageReference Include="Amazon.Lambda.SQSEvents" Version="2.2.0" />
-        <PackageReference Include="AWS.Lambda.Powertools.Logging" Version="3.0.1" />
         <PackageReference Include="AWS.Lambda.Powertools.Logging" Version="3.0.2" />
-        <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.9.4" />
-        <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="4.0.3.1" />
-        <PackageReference Include="Datadog.Trace" Version="3.22.0" />
+        <PackageReference Include="AWS.Lambda.Powertools.Logging" Version="3.0.2" />
+        <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.10.1" />
+        <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="4.0.6.4" />
+        <PackageReference Include="Datadog.Trace" Version="3.31.0" />
         <PackageReference Include="DogStatsD-CSharp-Client" Version="9.0.0" />
-        <PackageReference Include="NJsonSchema" Version="11.4.0" />
-        <PackageReference Include="Polly" Version="8.6.3" />
+        <PackageReference Include="NJsonSchema" Version="11.5.2" />
+        <PackageReference Include="Polly" Version="8.6.5" />
     </ItemGroup>
     <ItemGroup>
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
