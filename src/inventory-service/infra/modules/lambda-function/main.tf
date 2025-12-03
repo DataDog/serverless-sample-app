@@ -98,7 +98,7 @@ module "aws_lambda_function" {
   function_name            = "TF-${var.service_name}-${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = var.lambda_handler
-  runtime                  = "java21"
+  runtime                  = "java25"
   memory_size              = var.memory_size
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
   source_code_hash         = base64sha256(filebase64(var.jar_file))
@@ -124,7 +124,7 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 85
+  datadog_extension_layer_version = 90
   datadog_java_layer_version      = 24
 }
 
