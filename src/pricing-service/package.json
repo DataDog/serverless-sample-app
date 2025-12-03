@@ -9,7 +9,7 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test:unit": "jest --testPathPattern=tests/unit",
-    "test:integration": "jest --testPathPattern=tests/integration",
+    "test:integration": "jest --testPathPatterns=tests/integration",
     "test": "jest",
     "cdk": "cdk",
     "dev:sst": "sst dev --stage=personal",
