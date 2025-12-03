@@ -39,6 +39,10 @@ export class InstrumentedLambdaFunction extends Construct {
       memorySize: 256,
       environment: {
         DEPLOYED_AT: new Date().toISOString(),
+        DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_HTTP_ENDPOINT: "localhost:4318",
+        DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT: "localhost:4317",
+        OTEL_EXPORTER_OTLP_ENDPOINT: "http://localhost:4317",
+        OTEL_SERVICE_NAME: props.functionName,
         BUILD_ID: props.sharedProps.version,
         TEAM: props.sharedProps.team,
         DOMAIN: props.sharedProps.domain,
