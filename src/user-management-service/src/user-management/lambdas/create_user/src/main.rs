@@ -14,12 +14,16 @@ use lambda_http::{
 use opentelemetry::global::ObjectSafeSpan;
 use shared::response::{empty_response, json_response};
 
-use observability::{observability, trace_request};
+use observability::{init_otel, trace_request};
 use shared::adapters::{DynamoDbRepository, EventBridgeEventPublisher};
 use shared::core::{EventPublisher, Repository};
 use shared::ports::{CreateOAuthClientCommand, CreateUserCommand};
 use std::env;
+use std::sync::OnceLock;
+use opentelemetry_sdk::trace::SdkTracerProvider;
 use tracing_subscriber::util::SubscriberInitExt;
+
+static TRACER_PROVIDER: OnceLock<SdkTracerProvider> = OnceLock::new();
 
 #[instrument(name = "POST /user", skip(client, event_publisher, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]
 async fn function_handler<TRepository: Repository, TEventPublisher: EventPublisher>(
@@ -49,7 +53,18 @@ async fn function_handler<TRepository: Repository, TEventPublisher: EventPublish
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    observability().init();
+    let otel_providers = match init_otel() {
+        Ok(providers) => Some(providers),
+        Err(err) => {
+            tracing::warn!(
+                "Couldn't start OTel! Will proudly soldier on without telemetry: {0}",
+                err
+            );
+            None
+        }
+    };
+
+    let _ = TRACER_PROVIDER.set(otel_providers.unwrap().0);
 
     let table_name = env::var("TABLE_NAME").expect("TABLE_NAME is not set");
     let config = aws_config::load_from_env().await;
@@ -73,6 +88,12 @@ async fn main() -> Result<(), Error> {
         let res = function_handler(&repository, &event_publisher, event).await;
 
         handler_span.end();
+
+        if let Some(provider) = TRACER_PROVIDER.get()
+            && let Err(e) = provider.force_flush()
+        {
+            tracing::warn!("Failed to flush traces: {:?}", e);
+        }
 
         res
     }))

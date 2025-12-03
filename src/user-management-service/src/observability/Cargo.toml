@@ -13,6 +13,12 @@ serde_json = {workspace = true}
 tracing = {workspace = true}
 tracing-subscriber = {workspace = true}
 opentelemetry = {workspace = true}
-opentelemetry-datadog = {workspace = true}
 opentelemetry_sdk = {workspace = true}
+opentelemetry-semantic-conventions = {workspace = true}
+opentelemetry-otlp = { workspace = true}
+opentelemetry-resource-detectors = { workspace = true }
+opentelemetry-appender-log = { workspace = true }
+opentelemetry-stdout = "0.31.0"
+opentelemetry-appender-tracing = "0.31.1"
 tracing-opentelemetry = {workspace = true}
+anyhow = "1.0.100"
