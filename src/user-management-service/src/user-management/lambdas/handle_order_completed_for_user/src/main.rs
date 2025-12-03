@@ -1,12 +1,12 @@
 use aws_lambda_events::sqs::SqsEvent;
 use handler::function_handler;
-use lambda_runtime::{run, service_fn, Error, LambdaEvent};
+use lambda_runtime::{Error, LambdaEvent, run, service_fn};
 use observability::{init_otel, trace_handler};
-use std::sync::OnceLock;
+use opentelemetry::global::ObjectSafeSpan;
 use opentelemetry_sdk::trace::SdkTracerProvider;
 use shared::adapters::DynamoDbRepository;
 use std::env;
-use opentelemetry::global::ObjectSafeSpan;
+use std::sync::OnceLock;
 
 mod handler;
 
@@ -41,10 +41,12 @@ async fn main() -> Result<(), Error> {
         lambda_span.end();
 
         if let Some(provider) = TRACER_PROVIDER.get()
-            && let Err(e) = provider.force_flush() {
-                tracing::warn!("Failed to flush traces: {:?}", e);
-            }
+            && let Err(e) = provider.force_flush()
+        {
+            tracing::warn!("Failed to flush traces: {:?}", e);
+        }
 
         res
-    })).await
+    }))
+    .await
 }

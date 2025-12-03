@@ -4,11 +4,11 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2024 Datadog, Inc.
 //
-use lambda_http::{lambda_runtime, Request, RequestExt};
+use lambda_http::{Request, RequestExt, lambda_runtime};
 use opentelemetry::global::BoxedSpan;
 use opentelemetry::trace::TraceContextExt;
 use opentelemetry::trace::{Span, SpanKind, Tracer};
-use opentelemetry::{global, Context, KeyValue};
+use opentelemetry::{Context, KeyValue, global};
 use std::env;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 

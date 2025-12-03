@@ -1,15 +1,14 @@
 use lambda_http::http::StatusCode;
 use lambda_http::{
-    tracing::instrument,
-    Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
+    Error, IntoResponse, Request, RequestExt, RequestPayloadExt, tracing::instrument,
 };
 use shared::response::{empty_response, json_response};
 
 use shared::core::{EventPublisher, Repository};
-use shared::ports::{CreateUserCommand};
+use shared::ports::CreateUserCommand;
 
 #[instrument(name = "POST /user", skip(client, event_publisher, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]
-pub (super) async fn function_handler<TRepository: Repository, TEventPublisher: EventPublisher>(
+pub(super) async fn function_handler<TRepository: Repository, TEventPublisher: EventPublisher>(
     client: &TRepository,
     event_publisher: &TEventPublisher,
     event: Request,

@@ -1,17 +1,16 @@
 use lambda_http::http::StatusCode;
 use lambda_http::{
-    run, service_fn,
+    Error, IntoResponse, Request, RequestExt, RequestPayloadExt, run, service_fn,
     tracing::{self, instrument},
-    Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
 };
 use observability::init_otel;
-use std::sync::OnceLock;
 use opentelemetry_sdk::trace::SdkTracerProvider;
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
-use shared::ports::{IntrospectTokenRequest, ApplicationError};
+use shared::ports::{ApplicationError, IntrospectTokenRequest};
 use shared::response::{empty_response, raw_json_response};
 use std::env;
+use std::sync::OnceLock;
 
 #[instrument(name = "POST /oauth/introspect", skip(repository, event), fields(http.method = event.method().as_str(), http.path_group = event.raw_http_path()))]
 async fn function_handler<TRepository: Repository>(
@@ -22,7 +21,11 @@ async fn function_handler<TRepository: Repository>(
 
     // OAuth introspection requests can come as form data or JSON
     let introspect_request = if let Some(content_type) = event.headers().get("content-type") {
-        if content_type.to_str().unwrap_or("").contains("application/x-www-form-urlencoded") {
+        if content_type
+            .to_str()
+            .unwrap_or("")
+            .contains("application/x-www-form-urlencoded")
+        {
             // Parse form data
             let body = event.body();
             let body_str = std::str::from_utf8(body).unwrap_or("");
@@ -114,9 +117,10 @@ async fn main() -> Result<(), Error> {
         let res = function_handler(&repository, event).await;
 
         if let Some(provider) = TRACER_PROVIDER.get()
-            && let Err(e) = provider.force_flush() {
-                tracing::warn!("Failed to flush traces: {:?}", e);
-            }
+            && let Err(e) = provider.force_flush()
+        {
+            tracing::warn!("Failed to flush traces: {:?}", e);
+        }
 
         res
     }))

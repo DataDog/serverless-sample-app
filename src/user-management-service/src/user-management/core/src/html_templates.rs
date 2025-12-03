@@ -147,7 +147,7 @@ pub fn generate_csrf_token() -> String {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();
-    
+
     // Simple CSRF token generation using timestamp + random component
     format!("csrf_{}", timestamp)
 }

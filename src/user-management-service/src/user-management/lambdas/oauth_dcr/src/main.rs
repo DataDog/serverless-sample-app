@@ -1,17 +1,16 @@
 use lambda_http::http::StatusCode;
 use lambda_http::{
-    run, service_fn,
+    Error, IntoResponse, Request, RequestExt, RequestPayloadExt, run, service_fn,
     tracing::{self, instrument},
-    Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
 };
 use observability::init_otel;
-use std::sync::OnceLock;
 use opentelemetry_sdk::trace::SdkTracerProvider;
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
-use shared::ports::{CreateOAuthClientCommand, ApplicationError};
+use shared::ports::{ApplicationError, CreateOAuthClientCommand};
 use shared::response::{empty_response, raw_json_response};
 use std::env;
+use std::sync::OnceLock;
 
 #[instrument(name = "POST /oauth/register", skip(repository, event), fields(http.method = event.method().as_str(), http.path_group = event.raw_http_path()))]
 async fn function_handler<TRepository: Repository>(
@@ -25,7 +24,8 @@ async fn function_handler<TRepository: Repository>(
     match request_body {
         None => empty_response(&StatusCode::BAD_REQUEST),
         Some(command) => {
-            let result: Result<shared::core::OAuthClientCreatedDTO, ApplicationError> = command.handle(repository).await;
+            let result: Result<shared::core::OAuthClientCreatedDTO, ApplicationError> =
+                command.handle(repository).await;
 
             match result {
                 Ok(response) => raw_json_response(&StatusCode::CREATED, &response),
@@ -69,9 +69,10 @@ async fn main() -> Result<(), Error> {
         let res = function_handler(&repository, event).await;
 
         if let Some(provider) = TRACER_PROVIDER.get()
-            && let Err(e) = provider.force_flush() {
-                tracing::warn!("Failed to flush traces: {:?}", e);
-            }
+            && let Err(e) = provider.force_flush()
+        {
+            tracing::warn!("Failed to flush traces: {:?}", e);
+        }
 
         res
     }))

@@ -7,21 +7,17 @@
 
 mod handler;
 
-use lambda_http::{
-    run, service_fn,
-    tracing::self,
-    Error, Request,
-};
+use lambda_http::{Error, Request, run, service_fn, tracing};
 use opentelemetry::global::ObjectSafeSpan;
 
+use crate::handler::function_handler;
 use observability::{init_otel, trace_request};
+use opentelemetry_sdk::trace::SdkTracerProvider;
 use shared::adapters::{DynamoDbRepository, EventBridgeEventPublisher};
 use shared::core::{EventPublisher, Repository};
 use shared::ports::{CreateOAuthClientCommand, CreateUserCommand};
 use std::env;
 use std::sync::OnceLock;
-use opentelemetry_sdk::trace::SdkTracerProvider;
-use crate::handler::function_handler;
 
 static TRACER_PROVIDER: OnceLock<SdkTracerProvider> = OnceLock::new();
 

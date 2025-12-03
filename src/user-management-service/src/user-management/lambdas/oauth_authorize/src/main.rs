@@ -1,11 +1,9 @@
 use lambda_http::http::StatusCode;
 use lambda_http::{
-    run, service_fn,
+    Body, Error, IntoResponse, Request, RequestExt, RequestPayloadExt, Response, run, service_fn,
     tracing::{self},
-    Body, Error, IntoResponse, Request, RequestExt, RequestPayloadExt, Response,
 };
 use observability::init_otel;
-use std::sync::OnceLock;
 use opentelemetry_sdk::trace::SdkTracerProvider;
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
@@ -14,6 +12,7 @@ use shared::ports::{
 };
 use shared::response::{empty_response, html_response, redirect_response};
 use std::env;
+use std::sync::OnceLock;
 use tracing::instrument;
 
 #[instrument(name = "GET /oauth/authorize", skip(repository, event), fields(http.method = event.method().as_str(), http.path_group = event.raw_http_path()))]
@@ -239,9 +238,10 @@ async fn main() -> Result<(), Error> {
         let res = function_handler(&repository, event).await;
 
         if let Some(provider) = TRACER_PROVIDER.get()
-            && let Err(e) = provider.force_flush() {
-                tracing::warn!("Failed to flush traces: {:?}", e);
-            }
+            && let Err(e) = provider.force_flush()
+        {
+            tracing::warn!("Failed to flush traces: {:?}", e);
+        }
 
         res
     }))

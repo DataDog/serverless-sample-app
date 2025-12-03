@@ -1,16 +1,16 @@
 use crate::core::{
-    EventPublisher, Repository, RepositoryError, User, UserCreatedEvent, UserDetails,
-    OAuthClient, AuthorizationCode, OAuthToken, GrantType, ResponseType, TokenEndpointAuthMethod,
+    AuthorizationCode, EventPublisher, GrantType, OAuthClient, OAuthToken, Repository,
+    RepositoryError, ResponseType, TokenEndpointAuthMethod, User, UserCreatedEvent, UserDetails,
 };
+use crate::utils::StringHasher;
 use async_trait::async_trait;
+use aws_sdk_dynamodb::Client;
 use aws_sdk_dynamodb::error::SdkError;
 use aws_sdk_dynamodb::operation::put_item::PutItemError;
 use aws_sdk_dynamodb::types::AttributeValue;
-use aws_sdk_dynamodb::Client;
 use observability::CloudEvent;
-use tracing::{instrument, Span};
+use tracing::{Span, instrument};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
-use crate::utils::StringHasher;
 
 pub struct DynamoDbRepository {
     client: Client,
@@ -55,14 +55,8 @@ impl DynamoDbRepository {
             .client
             .put_item()
             .table_name(&self.table_name)
-            .item(
-                PARTITION_KEY,
-                AttributeValue::S(user.email_address()),
-            )
-            .item(
-                SORT_KEY,
-                AttributeValue::S(user.email_address()),
-            )
+            .item(PARTITION_KEY, AttributeValue::S(user.email_address()))
+            .item(SORT_KEY, AttributeValue::S(user.email_address()))
             .item(
                 FIRST_NAME_KEY,
                 AttributeValue::S(details.first_name.clone()),
@@ -149,7 +143,7 @@ impl Repository for DynamoDbRepository {
             "resource.name",
             format!("DynamoDB.GetItem {}", &self.table_name),
         );
-        
+
         let search_address = StringHasher::hash_string(email_address.to_uppercase());
 
         let res = self
@@ -203,7 +197,9 @@ impl Repository for DynamoDbRepository {
                         .unwrap()
                         .parse()
                         .unwrap(),
-                    last_active: attributes.get(LAST_ACTIVE_KEY).map(|value| value.as_s().unwrap().parse().unwrap()),
+                    last_active: attributes
+                        .get(LAST_ACTIVE_KEY)
+                        .map(|value| value.as_s().unwrap().parse().unwrap()),
                     order_count: attributes
                         .get(ORDER_COUNT_KEY)
                         .unwrap()
@@ -246,22 +242,54 @@ impl Repository for DynamoDbRepository {
             .client
             .put_item()
             .table_name(&self.table_name)
-            .item(PARTITION_KEY, AttributeValue::S(format!("CLIENT#{}", client.client_id)))
+            .item(
+                PARTITION_KEY,
+                AttributeValue::S(format!("CLIENT#{}", client.client_id)),
+            )
             .item(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .item("ClientId", AttributeValue::S(client.client_id.clone()))
-            .item("ClientSecret", AttributeValue::S(client.client_secret.clone()))
+            .item(
+                "ClientSecret",
+                AttributeValue::S(client.client_secret.clone()),
+            )
             .item("ClientName", AttributeValue::S(client.client_name.clone()))
-            .item("RedirectUris", AttributeValue::Ss(client.redirect_uris.clone()))
-            .item("GrantTypes", AttributeValue::Ss(
-                client.grant_types.iter().map(|g| format!("{:?}", g)).collect()
-            ))
-            .item("ResponseTypes", AttributeValue::Ss(
-                client.response_types.iter().map(|r| format!("{:?}", r)).collect()
-            ))
+            .item(
+                "RedirectUris",
+                AttributeValue::Ss(client.redirect_uris.clone()),
+            )
+            .item(
+                "GrantTypes",
+                AttributeValue::Ss(
+                    client
+                        .grant_types
+                        .iter()
+                        .map(|g| format!("{:?}", g))
+                        .collect(),
+                ),
+            )
+            .item(
+                "ResponseTypes",
+                AttributeValue::Ss(
+                    client
+                        .response_types
+                        .iter()
+                        .map(|r| format!("{:?}", r))
+                        .collect(),
+                ),
+            )
             .item("Scopes", AttributeValue::Ss(client.scopes.clone()))
-            .item("TokenEndpointAuthMethod", AttributeValue::S(format!("{:?}", client.token_endpoint_auth_method)))
-            .item("CreatedAt", AttributeValue::S(client.created_at.to_rfc3339()))
-            .item("UpdatedAt", AttributeValue::S(client.updated_at.to_rfc3339()))
+            .item(
+                "TokenEndpointAuthMethod",
+                AttributeValue::S(format!("{:?}", client.token_endpoint_auth_method)),
+            )
+            .item(
+                "CreatedAt",
+                AttributeValue::S(client.created_at.to_rfc3339()),
+            )
+            .item(
+                "UpdatedAt",
+                AttributeValue::S(client.updated_at.to_rfc3339()),
+            )
             .item("IsActive", AttributeValue::Bool(client.is_active))
             .send()
             .await;
@@ -270,13 +298,18 @@ impl Repository for DynamoDbRepository {
             Ok(_) => Ok(()),
             Err(e) => {
                 tracing::error!("Error creating OAuth client: {:?}", e);
-                Err(RepositoryError::InternalError("Failed to create OAuth client".to_string()))
+                Err(RepositoryError::InternalError(
+                    "Failed to create OAuth client".to_string(),
+                ))
             }
         }
     }
 
     #[instrument(name = "get_oauth_client", skip(self))]
-    async fn get_oauth_client(&self, client_id: &str) -> Result<Option<OAuthClient>, RepositoryError> {
+    async fn get_oauth_client(
+        &self,
+        client_id: &str,
+    ) -> Result<Option<OAuthClient>, RepositoryError> {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
@@ -287,7 +320,10 @@ impl Repository for DynamoDbRepository {
             .client
             .get_item()
             .table_name(&self.table_name)
-            .key(PARTITION_KEY, AttributeValue::S(format!("CLIENT#{}", client_id)))
+            .key(
+                PARTITION_KEY,
+                AttributeValue::S(format!("CLIENT#{}", client_id)),
+            )
             .key(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .send()
             .await;
@@ -303,7 +339,9 @@ impl Repository for DynamoDbRepository {
             Err(e) => {
                 tracing::error!("Error getting OAuth client: {:?}", e);
                 Span::current().record("error.message", format!("{:?}", e));
-                Err(RepositoryError::InternalError("Failed to get OAuth client".to_string()))
+                Err(RepositoryError::InternalError(
+                    "Failed to get OAuth client".to_string(),
+                ))
             }
         }
     }
@@ -325,7 +363,10 @@ impl Repository for DynamoDbRepository {
             .client
             .delete_item()
             .table_name(&self.table_name)
-            .key(PARTITION_KEY, AttributeValue::S(format!("CLIENT#{}", client_id)))
+            .key(
+                PARTITION_KEY,
+                AttributeValue::S(format!("CLIENT#{}", client_id)),
+            )
             .key(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .send()
             .await;
@@ -334,13 +375,19 @@ impl Repository for DynamoDbRepository {
             Ok(_) => Ok(()),
             Err(e) => {
                 tracing::error!("Error deleting OAuth client: {:?}", e);
-                Err(RepositoryError::InternalError("Failed to delete OAuth client".to_string()))
+                Err(RepositoryError::InternalError(
+                    "Failed to delete OAuth client".to_string(),
+                ))
             }
         }
     }
 
     #[instrument(name = "list_oauth_clients", skip(self, limit))]
-    async fn list_oauth_clients(&self, _: Option<u32>, limit: Option<u32>) -> Result<Vec<OAuthClient>, RepositoryError> {
+    async fn list_oauth_clients(
+        &self,
+        _: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<Vec<OAuthClient>, RepositoryError> {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
@@ -348,7 +395,7 @@ impl Repository for DynamoDbRepository {
         );
 
         let page_size = limit.unwrap_or(10) as i32;
-        
+
         let res = self
             .client
             .scan()
@@ -373,13 +420,19 @@ impl Repository for DynamoDbRepository {
             }
             Err(e) => {
                 tracing::error!("Error listing OAuth clients: {:?}", e);
-                Err(RepositoryError::InternalError("Failed to list OAuth clients".to_string()))
+                Err(RepositoryError::InternalError(
+                    "Failed to list OAuth clients".to_string(),
+                ))
             }
         }
     }
 
     #[instrument(name = "validate_client_secret", skip(self, client_id, client_secret))]
-    async fn validate_client_secret(&self, client_id: &str, client_secret: &str) -> Result<bool, RepositoryError> {
+    async fn validate_client_secret(
+        &self,
+        client_id: &str,
+        client_secret: &str,
+    ) -> Result<bool, RepositoryError> {
         if let Some(client) = self.get_oauth_client(client_id).await? {
             Ok(client.client_secret == client_secret)
         } else {
@@ -389,7 +442,10 @@ impl Repository for DynamoDbRepository {
 
     // Authorization Code management
     #[instrument(name = "store_authorization_code", skip(self, code))]
-    async fn store_authorization_code(&self, code: &AuthorizationCode) -> Result<(), RepositoryError> {
+    async fn store_authorization_code(
+        &self,
+        code: &AuthorizationCode,
+    ) -> Result<(), RepositoryError> {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
@@ -400,7 +456,10 @@ impl Repository for DynamoDbRepository {
             .client
             .put_item()
             .table_name(&self.table_name)
-            .item(PARTITION_KEY, AttributeValue::S(format!("CODE#{}", code.code)))
+            .item(
+                PARTITION_KEY,
+                AttributeValue::S(format!("CODE#{}", code.code)),
+            )
             .item(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .item("Code", AttributeValue::S(code.code.clone()))
             .item("ClientId", AttributeValue::S(code.client_id.clone()))
@@ -410,14 +469,18 @@ impl Repository for DynamoDbRepository {
             .item("ExpiresAt", AttributeValue::S(code.expires_at.to_rfc3339()))
             .item("CreatedAt", AttributeValue::S(code.created_at.to_rfc3339()))
             .item("IsUsed", AttributeValue::Bool(code.is_used))
-            .item("TTL", AttributeValue::N(code.expires_at.timestamp().to_string()));
+            .item(
+                "TTL",
+                AttributeValue::N(code.expires_at.timestamp().to_string()),
+            );
 
         if let Some(ref challenge) = code.code_challenge {
             item_builder = item_builder.item("CodeChallenge", AttributeValue::S(challenge.clone()));
         }
 
         if let Some(ref method) = code.code_challenge_method {
-            item_builder = item_builder.item("CodeChallengeMethod", AttributeValue::S(method.clone()));
+            item_builder =
+                item_builder.item("CodeChallengeMethod", AttributeValue::S(method.clone()));
         }
 
         let res = item_builder.send().await;
@@ -426,13 +489,18 @@ impl Repository for DynamoDbRepository {
             Ok(_) => Ok(()),
             Err(e) => {
                 tracing::error!("Error storing authorization code: {:?}", e);
-                Err(RepositoryError::InternalError("Failed to store authorization code".to_string()))
+                Err(RepositoryError::InternalError(
+                    "Failed to store authorization code".to_string(),
+                ))
             }
         }
     }
 
     #[instrument(name = "get_authorization_code", skip(self, code))]
-    async fn get_authorization_code(&self, code: &str) -> Result<Option<AuthorizationCode>, RepositoryError> {
+    async fn get_authorization_code(
+        &self,
+        code: &str,
+    ) -> Result<Option<AuthorizationCode>, RepositoryError> {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
@@ -458,7 +526,9 @@ impl Repository for DynamoDbRepository {
             }
             Err(e) => {
                 tracing::error!("Error getting authorization code: {:?}", e);
-                Err(RepositoryError::InternalError("Failed to get authorization code".to_string()))
+                Err(RepositoryError::InternalError(
+                    "Failed to get authorization code".to_string(),
+                ))
             }
         }
     }
@@ -484,7 +554,9 @@ impl Repository for DynamoDbRepository {
             Ok(_) => Ok(()),
             Err(e) => {
                 tracing::error!("Error revoking authorization code: {:?}", e);
-                Err(RepositoryError::InternalError("Failed to revoke authorization code".to_string()))
+                Err(RepositoryError::InternalError(
+                    "Failed to revoke authorization code".to_string(),
+                ))
             }
         }
     }
@@ -512,7 +584,9 @@ impl Repository for DynamoDbRepository {
             Ok(_) => Ok(()),
             Err(e) => {
                 tracing::error!("Error marking authorization code as used: {:?}", e);
-                Err(RepositoryError::InternalError("Failed to mark authorization code as used".to_string()))
+                Err(RepositoryError::InternalError(
+                    "Failed to mark authorization code as used".to_string(),
+                ))
             }
         }
     }
@@ -536,7 +610,10 @@ impl Repository for DynamoDbRepository {
             .client
             .put_item()
             .table_name(&self.table_name)
-            .item(PARTITION_KEY, AttributeValue::S(format!("TOKEN#{}", token.access_token)))
+            .item(
+                PARTITION_KEY,
+                AttributeValue::S(format!("TOKEN#{}", token.access_token)),
+            )
             .item(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .item("AccessToken", AttributeValue::S(token.access_token.clone()))
             .item("TokenType", AttributeValue::S(token.token_type.clone()))
@@ -544,13 +621,23 @@ impl Repository for DynamoDbRepository {
             .item("Scope", AttributeValue::S(token.scope.clone()))
             .item("ClientId", AttributeValue::S(token.client_id.clone()))
             .item("UserId", AttributeValue::S(token.user_id.clone()))
-            .item("CreatedAt", AttributeValue::S(token.created_at.to_rfc3339()))
-            .item("ExpiresAt", AttributeValue::S(token.expires_at.to_rfc3339()))
+            .item(
+                "CreatedAt",
+                AttributeValue::S(token.created_at.to_rfc3339()),
+            )
+            .item(
+                "ExpiresAt",
+                AttributeValue::S(token.expires_at.to_rfc3339()),
+            )
             .item("IsRevoked", AttributeValue::Bool(token.is_revoked))
-            .item("TTL", AttributeValue::N(token.expires_at.timestamp().to_string()));
+            .item(
+                "TTL",
+                AttributeValue::N(token.expires_at.timestamp().to_string()),
+            );
 
         if let Some(ref refresh_token) = token.refresh_token {
-            item_builder = item_builder.item("RefreshToken", AttributeValue::S(refresh_token.clone()));
+            item_builder =
+                item_builder.item("RefreshToken", AttributeValue::S(refresh_token.clone()));
         }
 
         let res = item_builder.send().await;
@@ -559,13 +646,18 @@ impl Repository for DynamoDbRepository {
             Ok(_) => Ok(()),
             Err(e) => {
                 tracing::error!("Error storing OAuth token: {:?}", e);
-                Err(RepositoryError::InternalError("Failed to store OAuth token".to_string()))
+                Err(RepositoryError::InternalError(
+                    "Failed to store OAuth token".to_string(),
+                ))
             }
         }
     }
 
     #[instrument(name = "get_oauth_token", skip(self, access_token))]
-    async fn get_oauth_token(&self, access_token: &str) -> Result<Option<OAuthToken>, RepositoryError> {
+    async fn get_oauth_token(
+        &self,
+        access_token: &str,
+    ) -> Result<Option<OAuthToken>, RepositoryError> {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
@@ -576,7 +668,10 @@ impl Repository for DynamoDbRepository {
             .client
             .get_item()
             .table_name(&self.table_name)
-            .key(PARTITION_KEY, AttributeValue::S(format!("TOKEN#{}", access_token)))
+            .key(
+                PARTITION_KEY,
+                AttributeValue::S(format!("TOKEN#{}", access_token)),
+            )
             .key(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .send()
             .await;
@@ -591,13 +686,18 @@ impl Repository for DynamoDbRepository {
             }
             Err(e) => {
                 tracing::error!("Error getting OAuth token: {:?}", e);
-                Err(RepositoryError::InternalError("Failed to get OAuth token".to_string()))
+                Err(RepositoryError::InternalError(
+                    "Failed to get OAuth token".to_string(),
+                ))
             }
         }
     }
 
     #[instrument(name = "get_oauth_token_by_refresh", skip(self, refresh_token))]
-    async fn get_oauth_token_by_refresh(&self, refresh_token: &str) -> Result<Option<OAuthToken>, RepositoryError> {
+    async fn get_oauth_token_by_refresh(
+        &self,
+        refresh_token: &str,
+    ) -> Result<Option<OAuthToken>, RepositoryError> {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
@@ -610,7 +710,10 @@ impl Repository for DynamoDbRepository {
             .scan()
             .table_name(&self.table_name)
             .filter_expression("RefreshToken = :refresh_token")
-            .expression_attribute_values(":refresh_token", AttributeValue::S(refresh_token.to_string()))
+            .expression_attribute_values(
+                ":refresh_token",
+                AttributeValue::S(refresh_token.to_string()),
+            )
             .send()
             .await;
 
@@ -628,7 +731,9 @@ impl Repository for DynamoDbRepository {
             }
             Err(e) => {
                 tracing::error!("Error getting OAuth token by refresh: {:?}", e);
-                Err(RepositoryError::InternalError("Failed to get OAuth token by refresh".to_string()))
+                Err(RepositoryError::InternalError(
+                    "Failed to get OAuth token by refresh".to_string(),
+                ))
             }
         }
     }
@@ -645,7 +750,10 @@ impl Repository for DynamoDbRepository {
             .client
             .update_item()
             .table_name(&self.table_name)
-            .key(PARTITION_KEY, AttributeValue::S(format!("TOKEN#{}", access_token)))
+            .key(
+                PARTITION_KEY,
+                AttributeValue::S(format!("TOKEN#{}", access_token)),
+            )
             .key(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .update_expression("SET IsRevoked = :revoked")
             .expression_attribute_values(":revoked", AttributeValue::Bool(true))
@@ -656,7 +764,9 @@ impl Repository for DynamoDbRepository {
             Ok(_) => Ok(()),
             Err(e) => {
                 tracing::error!("Error revoking OAuth token: {:?}", e);
-                Err(RepositoryError::InternalError("Failed to revoke OAuth token".to_string()))
+                Err(RepositoryError::InternalError(
+                    "Failed to revoke OAuth token".to_string(),
+                ))
             }
         }
     }
@@ -684,16 +794,19 @@ impl Repository for DynamoDbRepository {
                 if let Some(items) = result.items {
                     for item in items {
                         if let Some(access_token) = item.get("AccessToken")
-                            && let Ok(token) = access_token.as_s() {
-                                let _ = self.revoke_oauth_token(token).await;
-                            }
+                            && let Ok(token) = access_token.as_s()
+                        {
+                            let _ = self.revoke_oauth_token(token).await;
+                        }
                     }
                 }
                 Ok(())
             }
             Err(e) => {
                 tracing::error!("Error revoking all tokens for client: {:?}", e);
-                Err(RepositoryError::InternalError("Failed to revoke all tokens for client".to_string()))
+                Err(RepositoryError::InternalError(
+                    "Failed to revoke all tokens for client".to_string(),
+                ))
             }
         }
     }
@@ -703,42 +816,50 @@ impl Repository for DynamoDbRepository {
         // DynamoDB TTL will handle cleanup automatically
         Ok(())
     }
-
 }
 
 impl DynamoDbRepository {
     // Helper methods for converting DynamoDB items to domain objects
-    fn dynamo_item_to_oauth_client(&self, item: std::collections::HashMap<String, AttributeValue>) -> Result<OAuthClient, RepositoryError> {
-        let client_id = item.get("ClientId")
+    fn dynamo_item_to_oauth_client(
+        &self,
+        item: std::collections::HashMap<String, AttributeValue>,
+    ) -> Result<OAuthClient, RepositoryError> {
+        let client_id = item
+            .get("ClientId")
             .ok_or_else(|| RepositoryError::InternalError("Missing ClientId".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid ClientId".to_string()))?
             .clone();
 
-        let client_secret = item.get("ClientSecret")
+        let client_secret = item
+            .get("ClientSecret")
             .ok_or_else(|| RepositoryError::InternalError("Missing ClientSecret".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid ClientSecret".to_string()))?
             .clone();
 
-        let client_name = item.get("ClientName")
+        let client_name = item
+            .get("ClientName")
             .ok_or_else(|| RepositoryError::InternalError("Missing ClientName".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid ClientName".to_string()))?
             .clone();
 
-        let redirect_uris = item.get("RedirectUris")
+        let redirect_uris = item
+            .get("RedirectUris")
             .ok_or_else(|| RepositoryError::InternalError("Missing RedirectUris".to_string()))?
             .as_ss()
             .map_err(|_| RepositoryError::InternalError("Invalid RedirectUris".to_string()))?
             .clone();
 
-        let grant_types_str = item.get("GrantTypes")
+        let grant_types_str = item
+            .get("GrantTypes")
             .ok_or_else(|| RepositoryError::InternalError("Missing GrantTypes".to_string()))?
             .as_ss()
             .map_err(|_| RepositoryError::InternalError("Invalid GrantTypes".to_string()))?;
 
-        let grant_types = grant_types_str.iter()
+        let grant_types = grant_types_str
+            .iter()
             .map(|s| match s.as_str() {
                 "AuthorizationCode" => GrantType::AuthorizationCode,
                 "ClientCredentials" => GrantType::ClientCredentials,
@@ -748,12 +869,14 @@ impl DynamoDbRepository {
             })
             .collect();
 
-        let response_types_str = item.get("ResponseTypes")
+        let response_types_str = item
+            .get("ResponseTypes")
             .ok_or_else(|| RepositoryError::InternalError("Missing ResponseTypes".to_string()))?
             .as_ss()
             .map_err(|_| RepositoryError::InternalError("Invalid ResponseTypes".to_string()))?;
 
-        let response_types = response_types_str.iter()
+        let response_types = response_types_str
+            .iter()
             .map(|s| match s.as_str() {
                 "Code" => ResponseType::Code,
                 "Token" => ResponseType::Token,
@@ -761,16 +884,22 @@ impl DynamoDbRepository {
             })
             .collect();
 
-        let scopes = item.get("Scopes")
+        let scopes = item
+            .get("Scopes")
             .ok_or_else(|| RepositoryError::InternalError("Missing Scopes".to_string()))?
             .as_ss()
             .map_err(|_| RepositoryError::InternalError("Invalid Scopes".to_string()))?
             .clone();
 
-        let token_endpoint_auth_method_str = item.get("TokenEndpointAuthMethod")
-            .ok_or_else(|| RepositoryError::InternalError("Missing TokenEndpointAuthMethod".to_string()))?
+        let token_endpoint_auth_method_str = item
+            .get("TokenEndpointAuthMethod")
+            .ok_or_else(|| {
+                RepositoryError::InternalError("Missing TokenEndpointAuthMethod".to_string())
+            })?
             .as_s()
-            .map_err(|_| RepositoryError::InternalError("Invalid TokenEndpointAuthMethod".to_string()))?;
+            .map_err(|_| {
+                RepositoryError::InternalError("Invalid TokenEndpointAuthMethod".to_string())
+            })?;
 
         let token_endpoint_auth_method = match token_endpoint_auth_method_str.as_str() {
             "ClientSecretBasic" => TokenEndpointAuthMethod::ClientSecretBasic,
@@ -778,22 +907,25 @@ impl DynamoDbRepository {
             "None" => TokenEndpointAuthMethod::None,
             _ => TokenEndpointAuthMethod::ClientSecretPost,
         };
-        
-        let created_at = item.get("CreatedAt")
+
+        let created_at = item
+            .get("CreatedAt")
             .ok_or_else(|| RepositoryError::InternalError("Missing CreatedAt".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid CreatedAt".to_string()))?
             .parse()
             .map_err(|_| RepositoryError::InternalError("Invalid CreatedAt format".to_string()))?;
 
-        let updated_at = item.get("UpdatedAt")
+        let updated_at = item
+            .get("UpdatedAt")
             .ok_or_else(|| RepositoryError::InternalError("Missing UpdatedAt".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid UpdatedAt".to_string()))?
             .parse()
             .map_err(|_| RepositoryError::InternalError("Invalid UpdatedAt format".to_string()))?;
 
-        let is_active = *item.get("IsActive")
+        let is_active = *item
+            .get("IsActive")
             .ok_or_else(|| RepositoryError::InternalError("Missing IsActive".to_string()))?
             .as_bool()
             .map_err(|_| RepositoryError::InternalError("Invalid IsActive".to_string()))?;
@@ -813,58 +945,73 @@ impl DynamoDbRepository {
         })
     }
 
-    fn dynamo_item_to_authorization_code(&self, item: std::collections::HashMap<String, AttributeValue>) -> Result<AuthorizationCode, RepositoryError> {
-        let code = item.get("Code")
+    fn dynamo_item_to_authorization_code(
+        &self,
+        item: std::collections::HashMap<String, AttributeValue>,
+    ) -> Result<AuthorizationCode, RepositoryError> {
+        let code = item
+            .get("Code")
             .ok_or_else(|| RepositoryError::InternalError("Missing Code".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid Code".to_string()))?
             .clone();
 
-        let client_id = item.get("ClientId")
+        let client_id = item
+            .get("ClientId")
             .ok_or_else(|| RepositoryError::InternalError("Missing ClientId".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid ClientId".to_string()))?
             .clone();
 
-        let user_id = item.get("UserId")
+        let user_id = item
+            .get("UserId")
             .ok_or_else(|| RepositoryError::InternalError("Missing UserId".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid UserId".to_string()))?
             .clone();
 
-        let redirect_uri = item.get("RedirectUri")
+        let redirect_uri = item
+            .get("RedirectUri")
             .ok_or_else(|| RepositoryError::InternalError("Missing RedirectUri".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid RedirectUri".to_string()))?
             .clone();
 
-        let scopes = item.get("Scopes")
+        let scopes = item
+            .get("Scopes")
             .ok_or_else(|| RepositoryError::InternalError("Missing Scopes".to_string()))?
             .as_ss()
             .map_err(|_| RepositoryError::InternalError("Invalid Scopes".to_string()))?
             .clone();
 
-        let code_challenge = item.get("CodeChallenge")
-            .and_then(|v| v.as_s().ok()).cloned();
+        let code_challenge = item
+            .get("CodeChallenge")
+            .and_then(|v| v.as_s().ok())
+            .cloned();
 
-        let code_challenge_method = item.get("CodeChallengeMethod")
-            .and_then(|v| v.as_s().ok()).cloned();
+        let code_challenge_method = item
+            .get("CodeChallengeMethod")
+            .and_then(|v| v.as_s().ok())
+            .cloned();
 
-        let expires_at = item.get("ExpiresAt")
+        let expires_at = item
+            .get("ExpiresAt")
             .ok_or_else(|| RepositoryError::InternalError("Missing ExpiresAt".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid ExpiresAt".to_string()))?
             .parse()
             .map_err(|_| RepositoryError::InternalError("Invalid ExpiresAt format".to_string()))?;
 
-        let created_at = item.get("CreatedAt")
+        let created_at = item
+            .get("CreatedAt")
             .ok_or_else(|| RepositoryError::InternalError("Missing CreatedAt".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid CreatedAt".to_string()))?
             .parse()
             .map_err(|_| RepositoryError::InternalError("Invalid CreatedAt format".to_string()))?;
 
-        let is_used = *item.get("IsUsed")
+        let is_used = *item
+            .get("IsUsed")
             .ok_or_else(|| RepositoryError::InternalError("Missing IsUsed".to_string()))?
             .as_bool()
             .map_err(|_| RepositoryError::InternalError("Invalid IsUsed".to_string()))?;
@@ -883,62 +1030,76 @@ impl DynamoDbRepository {
         })
     }
 
-    fn dynamo_item_to_oauth_token(&self, item: std::collections::HashMap<String, AttributeValue>) -> Result<OAuthToken, RepositoryError> {
-        let access_token = item.get("AccessToken")
+    fn dynamo_item_to_oauth_token(
+        &self,
+        item: std::collections::HashMap<String, AttributeValue>,
+    ) -> Result<OAuthToken, RepositoryError> {
+        let access_token = item
+            .get("AccessToken")
             .ok_or_else(|| RepositoryError::InternalError("Missing AccessToken".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid AccessToken".to_string()))?
             .clone();
 
-        let token_type = item.get("TokenType")
+        let token_type = item
+            .get("TokenType")
             .ok_or_else(|| RepositoryError::InternalError("Missing TokenType".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid TokenType".to_string()))?
             .clone();
 
-        let expires_in = item.get("ExpiresIn")
+        let expires_in = item
+            .get("ExpiresIn")
             .ok_or_else(|| RepositoryError::InternalError("Missing ExpiresIn".to_string()))?
             .as_n()
             .map_err(|_| RepositoryError::InternalError("Invalid ExpiresIn".to_string()))?
             .parse()
             .map_err(|_| RepositoryError::InternalError("Invalid ExpiresIn format".to_string()))?;
 
-        let refresh_token = item.get("RefreshToken")
-            .and_then(|v| v.as_s().ok()).cloned();
+        let refresh_token = item
+            .get("RefreshToken")
+            .and_then(|v| v.as_s().ok())
+            .cloned();
 
-        let scope = item.get("Scope")
+        let scope = item
+            .get("Scope")
             .ok_or_else(|| RepositoryError::InternalError("Missing Scope".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid Scope".to_string()))?
             .clone();
 
-        let client_id = item.get("ClientId")
+        let client_id = item
+            .get("ClientId")
             .ok_or_else(|| RepositoryError::InternalError("Missing ClientId".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid ClientId".to_string()))?
             .clone();
 
-        let user_id = item.get("UserId")
+        let user_id = item
+            .get("UserId")
             .ok_or_else(|| RepositoryError::InternalError("Missing UserId".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid UserId".to_string()))?
             .clone();
 
-        let created_at = item.get("CreatedAt")
+        let created_at = item
+            .get("CreatedAt")
             .ok_or_else(|| RepositoryError::InternalError("Missing CreatedAt".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid CreatedAt".to_string()))?
             .parse()
             .map_err(|_| RepositoryError::InternalError("Invalid CreatedAt format".to_string()))?;
 
-        let expires_at = item.get("ExpiresAt")
+        let expires_at = item
+            .get("ExpiresAt")
             .ok_or_else(|| RepositoryError::InternalError("Missing ExpiresAt".to_string()))?
             .as_s()
             .map_err(|_| RepositoryError::InternalError("Invalid ExpiresAt".to_string()))?
             .parse()
             .map_err(|_| RepositoryError::InternalError("Invalid ExpiresAt format".to_string()))?;
 
-        let is_revoked = *item.get("IsRevoked")
+        let is_revoked = *item
+            .get("IsRevoked")
             .ok_or_else(|| RepositoryError::InternalError("Missing IsRevoked".to_string()))?
             .as_bool()
             .map_err(|_| RepositoryError::InternalError("Invalid IsRevoked".to_string()))?;
@@ -997,7 +1158,6 @@ impl EventPublisher for EventBridgeEventPublisher {
             .await
             .map_err(|err| {
                 tracing::error!("{}", err);
-                
             })?;
 
         Ok(())

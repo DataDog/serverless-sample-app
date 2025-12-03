@@ -16,5 +16,5 @@ mod utils;
 // Public exports
 pub use cloud_event::CloudEvent;
 pub use config::init_otel;
-pub use tracing::{trace_request, trace_handler};
+pub use tracing::{trace_handler, trace_request};
 pub use utils::parse_name_from_arn;

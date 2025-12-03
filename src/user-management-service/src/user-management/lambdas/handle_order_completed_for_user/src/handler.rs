@@ -3,7 +3,7 @@ use lambda_runtime::{Error, LambdaEvent};
 use observability::CloudEvent;
 use shared::core::Repository;
 use shared::ports::OrderCompleted;
-use tracing::{instrument, Span};
+use tracing::{Span, instrument};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 #[instrument(name = "handle_order_completed", skip(client, event))]

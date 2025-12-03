@@ -1,13 +1,12 @@
 use lambda_http::http::StatusCode;
 use lambda_http::{
-    run, service_fn,
+    Body, Error, Request, RequestExt, Response, run, service_fn,
     tracing::{self, instrument},
-    Error, Request, RequestExt, Response, Body,
 };
 use observability::init_otel;
-use std::sync::OnceLock;
 use opentelemetry_sdk::trace::SdkTracerProvider;
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AuthorizationServerMetadata {
@@ -110,10 +109,7 @@ async fn handle_metadata_get(event: Request) -> Result<Response<Body>, Error> {
         registration_endpoint: Some(format!("{}/register", api_base_url)),
         revocation_endpoint: Some(format!("{}/revoke", api_base_url)),
         introspection_endpoint: Some(format!("{}/introspect", api_base_url)),
-        code_challenge_methods_supported: vec![
-            "plain".to_string(),
-            "S256".to_string(),
-        ],
+        code_challenge_methods_supported: vec!["plain".to_string(), "S256".to_string()],
         service_documentation: Some(format!("{}/docs", api_base_url)),
         ui_locales_supported: Some(vec!["en".to_string()]),
         op_policy_uri: None,
@@ -121,10 +117,10 @@ async fn handle_metadata_get(event: Request) -> Result<Response<Body>, Error> {
     };
 
     tracing::info!("Returning OAuth authorization server metadata");
-    
+
     // Return raw JSON without wrapper as per RFC 8414
     let json_body = serde_json::to_string(&metadata).unwrap_or("{}".to_string());
-    
+
     Ok(Response::builder()
         .status(StatusCode::OK)
         .header("content-type", "application/json")
@@ -156,9 +152,10 @@ async fn main() -> Result<(), Error> {
         let res = function_handler(event).await;
 
         if let Some(provider) = TRACER_PROVIDER.get()
-            && let Err(e) = provider.force_flush() {
-                tracing::warn!("Failed to flush traces: {:?}", e);
-            }
+            && let Err(e) = provider.force_flush()
+        {
+            tracing::warn!("Failed to flush traces: {:?}", e);
+        }
 
         res
     }))
@@ -168,7 +165,7 @@ async fn main() -> Result<(), Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lambda_http::{http::Method, Request, Body, http::HeaderName, http::HeaderValue};
+    use lambda_http::{Body, Request, http::HeaderName, http::HeaderValue, http::Method};
     use serde_json::Value;
     use std::collections::HashMap;
 
@@ -176,14 +173,14 @@ mod tests {
         let mut request = Request::new(Body::Empty);
         *request.method_mut() = method;
         *request.uri_mut() = "/.well-known/oauth-authorization-server".parse().unwrap();
-        
+
         let request_headers = request.headers_mut();
         for (key, value) in headers {
             let header_name = HeaderName::from_bytes(key.as_bytes()).unwrap();
             let header_value = HeaderValue::from_str(&value).unwrap();
             request_headers.insert(header_name, header_value);
         }
-        
+
         request
     }
 
@@ -192,7 +189,7 @@ mod tests {
         let mut headers = HashMap::new();
         headers.insert("host".to_string(), "example.com".to_string());
         headers.insert("x-forwarded-proto".to_string(), "https".to_string());
-        
+
         let request = create_test_request(Method::GET, headers);
         let response = function_handler(request).await.unwrap();
         assert_eq!(response.status(), StatusCode::OK);
@@ -204,8 +201,14 @@ mod tests {
 
         let metadata: Value = serde_json::from_str(&body).unwrap();
         assert_eq!(metadata["issuer"], "https://example.com");
-        assert_eq!(metadata["authorization_endpoint"], "https://example.com/oauth/authorize");
-        assert_eq!(metadata["token_endpoint"], "https://example.com/oauth/token");
+        assert_eq!(
+            metadata["authorization_endpoint"],
+            "https://example.com/oauth/authorize"
+        );
+        assert_eq!(
+            metadata["token_endpoint"],
+            "https://example.com/oauth/token"
+        );
         assert!(metadata["response_types_supported"].is_array());
         assert!(metadata["grant_types_supported"].is_array());
     }
@@ -214,7 +217,7 @@ mod tests {
     async fn test_metadata_endpoint_method_not_allowed() {
         let mut headers = HashMap::new();
         headers.insert("host".to_string(), "example.com".to_string());
-        
+
         let request = create_test_request(Method::POST, headers);
         let response = function_handler(request).await.unwrap();
         assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED);
@@ -225,21 +228,21 @@ mod tests {
         let mut headers = HashMap::new();
         headers.insert("host".to_string(), "test.example.com".to_string());
         headers.insert("x-forwarded-proto".to_string(), "https".to_string());
-        
+
         let request = create_test_request(Method::GET, headers);
         let response = function_handler(request).await.unwrap();
-        
+
         let body = match response.body() {
             Body::Text(text) => text.clone(),
             _ => panic!("Expected text body"),
         };
 
         let metadata: Value = serde_json::from_str(&body).unwrap();
-        
+
         // Check required fields per RFC 8414
         assert!(metadata["issuer"].is_string());
         assert!(metadata["response_types_supported"].is_array());
-        
+
         // Check common optional fields
         assert!(metadata["authorization_endpoint"].is_string());
         assert!(metadata["token_endpoint"].is_string());
