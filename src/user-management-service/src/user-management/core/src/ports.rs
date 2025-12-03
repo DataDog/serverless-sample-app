@@ -1126,8 +1126,8 @@ impl TokenRequest {
         }
 
         // Validate client secret
-        if let Some(client_secret) = &self.client_secret {
-            if !repository
+        if let Some(client_secret) = &self.client_secret
+            && !repository
                 .validate_client_secret(&self.client_id, client_secret)
                 .await
                 .map_err(|e| {
@@ -1141,7 +1141,6 @@ impl TokenRequest {
                     "Invalid client secret".to_string(),
                 ));
             }
-        }
 
         // Get user for token generation
         let user = repository
@@ -1327,8 +1326,8 @@ impl IntrospectTokenRequest {
         Span::current().set_attribute("oauth.client_id", self.client_id.clone());
         
         // Validate client
-        if let Some(client_secret) = &self.client_secret {
-            if !repository
+        if let Some(client_secret) = &self.client_secret
+            && !repository
                 .validate_client_secret(&self.client_id, client_secret)
                 .await
                 .map_err(|e| {
@@ -1342,7 +1341,6 @@ impl IntrospectTokenRequest {
                     "Invalid client credentials".to_string(),
                 ));
             }
-        }
 
         // Get token
         let oauth_token = repository.get_oauth_token(&self.token).await.map_err(|e| {
@@ -1406,8 +1404,8 @@ impl RevokeTokenRequest {
         Span::current().set_attribute("user.id", self.client_id.clone());
         
         // Validate client
-        if let Some(client_secret) = &self.client_secret {
-            if !repository
+        if let Some(client_secret) = &self.client_secret
+            && !repository
                 .validate_client_secret(&self.client_id, client_secret)
                 .await
                 .map_err(|e| {
@@ -1421,7 +1419,6 @@ impl RevokeTokenRequest {
                     "Invalid client credentials".to_string(),
                 ));
             }
-        }
 
         // Revoke token (both access and refresh tokens)
         repository

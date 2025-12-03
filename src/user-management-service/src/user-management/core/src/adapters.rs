@@ -683,11 +683,10 @@ impl Repository for DynamoDbRepository {
             Ok(result) => {
                 if let Some(items) = result.items {
                     for item in items {
-                        if let Some(access_token) = item.get("AccessToken") {
-                            if let Ok(token) = access_token.as_s() {
+                        if let Some(access_token) = item.get("AccessToken")
+                            && let Ok(token) = access_token.as_s() {
                                 let _ = self.revoke_oauth_token(token).await;
                             }
-                        }
                     }
                 }
                 Ok(())

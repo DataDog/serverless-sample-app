@@ -80,11 +80,10 @@ async fn main() -> Result<(), Error> {
     run(service_fn(|event| async {
         let res = function_handler(&repository, &token_generator, event).await;
 
-        if let Some(provider) = TRACER_PROVIDER.get() {
-            if let Err(e) = provider.force_flush() {
+        if let Some(provider) = TRACER_PROVIDER.get()
+            && let Err(e) = provider.force_flush() {
                 tracing::warn!("Failed to flush traces: {:?}", e);
             }
-        }
 
         res
     }))

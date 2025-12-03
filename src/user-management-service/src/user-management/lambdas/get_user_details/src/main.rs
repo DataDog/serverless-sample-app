@@ -104,11 +104,10 @@ async fn main() -> Result<(), Error> {
 
         handler_span.end();
 
-        if let Some(provider) = TRACER_PROVIDER.get() {
-            if let Err(e) = provider.force_flush() {
+        if let Some(provider) = TRACER_PROVIDER.get()
+            && let Err(e) = provider.force_flush() {
                 tracing::warn!("Failed to flush traces: {:?}", e);
             }
-        }
 
         res
     }))
