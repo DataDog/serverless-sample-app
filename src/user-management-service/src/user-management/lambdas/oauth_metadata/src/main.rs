@@ -4,9 +4,10 @@ use lambda_http::{
     tracing::{self, instrument},
     Error, Request, RequestExt, Response, Body,
 };
-use observability::observability;
+use observability::init_otel;
+use std::sync::OnceLock;
+use opentelemetry_sdk::trace::SdkTracerProvider;
 use serde::{Deserialize, Serialize};
-use tracing_subscriber::util::SubscriberInitExt;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AuthorizationServerMetadata {
@@ -134,11 +135,35 @@ async fn handle_metadata_get(event: Request) -> Result<Response<Body>, Error> {
         .map_err(Box::new)?)
 }
 
+static TRACER_PROVIDER: OnceLock<SdkTracerProvider> = OnceLock::new();
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    observability().init();
+    let otel_providers = match init_otel() {
+        Ok(providers) => Some(providers),
+        Err(err) => {
+            tracing::warn!(
+                "Couldn't start OTel! Will proudly soldier on without telemetry: {0}",
+                err
+            );
+            None
+        }
+    };
 
-    run(service_fn(function_handler)).await
+    let _ = TRACER_PROVIDER.set(otel_providers.unwrap().0);
+
+    run(service_fn(|event| async {
+        let res = function_handler(event).await;
+
+        if let Some(provider) = TRACER_PROVIDER.get() {
+            if let Err(e) = provider.force_flush() {
+                tracing::warn!("Failed to flush traces: {:?}", e);
+            }
+        }
+
+        res
+    }))
+    .await
 }
 
 #[cfg(test)]

@@ -802,7 +802,7 @@ dependencies = [
  "der",
  "elliptic-curve",
  "rfc6979",
- "signature 1.6.4",
+ "signature",
 ]
 
 [[package]]
@@ -996,6 +996,7 @@ dependencies = [
  "lambda_http",
  "observability",
  "opentelemetry",
+ "opentelemetry_sdk",
  "shared",
  "tokio",
  "tracing",
@@ -1087,6 +1088,7 @@ dependencies = [
  "lambda_runtime",
  "observability",
  "opentelemetry",
+ "opentelemetry_sdk",
  "serde",
  "serde_json",
  "shared",
@@ -1545,17 +1547,16 @@ dependencies = [
 
 [[package]]
 name = "jsonwebtoken"
-version = "10.2.0"
+version = "9.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c76e1c7d7df3e34443b3621b459b066a7b79644f059fc8b2db7070c825fd417e"
+checksum = "5a87cc7a48537badeae96744432de36f4be2b4a34a05a5ef32e9dd8a1c169dde"
 dependencies = [
  "base64 0.22.1",
- "getrandom 0.2.15",
  "js-sys",
  "pem",
+ "ring",
  "serde",
  "serde_json",
- "signature 2.2.0",
  "simple_asn1",
 ]
 
@@ -1661,6 +1662,7 @@ dependencies = [
  "aws-sdk-ssm",
  "lambda_http",
  "observability",
+ "opentelemetry_sdk",
  "shared",
  "tokio",
  "tracing",
@@ -1761,6 +1763,7 @@ dependencies = [
  "aws-sdk-ssm",
  "lambda_http",
  "observability",
+ "opentelemetry_sdk",
  "shared",
  "tokio",
  "tracing",
@@ -1777,6 +1780,7 @@ dependencies = [
  "aws-sdk-ssm",
  "lambda_http",
  "observability",
+ "opentelemetry_sdk",
  "shared",
  "tokio",
  "tracing",
@@ -1792,6 +1796,7 @@ dependencies = [
  "aws-sdk-ssm",
  "lambda_http",
  "observability",
+ "opentelemetry_sdk",
  "shared",
  "tokio",
  "tracing",
@@ -1807,6 +1812,7 @@ dependencies = [
  "aws-sdk-ssm",
  "lambda_http",
  "observability",
+ "opentelemetry_sdk",
  "shared",
  "tokio",
  "tracing",
@@ -1822,6 +1828,7 @@ dependencies = [
  "aws-sdk-ssm",
  "lambda_http",
  "observability",
+ "opentelemetry_sdk",
  "shared",
  "tokio",
  "tracing",
@@ -1837,6 +1844,7 @@ dependencies = [
  "aws-sdk-ssm",
  "lambda_http",
  "observability",
+ "opentelemetry_sdk",
  "shared",
  "tokio",
  "tracing",
@@ -1852,6 +1860,7 @@ dependencies = [
  "aws-sdk-ssm",
  "lambda_http",
  "observability",
+ "opentelemetry_sdk",
  "shared",
  "tokio",
  "tracing",
@@ -1867,6 +1876,7 @@ dependencies = [
  "aws-sdk-ssm",
  "lambda_http",
  "observability",
+ "opentelemetry_sdk",
  "serde",
  "serde_json",
  "shared",
@@ -1884,6 +1894,7 @@ dependencies = [
  "aws-sdk-ssm",
  "lambda_http",
  "observability",
+ "opentelemetry_sdk",
  "shared",
  "tokio",
  "tracing",
@@ -1899,6 +1910,7 @@ dependencies = [
  "aws-sdk-ssm",
  "lambda_http",
  "observability",
+ "opentelemetry_sdk",
  "shared",
  "tokio",
  "tracing",
@@ -2777,15 +2789,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74233d3b3b2f6d4b006dc19dee745e73e2a6bfb6f93607cd3b02bd5b00797d7c"
 dependencies = [
  "digest",
- "rand_core 0.6.4",
-]
-
-[[package]]
-name = "signature"
-version = "2.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
-dependencies = [
  "rand_core 0.6.4",
 ]
 

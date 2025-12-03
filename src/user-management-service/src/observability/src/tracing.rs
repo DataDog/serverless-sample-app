@@ -25,7 +25,7 @@ pub fn trace_request(event: &Request) -> BoxedSpan {
         .with_kind(SpanKind::Internal)
         .start(&tracer);
 
-    current_span
+    let _ = current_span
         .set_parent(Context::new().with_remote_span_context(handler_span.span_context().clone()));
 
     handler_span.set_attribute(KeyValue::new("service", "aws.lambda"));
@@ -67,7 +67,7 @@ pub fn trace_handler(context: lambda_runtime::Context) -> BoxedSpan {
         .with_kind(SpanKind::Internal)
         .start(&tracer);
 
-    current_span
+    let _ = current_span
         .set_parent(Context::new().with_remote_span_context(handler_span.span_context().clone()));
 
     handler_span.set_attribute(KeyValue::new("service", "aws.lambda"));

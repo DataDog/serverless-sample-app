@@ -3528,7 +3528,7 @@ pub async fn liveness_handler() -> impl IntoResponse {
 [package]
 name = "payment-service"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 rust-version = "1.75"
 
 [dependencies]
