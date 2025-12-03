@@ -1,13 +1,13 @@
 use aws_config::BehaviorVersion;
+use base64::Engine;
 use observability::CloudEvent;
 use reqwest::redirect::Policy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::time::Duration;
 use tokio::time::sleep;
-use sha2::{Digest, Sha256};
-use base64::Engine;
-use std::collections::HashMap;
 
 struct ApiEndpoint(String);
 struct EventBusName(String);
@@ -49,7 +49,6 @@ async fn when_user_registers_then_should_be_able_to_login() {
         event_bus_name.0.clone(),
     )
     .await;
-
 
     println!("Email under test is {}", &email_under_test);
 
@@ -134,27 +133,28 @@ async fn when_order_completed_event_is_published_order_count_is_increased() {
 async fn oauth_authorization_code_flow_should_work_end_to_end() {
     let environment = std::env::var("ENV").unwrap_or("dev".to_string());
     let random_email = uuid::Uuid::new_v4().to_string();
-    
+
     println!("Environment: {}", environment);
     let email_under_test = format!("{}@test.com", random_email);
     let password_under_test = "Test!23";
-    
+
     let (api_endpoint, event_bus_name) = retrieve_parameter_values(&environment).await;
     println!("API endpoint is {}", &api_endpoint.0);
     println!("Event bus name is {}", &event_bus_name.0);
-    
+
     let api_driver = ApiDriver::new(
         environment,
         api_endpoint.0.clone(),
         event_bus_name.0.clone(),
-    ).await;
-    
+    )
+    .await;
+
     // Step 1: Register a test user
     let register_response = api_driver
         .register_user(&email_under_test, "Test", "User", password_under_test)
         .await;
     assert_eq!(register_response.status(), 200);
-    
+
     // Step 2: Create an OAuth client
     let (client_name, grant_types, redirect_uris, response_types) = OAuthClientBuilder::new()
         .with_client_name("test_oauth_client")
@@ -162,17 +162,22 @@ async fn oauth_authorization_code_flow_should_work_end_to_end() {
         .with_redirect_uris(vec!["http://localhost:3000/callback".to_string()])
         .with_response_types(vec!["code".to_string()])
         .build();
-    
+
     let client_response = api_driver
-        .create_oauth_client(&client_name, grant_types.iter().map(|s| s.as_str()).collect(), redirect_uris.iter().map(|s| s.as_str()).collect(), response_types.iter().map(|s| s.as_str()).collect())
+        .create_oauth_client(
+            &client_name,
+            grant_types.iter().map(|s| s.as_str()).collect(),
+            redirect_uris.iter().map(|s| s.as_str()).collect(),
+            response_types.iter().map(|s| s.as_str()).collect(),
+        )
         .await;
     assert_eq!(client_response.status(), 201);
-    
+
     let oauth_client: OAuthClientResponse = client_response
         .json()
         .await
         .expect("OAuth client response should serialize to OAuthClientResponse");
-    
+
     // Step 3: Initiate authorization request (GET /oauth/authorize)
     let auth_request = AuthorizeRequestBuilder::new()
         .with_client_id(oauth_client.client_id.clone())
@@ -181,7 +186,7 @@ async fn oauth_authorization_code_flow_should_work_end_to_end() {
         .with_state("test_state_123")
         .with_response_type("code")
         .build();
-    
+
     let auth_response = api_driver
         .oauth_authorize_get(
             &auth_request.response_type,
@@ -193,15 +198,15 @@ async fn oauth_authorization_code_flow_should_work_end_to_end() {
             auth_request.code_challenge_method.as_deref(),
         )
         .await;
-    
+
     assert_eq!(auth_response.status(), 200);
-    
+
     // Step 4: Extract CSRF token from HTML response
     let html_content = auth_response.text().await.unwrap();
     let csrf_token = api_driver
         .extract_csrf_token_from_html(&html_content)
         .expect("Should extract CSRF token from HTML");
-    
+
     // Step 5: Submit login form
     let login_form_response = api_driver
         .oauth_authorize_form_post(
@@ -216,10 +221,10 @@ async fn oauth_authorization_code_flow_should_work_end_to_end() {
             &csrf_token,
         )
         .await;
-    
+
     // Should redirect with 302 Found
     assert_eq!(login_form_response.status(), 302);
-    
+
     // Step 6: Extract authorization code from redirect URL
     let redirect_url = login_form_response
         .headers()
@@ -227,11 +232,11 @@ async fn oauth_authorization_code_flow_should_work_end_to_end() {
         .expect("Should have location header")
         .to_str()
         .expect("Location header should be valid string");
-    
+
     let authorization_code = api_driver
         .extract_authorization_code_from_redirect(redirect_url)
         .expect("Should extract authorization code from redirect");
-    
+
     // Step 7: Exchange authorization code for access token
     let token_request = TokenRequestBuilder::new()
         .with_grant_type("authorization_code")
@@ -240,7 +245,7 @@ async fn oauth_authorization_code_flow_should_work_end_to_end() {
         .with_code(authorization_code)
         .with_redirect_uri("http://localhost:3000/callback")
         .build();
-    
+
     let token_response = api_driver
         .oauth_token_exchange(
             &token_request.grant_type,
@@ -253,118 +258,145 @@ async fn oauth_authorization_code_flow_should_work_end_to_end() {
             token_request.scope.as_deref(),
         )
         .await;
-    
+
     assert_eq!(token_response.status(), 200);
-    
+
     let token_data: TokenResponse = token_response
         .json()
         .await
         .expect("Token response should serialize to TokenResponse");
-    
+
     // Step 8: Verify token properties
     assert_eq!(token_data.token_type, "Bearer");
     assert!(!token_data.access_token.is_empty());
     assert!(token_data.expires_in.is_some());
-    
+
     println!("OAuth 2.0 Authorization Code Flow completed successfully!");
     println!("Access token: {}", token_data.access_token);
 }
 #[tokio::test]
 async fn oauth_discovery_endpoint_should_return_valid_metadata() {
     let environment = std::env::var("ENV").unwrap_or("dev".to_string());
-    
+
     let (api_endpoint, event_bus_name) = retrieve_parameter_values(&environment).await;
-    
+
     let api_driver = ApiDriver::new(
         environment,
         api_endpoint.0.clone(),
         event_bus_name.0.clone(),
-    ).await;
-    
+    )
+    .await;
+
     // Test OAuth discovery endpoint
-    let metadata_response = api_driver
-        .get_oauth_metadata()
-        .await;
-    
+    let metadata_response = api_driver.get_oauth_metadata().await;
+
     assert_eq!(metadata_response.status(), 200);
-    assert_eq!(metadata_response.headers().get("content-type").unwrap(), "application/json");
-    
+    assert_eq!(
+        metadata_response.headers().get("content-type").unwrap(),
+        "application/json"
+    );
+
     let metadata: AuthorizationServerMetadata = metadata_response
         .json()
         .await
         .expect("Metadata response should serialize to AuthorizationServerMetadata");
-    
+
     // Verify required fields per RFC 8414
     assert!(!metadata.issuer.is_empty());
     assert!(!metadata.authorization_endpoint.is_empty());
     assert!(!metadata.token_endpoint.is_empty());
     assert!(!metadata.response_types_supported.is_empty());
-    
+
     // Verify expected endpoints
     assert!(metadata.authorization_endpoint.contains("/oauth/authorize"));
     assert!(metadata.token_endpoint.contains("/oauth/token"));
-    
+
     // Verify supported capabilities
-    assert!(metadata.response_types_supported.contains(&"code".to_string()));
-    assert!(metadata.grant_types_supported.contains(&"authorization_code".to_string()));
+    assert!(
+        metadata
+            .response_types_supported
+            .contains(&"code".to_string())
+    );
+    assert!(
+        metadata
+            .grant_types_supported
+            .contains(&"authorization_code".to_string())
+    );
     assert!(metadata.scopes_supported.contains(&"openid".to_string()));
     assert!(metadata.scopes_supported.contains(&"profile".to_string()));
     assert!(metadata.scopes_supported.contains(&"email".to_string()));
-    
+
     // Verify PKCE support
-    assert!(metadata.code_challenge_methods_supported.contains(&"S256".to_string()));
-    assert!(metadata.code_challenge_methods_supported.contains(&"plain".to_string()));
-    
+    assert!(
+        metadata
+            .code_challenge_methods_supported
+            .contains(&"S256".to_string())
+    );
+    assert!(
+        metadata
+            .code_challenge_methods_supported
+            .contains(&"plain".to_string())
+    );
+
     // Verify endpoint URLs
     assert!(metadata.registration_endpoint.is_some());
     assert!(metadata.revocation_endpoint.is_some());
     assert!(metadata.introspection_endpoint.is_some());
-    
+
     if let Some(registration_endpoint) = &metadata.registration_endpoint {
         assert!(registration_endpoint.contains("/oauth/register"));
     }
-    
+
     if let Some(revocation_endpoint) = &metadata.revocation_endpoint {
         assert!(revocation_endpoint.contains("/oauth/revoke"));
     }
-    
+
     if let Some(introspection_endpoint) = &metadata.introspection_endpoint {
         assert!(introspection_endpoint.contains("/oauth/introspect"));
     }
-    
+
     println!("OAuth discovery endpoint test completed successfully!");
     println!("Issuer: {}", metadata.issuer);
-    println!("Authorization endpoint: {}", metadata.authorization_endpoint);
+    println!(
+        "Authorization endpoint: {}",
+        metadata.authorization_endpoint
+    );
     println!("Token endpoint: {}", metadata.token_endpoint);
 }
 
 #[tokio::test]
 async fn oauth_invalid_authorization_code_should_fail_token_exchange() {
     let environment = std::env::var("ENV").unwrap_or("dev".to_string());
-    
+
     let (api_endpoint, event_bus_name) = retrieve_parameter_values(&environment).await;
-    
+
     let api_driver = ApiDriver::new(
         environment,
         api_endpoint.0.clone(),
         event_bus_name.0.clone(),
-    ).await;
-    
+    )
+    .await;
+
     // Create a valid OAuth client
     let (client_name, grant_types, redirect_uris, response_types) = OAuthClientBuilder::new()
         .with_client_name("test_invalid_code_client")
         .build();
-    
+
     let client_response = api_driver
-        .create_oauth_client(&client_name, grant_types.iter().map(|s| s.as_str()).collect(), redirect_uris.iter().map(|s| s.as_str()).collect(), response_types.iter().map(|s| s.as_str()).collect())
+        .create_oauth_client(
+            &client_name,
+            grant_types.iter().map(|s| s.as_str()).collect(),
+            redirect_uris.iter().map(|s| s.as_str()).collect(),
+            response_types.iter().map(|s| s.as_str()).collect(),
+        )
         .await;
     assert_eq!(client_response.status(), 201);
-    
+
     let oauth_client: OAuthClientResponse = client_response
         .json()
         .await
         .expect("OAuth client response should serialize to OAuthClientResponse");
-    
+
     // Test: Try to exchange invalid authorization code for token
     let invalid_code_response = api_driver
         .oauth_token_exchange(
@@ -378,41 +410,47 @@ async fn oauth_invalid_authorization_code_should_fail_token_exchange() {
             None,
         )
         .await;
-    
+
     // Should return an error (400 Bad Request)
     assert!(invalid_code_response.status().is_client_error());
-    
+
     println!("OAuth invalid authorization code test completed successfully!");
 }
 
 #[tokio::test]
 async fn oauth_invalid_redirect_uri_should_be_rejected() {
     let environment = std::env::var("ENV").unwrap_or("dev".to_string());
-    
+
     let (api_endpoint, event_bus_name) = retrieve_parameter_values(&environment).await;
-    
+
     let api_driver = ApiDriver::new(
         environment,
         api_endpoint.0.clone(),
         event_bus_name.0.clone(),
-    ).await;
-    
+    )
+    .await;
+
     // Create OAuth client with specific redirect URI
     let (client_name, grant_types, redirect_uris, response_types) = OAuthClientBuilder::new()
         .with_client_name("test_redirect_uri_client")
         .with_redirect_uris(vec!["http://localhost:3000/callback".to_string()])
         .build();
-    
+
     let client_response = api_driver
-        .create_oauth_client(&client_name, grant_types.iter().map(|s| s.as_str()).collect(), redirect_uris.iter().map(|s| s.as_str()).collect(), response_types.iter().map(|s| s.as_str()).collect())
+        .create_oauth_client(
+            &client_name,
+            grant_types.iter().map(|s| s.as_str()).collect(),
+            redirect_uris.iter().map(|s| s.as_str()).collect(),
+            response_types.iter().map(|s| s.as_str()).collect(),
+        )
         .await;
     assert_eq!(client_response.status(), 201);
-    
+
     let oauth_client: OAuthClientResponse = client_response
         .json()
         .await
         .expect("OAuth client response should serialize to OAuthClientResponse");
-    
+
     // Test: Try to authorize with invalid redirect URI
     let invalid_redirect_response = api_driver
         .oauth_authorize_get(
@@ -425,10 +463,10 @@ async fn oauth_invalid_redirect_uri_should_be_rejected() {
             None,
         )
         .await;
-    
+
     // Should return an error (400 Bad Request)
     assert!(invalid_redirect_response.status().is_client_error());
-    
+
     println!("OAuth invalid redirect URI test completed successfully!");
 }
 
@@ -485,7 +523,7 @@ pub struct UserCreatedEvent {
 #[serde(rename_all = "camelCase")]
 pub struct OrderCompleted {
     order_number: String,
-    user_id: String
+    user_id: String,
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -651,7 +689,7 @@ impl AuthorizeRequestBuilder {
         hasher.update(code_verifier.as_bytes());
         let hash = hasher.finalize();
         let code_challenge = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&hash);
-        
+
         self.code_challenge = Some(code_challenge);
         self.code_challenge_method = Some("S256".to_string());
         self
@@ -912,7 +950,7 @@ impl ApiDriver {
         let payload = CloudEvent::new(
             OrderCompleted {
                 user_id: email.to_string(),
-                order_number: "ORD123".to_string()
+                order_number: "ORD123".to_string(),
             },
             "orders.orderCompleted.v1".to_string(),
         );
@@ -1084,7 +1122,10 @@ impl ApiDriver {
     // OAuth Discovery
     pub async fn get_oauth_metadata(&self) -> reqwest::Response {
         self.client
-            .get(format!("{}/.well-known/oauth-authorization-server", self.base_url))
+            .get(format!(
+                "{}/.well-known/oauth-authorization-server",
+                self.base_url
+            ))
             .header("Content-Type", "application/json")
             .send()
             .await
@@ -1093,7 +1134,8 @@ impl ApiDriver {
 
     pub fn extract_authorization_code_from_redirect(&self, redirect_url: &str) -> Option<String> {
         let url = url::Url::parse(redirect_url).ok()?;
-        let query_pairs: std::collections::HashMap<String, String> = url.query_pairs().into_owned().collect();
+        let query_pairs: std::collections::HashMap<String, String> =
+            url.query_pairs().into_owned().collect();
         query_pairs.get("code").cloned()
     }
 

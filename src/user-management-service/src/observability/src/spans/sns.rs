@@ -6,7 +6,7 @@
 //
 use aws_lambda_events::sns::{SnsMessage, SnsRecord};
 use opentelemetry::trace::{Span, SpanKind, Tracer};
-use opentelemetry::{global, KeyValue};
+use opentelemetry::{KeyValue, global};
 use std::env;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing;

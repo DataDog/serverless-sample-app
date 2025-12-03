@@ -1,10 +1,10 @@
 use lambda_http::http::StatusCode;
 use lambda_http::{
-    run, service_fn,
+    Body, Error, IntoResponse, Request, RequestExt, RequestPayloadExt, Response, run, service_fn,
     tracing::{self},
-    Body, Error, IntoResponse, Request, RequestExt, RequestPayloadExt, Response,
 };
-use observability::observability;
+use observability::init_otel;
+use opentelemetry_sdk::trace::SdkTracerProvider;
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
 use shared::ports::{
@@ -12,8 +12,8 @@ use shared::ports::{
 };
 use shared::response::{empty_response, html_response, redirect_response};
 use std::env;
+use std::sync::OnceLock;
 use tracing::instrument;
-use tracing_subscriber::util::SubscriberInitExt;
 
 #[instrument(name = "GET /oauth/authorize", skip(repository, event), fields(http.method = event.method().as_str(), http.path_group = event.raw_http_path()))]
 async fn function_handler<TRepository: Repository>(
@@ -212,14 +212,38 @@ async fn handle_callback_post<TRepository: Repository>(
     }
 }
 
+static TRACER_PROVIDER: OnceLock<SdkTracerProvider> = OnceLock::new();
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    observability().init();
+    let otel_providers = match init_otel() {
+        Ok(providers) => Some(providers),
+        Err(err) => {
+            tracing::warn!(
+                "Couldn't start OTel! Will proudly soldier on without telemetry: {0}",
+                err
+            );
+            None
+        }
+    };
+
+    let _ = TRACER_PROVIDER.set(otel_providers.unwrap().0);
     let table_name = env::var("TABLE_NAME").expect("TABLE_NAME is not set");
     let config = aws_config::load_from_env().await;
     let dynamodb_client = aws_sdk_dynamodb::Client::new(&config);
     let repository: DynamoDbRepository =
         DynamoDbRepository::new(dynamodb_client, table_name.clone());
 
-    run(service_fn(|event| function_handler(&repository, event))).await
+    run(service_fn(|event| async {
+        let res = function_handler(&repository, event).await;
+
+        if let Some(provider) = TRACER_PROVIDER.get()
+            && let Err(e) = provider.force_flush()
+        {
+            tracing::warn!("Failed to flush traces: {:?}", e);
+        }
+
+        res
+    }))
+    .await
 }

@@ -5,8 +5,8 @@
 // Copyright 2024 Datadog, Inc.
 //
 use aws_lambda_events::sqs::SqsMessage;
-use opentelemetry::{global, KeyValue};
 use opentelemetry::trace::{Span, SpanKind, Tracer};
+use opentelemetry::{KeyValue, global};
 use std::env;
 use std::time::SystemTime;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
@@ -19,9 +19,14 @@ pub fn generate_inflight_span_for_sqs<T>(
     cloud_event: &mut CloudEvent<T>,
     record: &SqsMessage,
     timestamp: SystemTime,
-) -> SystemTime 
-where T: serde::de::DeserializeOwned + serde::Serialize {
-    let event_source_arn = record.event_source_arn.clone().unwrap_or("unknown_arn".to_string());
+) -> SystemTime
+where
+    T: serde::de::DeserializeOwned + serde::Serialize,
+{
+    let event_source_arn = record
+        .event_source_arn
+        .clone()
+        .unwrap_or("unknown_arn".to_string());
 
     let queue_name = parse_name_from_arn(&event_source_arn);
 
@@ -66,8 +71,12 @@ where T: serde::de::DeserializeOwned + serde::Serialize {
         record.receipt_handle.clone().unwrap_or_default(),
     ));
 
-    if let Some((_key, val)) = record.attributes.get_key_value("ApproximateReceiveCount") { span.set_attribute(KeyValue::new("retry_count", val.clone())) }
-    if let Some((_key, val)) = record.attributes.get_key_value("SenderId") { span.set_attribute(KeyValue::new("sender_id", val.clone())) }
+    if let Some((_key, val)) = record.attributes.get_key_value("ApproximateReceiveCount") {
+        span.set_attribute(KeyValue::new("retry_count", val.clone()))
+    }
+    if let Some((_key, val)) = record.attributes.get_key_value("SenderId") {
+        span.set_attribute(KeyValue::new("sender_id", val.clone()))
+    }
 
     timestamp
 }

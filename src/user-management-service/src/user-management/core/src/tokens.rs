@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, decode, encode};
 use serde::{Deserialize, Serialize};
 
 use crate::core::User;
@@ -65,7 +65,6 @@ impl TokenGenerator {
         tracing::info!("Validating {} against {}", token, hashed_email_address);
 
         let token = if token.contains("Bearer ") {
-            
             token.replace("Bearer ", "")
         } else {
             token.to_string()

@@ -1,12 +1,12 @@
 [package]
 name = "oauth_client_update"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 observability = {path = "../../../observability"}
 shared = { path = "../../core" }
-lambda_http = "0.17"
+lambda_http = "1.0"
 aws-config = { version = "1.5", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1.67"
 aws-sdk-ssm = "1.67"
@@ -14,3 +14,4 @@ aws-sdk-ssm = "1.67"
 tokio = {workspace = true}
 tracing = {workspace = true}
 tracing-subscriber = {workspace = true}
+opentelemetry_sdk = {workspace = true}

@@ -5,6 +5,6 @@
 // Copyright 2024 Datadog, Inc.
 //
 
+pub mod event_bridge;
 pub mod sns;
 pub mod sqs;
-pub mod event_bridge;

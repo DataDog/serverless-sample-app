@@ -7,14 +7,14 @@ use crate::{
     tokens::TokenGenerator,
 };
 use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
 use chrono::{Duration, Utc};
 use lambda_http::tracing::log::warn;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tracing::{instrument, Span};
+use tracing::{Span, instrument};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use urlencoding::decode;
 use uuid::Uuid;
@@ -48,7 +48,7 @@ impl GetUserDetailsQuery {
         repository: &TRepo,
     ) -> Result<UserDTO, ApplicationError> {
         Span::current().set_attribute("user.id", self.email_address.clone());
-        
+
         let res = repository.get_user(&self.email_address).await;
 
         match res {
@@ -160,7 +160,7 @@ pub async fn handle_login<TRepo: Repository>(
     login_command: LoginCommand,
 ) -> Result<LoginResponse, ApplicationError> {
     Span::current().set_attribute("user.id", login_command.email_address.clone());
-    
+
     let user = repository
         .get_user(&login_command.email_address)
         .await
@@ -168,7 +168,8 @@ pub async fn handle_login<TRepo: Repository>(
             RepositoryError::NotFound => ApplicationError::NotFound,
             RepositoryError::InternalError(e) => {
                 Span::current().set_attribute("login.status", e.to_string());
-                ApplicationError::InternalError(e.to_string()) },
+                ApplicationError::InternalError(e.to_string())
+            }
             _ => ApplicationError::InternalError(e.to_string()),
         })?;
 
@@ -335,7 +336,7 @@ impl GetOAuthClientQuery {
         repository: &TRepo,
     ) -> Result<OAuthClientDTO, ApplicationError> {
         Span::current().set_attribute("oauth.client_id", self.client_id.clone());
-        
+
         let client = repository
             .get_oauth_client(&self.client_id)
             .await
@@ -370,7 +371,7 @@ impl UpdateOAuthClientCommand {
         repository: &TRepo,
     ) -> Result<OAuthClientDTO, ApplicationError> {
         Span::current().set_attribute("oauth.client_id", self.client_id.clone());
-        
+
         let mut client = repository
             .get_oauth_client(&self.client_id)
             .await
@@ -418,7 +419,7 @@ impl DeleteOAuthClientCommand {
         repository: &TRepo,
     ) -> Result<(), ApplicationError> {
         Span::current().set_attribute("oauth.client_id", self.client_id.clone());
-        
+
         // Check if client exists
         let client = repository
             .get_oauth_client(&self.client_id)
@@ -593,9 +594,10 @@ impl AuthorizeRequest {
         Span::current().set_attribute("oauth.client_id", self.client_id.clone());
         // Validate response_type
         if self.response_type != "code" {
-            return Err(ApplicationError::InvalidInput(
-                format!("Only 'code' response type is supported. Current request is for '{}'", &self.response_type),
-            ));
+            return Err(ApplicationError::InvalidInput(format!(
+                "Only 'code' response type is supported. Current request is for '{}'",
+                &self.response_type
+            )));
         }
 
         // Validate client
@@ -637,7 +639,7 @@ impl AuthorizeRequest {
         }
 
         // Generate HTML login page
-        use crate::html_templates::{generate_csrf_token, LoginPageTemplate};
+        use crate::html_templates::{LoginPageTemplate, generate_csrf_token};
 
         let csrf_token = generate_csrf_token();
         let login_page = LoginPageTemplate::new(
@@ -813,7 +815,7 @@ impl LoginFormCommand {
                     u
                 } else {
                     // Return HTML login page with error
-                    use crate::html_templates::{generate_csrf_token, LoginPageTemplate};
+                    use crate::html_templates::{LoginPageTemplate, generate_csrf_token};
 
                     let csrf_token = generate_csrf_token();
                     let login_page = LoginPageTemplate::new(
@@ -836,7 +838,7 @@ impl LoginFormCommand {
             }
             Err(_) => {
                 // Return HTML login page with error
-                use crate::html_templates::{generate_csrf_token, LoginPageTemplate};
+                use crate::html_templates::{LoginPageTemplate, generate_csrf_token};
 
                 let csrf_token = generate_csrf_token();
                 let login_page = LoginPageTemplate::new(
@@ -1099,7 +1101,7 @@ impl TokenRequest {
         token_generator: &TokenGenerator,
     ) -> Result<TokenResponse, ApplicationError> {
         Span::current().set_attribute("oauth.client_id", self.client_id.clone());
-        
+
         let refresh_token = self
             .refresh_token
             .as_ref()
@@ -1126,8 +1128,8 @@ impl TokenRequest {
         }
 
         // Validate client secret
-        if let Some(client_secret) = &self.client_secret {
-            if !repository
+        if let Some(client_secret) = &self.client_secret
+            && !repository
                 .validate_client_secret(&self.client_id, client_secret)
                 .await
                 .map_err(|e| {
@@ -1136,11 +1138,10 @@ impl TokenRequest {
                         e
                     ))
                 })?
-            {
-                return Err(ApplicationError::InvalidInput(
-                    "Invalid client secret".to_string(),
-                ));
-            }
+        {
+            return Err(ApplicationError::InvalidInput(
+                "Invalid client secret".to_string(),
+            ));
         }
 
         // Get user for token generation
@@ -1199,7 +1200,7 @@ impl TokenRequest {
         _: &TokenGenerator,
     ) -> Result<TokenResponse, ApplicationError> {
         Span::current().set_attribute("oauth.client_id", self.client_id.clone());
-        
+
         let client_secret = self
             .client_secret
             .as_ref()
@@ -1281,7 +1282,7 @@ impl TokenRequest {
     ) -> bool {
         match method.as_deref() {
             Some("S256") => {
-                use base64::{engine::general_purpose, Engine};
+                use base64::{Engine, engine::general_purpose};
                 use sha2::{Digest, Sha256};
                 let mut hasher = Sha256::new();
                 hasher.update(code_verifier.as_bytes());
@@ -1325,10 +1326,10 @@ impl IntrospectTokenRequest {
         repository: &TRepo,
     ) -> Result<IntrospectTokenResponse, ApplicationError> {
         Span::current().set_attribute("oauth.client_id", self.client_id.clone());
-        
+
         // Validate client
-        if let Some(client_secret) = &self.client_secret {
-            if !repository
+        if let Some(client_secret) = &self.client_secret
+            && !repository
                 .validate_client_secret(&self.client_id, client_secret)
                 .await
                 .map_err(|e| {
@@ -1337,11 +1338,10 @@ impl IntrospectTokenRequest {
                         e
                     ))
                 })?
-            {
-                return Err(ApplicationError::InvalidInput(
-                    "Invalid client credentials".to_string(),
-                ));
-            }
+        {
+            return Err(ApplicationError::InvalidInput(
+                "Invalid client credentials".to_string(),
+            ));
         }
 
         // Get token
@@ -1404,10 +1404,10 @@ impl RevokeTokenRequest {
         repository: &TRepo,
     ) -> Result<(), ApplicationError> {
         Span::current().set_attribute("user.id", self.client_id.clone());
-        
+
         // Validate client
-        if let Some(client_secret) = &self.client_secret {
-            if !repository
+        if let Some(client_secret) = &self.client_secret
+            && !repository
                 .validate_client_secret(&self.client_id, client_secret)
                 .await
                 .map_err(|e| {
@@ -1416,11 +1416,10 @@ impl RevokeTokenRequest {
                         e
                     ))
                 })?
-            {
-                return Err(ApplicationError::InvalidInput(
-                    "Invalid client credentials".to_string(),
-                ));
-            }
+        {
+            return Err(ApplicationError::InvalidInput(
+                "Invalid client credentials".to_string(),
+            ));
         }
 
         // Revoke token (both access and refresh tokens)

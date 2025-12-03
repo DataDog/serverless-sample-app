@@ -5,51 +5,36 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-use lambda_http::http::StatusCode;
-use lambda_http::{
-    run, service_fn,
-    tracing::{self, instrument},
-    Error, IntoResponse, Request, RequestExt, RequestPayloadExt,
-};
-use opentelemetry::global::ObjectSafeSpan;
-use shared::response::{empty_response, json_response};
+mod handler;
 
-use observability::{observability, trace_request};
+use lambda_http::{Error, Request, run, service_fn, tracing};
+use opentelemetry::global::ObjectSafeSpan;
+
+use crate::handler::function_handler;
+use observability::{init_otel, trace_request};
+use opentelemetry_sdk::trace::SdkTracerProvider;
 use shared::adapters::{DynamoDbRepository, EventBridgeEventPublisher};
 use shared::core::{EventPublisher, Repository};
 use shared::ports::{CreateOAuthClientCommand, CreateUserCommand};
 use std::env;
-use tracing_subscriber::util::SubscriberInitExt;
+use std::sync::OnceLock;
 
-#[instrument(name = "POST /user", skip(client, event_publisher, event), fields(api.method = event.method().as_str(), api.route = event.raw_http_path()))]
-async fn function_handler<TRepository: Repository, TEventPublisher: EventPublisher>(
-    client: &TRepository,
-    event_publisher: &TEventPublisher,
-    event: Request,
-) -> Result<impl IntoResponse, Error> {
-    tracing::info!("Received event: {:?}", event);
-
-    let request_body = event.payload::<CreateUserCommand>()?;
-
-    match request_body {
-        None => empty_response(&StatusCode::BAD_REQUEST),
-        Some(command) => {
-            let result = command.handle(client, event_publisher).await;
-
-            match result {
-                Ok(response) => json_response(&StatusCode::OK, &response),
-                Err(e) => {
-                    tracing::error!("Failed to create product: {:?}", e);
-                    empty_response(&StatusCode::INTERNAL_SERVER_ERROR)
-                }
-            }
-        }
-    }
-}
+static TRACER_PROVIDER: OnceLock<SdkTracerProvider> = OnceLock::new();
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    observability().init();
+    let otel_providers = match init_otel() {
+        Ok(providers) => Some(providers),
+        Err(err) => {
+            tracing::warn!(
+                "Couldn't start OTel! Will proudly soldier on without telemetry: {0}",
+                err
+            );
+            None
+        }
+    };
+
+    let _ = TRACER_PROVIDER.set(otel_providers.unwrap().0);
 
     let table_name = env::var("TABLE_NAME").expect("TABLE_NAME is not set");
     let config = aws_config::load_from_env().await;
@@ -73,6 +58,12 @@ async fn main() -> Result<(), Error> {
         let res = function_handler(&repository, &event_publisher, event).await;
 
         handler_span.end();
+
+        if let Some(provider) = TRACER_PROVIDER.get()
+            && let Err(e) = provider.force_flush()
+        {
+            tracing::warn!("Failed to flush traces: {:?}", e);
+        }
 
         res
     }))

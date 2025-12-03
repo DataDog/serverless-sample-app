@@ -1,16 +1,16 @@
 use lambda_http::http::StatusCode;
 use lambda_http::{
-    run, service_fn,
+    Body, Error, Request, RequestExt, RequestPayloadExt, Response, run, service_fn,
     tracing::{self, instrument},
-    Error, Request, RequestExt, RequestPayloadExt, Response, Body,
 };
-use observability::observability;
+use observability::init_otel;
+use opentelemetry_sdk::trace::SdkTracerProvider;
 use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
-use shared::ports::{AuthorizeCallbackCommand, ApplicationError};
+use shared::ports::{ApplicationError, AuthorizeCallbackCommand};
 use shared::response::{empty_response, redirect_response};
 use std::env;
-use tracing_subscriber::util::SubscriberInitExt;
+use std::sync::OnceLock;
 
 #[instrument(name = "OAuth authorize callback", skip(repository, event), fields(http.method = event.method().as_str(), http.path_group = event.raw_http_path()))]
 async fn function_handler<TRepository: Repository>(
@@ -32,30 +32,33 @@ async fn handle_callback_get<TRepository: Repository>(
 ) -> Result<Response<Body>, Error> {
     // Extract query parameters (code, state, error, etc.)
     let query_params = event.query_string_parameters();
-    
+
     let code = query_params.first("code");
     let state = query_params.first("state");
     let error = query_params.first("error");
-    
+
     if let Some(error) = error {
         // OAuth error response
         tracing::error!("OAuth error received: {}", error);
         return empty_response(&StatusCode::BAD_REQUEST);
     }
-    
+
     let code = code.ok_or_else(|| {
         tracing::error!("No authorization code received");
         "Missing authorization code".to_string()
     })?;
-    
+
     // This endpoint is typically called by the client application to retrieve the authorization code
     // In a real implementation, you might redirect to a success page or return the code to the client
     tracing::info!("Authorization code received: {}", code);
-    
+
     // For demonstration, we'll return a simple success response
     // In practice, this would be handled by the client application
-    let success_message = format!("Authorization successful. Code: {} State: {:?}", code, state);
-    
+    let success_message = format!(
+        "Authorization successful. Code: {} State: {:?}",
+        code, state
+    );
+
     Ok(Response::builder()
         .status(StatusCode::OK)
         .header("content-type", "text/plain")
@@ -93,17 +96,38 @@ async fn handle_callback_post<TRepository: Repository>(
     }
 }
 
+static TRACER_PROVIDER: OnceLock<SdkTracerProvider> = OnceLock::new();
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    observability().init();
+    let otel_providers = match init_otel() {
+        Ok(providers) => Some(providers),
+        Err(err) => {
+            tracing::warn!(
+                "Couldn't start OTel! Will proudly soldier on without telemetry: {0}",
+                err
+            );
+            None
+        }
+    };
+
+    let _ = TRACER_PROVIDER.set(otel_providers.unwrap().0);
     let table_name = env::var("TABLE_NAME").expect("TABLE_NAME is not set");
     let config = aws_config::load_from_env().await;
     let dynamodb_client = aws_sdk_dynamodb::Client::new(&config);
     let repository: DynamoDbRepository =
         DynamoDbRepository::new(dynamodb_client, table_name.clone());
 
-    run(service_fn(|event| {
-        function_handler(&repository, event)
+    run(service_fn(|event| async {
+        let res = function_handler(&repository, event).await;
+
+        if let Some(provider) = TRACER_PROVIDER.get()
+            && let Err(e) = provider.force_flush()
+        {
+            tracing::warn!("Failed to flush traces: {:?}", e);
+        }
+
+        res
     }))
     .await
 }

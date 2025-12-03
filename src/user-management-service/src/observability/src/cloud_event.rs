@@ -5,10 +5,10 @@
 // Copyright 2024 Datadog, Inc.
 //
 use aws_lambda_events::sqs::SqsMessage;
+use opentelemetry::Context;
 use opentelemetry::trace::{Link, TraceContextExt};
 use opentelemetry::trace::{SpanContext, SpanId, TraceFlags, TraceId, TraceState};
-use opentelemetry::Context;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::{self, info};
