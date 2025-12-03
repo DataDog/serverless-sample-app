@@ -39,6 +39,10 @@ Globals:
         DD_SITE: !Ref DDSite
         DD_VERSION: !Ref CommitHash
         DD_SERVICE: !Ref ServiceName
+        DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_HTTP_ENDPOINT: "localhost:4318"
+        DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT: "localhost:4317"
+        OTEL_EXPORTER_OTLP_ENDPOINT: "http://localhost:4317"
+        OTEL_SERVICE_NAME: var.function_name
         TABLE_NAME: !Ref UserTable
         RUST_LOG: "info"
         DD_DATA_STREAMS_ENABLED: "true"

@@ -104,9 +104,14 @@ module "aws_lambda_function" {
     "RUST_LOG": "info",
     "DD_DATA_STREAMS_ENABLED" = "true"
     "POWERTOOLS_SERVICE_NAME": var.service_name
-    "POWERTOOLS_LOG_LEVEL": "INFO" }),
+    "POWERTOOLS_LOG_LEVEL": "INFO",
+    "DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_HTTP_ENDPOINT": "localhost:4318",
+    "DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT": "localhost:4317",
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:4317",
+    "OTEL_SERVICE_NAME": var.function_name,
+    }),
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 85
+  datadog_extension_layer_version = 90
 }
