@@ -13,7 +13,7 @@ Transform:
       stackName: !Ref AWS::StackName
       apiKey: !Ref DDApiKey
       javaLayerVersion: '24'
-      extensionLayerVersion: '85'
+      extensionLayerVersion: '90'
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -56,7 +56,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: java21
+    Runtime: java25
     Timeout: 29
     MemorySize: 2048
     Environment:
