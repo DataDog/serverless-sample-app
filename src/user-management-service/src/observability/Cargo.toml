@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-aws_lambda_events = "1.0.1"
+aws_lambda_events = "1.0.2"
 lambda_http = "1.0"
 serde = { version = "1.0.218", features = ["derive"] }
-uuid = { version = "1.18.1", features = ["v4"] }
+uuid = { version = "1.19.0", features = ["v4"] }
 
 serde_json = {workspace = true}
 tracing = {workspace = true}
