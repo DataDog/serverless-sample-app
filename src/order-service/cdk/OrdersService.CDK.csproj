@@ -9,9 +9,9 @@
 
   <ItemGroup>
     <!-- CDK Construct Library dependencies -->
-    <PackageReference Include="Amazon.CDK.Lib" Version="2.221.1" />
+    <PackageReference Include="Amazon.CDK.Lib" Version="2.233.0" />
     <PackageReference Include="Amazon.CDK.AWS.Lambda.DotNet" Version="0.0.6" />
-    <PackageReference Include="Constructs" Version="10.4.2" />
+    <PackageReference Include="Constructs" Version="10.4.4" />
   </ItemGroup>
 
 </Project>
