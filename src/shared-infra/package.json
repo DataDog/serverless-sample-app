@@ -30,7 +30,7 @@
     "@types/node": "22.13.1",
     "aws-cdk": "2.178.1",
     "aws-cdk-lib": "^2.172.0",
-    "axios": "^1.7.9",
+    "axios": "^1.13.2",
     "constructs": "^10.4.2",
     "datadog-cdk-constructs-v2": "^1.23.0",
     "datadog-lambda-js": "^9.120.0",
