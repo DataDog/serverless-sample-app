@@ -19,9 +19,9 @@
         <PackageReference Include="Amazon.Lambda.SNSEvents" Version="2.1.0" />
         <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
         <PackageReference Include="Amazon.Lambda.Annotations" Version="1.8.0" />
-        <PackageReference Include="AWS.Lambda.Powertools.Logging" Version="3.0.2" />
-        <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.10.6" />
-        <PackageReference Include="Datadog.Trace" Version="3.34.0" />
+        <PackageReference Include="AWS.Lambda.Powertools.Logging" Version="3.1.0" />
+        <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.10.9" />
+        <PackageReference Include="Datadog.Trace" Version="3.35.0" />
         <PackageReference Include="NJsonSchema" Version="11.5.2" />
     </ItemGroup>
     <ItemGroup>
