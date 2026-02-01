@@ -13,15 +13,15 @@
         <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Amazon.Lambda.CloudWatchEvents" Version="4.4.0" />
+        <PackageReference Include="Amazon.Lambda.CloudWatchEvents" Version="4.4.1" />
         <PackageReference Include="Amazon.Lambda.Core" Version="2.8.0" />
         <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.3" />
-        <PackageReference Include="Amazon.Lambda.SNSEvents" Version="2.1.0" />
-        <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
+        <PackageReference Include="Amazon.Lambda.SNSEvents" Version="2.1.1" />
+        <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.5" />
         <PackageReference Include="Amazon.Lambda.Annotations" Version="1.8.0" />
-        <PackageReference Include="AWS.Lambda.Powertools.Logging" Version="3.0.2" />
-        <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.10.6" />
-        <PackageReference Include="Datadog.Trace" Version="3.34.0" />
+        <PackageReference Include="AWS.Lambda.Powertools.Logging" Version="3.1.0" />
+        <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.13" />
+        <PackageReference Include="Datadog.Trace" Version="3.36.0" />
         <PackageReference Include="NJsonSchema" Version="11.5.2" />
     </ItemGroup>
     <ItemGroup>
