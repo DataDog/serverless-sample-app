@@ -9,16 +9,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.10.6" />
-        <PackageReference Include="AWSSDK.SimpleNotificationService" Version="4.0.2.12" />
-        <PackageReference Include="AWSSDK.EventBridge" Version="4.0.5.11" />
-        <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="4.0.6.8" />
-        <PackageReference Include="AWSSDK.StepFunctions" Version="4.0.2.5" />
+        <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.13" />
+        <PackageReference Include="AWSSDK.SimpleNotificationService" Version="4.0.2.16" />
+        <PackageReference Include="AWSSDK.EventBridge" Version="4.0.5.15" />
+        <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="4.0.6.12" />
+        <PackageReference Include="AWSSDK.StepFunctions" Version="4.0.2.9" />
         <PackageReference Include="CloudNative.CloudEvents" Version="2.8.0" />
         <PackageReference Include="CloudNative.CloudEvents.SystemTextJson" Version="2.8.0" />
         <PackageReference Include="FluentValidation" Version="12.1.1" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.1" />
-        <PackageReference Include="Datadog.Trace" Version="3.34.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
+        <PackageReference Include="Datadog.Trace" Version="3.36.0" />
         <PackageReference Include="NJsonSchema" Version="11.5.2" />
         <PackageReference Include="Polly" Version="8.6.5" />
         <PackageReference Include="Polly.Extensions.Http" Version="3.0.0" />
