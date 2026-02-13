@@ -58,7 +58,7 @@
         <dependency>
             <groupId>com.datadoghq</groupId>
             <artifactId>dd-trace-api</artifactId>
-            <version>1.58.2</version>
+            <version>1.59.0</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

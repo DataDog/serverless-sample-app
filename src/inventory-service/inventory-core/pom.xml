@@ -17,7 +17,7 @@
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.version>3.31.1</quarkus.platform.version>
-        <aws.sdk.version>2.41.19</aws.sdk.version>
+        <aws.sdk.version>2.41.24</aws.sdk.version>
         <skipITs>true</skipITs>
         <surefire-plugin.version>3.5.4</surefire-plugin.version>
     </properties>
@@ -81,17 +81,17 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
-            <version>1.58.0</version>
+            <version>1.59.0</version>
         </dependency>
         <dependency>
             <groupId>com.datadoghq</groupId>
             <artifactId>dd-trace-api</artifactId>
-            <version>1.58.2</version>
+            <version>1.59.0</version>
         </dependency>
         <dependency>
             <groupId>com.datadoghq</groupId>
             <artifactId>dd-trace-ot</artifactId>
-            <version>1.58.2</version>
+            <version>1.59.0</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
