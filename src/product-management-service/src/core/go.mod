@@ -1,6 +1,6 @@
 module core
 
-go 1.23.1
+go 1.25.7
 
 replace github.com/datadog/serverless-sample-observability v0.0.0 => ../observability
 
