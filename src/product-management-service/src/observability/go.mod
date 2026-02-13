@@ -1,11 +1,9 @@
 module observability
 
-go 1.23.1
+go 1.25.7
 
 require (
-	github.com/aws/aws-lambda-go v1.47.0
 	github.com/google/uuid v1.6.0
-	go.opentelemetry.io/otel v1.35.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.72.2
 )
 
@@ -58,6 +56,7 @@ require (
 	go.opentelemetry.io/collector/pdata v1.11.0 // indirect
 	go.opentelemetry.io/collector/pdata/pprofile v0.104.0 // indirect
 	go.opentelemetry.io/collector/semconv v0.104.0 // indirect
+	go.opentelemetry.io/otel v1.35.0 // indirect
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
