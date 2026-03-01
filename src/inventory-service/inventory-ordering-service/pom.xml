@@ -18,9 +18,9 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <wrapper.version>1.0.29.RELEASE</wrapper.version>
+        <wrapper.version>1.0.31.RELEASE</wrapper.version>
         <aws-lambda-events.version>3.16.1</aws-lambda-events.version>
-        <spring-cloud-function.version>4.3.0</spring-cloud-function.version>
+        <spring-cloud-function.version>5.0.1</spring-cloud-function.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
     </properties>
@@ -48,12 +48,12 @@
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>sfn</artifactId>
-            <version>2.41.19</version>
+            <version>2.42.4</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.21.0</version>
+            <version>2.21.1</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -63,7 +63,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>2.21.0</version>
+            <version>2.21.1</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -74,7 +74,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.5.27</version>
+            <version>1.5.32</version>
         </dependency>
 
         <dependency>
@@ -100,13 +100,13 @@
         <dependency>
             <groupId>com.datadoghq</groupId>
             <artifactId>dd-trace-api</artifactId>
-            <version>1.58.2</version>
+            <version>1.59.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
-            <version>3.5.0</version>
+            <version>4.0.3</version>
         </dependency>
     </dependencies>
 
