@@ -43,7 +43,6 @@ public class EventPublisherImpl implements EventPublisher {
         this.eventBridge = eventBridge;
         this.snsClient = snsClient;
         this.mapper = mapper;
-        // Pre-configure an ObjectWriter for better serialization performance
         this.eventWriter = mapper.writer();
         this.appConfig = appConfig;
     }
@@ -63,14 +62,14 @@ public class EventPublisherImpl implements EventPublisher {
             }
 
             var evtWrapper = new CloudEventWrapper<>("inventory.productAdded.v1", evt);
-            var evtContents = this.eventWriter.writeValueAsString(evtWrapper);
 
+            // Set DSM produce checkpoint before serialising so context is embedded in the body.
+            DataStreamsCheckpointer.get().setProduceCheckpoint("sns", evtWrapper.getType(), new Carrier(evtWrapper.getDatadog()));
+
+            var evtContents = this.eventWriter.writeValueAsString(evtWrapper);
             final Span publishSpan = createPublishSpan("inventory.productAdded", evtWrapper, evtContents.length(), topicArn);
 
             try (Scope scope = publishSpan.makeCurrent()) {
-                var carrier = new Carrier(new Headers());
-                DataStreamsCheckpointer.get().setProduceCheckpoint("sns", evtWrapper.getType(), carrier);
-
                 this.snsClient.publish(PublishRequest.builder()
                         .topicArn(topicArn)
                         .message(evtContents)
@@ -82,7 +81,7 @@ public class EventPublisherImpl implements EventPublisher {
                 publishSpan.end();
             }
         } catch (JsonProcessingException e) {
-            handleSerializationError(span, e);
+            handleSerializationError(Span.fromContext(Context.current()), e);
         } catch (Exception e) {
             logger.error("Unexpected error publishing product added event", e);
             if (span.getSpanContext().isValid()) {
@@ -94,54 +93,41 @@ public class EventPublisherImpl implements EventPublisher {
 
     @Override
     public void publishInventoryStockUpdatedEvent(InventoryStockUpdatedEvent evt) {
-        try {
-            var evtWrapper = new CloudEventWrapper<>("inventory.stockUpdated.v1", evt);
-            String evtData = this.eventWriter.writeValueAsString(evtWrapper);
-
-            this.publish(evtWrapper.getId(), "inventory.stockUpdated.v1", evtData);
-        } catch (JsonProcessingException e) {
-            handleSerializationError(Span.fromContext(Context.current()), e);
-        }
+        var evtWrapper = new CloudEventWrapper<>("inventory.stockUpdated.v1", evt);
+        this.publish(evtWrapper);
     }
 
     @Override
     public void publishStockReservedEvent(StockReservedEventV1 evt) {
-        try {
-            var evtWrapper = new CloudEventWrapper<>("inventory.stockReserved.v1", evt);
-            String evtData = this.eventWriter.writeValueAsString(evtWrapper);
-
-            this.publish(evtWrapper.getId(), "inventory.stockReserved.v1", evtData);
-        } catch (JsonProcessingException e) {
-            handleSerializationError(Span.fromContext(Context.current()), e);
-        }
+        var evtWrapper = new CloudEventWrapper<>("inventory.stockReserved.v1", evt);
+        this.publish(evtWrapper);
     }
 
     @Override
     public void publishProductOutOfStockEvent(ProductOutOfStockEventV1 evt) {
-        try {
-            var evtWrapper = new CloudEventWrapper<>("inventory.outOfStock.v1", evt);
-            String evtData = this.eventWriter.writeValueAsString(evtWrapper);
-
-            this.publish(evtWrapper.getId(),"inventory.outOfStock.v1", evtData);
-        } catch (JsonProcessingException e) {
-            handleSerializationError(Span.fromContext(Context.current()), e);
-        }
+        var evtWrapper = new CloudEventWrapper<>("inventory.outOfStock.v1", evt);
+        this.publish(evtWrapper);
     }
 
     @Override
     public void publishStockReservationFailedEvent(StockReservationFailedEventV1 evt) {
-        try {
-            var evtWrapper = new CloudEventWrapper<>("inventory.stockReservationFailed.v1", evt);
-            String evtData = this.eventWriter.writeValueAsString(evtWrapper);
-
-            this.publish(evtWrapper.getId(), "inventory.stockReservationFailed.v1", evtData);
-        } catch (JsonProcessingException e) {
-            handleSerializationError(Span.fromContext(Context.current()), e);
-        }
+        var evtWrapper = new CloudEventWrapper<>("inventory.stockReservationFailed.v1", evt);
+        this.publish(evtWrapper);
     }
 
-    private void publish(String eventId, String detailType, String detail) {
-        final Span publishSpan = createPublishSpan(detailType, null, detail.length(), null);
+    private void publish(CloudEventWrapper<?> evtWrapper) {
+        // Set DSM produce checkpoint before serialising so context is embedded in the body.
+        DataStreamsCheckpointer.get().setProduceCheckpoint("eventbridge", evtWrapper.getType(), new Carrier(evtWrapper.getDatadog()));
+
+        String detail;
+        try {
+            detail = this.eventWriter.writeValueAsString(evtWrapper);
+        } catch (JsonProcessingException e) {
+            handleSerializationError(Span.fromContext(Context.current()), e);
+            return;
+        }
+
+        final Span publishSpan = createPublishSpan(evtWrapper.getType(), null, detail.length(), null);
 
         try (Scope scope = publishSpan.makeCurrent()) {
             String source = appConfig.getSource();
@@ -152,17 +138,14 @@ public class EventPublisherImpl implements EventPublisher {
                 return;
             }
 
-            logger.info("Publishing {} from {} to {}", detailType, source, eventBusName);
-
-            var carrier = new Carrier(new Headers());
-            DataStreamsCheckpointer.get().setProduceCheckpoint("eventbridge", detailType, carrier);
+            logger.info("Publishing {} from {} to {}", evtWrapper.getType(), source, eventBusName);
 
             PutEventsRequest request = PutEventsRequest
                     .builder()
                     .entries(List.of(PutEventsRequestEntry.builder()
                             .eventBusName(eventBusName)
                             .source(source)
-                            .detailType(detailType)
+                            .detailType(evtWrapper.getType())
                             .detail(detail)
                             .build()))
                     .build();

@@ -34,6 +34,7 @@ public class CloudEventWrapper<T> implements Serializable {
         this.source = String.format("%s.inventory", System.getenv("ENV"));
         this.type = type;
         this.time = LocalDateTime.now().toString();
+        this.datadog = new DatadogTelemetry();
         SpanContext currentSpan = Span.fromContext(Context.current()).getSpanContext();
         if (currentSpan.isValid()) {
             this.traceparent = String.format("00-%s-%s-01",
@@ -77,17 +78,18 @@ public class CloudEventWrapper<T> implements Serializable {
         return time;
     }
 
-    public String getTraceparent() {
-
-        if (datadog != null) {
-            return datadog.getTraceparent();
-        }
-        else {
-            return traceparent;
-        }
+    public DatadogTelemetry getDatadog() {
+        return datadog;
     }
 
     public void setDatadog(DatadogTelemetry datadog) {
         this.datadog = datadog;
+    }
+
+    public String getTraceparent() {
+        if (datadog != null && datadog.getTraceparent() != null) {
+            return datadog.getTraceparent();
+        }
+        return traceparent;
     }
 }

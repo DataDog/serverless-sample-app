@@ -13,7 +13,7 @@ import com.inventory.acl.core.events.external.OrderCreatedEventV1;
 import com.inventory.core.DataAccessException;
 import com.inventory.core.InventoryItemNotFoundException;
 import com.inventory.core.adapters.Carrier;
-import com.inventory.core.adapters.Headers;
+import com.inventory.core.adapters.DatadogTelemetry;
 import com.inventory.core.utils.TraceUtils;
 import datadog.trace.api.experimental.DataStreamsCheckpointer;
 import io.opentelemetry.api.GlobalOpenTelemetry;
@@ -63,8 +63,9 @@ public class handleOrderCreatedLambda implements RequestHandler<SQSEvent, SQSBat
 
                 processSpan = processSpanBuilder.startSpan();
 
-                var carrier = new Carrier(new Headers());
-                DataStreamsCheckpointer.get().setConsumeCheckpoint("sns", evtWrapper.getDetail().getType(), carrier);
+                DatadogTelemetry datadog = evtWrapper.getDetail().getDatadog() != null
+                        ? evtWrapper.getDetail().getDatadog() : new DatadogTelemetry();
+                DataStreamsCheckpointer.get().setConsumeCheckpoint("sns", evtWrapper.getDetail().getType(), new Carrier(datadog));
                 processSpan.setAttribute("messaging.id", message.getMessageId());
                 processSpan.setAttribute("messaging.operation.type", "process");
                 processSpan.setAttribute("messaging.system", "aws_sqs");

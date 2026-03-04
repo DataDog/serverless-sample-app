@@ -60,7 +60,7 @@ public class FunctionConfiguration {
                             .startSpan();
 
                     try (Scope scope = processSpan.makeCurrent()) {
-                        var carrier = new Carrier();
+                        var carrier = new Carrier(evtWrapper.getDatadog());
                         DataStreamsCheckpointer.get().setConsumeCheckpoint("sns", evtWrapper.getType(), carrier);
 
                         processSpan.setAttribute("product.id", evtWrapper.getData().getProductId());

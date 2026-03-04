@@ -1,82 +1,49 @@
 package com.inventory.core;
 
 import datadog.trace.api.DDTraceId;
-import ddtrot.dd.trace.bootstrap.instrumentation.api.AgentSpanContext;
-import ddtrot.dd.trace.bootstrap.instrumentation.api.AgentSpanLink;
-import ddtrot.dd.trace.bootstrap.instrumentation.api.SpanAttributes;
 
-public class SpanLink implements AgentSpanLink {
+import java.util.Map;
+
+public class SpanLink {
+    public static final byte SAMPLED_FLAG = (byte) 0x01;
+    public static final byte DEFAULT_FLAGS = (byte) 0x00;
+
     private final DDTraceId traceId;
     private final long spanId;
     private final byte traceFlags;
     private final String traceState;
-    private final SpanAttributes attributes;
+    private final Map<String, Object> attributes;
 
     public SpanLink(
             DDTraceId traceId,
             long spanId,
             byte traceFlags,
             String traceState,
-            SpanAttributes attributes) {
+            Map<String, Object> attributes) {
         this.traceId = traceId == null ? DDTraceId.ZERO : traceId;
         this.spanId = spanId;
         this.traceFlags = traceFlags;
         this.traceState = traceState == null ? "" : traceState;
-        this.attributes = attributes == null ? SpanAttributes.EMPTY : attributes;
+        this.attributes = attributes == null ? Map.of() : attributes;
     }
 
-    /**
-     * Creates a span link from a span context. Gathers the trace and span identifiers from the given
-     * instance.
-     *
-     * @param context The context of the span to get the link to.
-     * @return A span link to the given context.
-     */
-    public static SpanLink from(AgentSpanContext context) {
-        return from(context, DEFAULT_FLAGS, "", SpanAttributes.EMPTY);
-    }
-
-    /**
-     * Creates a span link from a span context with W3C trace state and custom attributes. Gathers the
-     * trace and span identifiers from the given instance.
-     *
-     * @param context The context of the span to get the link to.
-     * @param traceFlags The W3C formatted trace flags.
-     * @param traceState The W3C formatted trace state.
-     * @param attributes The link attributes.
-     * @return A span link to the given context.
-     */
-    public static SpanLink from(
-            AgentSpanContext context, byte traceFlags, String traceState, SpanAttributes attributes) {
-        if (context.getSamplingPriority() > 0) {
-            traceFlags = (byte) (traceFlags | SAMPLED_FLAG);
-        }
-        return new SpanLink(
-                context.getTraceId(), context.getSpanId(), traceFlags, traceState, attributes);
-    }
-
-    @Override
     public DDTraceId traceId() {
         return this.traceId;
     }
 
-    @Override
     public long spanId() {
         return this.spanId;
     }
 
-    @Override
     public byte traceFlags() {
         return this.traceFlags;
     }
 
-    @Override
     public String traceState() {
         return this.traceState;
     }
 
-    @Override
-    public SpanAttributes attributes() {
+    public Map<String, Object> attributes() {
         return this.attributes;
     }
 
