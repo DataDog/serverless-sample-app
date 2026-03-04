@@ -12,22 +12,45 @@ namespace Orders.Api;
 
 public static class ServiceExtensions
 {
+    public static TokenValidationParameters CreateTokenValidationParameters(
+        string? env,
+        string secretKey,
+        string? issuer = null,
+        string? audience = null)
+    {
+        var isLocal = string.Equals(env, "local", StringComparison.OrdinalIgnoreCase);
+
+        return new TokenValidationParameters
+        {
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            ValidateIssuer = !isLocal,
+            ValidateAudience = !isLocal,
+            ValidateLifetime = !isLocal,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = issuer,
+            ValidAudience = audience
+        };
+    }
+
     public static async Task<IServiceCollection> AddCustomJwtAuthenticationAsync(this IServiceCollection services, IConfiguration configuration)
     {
         var env = configuration["ENV"];
         var secretKey = configuration["Auth:Key"];
-        
-        if (env != "local")
+        var issuer = configuration["Auth:Issuer"];
+        var audience = configuration["Auth:Audience"];
+        var isLocal = string.Equals(env, "local", StringComparison.OrdinalIgnoreCase);
+
+        if (!isLocal)
         {
             var ssmClient = new AmazonSimpleSystemsManagementClient();
-            
+
             var paramResult = await ssmClient.GetParameterAsync(new GetParameterRequest
             {
                 Name = configuration["JWT_SECRET_PARAM_NAME"],
                 WithDecryption = true
             });
-            
-            secretKey = paramResult.Parameter.Value;   
+
+            secretKey = paramResult.Parameter.Value;
         }
 
         Console.WriteLine($"Using JWT secret: [REDACTED]");
@@ -36,7 +59,14 @@ public static class ServiceExtensions
         {
             throw new ArgumentException("Invalid JWT Secret Access Key provided, application failure.");
         }
-        
+
+        if (!isLocal && (string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(audience)))
+        {
+            throw new ArgumentException(
+                "Invalid JWT issuer/audience configuration provided, application failure. " +
+                "Set Auth:Issuer and Auth:Audience for non-local environments.");
+        }
+
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -44,17 +74,9 @@ public static class ServiceExtensions
             options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
         }).AddJwtBearer(o =>
         {
-            o.TokenValidationParameters = new TokenValidationParameters
-            {
-                IssuerSigningKey = new SymmetricSecurityKey
-                    (Encoding.UTF8.GetBytes(secretKey)),
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ValidateLifetime = false,
-                ValidateIssuerSigningKey = true
-            };
+            o.TokenValidationParameters = CreateTokenValidationParameters(env, secretKey, issuer, audience);
         });
-        
+
         services.AddAuthorization();
 
         return services;
