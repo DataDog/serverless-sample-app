@@ -289,7 +289,7 @@ public class OrdersApi : Construct
         application.TargetGroup.ConfigureHealthCheck(new HealthCheck
         {
             Port = "8080",
-            Path = "/health",
+            Path = "/health/live",
             HealthyHttpCodes = "200-499",
             Timeout = Duration.Seconds(30),
             Interval = Duration.Seconds(60),
