@@ -13,7 +13,6 @@ using Datadog.Trace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Orders.Core.PublicEvents;
-using Serilog;
 
 namespace Orders.Core.Adapters;
 
@@ -54,12 +53,16 @@ public class EventBridgeEventPublisher(
             scope.Span.AddSemConvFrom(evt, cloudEvent);
         }
 
+        var detailNode = JsonNode.Parse(evt.Detail) ?? new JsonObject();
+
         new SpanContextInjector().InjectIncludingDsm(
-            evt.Detail,
+            detailNode,
             SetHeader,
             scope.Span.Context,
             "sns",
             evt.DetailType);
+
+        evt.Detail = detailNode.ToJsonString();
 
         var putEventsResponse = await eventBridgeClient.PutEventsAsync(new PutEventsRequest
         {
@@ -125,15 +128,10 @@ public class EventBridgeEventPublisher(
         await Publish(putEventRecord);
     }
 
-    private static void SetHeader(string eventJson, string key, string value)
+    private static void SetHeader(JsonNode carrier, string key, string value)
     {
-        Log.Logger.Information("Setting header {Key} with value {Value}", key, value);
+        if (carrier["_datadog"] == null) carrier["_datadog"] = new JsonObject();
 
-        var jsonNode = JsonNode.Parse(eventJson);
-        if (jsonNode?["_datadog"] == null) jsonNode!["_datadog"] = new JsonObject();
-
-        jsonNode!["_datadog"]![key] = value;
-
-        Log.Logger.Information("State of Datadog node is {DatadogNode}", jsonNode!["_datadog"]);
+        carrier["_datadog"]![key] = value;
     }
 }

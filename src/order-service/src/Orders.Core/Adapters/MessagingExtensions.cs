@@ -50,7 +50,7 @@ public static class MessagingExtensions
         span.SetTag("messaging.operation.type", "publish");
         span.SetTag("messaging.system", "eventbridge");
         span.SetTag("messaging.batch.message_count", 1);
-        span.SetTag("messaging.destination.name", ebEvt.Source);
+        span.SetTag("messaging.destination.name", ebEvt.EventBusName);
         span.SetTag("messaging.client.id", Environment.GetEnvironmentVariable("DD_SERVICE") ?? "");
         span.SetTag("messaging.message.body.size", Encoding.UTF8.GetBytes(JsonSerializer.Serialize(evt.Data)).Length);
         span.SetTag("messaging.operation.name", "send");

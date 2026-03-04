@@ -6,7 +6,6 @@ using Amazon;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Amazon.EventBridge;
-using Amazon.EventBridge.Model;
 using Amazon.SimpleNotificationService;
 using Amazon.StepFunctions;
 using Microsoft.Extensions.Configuration;
@@ -42,9 +41,7 @@ public static class Startup
         
         services.AddLogging();
         services.AddAwsServices(configuration);
-        // Register repositories
-        services.AddSingleton<IOrders, DynamoDBOrders>();
-        
+
         return services;
     }
 
@@ -89,7 +86,7 @@ public static class Startup
 
         try
         {
-            dynamoDbClient.CreateTableAsync(new CreateTableRequest()
+            Task.Run(() => dynamoDbClient.CreateTableAsync(new CreateTableRequest()
             {
                 TableName = configuration["TABLE_NAME"],
                 KeySchema = new List<KeySchemaElement>()
@@ -103,18 +100,18 @@ public static class Startup
                     new("SK", ScalarAttributeType.S),
                 },
                 BillingMode = BillingMode.PAY_PER_REQUEST
-            }).GetAwaiter().GetResult();
+            })).GetAwaiter().GetResult();
         }
         catch (Exception e)
         {
             Log.Logger.Warning(e, "Failure creating DynamoDB table");
         }
-        
+
         services.AddSingleton(dynamoDbClient);
 
         services.AddSingleton<IPublicEventPublisher, NoOpEventPublisher>();
         services.AddSingleton<IOrderWorkflow, NoOpOrderWorkflow>();
-        
+
         return services;
     }
     
@@ -124,24 +121,19 @@ public static class Startup
     private static IServiceCollection AddCloudServices(this IServiceCollection services, IConfiguration configuration, RegionEndpoint regionEndpoint)
     {
         var dynamoDbClient = new AmazonDynamoDBClient(regionEndpoint);
-        dynamoDbClient.DescribeTableAsync(configuration["TABLE_NAME"]).GetAwaiter().GetResult();
         services.AddSingleton(dynamoDbClient);
-        
+
         var snsClient = new AmazonSimpleNotificationServiceClient(regionEndpoint);
         services.AddSingleton(snsClient);
 
         var stepFunctionsClient = new AmazonStepFunctionsClient();
         services.AddSingleton(stepFunctionsClient);
         services.AddSingleton<IOrderWorkflow, StepFunctionsOrderWorkflow>();
-        
+
         var eventBridgeClient = new AmazonEventBridgeClient();
-        eventBridgeClient.DescribeEventBusAsync(new DescribeEventBusRequest()
-        {
-            Name = configuration["EVENT_BUS_NAME"]
-        }).GetAwaiter().GetResult();
         services.AddSingleton(eventBridgeClient);
         services.AddSingleton<IPublicEventPublisher, EventBridgeEventPublisher>();
-        
+
         return services;
     }
 }

@@ -17,7 +17,6 @@ public static class TraceExtensions
         }
         
         Tracer.Instance.ActiveScope.Span.SetTag("order.id", request.OrderId);
-        Tracer.Instance.ActiveScope.Span.SetTag("user.id", request.UserId);
     }
     public static void AddToTelemetry(this CreateOrderRequest request)
     {
