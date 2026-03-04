@@ -33,16 +33,26 @@ func NewDeleteProductCommandHandler(productRepository ProductRepository, outboxR
 	}
 }
 
-func (handler *DeleteProductCommandHandler) Handle(ctx context.Context, command DeleteProductCommand) {
+func (handler *DeleteProductCommandHandler) Handle(ctx context.Context, command DeleteProductCommand) error {
 	span, _ := tracer.SpanFromContext(ctx)
 	span.SetTag("product.id", command.ProductId)
 	event := ProductDeletedEvent{ProductId: command.ProductId}
 	outboxEntry, err := createOutboxEntryForDelete(ctx, "product.productDeleted", event)
 	if err != nil {
-		return
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+		return err
 	}
 
-	handler.productRepository.DeleteProductWithOutboxEntry(ctx, command.ProductId, outboxEntry)
+	if err := handler.productRepository.DeleteProductWithOutboxEntry(ctx, command.ProductId, outboxEntry); err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+		return err
+	}
+
+	return nil
 }
 
 func createOutboxEntryForDelete(ctx context.Context, eventType string, eventData interface{}) (OutboxEntry, error) {

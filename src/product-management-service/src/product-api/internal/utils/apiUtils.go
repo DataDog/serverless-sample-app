@@ -9,8 +9,8 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	core "github.com/datadog/serverless-sample-product-core"
-	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -63,7 +63,7 @@ func GenerateApiResponseForError(err error) (events.APIGatewayProxyResponse, err
 	unknownError, ok := err.(*core.UnknownError)
 
 	if ok {
-		log.Fatalf("Internal error: '%s'", unknownError.Detail)
+		return GenerateApiResponseFor("", 500, fmt.Sprintf("Internal error: '%s'", unknownError.Detail))
 	}
 
 	return GenerateApiResponseFor("", 500, "Unknown error")

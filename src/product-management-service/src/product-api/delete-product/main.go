@@ -46,7 +46,10 @@ func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest)
 
 	productId := request.PathParameters["productId"]
 
-	handler.Handle(ctx, core.DeleteProductCommand{ProductId: productId})
+	err = handler.Handle(ctx, core.DeleteProductCommand{ProductId: productId})
+	if err != nil {
+		return utils.GenerateApiResponseForError(err)
+	}
 
 	return utils.GenerateApiResponseFor("OK", 200, "")
 }

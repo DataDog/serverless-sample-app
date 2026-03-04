@@ -38,16 +38,22 @@ func NewUpdateProductCommandHandler(productRepository ProductRepository, outboxR
 func (handler *UpdateProductCommandHandler) Handle(ctx context.Context, command UpdateProductCommand) (*ProductDTO, error) {
 	span, _ := tracer.SpanFromContext(ctx)
 	span.SetTag("product.id", command.ProductId)
-	
+
 	product, err := handler.productRepository.Get(ctx, command.ProductId)
 
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return nil, err
 	}
 
 	err = product.UpdateDetail(command.Name, command.Price)
 
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return nil, err
 	}
 
@@ -58,12 +64,18 @@ func (handler *UpdateProductCommandHandler) Handle(ctx context.Context, command 
 	event := ProductUpdatedEvent{ProductId: command.ProductId, New: ProductDetails{Name: product.Name, Price: product.Price}, Previous: ProductDetails{Name: product.PreviousName, Price: product.PreviousPrice}}
 	outboxEntry, err := createOutboxEntryForUpdate(ctx, "product.productUpdated", event)
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return nil, err
 	}
 
 	err = handler.productRepository.UpdateProductWithOutboxEntry(ctx, *product, outboxEntry)
 
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return nil, err
 	}
 

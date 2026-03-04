@@ -61,8 +61,9 @@ func Handle(ctx context.Context, request events.SQSEvent) (events.SQSEventRespon
 
 		if err != nil {
 			fmt.Printf("Error processing message %s: %v\n", record.MessageId, err)
-			span.SetTag("error", "true")
+			span.SetTag("error", true)
 			span.SetTag("error.message", err.Error())
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
 			failures = append(failures, events.SQSBatchItemFailure{
 				ItemIdentifier: record.MessageId,
 			})
@@ -99,25 +100,39 @@ func processMessage(ctx context.Context, record events.SQSMessage) error {
 
 	if evt.TraceParent != "" {
 		// Split the traceparent header to extract trace ID and span ID. The traceparent should be a valid W3C trace context.
+		// Format: 00-<32hex traceID>-<16hex spanID>-<2hex flags>
 		parts := strings.Split(evt.TraceParent, "-")
 
 		if len(parts) == 4 {
-			traceId, err := strconv.ParseUint(parts[1], 16, 64)
-			if err == nil {
-				spanId, err := strconv.ParseUint(parts[2], 16, 64)
-				if err == nil {
+			traceIDStr := parts[1]
+			spanId, errSpan := strconv.ParseUint(parts[2], 16, 64)
+			if errSpan == nil && (len(traceIDStr) == 32 || len(traceIDStr) == 16) {
+				var traceIDHigh, traceIDLow uint64
+				var errHigh, errLow error
+				if len(traceIDStr) == 32 {
+					traceIDHigh, errHigh = strconv.ParseUint(traceIDStr[:16], 16, 64)
+					traceIDLow, errLow = strconv.ParseUint(traceIDStr[16:], 16, 64)
+				} else {
+					// 16-char (64-bit) trace ID — high bits are 0
+					traceIDHigh = 0
+					traceIDLow, errLow = strconv.ParseUint(traceIDStr, 16, 64)
+				}
+				if errHigh == nil && errLow == nil {
 					spanLinks = append(spanLinks, ddtrace.SpanLink{
-						TraceID: traceId,
-						SpanID:  spanId,
+						TraceID:     traceIDLow,
+						TraceIDHigh: traceIDHigh,
+						SpanID:      spanId,
 					})
 				}
 			}
 		}
 	}
 
-	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{
+	// Extract DSM context using the incoming ctx so the checkpoint is linked to
+	// the current trace, not an orphaned background context.
+	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
 		ServiceOverride: "productservice-acl",
-	}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
+	}, "direction:in", "type:sqs", "topic:"+evt.Type, "manual_checkpoint:true")
 	processSpan, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(spanLinks))
 	defer processSpan.Finish()
 
@@ -130,6 +145,12 @@ func processMessage(ctx context.Context, record events.SQSMessage) error {
 	processSpan.SetTag("messaging.system", "aws_sqs")
 
 	_, err := eventTranslator.HandleProductPricingChanged(ctx, evt.Data)
+
+	if err != nil {
+		processSpan.SetTag("error", true)
+		processSpan.SetTag("error.message", err.Error())
+		processSpan.SetTag("error.type", fmt.Sprintf("%T", err))
+	}
 
 	return err
 }

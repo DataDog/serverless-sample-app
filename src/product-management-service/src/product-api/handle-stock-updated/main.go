@@ -42,8 +42,9 @@ var (
 		dSqlProductRepository)
 )
 
-func functionHandler(ctx context.Context, request events.SNSEvent) {
+func functionHandler(ctx context.Context, request events.SNSEvent) error {
 	span, _ := tracer.SpanFromContext(ctx)
+	span.SetTag("messaging.batch.size", len(request.Records))
 
 	for index := range request.Records {
 		record := request.Records[index]
@@ -53,11 +54,12 @@ func functionHandler(ctx context.Context, request events.SNSEvent) {
 		if err != nil {
 			span.SetTag("error", true)
 			span.SetTag("error.message", err.Error())
-			println(err.Error())
-			// Panic here to return an error to the Lambda runtime
-			panic(err)
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
+			return fmt.Errorf("error processing SNS record %s: %w", record.SNS.MessageID, err)
 		}
 	}
+
+	return nil
 }
 
 func processMessage(ctx context.Context, record events.SNSEventRecord) error {
@@ -72,7 +74,10 @@ func processMessage(ctx context.Context, record events.SNSEventRecord) error {
 
 	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 	defer span.Finish()
-	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{
+
+	// Extract DSM context using the incoming ctx so the checkpoint is linked to
+	// the current trace, not an orphaned background context.
+	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
 		ServiceOverride: "productservice",
 	}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
 
@@ -86,6 +91,12 @@ func processMessage(ctx context.Context, record events.SNSEventRecord) error {
 	span.SetTag("messaging.system", "aws_sns")
 
 	_, err := handler.Handle(ctx, evt.Data)
+
+	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+	}
 
 	return err
 }

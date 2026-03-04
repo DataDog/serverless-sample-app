@@ -49,7 +49,7 @@ func (handler *PricingUpdatedEventHandler) Handle(ctx context.Context, evt Price
 		span.SetTag("error", true)
 		span.SetTag("error.message", updateErr.Error())
 
-		return nil, err
+		return nil, updateErr
 	}
 
 	return product.AsDto(), nil

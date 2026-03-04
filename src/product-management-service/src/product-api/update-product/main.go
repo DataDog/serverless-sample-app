@@ -50,7 +50,9 @@ func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest)
 	body := []byte(request.Body)
 
 	var command core.UpdateProductCommand
-	json.Unmarshal(body, &command)
+	if err := json.Unmarshal(body, &command); err != nil {
+		return utils.GenerateApiResponseFor("Bad Request", 400, "Invalid request body")
+	}
 
 	res, err := handler.Handle(ctx, command)
 

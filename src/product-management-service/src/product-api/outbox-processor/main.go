@@ -177,6 +177,7 @@ func functionHandler(ctx context.Context, event OutboxEvent) error {
 
 	if hadFailures {
 		span.SetTag("outbox.had_failures", true)
+		return fmt.Errorf("one or more outbox entries failed to process")
 	}
 
 	return nil

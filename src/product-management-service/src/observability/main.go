@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -20,14 +21,27 @@ type CloudEvent[T any] struct {
 	Id          string            `json:"id"`
 	Time        string            `json:"time"`
 	TraceParent string            `json:"traceparent"`
-	extensions  map[string]string `json:"-"` // Custom properties not directly serialized
+	DataDog     map[string]string `json:"_datadog,omitempty"`
 }
 
 func NewCloudEvent[T any](ctx context.Context, evtType string, data T) CloudEvent[T] {
 	span, spanWasFound := tracer.SpanFromContext(ctx)
 
-	if !spanWasFound {
+	var traceParent string
+	if !spanWasFound || span == nil {
 		fmt.Println("NewCloudEvent: No span found in current context")
+	} else {
+		spanCtx := span.Context()
+		spanID := spanCtx.SpanID()
+		// Use the full 128-bit trace ID when available (W3C traceparent requires 32 hex chars).
+		// SpanContextW3C.TraceID128() returns the hex-encoded 128-bit trace ID already padded to 32 chars.
+		var traceID string
+		if w3cCtx, ok := spanCtx.(ddtrace.SpanContextW3C); ok {
+			traceID = w3cCtx.TraceID128()
+		} else {
+			traceID = fmt.Sprintf("%032x", spanCtx.TraceID())
+		}
+		traceParent = fmt.Sprintf("00-%s-%016x-01", traceID, spanID)
 	}
 
 	return CloudEvent[T]{
@@ -36,41 +50,30 @@ func NewCloudEvent[T any](ctx context.Context, evtType string, data T) CloudEven
 		Source:      fmt.Sprintf("%s.products", os.Getenv("ENV")),
 		Id:          uuid.New().String(),
 		Time:        time.Now().Format(time.RFC3339),
-		TraceParent: fmt.Sprintf("00-%016x-%016x-01", span.Context().TraceID(), span.Context().SpanID()),
+		TraceParent: traceParent,
 		Data:        data,
-		extensions:  make(map[string]string),
+		DataDog:     make(map[string]string),
 	}
 }
 
 func (ce CloudEvent[T]) ToJSON() ([]byte, error) {
-	// Create a map with all standard fields
-	allFields := map[string]interface{}{
-		"data":        ce.Data,
-		"specversion": ce.SpecVersion,
-		"type":        ce.Type,
-		"source":      ce.Source,
-		"id":          ce.Id,
-		"time":        ce.Time,
-		"traceparent": ce.TraceParent,
-	}
-
-	// Add all extension fields at the top level
-	for k, v := range ce.extensions {
-		allFields[k] = v
-	}
-
-	return json.Marshal(allFields)
+	return json.Marshal(ce)
 }
 
-func (evt CloudEvent[T]) Set(key string, val string) {
-	if evt.extensions == nil {
-		evt.extensions = make(map[string]string)
+// Set implements the datastreams TextMapWriter interface.
+// Uses a pointer receiver so that DSM can inject keys into the DataDog map
+// on the actual CloudEvent value, not a copy.
+func (evt *CloudEvent[T]) Set(key string, val string) {
+	if evt.DataDog == nil {
+		evt.DataDog = make(map[string]string)
 	}
-	evt.extensions[key] = val
+	evt.DataDog[key] = val
 }
 
-func (evt CloudEvent[T]) ForeachKey(handler func(key string, val string) error) error {
-	for key, val := range evt.extensions {
+// ForeachKey implements the datastreams TextMapReader interface.
+// Uses a pointer receiver for consistency with Set.
+func (evt *CloudEvent[T]) ForeachKey(handler func(key string, val string) error) error {
+	for key, val := range evt.DataDog {
 		if err := handler(key, val); err != nil {
 			return err
 		}
