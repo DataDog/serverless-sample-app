@@ -32,8 +32,8 @@ var (
 		awstrace.AppendMiddleware(&awsCfg)
 		return awsCfg
 	}()
-	dSqlProductRepository, _ = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
-	handler                  = core.NewCreateProductCommandHandler(
+	dSqlProductRepository, repositoryInitErr = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
+	handler                                  = core.NewCreateProductCommandHandler(
 		dSqlProductRepository,
 		dSqlProductRepository)
 	authenticator = adapters.NewAuthenticator(context.Background(), *ssm.NewFromConfig(awsCfg))
@@ -65,5 +65,13 @@ func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest)
 }
 
 func main() {
+	if repositoryInitErr != nil {
+		panic(repositoryInitErr)
+	}
+
+	if err := dSqlProductRepository.ApplyMigrations(context.Background()); err != nil {
+		panic(err)
+	}
+
 	lambda.Start(ddlambda.WrapFunction(functionHandler, nil))
 }

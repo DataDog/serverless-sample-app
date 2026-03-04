@@ -36,8 +36,8 @@ var (
 		awstrace.AppendMiddleware(&awsCfg)
 		return awsCfg
 	}()
-	productRepository, _ = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
-	eventPublisher       = adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg))
+	productRepository, repositoryInitErr = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
+	eventPublisher                       = adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg))
 )
 
 func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddtrace.SpanContext) error {
@@ -184,5 +184,13 @@ func functionHandler(ctx context.Context, event OutboxEvent) error {
 }
 
 func main() {
+	if repositoryInitErr != nil {
+		panic(repositoryInitErr)
+	}
+
+	if err := productRepository.ApplyMigrations(context.Background()); err != nil {
+		panic(err)
+	}
+
 	lambda.Start(ddlambda.WrapFunction(functionHandler, nil))
 }
