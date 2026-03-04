@@ -214,6 +214,7 @@ class ApiConstruct(Construct):
                 'DD_TRACE_PROPAGATION_STYLE_EXTRACT': "none",
                 # This flag disables automatic propagation of traces from incoming events. SpanLinks are used instead
                 'DD_BOTOCORE_DISTRIBUTED_TRACING': 'false',
+                'DD_DATA_STREAMS_ENABLED': 'true',
             },
             tracing=_lambda.Tracing.ACTIVE,
             retry_attempts=0,
