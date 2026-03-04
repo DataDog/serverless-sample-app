@@ -26,6 +26,8 @@ import (
 	"product-api/internal/adapters"
 
 	core "github.com/datadog/serverless-sample-product-core"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
@@ -41,6 +43,14 @@ var (
 )
 
 func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddtrace.SpanContext) error {
+	// Restore DSM pathway from the outbox entry and emit the consume checkpoint.
+	if len(entry.DsmContext) > 0 {
+		ctx = datastreams.ExtractFromBase64Carrier(ctx, core.OutboxDsmCarrier(entry.DsmContext))
+	}
+	tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-outbox",
+	}, "direction:in", "type:outbox", "topic:"+entry.EventType, "manual_checkpoint:true")
+
 	// Create span links to connect to the original trace
 	spanLinks := []ddtrace.SpanLink{}
 
