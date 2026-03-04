@@ -34,8 +34,6 @@ public class Authenticator {
 
     public boolean AuthorizeStandardAccess(String token) {
         try {
-            LOGGER.info(secretString);
-
             SecretKey secretKey = Keys.hmacShaKeyFor(secretString.getBytes());
             Claims claims = Jwts.parser()
                     .verifyWith(secretKey)
@@ -56,8 +54,6 @@ public class Authenticator {
 
     public boolean AuthorizeAdmin(String token) {
         try {
-            LOGGER.info(secretString);
-
             SecretKey secretKey = Keys.hmacShaKeyFor(secretString.getBytes());
             Claims claims = Jwts.parser()
                     .verifyWith(secretKey)

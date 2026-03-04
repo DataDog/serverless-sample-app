@@ -98,7 +98,7 @@ module "aws_lambda_function" {
   function_name            = "TF-${var.service_name}-${var.function_name}-${var.env}"
   role                     = aws_iam_role.lambda_function_role.arn
   handler                  = var.lambda_handler
-  runtime                  = "java25"
+  runtime                  = "java21"
   memory_size              = var.memory_size
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
   source_code_hash         = base64sha256(filebase64(var.jar_file))
@@ -119,6 +119,7 @@ module "aws_lambda_function" {
     "DD_CAPTURE_LAMBDA_PAYLOAD" : "true"
     "DD_LOGS_INJECTION" : "true"
     "DD_DATA_STREAMS_ENABLED" = "true"
+    "DD_TRACE_OTEL_ENABLED" = "true"
     "spring_cloud_function_definition" : var.routing_expression
     "QUARKUS_LAMBDA_HANDLER": var.routing_expression}),
     var.environment_variables

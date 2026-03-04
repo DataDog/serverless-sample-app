@@ -17,19 +17,13 @@ import com.inventory.core.adapters.Headers;
 import com.inventory.core.utils.TraceUtils;
 import datadog.trace.api.experimental.DataStreamsCheckpointer;
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
-import io.opentracing.Scope;
-import io.opentracing.log.Fields;
-import io.opentracing.tag.Tags;
-import io.opentracing.util.GlobalTracer;
+import io.opentelemetry.api.trace.*;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Named("handleOrderCompleted")
@@ -44,7 +38,7 @@ public class handleOrderCompletedLambda implements RequestHandler<SQSEvent, SQSB
     public SQSBatchResponse handleRequest(SQSEvent sqsEvent, Context context) {
         Tracer tracer = GlobalOpenTelemetry
                 .getTracer("com.inventory.acl.lambda.handleOrderCompletedLambda");
-        io.opentelemetry.api.trace.Span span = TraceUtils.startChildSpanFromLambdaInvoke(tracer);
+        Span span = TraceUtils.startChildSpanFromLambdaInvoke(tracer);
         span.setAttribute("messaging.batch.message_count", sqsEvent.getRecords().size());
         span.setAttribute("messaging.operation.type", "receive");
         span.setAttribute("messaging.system", "aws_sqs");
@@ -84,6 +78,10 @@ public class handleOrderCompletedLambda implements RequestHandler<SQSEvent, SQSB
             } catch (JsonProcessingException | DataAccessException | InventoryItemNotFoundException | Error exception) {
                 batchItemFailures.add(SQSBatchResponse.BatchItemFailure.builder().withItemIdentifier(message.getMessageId()).build());
                 logger.error("An exception occurred!", exception);
+                if (processSpan != null) {
+                    processSpan.recordException(exception);
+                    processSpan.setStatus(io.opentelemetry.api.trace.StatusCode.ERROR);
+                }
                 span.recordException(exception);
             } finally {
                 if (processSpan != null) {
@@ -91,6 +89,8 @@ public class handleOrderCompletedLambda implements RequestHandler<SQSEvent, SQSB
                 }
             }
         }
+
+        span.end();
 
         return SQSBatchResponse.builder()
                 .withBatchItemFailures(batchItemFailures)

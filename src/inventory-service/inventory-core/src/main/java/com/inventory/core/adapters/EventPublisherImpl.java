@@ -12,11 +12,11 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.inventory.core.*;
 import com.inventory.core.config.AppConfig;
 import datadog.trace.api.experimental.DataStreamsCheckpointer;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.log.Fields;
-import io.opentracing.tag.Tags;
-import io.opentracing.util.GlobalTracer;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -27,7 +27,6 @@ import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
 
-import java.util.Collections;
 import java.util.List;
 
 @ApplicationScoped
@@ -51,8 +50,8 @@ public class EventPublisherImpl implements EventPublisher {
 
     @Override
     public void publishNewProductAddedEvent(NewProductAddedEvent evt) {
-        final Span span = GlobalTracer.get().activeSpan();
-        if (span == null) {
+        final Span span = Span.fromContext(Context.current());
+        if (!span.getSpanContext().isValid()) {
             logger.warn("No active span for publishNewProductAddedEvent");
         }
 
@@ -62,13 +61,13 @@ public class EventPublisherImpl implements EventPublisher {
                 logger.warn("Product added topic ARN is not configured, skipping event publication");
                 return;
             }
-            
+
             var evtWrapper = new CloudEventWrapper<>("inventory.productAdded.v1", evt);
             var evtContents = this.eventWriter.writeValueAsString(evtWrapper);
 
-            final Span publishSpan = createPublishSpan(span, "inventory.productAdded", evtWrapper, evtContents.length(), topicArn);
+            final Span publishSpan = createPublishSpan("inventory.productAdded", evtWrapper, evtContents.length(), topicArn);
 
-            try (Scope scope = GlobalTracer.get().activateSpan(publishSpan)) {
+            try (Scope scope = publishSpan.makeCurrent()) {
                 var carrier = new Carrier(new Headers());
                 DataStreamsCheckpointer.get().setProduceCheckpoint("sns", evtWrapper.getType(), carrier);
 
@@ -79,17 +78,16 @@ public class EventPublisherImpl implements EventPublisher {
                 logger.info("Published product added event for productId: {}", evt.getProductId());
             } catch (Exception e) {
                 handlePublishError(publishSpan, e);
-                return;
+            } finally {
+                publishSpan.end();
             }
-
-            publishSpan.finish();
         } catch (JsonProcessingException e) {
             handleSerializationError(span, e);
         } catch (Exception e) {
             logger.error("Unexpected error publishing product added event", e);
-            if (span != null) {
-                span.setTag(Tags.ERROR, true);
-                span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e));
+            if (span.getSpanContext().isValid()) {
+                span.setStatus(StatusCode.ERROR);
+                span.recordException(e);
             }
         }
     }
@@ -102,7 +100,7 @@ public class EventPublisherImpl implements EventPublisher {
 
             this.publish(evtWrapper.getId(), "inventory.stockUpdated.v1", evtData);
         } catch (JsonProcessingException e) {
-            handleSerializationError(GlobalTracer.get().activeSpan(), e);
+            handleSerializationError(Span.fromContext(Context.current()), e);
         }
     }
 
@@ -114,7 +112,7 @@ public class EventPublisherImpl implements EventPublisher {
 
             this.publish(evtWrapper.getId(), "inventory.stockReserved.v1", evtData);
         } catch (JsonProcessingException e) {
-            handleSerializationError(GlobalTracer.get().activeSpan(), e);
+            handleSerializationError(Span.fromContext(Context.current()), e);
         }
     }
 
@@ -126,7 +124,7 @@ public class EventPublisherImpl implements EventPublisher {
 
             this.publish(evtWrapper.getId(),"inventory.outOfStock.v1", evtData);
         } catch (JsonProcessingException e) {
-            handleSerializationError(GlobalTracer.get().activeSpan(), e);
+            handleSerializationError(Span.fromContext(Context.current()), e);
         }
     }
 
@@ -138,30 +136,26 @@ public class EventPublisherImpl implements EventPublisher {
 
             this.publish(evtWrapper.getId(), "inventory.stockReservationFailed.v1", evtData);
         } catch (JsonProcessingException e) {
-            handleSerializationError(GlobalTracer.get().activeSpan(), e);
+            handleSerializationError(Span.fromContext(Context.current()), e);
         }
     }
 
     private void publish(String eventId, String detailType, String detail) {
-        final Span span = GlobalTracer.get().activeSpan();
+        final Span publishSpan = createPublishSpan(detailType, null, detail.length(), null);
 
-        final Span publishSpan = createPublishSpan(span, detailType, null, detail.length(), null);
-
-        try (Scope scope = GlobalTracer.get().activateSpan(publishSpan)) {
+        try (Scope scope = publishSpan.makeCurrent()) {
             String source = appConfig.getSource();
             String eventBusName = appConfig.getEventBusName();
 
             if (eventBusName == null || eventBusName.isEmpty()) {
                 logger.warn("Event bus name is not configured, skipping event publication");
-                publishSpan.finish();
                 return;
             }
 
             logger.info("Publishing {} from {} to {}", detailType, source, eventBusName);
 
             var carrier = new Carrier(new Headers());
-            DataStreamsCheckpointer.get().setProduceCheckpoint("sns", detailType, carrier);
-
+            DataStreamsCheckpointer.get().setProduceCheckpoint("eventbridge", detailType, carrier);
 
             PutEventsRequest request = PutEventsRequest
                     .builder()
@@ -173,61 +167,58 @@ public class EventPublisherImpl implements EventPublisher {
                             .build()))
                     .build();
 
-            try {
-                eventBridge.putEvents(request);
-            } catch (Exception e) {
-                handlePublishError(publishSpan, e);
-                return;
-            }
+            eventBridge.putEvents(request);
+        } catch (Exception e) {
+            handlePublishError(publishSpan, e);
+        } finally {
+            publishSpan.end();
         }
-
-        publishSpan.finish();
     }
 
-    private Span createPublishSpan(Span parentSpan, String detailType, CloudEventWrapper<?> evtWrapper, int bodySize, String destination) {
-        final Span publishSpan = GlobalTracer.get()
-                .buildSpan(String.format("publish %s", detailType))
-                .asChildOf(parentSpan)
-                .start();
+    private Span createPublishSpan(String detailType, CloudEventWrapper<?> evtWrapper, int bodySize, String destination) {
+        final Span publishSpan = GlobalOpenTelemetry.getTracer("com.inventory.core.adapters.EventPublisherImpl")
+                .spanBuilder(String.format("publish %s", detailType))
+                .setParent(Context.current())
+                .startSpan();
 
-        publishSpan.setTag("domain", appConfig.getDomain());
-        publishSpan.setTag("messaging.message.eventType", destination == null ? "public" : "private");
-        publishSpan.setTag("messaging.message.type", detailType);
-        
+        publishSpan.setAttribute("domain", appConfig.getDomain());
+        publishSpan.setAttribute("messaging.message.eventType", destination == null ? "public" : "private");
+        publishSpan.setAttribute("messaging.message.type", detailType);
+
         if (evtWrapper != null) {
-            publishSpan.setTag("messaging.message.id", evtWrapper.getId());
+            publishSpan.setAttribute("messaging.message.id", evtWrapper.getId());
         }
-        
-        publishSpan.setTag("messaging.operation.type", "publish");
-        publishSpan.setTag("messaging.system", destination == null ? "eventbridge" : "aws_sns");
-        publishSpan.setTag("messaging.batch.message_count", 1);
-        
+
+        publishSpan.setAttribute("messaging.operation.type", "publish");
+        publishSpan.setAttribute("messaging.system", destination == null ? "eventbridge" : "aws_sns");
+        publishSpan.setAttribute("messaging.batch.message_count", 1);
+
         if (destination != null) {
-            publishSpan.setTag("messaging.destination.name", extractNameFromArn(destination));
+            publishSpan.setAttribute("messaging.destination.name", extractNameFromArn(destination));
         } else {
-            publishSpan.setTag("messaging.destination.name", appConfig.getEventBusName());
+            publishSpan.setAttribute("messaging.destination.name", appConfig.getEventBusName());
         }
-        
-        publishSpan.setTag("messaging.client.id", appConfig.getDdService());
-        publishSpan.setTag("messaging.message.body.size", bodySize);
-        publishSpan.setTag("messaging.operation.name", "send");
+
+        publishSpan.setAttribute("messaging.client.id", appConfig.getDdService());
+        publishSpan.setAttribute("messaging.message.body.size", bodySize);
+        publishSpan.setAttribute("messaging.operation.name", "send");
 
         return publishSpan;
     }
 
     private void handleSerializationError(Span span, JsonProcessingException exception) {
         logger.error("Error serializing event", exception);
-        if (span != null) {
-            span.setTag(Tags.ERROR, true);
-            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, exception));
+        if (span != null && span.getSpanContext().isValid()) {
+            span.setStatus(StatusCode.ERROR);
+            span.recordException(exception);
         }
     }
-    
+
     private void handlePublishError(Span span, Exception exception) {
         logger.error("Error publishing event", exception);
-        if (span != null) {
-            span.setTag(Tags.ERROR, true);
-            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, exception));
+        if (span != null && span.getSpanContext().isValid()) {
+            span.setStatus(StatusCode.ERROR);
+            span.recordException(exception);
         }
     }
 
@@ -242,4 +233,3 @@ public class EventPublisherImpl implements EventPublisher {
         return arnParts[arnParts.length - 1];
     }
 }
-

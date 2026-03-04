@@ -56,7 +56,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: java25
+    Runtime: java21
     Timeout: 29
     MemorySize: 2048
     Environment:
@@ -160,6 +160,7 @@ Resources:
           PRODUCT_API_ENDPOINT_PARAMETER: !Sub "/${Env}/ProductService/api-endpoint"
           QUARKUS_LAMBDA_HANDLER: handleProductCatalogueRefresh
           MAIN_CLASS: com.inventory.acl.FunctionConfiguration
+          DD_TRACE_OTEL_ENABLED: "true"
       Events:
         Every1Minute:
           Type: ScheduleV2
@@ -453,6 +454,7 @@ Resources:
           ORDERING_SERVICE_WORKFLOW_ARN: !Ref InventoryOrderingService
           spring_cloud_function_definition: handleNewProductAdded
           MAIN_CLASS: com.inventory.ordering.FunctionConfiguration
+          DD_TRACE_OTEL_ENABLED: "true"
       Events:
         NewProductAddedTopic:
           Type: SNS
@@ -845,6 +847,8 @@ Resources:
               Value: inventory
             - Name: ENV
               Value: !Ref Env
+            - Name: DD_TRACE_AGENT_URL
+              Value: "http://localhost:8126"
           PortMappings:
             - ContainerPort: 8080
               Protocol: tcp

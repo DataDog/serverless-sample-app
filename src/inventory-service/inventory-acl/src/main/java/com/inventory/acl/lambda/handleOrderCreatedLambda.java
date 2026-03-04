@@ -80,6 +80,10 @@ public class handleOrderCreatedLambda implements RequestHandler<SQSEvent, SQSBat
             } catch (JsonProcessingException | DataAccessException | InventoryItemNotFoundException | Error exception) {
                 batchItemFailures.add(SQSBatchResponse.BatchItemFailure.builder().withItemIdentifier(message.getMessageId()).build());
                 logger.error("An exception occurred!", exception);
+                if (processSpan != null) {
+                    processSpan.recordException(exception);
+                    processSpan.setStatus(io.opentelemetry.api.trace.StatusCode.ERROR);
+                }
                 span.recordException(exception);
             } finally {
                 if (processSpan != null) {
@@ -87,6 +91,8 @@ public class handleOrderCreatedLambda implements RequestHandler<SQSEvent, SQSBat
                 }
             }
         }
+
+        span.end();
 
         return SQSBatchResponse.builder()
                 .withBatchItemFailures(batchItemFailures)

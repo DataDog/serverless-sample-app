@@ -109,10 +109,12 @@ public class InventoryApiContainer extends Construct {
                                         "Host", String.format("http-intake.logs.%s", props.serviceProps().getSharedProps().ddSite()),
                                         "TLS", "on",
                                         "dd_service", props.serviceProps().getSharedProps().service(),
-                                        "dd_source", "expressjs",
+                                        "dd_source", "java",
                                         "dd_message_key", "log",
-                                        "provider", "ecs",
-                                        "apikey", props.serviceProps().getSharedProps().ddApiKeySecret().getSecretValue().unsafeUnwrap()
+                                        "provider", "ecs"
+                                ))
+                                .secretOptions(Map.of(
+                                        "apikey", Secret.fromSecretsManager(props.serviceProps().getSharedProps().ddApiKeySecret())
                                 ))
                                 .build()))
                         .build())
@@ -171,7 +173,7 @@ public class InventoryApiContainer extends Construct {
         String version = props.serviceProps().getSharedProps().version();
 
         Map<String, String> datadogEnvironmentVariables = new HashMap<>();
-        datadogEnvironmentVariables.put("DD_SITE", "datadoghq.eu");
+        datadogEnvironmentVariables.put("DD_SITE", props.serviceProps().getSharedProps().ddSite());
         datadogEnvironmentVariables.put("ECS_FARGATE", "true");
         datadogEnvironmentVariables.put("DD_LOGS_ENABLED", "false");
         datadogEnvironmentVariables.put("DD_PROCESS_AGENT_ENABLED", "true");
@@ -206,7 +208,7 @@ public class InventoryApiContainer extends Construct {
                                 .protocolPolicy(OriginProtocolPolicy.HTTP_ONLY)
                                 .build()))
                         .originRequestPolicy(OriginRequestPolicy.ALL_VIEWER)
-                        .viewerProtocolPolicy(ViewerProtocolPolicy.ALLOW_ALL)
+                        .viewerProtocolPolicy(ViewerProtocolPolicy.REDIRECT_TO_HTTPS)
                         .cachePolicy(CachePolicy.CACHING_DISABLED)
                         .allowedMethods(AllowedMethods.ALLOW_ALL)
                         .build())
