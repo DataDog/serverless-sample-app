@@ -64,7 +64,7 @@ func (ce CloudEvent[T]) ToJSON() ([]byte, error) {
 }
 
 // Set implements the datastreams TextMapWriter interface.
-// Uses a pointer receiver so that DSM can inject keys into the DataDog map
+// Uses a pointer receiver so that DSM can inject keys into the Datadog map
 // on the actual CloudEvent value, not a copy.
 func (evt *CloudEvent[T]) Set(key string, val string) {
 	if evt.Datadog == nil {

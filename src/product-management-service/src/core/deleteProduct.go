@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -71,12 +73,23 @@ func createOutboxEntryForDelete(ctx context.Context, eventType string, eventData
 		return OutboxEntry{}, err
 	}
 
-	return OutboxEntry{
+	entry := OutboxEntry{
 		Id:        uuid.New().String(),
 		EventType: eventType,
 		EventData: string(eventJson),
 		TraceId:   traceId,
 		SpanId:    spanId,
 		CreatedAt: time.Now(),
-	}, nil
+	}
+
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-outbox",
+	}, "direction:out", "type:outbox", "topic:"+eventType, "manual_checkpoint:true")
+	if ok {
+		carrier := make(OutboxDsmCarrier)
+		datastreams.InjectToBase64Carrier(ctx, carrier)
+		entry.DsmContext = map[string]string(carrier)
+	}
+
+	return entry, nil
 }

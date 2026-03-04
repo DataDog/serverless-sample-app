@@ -9,7 +9,6 @@ package adapters
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"product-event-publisher/internal/core"
@@ -41,12 +40,12 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 	// Inject DSM context before marshaling so _datadog carrier is included in the message.
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	}, "direction:out", "type:eventbridge", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
 	}
 
-	evtData, _ := json.Marshal(cloudEvent)
+	evtData, _ := cloudEvent.ToJSON()
 	message := string(evtData)
 	detailType := cloudEvent.Type
 	busName := os.Getenv("EVENT_BUS_NAME")
@@ -95,12 +94,12 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 	// Inject DSM context before marshaling so _datadog carrier is included in the message.
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", "type:sns", fmt.Sprintf("topic:%s", cloudEvent.Type))
+	}, "direction:out", "type:eventbridge", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
 	}
 
-	evtData, _ := json.Marshal(cloudEvent)
+	evtData, _ := cloudEvent.ToJSON()
 	message := string(evtData)
 	detailType := cloudEvent.Type
 	busName := os.Getenv("EVENT_BUS_NAME")
@@ -150,12 +149,12 @@ func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Con
 	// Inject DSM context before marshaling so _datadog carrier is included in the message.
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", "type:sns", fmt.Sprintf("topic:%s", cloudEvent.Type))
+	}, "direction:out", "type:eventbridge", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
 	}
 
-	evtData, _ := json.Marshal(cloudEvent)
+	evtData, _ := cloudEvent.ToJSON()
 	message := string(evtData)
 	detailType := cloudEvent.Type
 	busName := os.Getenv("EVENT_BUS_NAME")
