@@ -6,10 +6,12 @@ import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.context.Context;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 public class CloudEventWrapper<T> implements Serializable {
+    @JsonProperty("specversion")
+    private final String specversion = "1.0";
     @JsonProperty("_datadog")
     private DatadogTelemetry datadog;
     @JsonProperty("id")
@@ -31,9 +33,9 @@ public class CloudEventWrapper<T> implements Serializable {
 
     public CloudEventWrapper(String type, T data) {
         this.id = UUID.randomUUID().toString();
-        this.source = String.format("%s.inventory", System.getenv("ENV"));
+        this.source = String.format("https://%s.inventory", System.getenv("ENV"));
         this.type = type;
-        this.time = LocalDateTime.now().toString();
+        this.time = Instant.now().toString();
         this.datadog = new DatadogTelemetry();
         SpanContext currentSpan = Span.fromContext(Context.current()).getSpanContext();
         if (currentSpan.isValid()) {

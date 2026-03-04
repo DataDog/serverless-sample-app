@@ -1,0 +1,943 @@
+openapi: 3.1.0
+info:
+  title: Orders API
+  description: |
+    The Orders API provides endpoints to create, retrieve, and manage orders as they flow
+    through the order processing system. Orders are processed via a Step Functions workflow
+    that handles stock reservation, confirmation, and completion.
+
+    ## Authentication
+
+    All endpoints require a valid JWT bearer token. The token must contain user claims
+    including a user ID and user type (STANDARD, PREMIUM, or ADMIN). Tokens are validated
+    against a configured JWT secret.
+
+    ## Versioning
+
+    API version is specified via the `X-API-Version` request header. The current version
+    is `1.0`. If the header is omitted, version 1.0 is assumed.
+
+    ## Rate Limiting
+
+    Rate limits vary by endpoint and user type:
+    - **Read endpoints**: up to 100 requests/minute (sliding window)
+    - **Write endpoints**: up to 20 requests/minute (fixed window)
+    - **Admin endpoints**: up to 10 requests/minute (fixed window)
+    - **PREMIUM users** receive higher global limits (200 req/min)
+    - When a limit is exceeded, HTTP 429 is returned with a `Retry-After: 60` header.
+  version: 1.0.0
+  contact:
+    name: Datadog Serverless Sample
+servers:
+  - url: https://{distributionDomain}
+    description: CloudFront distribution in front of the Application Load Balancer
+    variables:
+      distributionDomain:
+        default: <your-cloudfront-domain>
+        description: The CloudFront distribution domain name for the Orders service
+  - url: http://localhost:8080
+    description: Local development server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Orders
+    description: Order management operations
+  - name: Health
+    description: Health and readiness check endpoints
+
+paths:
+  /orders:
+    get:
+      operationId: getUserOrders
+      summary: Get orders for the authenticated user
+      description: |
+        Returns a paginated list of orders belonging to the currently authenticated user.
+        The user identity is resolved from the JWT bearer token claims.
+      tags:
+        - Orders
+      parameters:
+        - name: pageSize
+          in: query
+          required: false
+          description: Number of orders to return per page. Must be between 1 and 100.
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: pageToken
+          in: query
+          required: false
+          description: |
+            Opaque continuation token returned by a previous call. Must be a valid
+            base64-encoded string with length between 1 and 1000 characters. Pass
+            this value to retrieve the next page of results.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/XApiVersion'
+        - $ref: '#/components/parameters/XCorrelationId'
+      responses:
+        '200':
+          description: Successfully retrieved the user's paginated order list.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/XCorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedOrderResponse'
+              example:
+                items:
+                  - orderId: "ord-abc123"
+                    userId: "user-456"
+                    products:
+                      - "prod-001"
+                      - "prod-002"
+                    orderDate: "2025-06-01T10:00:00Z"
+                    orderType: "Standard"
+                    orderStatus: "Confirmed"
+                    totalPrice: 49.99
+                pageSize: 20
+                hasMorePages: false
+                nextPageToken: null
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      operationId: createOrder
+      summary: Create a new order
+      description: |
+        Creates a new order for the authenticated user. The user type determined from
+        the JWT claims controls whether the order is created as Standard or Priority:
+        - **PREMIUM** users get Priority orders with expedited processing.
+        - All other users get Standard orders.
+
+        After the order is persisted, a Step Functions order workflow is automatically
+        started to handle stock reservation and downstream processing.
+      tags:
+        - Orders
+      parameters:
+        - $ref: '#/components/parameters/XApiVersion'
+        - $ref: '#/components/parameters/XCorrelationId'
+      requestBody:
+        required: true
+        description: The list of product IDs to include in the new order.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+            example:
+              products:
+                - "prod-001"
+                - "prod-002"
+      responses:
+        '201':
+          description: |
+            Order created successfully. The `Location` header contains the URL of the
+            newly created order resource.
+          headers:
+            Location:
+              description: URL of the newly created order resource.
+              schema:
+                type: string
+                example: /api/orders/ord-abc123
+            X-Correlation-Id:
+              $ref: '#/components/headers/XCorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDto'
+              example:
+                orderId: "ord-abc123"
+                userId: "user-456"
+                products:
+                  - "prod-001"
+                  - "prod-002"
+                orderDate: "2025-06-01T10:00:00Z"
+                orderType: "Standard"
+                orderStatus: "Created"
+                totalPrice: 0.00
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /orders/confirmed:
+    get:
+      operationId: getConfirmedOrders
+      summary: Get all confirmed orders (Admin only)
+      description: |
+        Returns a paginated list of all orders currently in `Confirmed` status.
+        This endpoint is restricted to users with user type `ADMIN`. Non-admin
+        callers receive HTTP 403.
+      tags:
+        - Orders
+      parameters:
+        - name: pageSize
+          in: query
+          required: false
+          description: Number of orders to return per page. Must be between 1 and 100.
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: pageToken
+          in: query
+          required: false
+          description: |
+            Opaque continuation token returned by a previous call. Pass this value
+            to retrieve the next page of results.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/XApiVersion'
+        - $ref: '#/components/parameters/XCorrelationId'
+      responses:
+        '200':
+          description: Successfully retrieved paginated list of confirmed orders.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/XCorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedOrderResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /orders/{orderId}:
+    get:
+      operationId: getOrderDetails
+      summary: Get details for a specific order
+      description: |
+        Returns the full details of a single order identified by `orderId`. The order
+        must belong to the authenticated user (the user ID is derived from the JWT claims).
+        Returns HTTP 404 if the order does not exist or belongs to a different user.
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: |
+            The unique identifier of the order to retrieve. Must contain only
+            alphanumeric characters, hyphens, or underscores (1–100 characters).
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9\-_]+$'
+            minLength: 1
+            maxLength: 100
+          example: "ord-abc123"
+        - $ref: '#/components/parameters/XApiVersion'
+        - $ref: '#/components/parameters/XCorrelationId'
+      responses:
+        '200':
+          description: Order found and returned successfully.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/XCorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDto'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /orders/{orderId}/complete:
+    post:
+      operationId: completeOrder
+      summary: Mark an order as complete (Admin only)
+      description: |
+        Transitions an order from `Confirmed` status to `Completed` status. Only users
+        with user type `ADMIN` are permitted to call this endpoint. The request body
+        must supply both the `orderId` and the `userId` of the order owner.
+
+        On success, the `orders.orderCompleted.v1` and `orders.orderCompleted.v2` events
+        are published to the shared EventBridge event bus.
+
+        Attempting to complete an order that is not in `Confirmed` status results in
+        HTTP 409.
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: The unique identifier of the order to complete.
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9\-_]+$'
+            minLength: 1
+            maxLength: 100
+          example: "ord-abc123"
+        - $ref: '#/components/parameters/XApiVersion'
+        - $ref: '#/components/parameters/XCorrelationId'
+      requestBody:
+        required: true
+        description: |
+          The order and user identifiers needed to locate and validate the order before
+          completing it.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteOrderRequest'
+            example:
+              orderId: "ord-abc123"
+              userId: "user-456"
+      responses:
+        '200':
+          description: Order completed successfully. Returns the updated order.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/XCorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDto'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /health:
+    get:
+      operationId: getHealth
+      summary: Comprehensive health check
+      description: |
+        Returns a detailed health report for the Orders API service, including
+        the status of DynamoDB connectivity, memory usage, and application-level
+        health. Intended for operational monitoring.
+      tags:
+        - Health
+      security: []
+      responses:
+        '200':
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy or degraded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /health/ready:
+    get:
+      operationId: getReadiness
+      summary: Readiness check
+      description: |
+        Returns a simple readiness status for load balancers and orchestrators.
+        Only checks components tagged as `ready` (DynamoDB, memory, application).
+      tags:
+        - Health
+      security: []
+      responses:
+        '200':
+          description: Service is ready to accept traffic.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleHealthResponse'
+        '503':
+          description: Service is not ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleHealthResponse'
+
+  /health/live:
+    get:
+      operationId: getLiveness
+      summary: Liveness check
+      description: |
+        Returns a simple liveness signal for Kubernetes or similar orchestrators.
+        This check does not verify dependencies — it confirms only that the process
+        is running.
+      tags:
+        - Health
+      security: []
+      responses:
+        '200':
+          description: Service process is alive.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleHealthResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT bearer token obtained from the configured identity provider.
+        The token must include claims for user ID and user type
+        (`STANDARD`, `PREMIUM`, or `ADMIN`).
+
+  parameters:
+    XApiVersion:
+      name: X-API-Version
+      in: header
+      required: false
+      description: |
+        Requested API version. Defaults to `1.0` when omitted.
+        Currently supported: `1.0`.
+      schema:
+        type: string
+        default: "1.0"
+        example: "1.0"
+    XCorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: |
+        Client-supplied correlation ID for request tracing. If not provided,
+        a new UUID is generated by the service and echoed back in the response
+        `X-Correlation-Id` header.
+      schema:
+        type: string
+        format: uuid
+
+  headers:
+    XCorrelationId:
+      description: The correlation ID associated with this request, either echoed from the
+        client or generated by the service.
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    # -----------------------------------------------------------------------
+    # Request schemas
+    # -----------------------------------------------------------------------
+    CreateOrderRequest:
+      type: object
+      required:
+        - products
+      description: Request payload for creating a new order.
+      properties:
+        products:
+          type: array
+          description: |
+            Array of product IDs to include in the order. Each ID must be
+            between 1 and 50 alphanumeric/hyphen/underscore characters.
+            Duplicates are not allowed. Minimum 1, maximum 50 products.
+          minItems: 1
+          maxItems: 50
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 50
+            pattern: '^[a-zA-Z0-9\-_]+$'
+            description: A product identifier.
+          example:
+            - "prod-001"
+            - "prod-002"
+
+    CompleteOrderRequest:
+      type: object
+      required:
+        - orderId
+        - userId
+      description: Request payload for completing an order. Admin use only.
+      properties:
+        orderId:
+          type: string
+          description: |
+            The unique identifier of the order to complete. Must be between
+            1 and 100 alphanumeric/hyphen/underscore characters.
+          minLength: 1
+          maxLength: 100
+          pattern: '^[a-zA-Z0-9\-_]+$'
+          example: "ord-abc123"
+        userId:
+          type: string
+          description: |
+            The identifier of the user who owns the order. Must be between
+            1 and 100 characters and may include alphanumeric characters,
+            hyphens, underscores, @, and period.
+          minLength: 1
+          maxLength: 100
+          pattern: '^[a-zA-Z0-9\-_@.]+$'
+          example: "user-456"
+
+    # -----------------------------------------------------------------------
+    # Response schemas
+    # -----------------------------------------------------------------------
+    OrderDto:
+      type: object
+      description: Full representation of an order returned by the API.
+      properties:
+        orderId:
+          type: string
+          description: The unique identifier for this order.
+          example: "ord-abc123"
+        userId:
+          type: string
+          description: The identifier of the user who placed the order.
+          example: "user-456"
+        products:
+          type: array
+          description: List of product identifiers included in the order.
+          items:
+            type: string
+          example:
+            - "prod-001"
+            - "prod-002"
+        orderDate:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC timestamp of when the order was created.
+          example: "2025-06-01T10:00:00Z"
+        orderType:
+          $ref: '#/components/schemas/OrderType'
+        orderStatus:
+          $ref: '#/components/schemas/OrderStatus'
+        totalPrice:
+          type: number
+          format: decimal
+          description: |
+            Total price of the order. Initially 0.00 when the order is first
+            created; updated after stock reservation and pricing steps complete.
+          example: 49.99
+
+    OrderType:
+      type: string
+      description: |
+        The processing priority of the order.
+        - `Standard` — normal processing for regular users.
+        - `Priority` — expedited processing for PREMIUM users.
+      enum:
+        - Standard
+        - Priority
+      example: Standard
+
+    OrderStatus:
+      type: string
+      description: |
+        The current lifecycle state of the order.
+        - `Created` — order has been created; stock reservation is pending.
+        - `Confirmed` — stock has been reserved and the order is confirmed.
+        - `Completed` — the order has been fulfilled by an admin.
+        - `NoStock` — the order could not be fulfilled due to stock unavailability.
+      enum:
+        - Created
+        - Confirmed
+        - Completed
+        - NoStock
+      example: Confirmed
+
+    PaginatedOrderResponse:
+      type: object
+      description: A paginated response containing a list of orders.
+      properties:
+        items:
+          type: array
+          description: The orders for the current page.
+          items:
+            $ref: '#/components/schemas/OrderDto'
+        pageSize:
+          type: integer
+          description: The number of items requested per page.
+          example: 20
+        hasMorePages:
+          type: boolean
+          description: Whether there are additional pages of results available.
+          example: false
+        nextPageToken:
+          type: string
+          nullable: true
+          description: |
+            Opaque token to pass as the `pageToken` query parameter on the next
+            request. `null` when there are no more pages.
+          example: "eyJsYXN0S2V5Ijoi..."
+
+    # -----------------------------------------------------------------------
+    # Error schemas
+    # -----------------------------------------------------------------------
+    ErrorResponse:
+      type: object
+      description: Standard error response returned for most 4xx and 5xx errors.
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code from the ErrorCodes constants.
+          enum:
+            - VALIDATION_ERROR
+            - INVALID_STATE
+            - NOT_FOUND
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - INTERNAL_ERROR
+            - SERVICE_UNAVAILABLE
+          example: NOT_FOUND
+        message:
+          type: string
+          description: A human-readable summary of the error.
+          example: "Order not found"
+        details:
+          type: string
+          nullable: true
+          description: Additional contextual detail about the error, if available.
+          example: "Order with ID 'ord-abc123' not found"
+        validationErrors:
+          type: object
+          nullable: true
+          description: |
+            Field-level validation errors, keyed by property name. Only present
+            when `error` is `VALIDATION_ERROR`.
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            products:
+              - "At least one product must be specified"
+        correlationId:
+          type: string
+          nullable: true
+          description: The correlation ID for this request, useful for log correlation.
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+
+    ValidationErrorResponse:
+      type: object
+      description: |
+        Validation-specific error response returned when request input fails
+        FluentValidation rules.
+      properties:
+        error:
+          type: string
+          description: Always `VALIDATION_ERROR` for validation failures.
+          example: VALIDATION_ERROR
+        validationErrors:
+          type: object
+          description: Field-level validation errors, keyed by property name.
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            products:
+              - "At least one product must be specified"
+              - "Cannot order more than 50 products at once"
+        correlationId:
+          type: string
+          nullable: true
+          description: The correlation ID for this request.
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+
+    ProblemDetails:
+      type: object
+      description: |
+        RFC 7807 Problem Details object returned for 5xx errors and certain 4xx
+        errors (403, 404, 409, 429).
+      properties:
+        type:
+          type: string
+          nullable: true
+          description: URI reference identifying the problem type.
+        title:
+          type: string
+          nullable: true
+          description: Short, human-readable summary of the problem type.
+          example: "Order Not Found"
+        status:
+          type: integer
+          description: The HTTP status code.
+          example: 404
+        detail:
+          type: string
+          nullable: true
+          description: Human-readable explanation specific to this occurrence.
+          example: "Order with ID 'ord-abc123' not found"
+        instance:
+          type: string
+          nullable: true
+          description: URI reference identifying the specific occurrence.
+        extensions:
+          type: object
+          description: Additional problem details as key-value pairs.
+          properties:
+            correlationId:
+              type: string
+              description: The correlation ID for this request.
+            errorCode:
+              type: string
+              description: Machine-readable error code.
+              enum:
+                - VALIDATION_ERROR
+                - INVALID_STATE
+                - NOT_FOUND
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - INTERNAL_ERROR
+                - SERVICE_UNAVAILABLE
+
+    RateLimitResponse:
+      type: object
+      description: Response body returned when a rate limit is exceeded (HTTP 429).
+      properties:
+        error:
+          type: string
+          description: Always `RATE_LIMIT_EXCEEDED`.
+          example: RATE_LIMIT_EXCEEDED
+        message:
+          type: string
+          example: "Rate limit exceeded. Please try again later."
+        retryAfter:
+          type: integer
+          description: Number of seconds to wait before retrying.
+          example: 60
+        userType:
+          type: string
+          description: The user type of the caller (no PII).
+          example: "STANDARD"
+        correlationId:
+          type: string
+          description: The correlation ID for this request.
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+
+    HealthResponse:
+      type: object
+      description: Detailed health check response body.
+      properties:
+        status:
+          type: string
+          description: Overall health status.
+          enum:
+            - Healthy
+            - Degraded
+            - Unhealthy
+          example: Healthy
+        timestamp:
+          type: string
+          format: date-time
+          description: UTC timestamp when the health check was performed.
+          example: "2025-06-01T10:00:00Z"
+        duration:
+          type: number
+          description: Total duration of all health checks in milliseconds.
+          example: 45.2
+        version:
+          type: string
+          description: Application version string.
+          example: "1.0.0"
+        checks:
+          type: array
+          description: Individual health check results.
+          items:
+            $ref: '#/components/schemas/HealthCheckEntry'
+
+    HealthCheckEntry:
+      type: object
+      description: Result of a single named health check.
+      properties:
+        name:
+          type: string
+          description: Health check name.
+          example: "dynamodb"
+        status:
+          type: string
+          enum:
+            - Healthy
+            - Degraded
+            - Unhealthy
+          example: Healthy
+        description:
+          type: string
+          nullable: true
+          description: Human-readable status description.
+        duration:
+          type: number
+          description: Duration of this individual check in milliseconds.
+          example: 12.5
+        data:
+          type: object
+          description: Optional additional data from the health check.
+          nullable: true
+          additionalProperties: true
+
+    SimpleHealthResponse:
+      type: object
+      description: Simple health/readiness/liveness response.
+      properties:
+        status:
+          type: string
+          enum:
+            - Healthy
+            - Degraded
+            - Unhealthy
+          example: Healthy
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-06-01T10:00:00Z"
+
+  responses:
+    ValidationError:
+      description: |
+        One or more request fields failed validation. The response body contains
+        field-level error messages.
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/XCorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+
+    Unauthorized:
+      description: |
+        The request is missing a valid JWT bearer token, or the token is expired
+        or otherwise invalid.
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/XCorrelationId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: "Authentication Error"
+            status: 401
+            detail: "User authentication information is missing"
+            extensions:
+              errorCode: "UNAUTHORIZED"
+
+    Forbidden:
+      description: |
+        The authenticated user does not have the required role (ADMIN) to access
+        this endpoint.
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/XCorrelationId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: "Forbidden"
+            status: 403
+            detail: "Only administrators can complete orders"
+            extensions:
+              errorCode: "FORBIDDEN"
+
+    NotFound:
+      description: The requested order was not found or does not belong to the caller.
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/XCorrelationId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: "Order Not Found"
+            status: 404
+            detail: "Order with ID 'ord-abc123' not found"
+            extensions:
+              errorCode: "NOT_FOUND"
+
+    Conflict:
+      description: |
+        The requested state transition is not allowed. For example, attempting to
+        complete an order that is not in `Confirmed` status, or trying to create an
+        order that results in an invalid state.
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/XCorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "INVALID_STATE"
+            message: "Order must be confirmed before it can be completed"
+            details: "Only confirmed orders can be marked as complete"
+
+    RateLimitExceeded:
+      description: |
+        The caller has exceeded the rate limit for this endpoint or their user-type
+        global limit. Retry after the number of seconds specified in the
+        `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Number of seconds to wait before retrying.
+          schema:
+            type: integer
+            example: 60
+        X-RateLimit-Policy:
+          description: The rate limit policy that was triggered.
+          schema:
+            type: string
+            example: "global"
+        X-RateLimit-Remaining:
+          description: Number of remaining requests in the current window.
+          schema:
+            type: integer
+            example: 0
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RateLimitResponse'
+
+    InternalServerError:
+      description: An unexpected server-side error occurred.
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/XCorrelationId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: "Internal Server Error"
+            status: 500
+            detail: "An unexpected error occurred while processing the request"
+            extensions:
+              errorCode: "INTERNAL_ERROR"

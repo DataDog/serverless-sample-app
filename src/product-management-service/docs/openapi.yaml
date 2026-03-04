@@ -1,0 +1,565 @@
+openapi: 3.1.0
+info:
+  title: Product Management Service API
+  description: |
+    REST API for managing the product catalogue. Supports CRUD operations on
+    products. Write operations (create, update, delete) require an ADMIN-scoped
+    JWT bearer token. Read operations (get, list) are unauthenticated.
+
+    All responses are wrapped in a standard envelope:
+    ```json
+    { "data": <payload>, "message": "OK" }
+    ```
+
+    The service is deployed as a set of AWS Lambda functions behind an Amazon
+    API Gateway REST API. Infrastructure is available via AWS CDK, AWS SAM and
+    Terraform.
+  version: 1.0.0
+  contact:
+    name: Datadog Serverless Sample
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: https://{apiId}.execute-api.{region}.amazonaws.com/Prod
+    description: AWS API Gateway (SAM / Terraform deployment)
+    variables:
+      apiId:
+        description: API Gateway REST API identifier
+        default: unknown
+      region:
+        description: AWS region
+        default: us-east-1
+  - url: https://{apiId}.execute-api.{region}.amazonaws.com/{stage}
+    description: AWS API Gateway (CDK deployment)
+    variables:
+      apiId:
+        description: API Gateway REST API identifier
+        default: unknown
+      region:
+        description: AWS region
+        default: us-east-1
+      stage:
+        description: Deployment stage
+        default: prod
+
+tags:
+  - name: Products
+    description: Product catalogue management
+
+paths:
+  /product:
+    get:
+      tags:
+        - Products
+      summary: List all products
+      description: |
+        Returns a list of all products currently in the catalogue. No
+        authentication is required for this endpoint.
+      operationId: listProducts
+      responses:
+        "200":
+          description: Successful operation. Returns all products.
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+                example: "*"
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+                example: "*"
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+                example: GET,POST,PUT,DELETE,OPTIONS
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListProductsResponse"
+              example:
+                data:
+                  - productId: FLATWHITE
+                    name: Flat White
+                    price: 3.5
+                    stockLevel: 10.0
+                  - productId: ESPRESSO
+                    name: Espresso
+                    price: 2.99
+                    stockLevel: 5.0
+                message: OK
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      tags:
+        - Products
+      summary: Create a new product
+      description: |
+        Creates a new product in the catalogue. The product ID is derived
+        automatically from the name (uppercased, spaces removed). If a product
+        with the same derived ID already exists the existing product is returned
+        without creating a duplicate.
+
+        Requires an `Authorization` header containing a valid JWT with the
+        `ADMIN` role.
+      operationId: createProduct
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductRequest"
+            example:
+              name: Flat White
+              price: 3.5
+      responses:
+        "201":
+          description: Product created successfully.
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+              example:
+                data:
+                  productId: FLATWHITE
+                  name: Flat White
+                  price: 3.5
+                  pricingBrackets: []
+                  stockLevel: 0.0
+                message: OK
+        "400":
+          description: |
+            Invalid product details. Name must be longer than 3 characters and
+            price must be greater than 0.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                data: OK
+                message: "Invalid product details provided. Name must be 3 charachters and price greater than 0."
+        "401":
+          description: Unauthorized. Missing or invalid JWT token.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Unauthorized
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      tags:
+        - Products
+      summary: Update an existing product
+      description: |
+        Updates the name and/or price of an existing product. If the submitted
+        values are identical to the current values a 200 response is returned
+        with the message `No updates required` and no event is published.
+
+        Requires an `Authorization` header containing a valid JWT with the
+        `ADMIN` role.
+      operationId: updateProduct
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProductRequest"
+            example:
+              id: FLATWHITE
+              name: Flat White
+              price: 4.0
+      responses:
+        "200":
+          description: |
+            Product updated successfully, or no update was required because the
+            submitted values match the current values.
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+              examples:
+                updated:
+                  summary: Product was updated
+                  value:
+                    data:
+                      productId: FLATWHITE
+                      name: Flat White
+                      price: 4.0
+                      pricingBrackets: []
+                      stockLevel: 10.0
+                    message: OK
+                noUpdate:
+                  summary: No update required
+                  value:
+                    data: OK
+                    message: No updates required
+        "400":
+          description: Invalid product details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized. Missing or invalid JWT token.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Unauthorized
+        "404":
+          description: Product not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                data: Not found
+                message: Product not found
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /product/{productId}:
+    get:
+      tags:
+        - Products
+      summary: Get a specific product
+      description: |
+        Returns the full details for a single product, including the current
+        price breakdown brackets. No authentication is required.
+      operationId: getProduct
+      parameters:
+        - $ref: "#/components/parameters/productId"
+      responses:
+        "200":
+          description: Product found and returned.
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+              example:
+                data:
+                  productId: FLATWHITE
+                  name: Flat White
+                  price: 3.5
+                  pricingBrackets:
+                    - quantity: 1
+                      price: 3.5
+                    - quantity: 5
+                      price: 3.0
+                  stockLevel: 10.0
+                message: OK
+        "404":
+          description: Product not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                data: Not found
+                message: Product not found
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags:
+        - Products
+      summary: Delete a product
+      description: |
+        Permanently removes a product from the catalogue. Publishes a
+        `product.productDeleted` event via the outbox pattern.
+
+        Requires an `Authorization` header containing a valid JWT with the
+        `ADMIN` role.
+      operationId: deleteProduct
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/productId"
+      responses:
+        "200":
+          description: Product deleted successfully.
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteProductResponse"
+              example:
+                data: OK
+                message: OK
+        "401":
+          description: Unauthorized. Missing or invalid JWT token.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Unauthorized
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token with the `ADMIN` role claim. The secret key is stored in AWS
+        SSM Parameter Store and is resolved at runtime by the Lambda function.
+        The parameter name is configured via the `JWT_SECRET_PARAM_NAME`
+        environment variable.
+
+  parameters:
+    productId:
+      name: productId
+      in: path
+      required: true
+      description: |
+        The unique product identifier. Derived from the product name:
+        uppercased with spaces removed (e.g. "Flat White" -> "FLATWHITE").
+      schema:
+        type: string
+        example: FLATWHITE
+
+  schemas:
+    # -------------------------------------------------------------------------
+    # Request bodies
+    # -------------------------------------------------------------------------
+    CreateProductRequest:
+      type: object
+      description: |
+        Command to create a new product. The product ID is automatically
+        derived from `name` (uppercased, spaces removed). Name must be longer
+        than 3 characters and price must be greater than 0.
+      required:
+        - name
+        - price
+      properties:
+        name:
+          type: string
+          description: Human-readable product name. Must be longer than 3 characters.
+          example: Flat White
+        price:
+          type: number
+          format: float
+          description: Base price of the product. Must be greater than 0.
+          example: 3.5
+
+    UpdateProductRequest:
+      type: object
+      description: |
+        Command to update an existing product. The `id` field must match the
+        product's derived ID. Name must be longer than 3 characters and price
+        must be greater than 0. If both name and price are unchanged a 200 is
+        returned with message "No updates required".
+      required:
+        - id
+        - name
+        - price
+      properties:
+        id:
+          type: string
+          description: The product ID to update (derived from the product name).
+          example: FLATWHITE
+        name:
+          type: string
+          description: New product name. Must be longer than 3 characters.
+          example: Flat White
+        price:
+          type: number
+          format: float
+          description: New product price. Must be greater than 0.
+          example: 4.0
+
+    # -------------------------------------------------------------------------
+    # Response payloads (the `data` field inside the API envelope)
+    # -------------------------------------------------------------------------
+    Product:
+      type: object
+      description: Full product representation including pricing breakdown.
+      properties:
+        productId:
+          type: string
+          description: Unique product identifier (name uppercased, spaces removed).
+          example: FLATWHITE
+        name:
+          type: string
+          description: Human-readable product name.
+          example: Flat White
+        price:
+          type: number
+          format: float
+          description: Current base price of the product.
+          example: 3.5
+        pricingBrackets:
+          type: array
+          description: |
+            Volume pricing brackets calculated by the external pricing service.
+            Empty until the pricing service has processed the product.
+          items:
+            $ref: "#/components/schemas/ProductPrice"
+        stockLevel:
+          type: number
+          format: float
+          description: |
+            Current stock level, updated by the inventory service via the
+            `product.stockUpdated` internal event.
+          example: 10.0
+
+    ProductListItem:
+      type: object
+      description: Abbreviated product representation used in list responses.
+      properties:
+        productId:
+          type: string
+          description: Unique product identifier.
+          example: FLATWHITE
+        name:
+          type: string
+          description: Human-readable product name.
+          example: Flat White
+        price:
+          type: number
+          format: float
+          description: Current base price of the product.
+          example: 3.5
+        stockLevel:
+          type: number
+          format: float
+          description: Current stock level.
+          example: 10.0
+
+    ProductPrice:
+      type: object
+      description: A single volume-pricing bracket.
+      properties:
+        quantity:
+          type: integer
+          description: Minimum quantity required to receive this price.
+          example: 5
+        price:
+          type: number
+          format: float
+          description: Unit price at this quantity bracket.
+          example: 3.0
+
+    # -------------------------------------------------------------------------
+    # API envelope wrappers
+    # -------------------------------------------------------------------------
+    ProductResponse:
+      type: object
+      description: Standard API response envelope wrapping a single Product.
+      properties:
+        data:
+          $ref: "#/components/schemas/Product"
+        message:
+          type: string
+          description: Human-readable status message.
+          example: OK
+
+    ListProductsResponse:
+      type: object
+      description: Standard API response envelope wrapping a list of products.
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductListItem"
+        message:
+          type: string
+          description: Human-readable status message.
+          example: OK
+
+    DeleteProductResponse:
+      type: object
+      description: Standard API response envelope for a delete operation.
+      properties:
+        data:
+          type: string
+          example: OK
+        message:
+          type: string
+          example: OK
+
+    ErrorResponse:
+      type: object
+      description: |
+        Standard API response envelope used for error cases. The `message`
+        field contains the human-readable error description. The `data` field
+        may be an empty string, "OK", or "Not found" depending on the error
+        type.
+      properties:
+        data:
+          type: string
+          description: Short error summary token.
+          example: Not found
+        message:
+          type: string
+          description: Human-readable error message.
+          example: Product not found
