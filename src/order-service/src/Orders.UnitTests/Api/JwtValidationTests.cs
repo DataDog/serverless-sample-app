@@ -100,4 +100,20 @@ public class JwtValidationTests
         parameters.ValidIssuer.Should().Be(TestIssuer);
         parameters.ValidAudience.Should().Be(TestAudience);
     }
+
+    [Fact]
+    public void NonLocalEnvironment_WithoutIssuer_ShouldNotValidateIssuer()
+    {
+        var parameters = ServiceExtensions.CreateTokenValidationParameters("production", TestSecretKey);
+
+        parameters.ValidateIssuer.Should().BeFalse();
+    }
+
+    [Fact]
+    public void NonLocalEnvironment_WithoutAudience_ShouldNotValidateAudience()
+    {
+        var parameters = ServiceExtensions.CreateTokenValidationParameters("production", TestSecretKey);
+
+        parameters.ValidateAudience.Should().BeFalse();
+    }
 }

@@ -23,8 +23,8 @@ public static class ServiceExtensions
         return new TokenValidationParameters
         {
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-            ValidateIssuer = !isLocal,
-            ValidateAudience = !isLocal,
+            ValidateIssuer = !isLocal && !string.IsNullOrWhiteSpace(issuer),
+            ValidateAudience = !isLocal && !string.IsNullOrWhiteSpace(audience),
             ValidateLifetime = !isLocal,
             ValidateIssuerSigningKey = true,
             ValidIssuer = issuer,
@@ -58,13 +58,6 @@ public static class ServiceExtensions
         if (secretKey is null)
         {
             throw new ArgumentException("Invalid JWT Secret Access Key provided, application failure.");
-        }
-
-        if (!isLocal && (string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(audience)))
-        {
-            throw new ArgumentException(
-                "Invalid JWT issuer/audience configuration provided, application failure. " +
-                "Set Auth:Issuer and Auth:Audience for non-local environments.");
         }
 
         services.AddAuthentication(options =>
