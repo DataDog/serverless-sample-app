@@ -186,7 +186,7 @@ public class InventoryApiContainer extends Construct {
         datadogEnvironmentVariables.put("DD_ENV", env);
         datadogEnvironmentVariables.put("DD_SERVICE", service);
         datadogEnvironmentVariables.put("DD_VERSION", version);
-        datadogEnvironmentVariables.put("DD_APM_IGNORE_RESOURCES", "(GET) /health,(GET) /");
+        datadogEnvironmentVariables.put("DD_APM_IGNORE_RESOURCES", "(GET) /health,(GET) /,(OPTIONS) .*");
         datadogEnvironmentVariables.put("DD_DATA_STREAMS_ENABLED", "true");
         
         application.getTaskDefinition().addContainer("Datadog", ContainerDefinitionOptions.builder()
@@ -211,6 +211,7 @@ public class InventoryApiContainer extends Construct {
                         .viewerProtocolPolicy(ViewerProtocolPolicy.REDIRECT_TO_HTTPS)
                         .cachePolicy(CachePolicy.CACHING_DISABLED)
                         .allowedMethods(AllowedMethods.ALLOW_ALL)
+                        .responseHeadersPolicy(ResponseHeadersPolicy.CORS_ALLOW_ALL_ORIGINS)
                         .build())
                 .minimumProtocolVersion(SecurityPolicyProtocol.TLS_V1_2_2021)
                 .build());
