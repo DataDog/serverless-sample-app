@@ -18,6 +18,7 @@ public class InventoryItem {
     private Double currentStockLevel;
     private Double reservedStockLevel;
     private ArrayList<String> reservedStockOrders;
+    private long version;
 
     public InventoryItem() {
         this.productId = "";
@@ -25,6 +26,7 @@ public class InventoryItem {
         this.reservedStockLevel = 0.0;
         this.reservedStockOrders = new ArrayList<>();
         this.reservedStockOrders.add("");
+        this.version = 0;
     }
 
     public InventoryItem(String productId, Double currentStockLevel, Double reservedStockLevel, ArrayList<String> reservedStockOrders) {
@@ -32,12 +34,33 @@ public class InventoryItem {
         this.currentStockLevel = currentStockLevel;
         this.reservedStockLevel = reservedStockLevel;
         this.reservedStockOrders = reservedStockOrders;
+        this.version = 0;
+    }
+
+    public InventoryItem(String productId, Double currentStockLevel, Double reservedStockLevel, ArrayList<String> reservedStockOrders, long version) {
+        this.productId = productId;
+        this.currentStockLevel = currentStockLevel;
+        this.reservedStockLevel = reservedStockLevel;
+        this.reservedStockOrders = reservedStockOrders;
+        this.version = version;
     }
 
     static InventoryItem Create(String productId, Double currentStockLevel) {
         var orders = new ArrayList<String>();
         orders.add("");
         return new InventoryItem(productId, currentStockLevel, 0.0, orders);
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    public void setVersion(long version) {
+        this.version = version;
+    }
+
+    public void incrementVersion() {
+        this.version++;
     }
 
     public String getProductId() {

@@ -1,13 +1,13 @@
 package com.inventory.ordering.adapters;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.opentracing.util.GlobalTracer;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.Map;
 
 public class CloudEventWrapper<T> implements Serializable {
+    @JsonProperty("_datadog")
+    private Map<String, Object> datadog;
     @JsonProperty("id")
     private String id;
     @JsonProperty("source")
@@ -47,5 +47,9 @@ public class CloudEventWrapper<T> implements Serializable {
 
     public String getTraceparent() {
         return traceparent;
+    }
+
+    public Map<String, Object> getDatadog() {
+        return datadog;
     }
 }

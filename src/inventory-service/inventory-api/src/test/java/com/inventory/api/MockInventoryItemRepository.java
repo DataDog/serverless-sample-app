@@ -13,7 +13,11 @@ public class MockInventoryItemRepository implements InventoryItemRepository {
 
     @Override
     public InventoryItem withProductId(String productId) throws DataAccessException, InventoryItemNotFoundException {
-        return inventoryItems.get(productId);
+        InventoryItem item = inventoryItems.get(productId);
+        if (item == null) {
+            throw new InventoryItemNotFoundException(productId);
+        }
+        return item;
     }
 
     @Override

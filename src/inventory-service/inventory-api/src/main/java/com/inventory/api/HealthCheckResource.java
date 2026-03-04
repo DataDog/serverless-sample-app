@@ -6,12 +6,14 @@
 
 package com.inventory.api;
 
+import com.inventory.api.filters.PublicEndpoint;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
 @Path("/health")
+@PublicEndpoint
 public class HealthCheckResource {
     @GET
     @Produces(MediaType.TEXT_PLAIN)

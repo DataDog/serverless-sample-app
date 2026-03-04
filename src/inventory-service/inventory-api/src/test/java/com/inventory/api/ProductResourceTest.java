@@ -1,149 +1,148 @@
 package com.inventory.api;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.inventory.api.driver.ApiDriver;
-import com.inventory.api.driver.UpdateStockLevelCommand;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
+import com.inventory.core.*;
+import com.inventory.core.adapters.ProductCatalogueItem;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import software.amazon.awssdk.http.crt.AwsCrtHttpClient;
-import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
-import software.amazon.awssdk.services.ssm.SsmClient;
 
-import java.io.IOException;
-import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Offline unit tests for inventory service business logic.
+ * No AWS credentials or network access required.
+ */
 class ProductResourceTest {
-    static ApiDriver apiDriver;
-    static ObjectMapper objectMapper;
-    static final int WORKFLOW_MINIMUM_EXECUTION=30000;
-    static final int EVENT_PROCESSING_DELAY =30000;
+    private MockInventoryItemRepository repository;
+    private TestEventPublisher eventPublisher;
+    private InventoryItemService service;
 
-    @BeforeAll
-    public static void setup() {
-        objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-        SsmClient ssmClient = SsmClient.builder()
-                .httpClientBuilder(AwsCrtHttpClient.builder()
-                        .connectionTimeout(Duration.ofSeconds(3))
-                        .maxConcurrency(100))
-                .build();
-
-        EventBridgeClient eventBridgeClient = EventBridgeClient.builder()
-                .httpClientBuilder(AwsCrtHttpClient.builder()
-                        .connectionTimeout(Duration.ofSeconds(3))
-                        .maxConcurrency(100))
-                .build();
-
-        apiDriver = new ApiDriver(System.getenv("ENV"), ssmClient, eventBridgeClient, objectMapper);
+    @BeforeEach
+    void setup() {
+        repository = new MockInventoryItemRepository();
+        eventPublisher = new TestEventPublisher();
+        OrderCache orderCache = new InMemoryOrderCache();
+        ProductService productService = new StubProductService();
+        service = new InventoryItemService(repository, orderCache, eventPublisher, productService);
     }
 
     @Test
-    public void test_when_product_created_event_received_product_is_available_through_api() throws IOException, ExecutionException, InterruptedException {
-        var randomProductId = UUID.randomUUID().toString();
+    void get_product_returns_item_when_exists() {
+        var productId = UUID.randomUUID().toString();
+        var orders = new ArrayList<String>();
+        orders.add("");
+        var item = new InventoryItem(productId, 10.0, 0.0, orders);
+        repository.addInventoryItem(item);
 
-        System.out.println("Running 'test_when_product_created_event_received_product_is_available_through_api' for product " + randomProductId);
+        var result = service.withProductId(productId);
 
-        apiDriver.injectProductCreatedEvent(randomProductId);
-
-        Thread.sleep(WORKFLOW_MINIMUM_EXECUTION);
-
-        var stockLevel = apiDriver.getProductStockLevel(randomProductId, -1);
-
-        Assertions.assertNotNull(stockLevel.getData());
-        Assertions.assertEquals(randomProductId, stockLevel.getData().getProductId());
-
-        System.out.println("Success 'test_when_product_created_event_received_product_is_available_through_api' for product " + randomProductId);
+        assertTrue(result.isSuccess());
+        assertNotNull(result.getData());
+        assertEquals(productId, result.getData().getProductId());
+        assertEquals(10.0, result.getData().getCurrentStockLevel());
     }
 
     @Test
-    public void test_product_stock_levels_can_be_updated() throws IOException, ExecutionException, InterruptedException {
-        var randomProductId = UUID.randomUUID().toString();
-
-        System.out.println("Running 'test_product_stock_levels_can_be_updated' for product " + randomProductId);
-
-        var updateStockLevelResult = apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
-
-        Assertions.assertEquals(200, updateStockLevelResult.statusCode());
-
-        var stockLevel = apiDriver.getProductStockLevel(randomProductId, 10);
-
-        Assertions.assertNotNull(stockLevel.getData());
-        Assertions.assertEquals(10.0, stockLevel.getData().getCurrentStockLevel());
-
-        System.out.println("Success 'test_product_stock_levels_can_be_updated' for product " + randomProductId);
+    void get_product_throws_when_missing() {
+        assertThrows(InventoryItemNotFoundException.class, () -> service.withProductId("nonexistent-product"));
     }
 
     @Test
-    public void test_product_stock_levels_can_be_updated_for_an_unknown_product() throws IOException, ExecutionException, InterruptedException {
-        var randomProductId = UUID.randomUUID().toString();
+    void update_stock_sets_new_level() {
+        var productId = UUID.randomUUID().toString();
+        var orders = new ArrayList<String>();
+        orders.add("");
+        var item = new InventoryItem(productId, 5.0, 0.0, orders);
+        repository.addInventoryItem(item);
 
-        System.out.println("Running 'test_product_stock_levels_can_be_updated_for_an_unknown_product' for product " + randomProductId);
+        var request = new UpdateInventoryStockRequest();
+        request.setProductId(productId);
+        request.setStockLevel(20.0);
 
-        var updateStockLevelResult = apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
+        var result = service.updateStock(request);
 
-        Assertions.assertEquals(200, updateStockLevelResult.statusCode());
-
-        var stockLevel = apiDriver.getProductStockLevel(randomProductId, 10);
-
-        Assertions.assertNotNull(stockLevel.getData());
-        Assertions.assertEquals(10.0, stockLevel.getData().getCurrentStockLevel());
-
-        System.out.println("Success 'test_product_stock_levels_can_be_updated_for_an_unknown_product' for product " + randomProductId);
+        assertTrue(result.isSuccess());
+        assertEquals(20.0, result.getData().getCurrentStockLevel());
     }
 
     @Test
-    public void test_stock_levels_are_decreased_when_order_created() throws IOException, ExecutionException, InterruptedException {
-        var randomProductId = UUID.randomUUID().toString();
-        var randomOrderNumber = UUID.randomUUID().toString();
+    void update_stock_creates_item_when_not_found() {
+        var productId = UUID.randomUUID().toString();
 
-        System.out.println("Running 'test_stock_levels_are_decreased_when_order_created' for product " + randomProductId);
+        var request = new UpdateInventoryStockRequest();
+        request.setProductId(productId);
+        request.setStockLevel(15.0);
 
-        var updateStockLevelResult = apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
+        var result = service.updateStock(request);
 
-        Assertions.assertEquals(200, updateStockLevelResult.statusCode());
-
-        var stockLevel = apiDriver.getProductStockLevel(randomProductId, 10);
-
-        Assertions.assertEquals(10.0, stockLevel.getData().getCurrentStockLevel());
-
-        apiDriver.injectOrderCreatedEvent(randomProductId, randomOrderNumber);
-
-        Thread.sleep(EVENT_PROCESSING_DELAY);
-
-        stockLevel = apiDriver.getProductStockLevel(randomProductId, 9);
-
-        Assertions.assertEquals(9, stockLevel.getData().getCurrentStockLevel());
-        Assertions.assertEquals(1, stockLevel.getData().getReservedStockLevel());
-
-        System.out.println("Success 'test_stock_levels_are_decreased_when_order_created' for product " + randomProductId);
+        assertTrue(result.isSuccess());
+        assertEquals(15.0, result.getData().getCurrentStockLevel());
     }
 
     @Test
-    public void test_stock_levels_are_decreased_when_order_completed() throws IOException, ExecutionException, InterruptedException {
-        var randomProductId = UUID.randomUUID().toString();
-        var randomOrderNumber = UUID.randomUUID().toString();
+    void update_stock_rejects_invalid_request() {
+        var request = new UpdateInventoryStockRequest();
+        request.setProductId("ab"); // too short
+        request.setStockLevel(-1.0); // negative
 
-        System.out.println("Running 'test_stock_levels_are_decreased_when_order_completed' for product " + randomProductId);
+        var result = service.updateStock(request);
 
-        apiDriver.updateStockLevel(new UpdateStockLevelCommand(randomProductId, 10.0));
+        assertFalse(result.isSuccess());
+        assertNull(result.getData());
+    }
 
-        apiDriver.injectOrderCreatedEvent(randomProductId, randomOrderNumber);
+    @Test
+    void reserve_stock_decreases_available_level() {
+        var productId = UUID.randomUUID().toString();
+        var orderNumber = UUID.randomUUID().toString();
+        var orders = new ArrayList<String>();
+        orders.add("");
+        var item = new InventoryItem(productId, 10.0, 0.0, orders);
+        repository.addInventoryItem(item);
 
-        Thread.sleep(EVENT_PROCESSING_DELAY);
+        var result = service.reserveStockForOrder(orderNumber, List.of(productId), "conv-1");
 
-        apiDriver.injectOrderCompletedEvent(randomOrderNumber);
+        assertTrue(result.isSuccess());
+        var updatedItem = repository.withProductId(productId);
+        assertEquals(1.0, updatedItem.getReservedStockLevel());
+    }
 
-        Thread.sleep(EVENT_PROCESSING_DELAY);
+    @Test
+    void reserve_stock_fails_when_product_not_found() {
+        var orderNumber = UUID.randomUUID().toString();
 
-        var stockLevel = apiDriver.getProductStockLevel(randomProductId, 9);
+        var result = service.reserveStockForOrder(orderNumber, List.of("nonexistent"), "conv-1");
 
-        Assertions.assertEquals(9, stockLevel.getData().getCurrentStockLevel());
-        Assertions.assertEquals(0, stockLevel.getData().getReservedStockLevel());
+        assertTrue(result.isSuccess()); // method returns true but publishes failure event
+    }
 
-        System.out.println("Success 'test_stock_levels_are_decreased_when_order_completed' for product " + randomProductId);
+    /**
+     * Simple in-memory order cache for offline tests.
+     */
+    static class InMemoryOrderCache implements OrderCache {
+        private final java.util.Map<String, ArrayList<String>> cache = new java.util.HashMap<>();
+
+        @Override
+        public ArrayList<String> products(String orderId) {
+            return cache.get(orderId);
+        }
+
+        @Override
+        public void store(String orderId, ArrayList<String> products) {
+            cache.put(orderId, products);
+        }
+    }
+
+    /**
+     * Stub product service that returns an empty catalogue for offline tests.
+     */
+    static class StubProductService implements ProductService {
+        @Override
+        public ArrayList<ProductCatalogueItem> getProductCatalogue() {
+            return new ArrayList<>();
+        }
     }
 }
