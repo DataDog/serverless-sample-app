@@ -2,12 +2,14 @@ package observability
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/google/uuid"
 
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -28,11 +30,22 @@ type CloudEvent[T any] struct {
 func NewCloudEvent[T any](ctx context.Context, evtType string, data T) CloudEvent[T] {
 	span, spanWasFound := tracer.SpanFromContext(ctx)
 
-	if !spanWasFound {
+	var traceParent string
+	if !spanWasFound || span == nil {
 		fmt.Println("NewCloudEvent: No span found in current context")
+	} else {
+		spanCtx := span.Context()
+		spanID := spanCtx.SpanID()
+		// Use the full 128-bit trace ID when available (W3C traceparent requires 32 hex chars).
+		// SpanContextW3C.TraceID128() returns the hex-encoded 128-bit trace ID already padded to 32 chars.
+		var traceID string
+		if w3cCtx, ok := spanCtx.(ddtrace.SpanContextW3C); ok {
+			traceID = w3cCtx.TraceID128()
+		} else {
+			traceID = fmt.Sprintf("%032x", spanCtx.TraceID())
+		}
+		traceParent = fmt.Sprintf("00-%s-%016x-01", traceID, spanID)
 	}
-
-	traceparent := fmt.Sprintf("00-%016x-%016x-01", span.Context().TraceID(), span.Context().SpanID())
 
 	return CloudEvent[T]{
 		SpecVersion: "1.0",
@@ -40,31 +53,30 @@ func NewCloudEvent[T any](ctx context.Context, evtType string, data T) CloudEven
 		Source:      fmt.Sprintf("%s.products", os.Getenv("ENV")),
 		Id:          uuid.New().String(),
 		Time:        time.Now().Format(time.RFC3339),
-		TraceParent: traceparent,
+		TraceParent: traceParent,
 		Data:        data,
-		// Pre-populate _datadog with traceparent so Java/.NET/TypeScript consumers
-		// that read traceparent from _datadog (not the top-level field) work correctly.
-		Datadog: map[string]string{
-			"traceparent": traceparent,
-		},
+		Datadog:     make(map[string]string),
 	}
 }
 
-// Set implements the datastreams.Carrier interface. Writes into the _datadog map
-// so that DSM context (dd-pathway-ctx-base64) is serialized as a nested object
-// matching the format used by all other services in this system.
-func (ce CloudEvent[T]) Set(key string, val string) {
-	if ce.Datadog == nil {
-		ce.Datadog = make(map[string]string)
-	}
-	ce.Datadog[key] = val
+func (ce CloudEvent[T]) ToJSON() ([]byte, error) {
+	return json.Marshal(ce)
 }
 
-// ForeachKey implements the datastreams.Carrier interface. Reads from the _datadog
-// map so that DSM context injected by any service (Java, .NET, TypeScript, Go) can
-// be extracted correctly.
-func (ce CloudEvent[T]) ForeachKey(handler func(key string, val string) error) error {
-	for key, val := range ce.Datadog {
+// Set implements the datastreams TextMapWriter interface.
+// Uses a pointer receiver so that DSM can inject keys into the DataDog map
+// on the actual CloudEvent value, not a copy.
+func (evt *CloudEvent[T]) Set(key string, val string) {
+	if evt.Datadog == nil {
+		evt.Datadog = make(map[string]string)
+	}
+	evt.Datadog[key] = val
+}
+
+// ForeachKey implements the datastreams TextMapReader interface.
+// Uses a pointer receiver for consistency with Set.
+func (evt *CloudEvent[T]) ForeachKey(handler func(key string, val string) error) error {
+	for key, val := range evt.Datadog {
 		if err := handler(key, val); err != nil {
 			return err
 		}

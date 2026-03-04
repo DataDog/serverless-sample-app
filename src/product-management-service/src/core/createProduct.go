@@ -37,11 +37,14 @@ func NewCreateProductCommandHandler(productRepository ProductRepository, outboxR
 func (handler *CreateProductCommandHandler) Handle(ctx context.Context, command CreateProductCommand) (*ProductDTO, error) {
 	span, _ := tracer.SpanFromContext(ctx)
 	span.SetTag("product.name", command.Name)
-	span.SetTag("product.price", command.Name)
+	span.SetTag("product.price", command.Price)
 
 	product, err := NewProduct(command.Name, command.Price)
 
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return nil, err
 	}
 
@@ -56,12 +59,18 @@ func (handler *CreateProductCommandHandler) Handle(ctx context.Context, command 
 	event := ProductCreatedEvent{ProductId: product.Id, Name: product.Name, Price: product.Price}
 	outboxEntry, err := createOutboxEntry(ctx, "product.productCreated", event)
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return nil, err
 	}
 
 	err = handler.productRepository.StoreProductWithOutboxEntry(ctx, *product, outboxEntry)
 
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return nil, err
 	}
 

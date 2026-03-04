@@ -30,7 +30,7 @@ var (
 		awstrace.AppendMiddleware(&awsCfg)
 		return awsCfg
 	}()
-	dSqlProductRepository, _ = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
+	dSqlProductRepository, repositoryInitErr = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
 	handler                  = core.NewDeleteProductCommandHandler(
 		dSqlProductRepository,
 		dSqlProductRepository)
@@ -46,11 +46,22 @@ func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest)
 
 	productId := request.PathParameters["productId"]
 
-	handler.Handle(ctx, core.DeleteProductCommand{ProductId: productId})
+	err = handler.Handle(ctx, core.DeleteProductCommand{ProductId: productId})
+	if err != nil {
+		return utils.GenerateApiResponseForError(err)
+	}
 
 	return utils.GenerateApiResponseFor("OK", 200, "")
 }
 
 func main() {
+	if repositoryInitErr != nil {
+		panic(repositoryInitErr)
+	}
+
+	if err := dSqlProductRepository.ApplyMigrations(context.Background()); err != nil {
+		panic(err)
+	}
+
 	lambda.Start(ddlambda.WrapFunction(functionHandler, nil))
 }

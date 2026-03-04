@@ -33,7 +33,7 @@ var (
 		awstrace.AppendMiddleware(&awsCfg)
 		return awsCfg
 	}()
-	dSqlProductRepository, _ = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
+	dSqlProductRepository, repositoryInitErr = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
 	handler                  = core.NewUpdateProductCommandHandler(
 		dSqlProductRepository,
 		dSqlProductRepository)
@@ -50,7 +50,9 @@ func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest)
 	body := []byte(request.Body)
 
 	var command core.UpdateProductCommand
-	json.Unmarshal(body, &command)
+	if err := json.Unmarshal(body, &command); err != nil {
+		return utils.GenerateApiResponseFor("Bad Request", 400, "Invalid request body")
+	}
 
 	res, err := handler.Handle(ctx, command)
 
@@ -62,5 +64,13 @@ func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest)
 }
 
 func main() {
+	if repositoryInitErr != nil {
+		panic(repositoryInitErr)
+	}
+
+	if err := dSqlProductRepository.ApplyMigrations(context.Background()); err != nil {
+		panic(err)
+	}
+
 	lambda.Start(ddlambda.WrapFunction(functionHandler, nil))
 }
