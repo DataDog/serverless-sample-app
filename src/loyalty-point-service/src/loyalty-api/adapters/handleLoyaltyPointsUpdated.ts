@@ -33,6 +33,7 @@ export const handler = async (event: DynamoDBStreamEvent): Promise<void> => {
     logger.info("Successfully processed all records");
   } catch (error) {
     logger.error(JSON.stringify(error));
+    throw error;
   }
 };
 
@@ -52,20 +53,21 @@ async function processLoyaltyPointsRecord(
     },
   });
 
-  if (!record.dynamodb?.NewImage) {
-    logger.info("No new image found in the record, skipping");
-    return;
-  }
-
   try {
+    if (!record.dynamodb?.NewImage) {
+      logger.info("No new image found in the record, skipping");
+      return;
+    }
+
     // Convert DynamoDB object to JavaScript object
     const loyaltyData = DynamoDB.Converter.unmarshall(record.dynamodb.NewImage);
 
-    const loyaltyAccount = new LoyaltyPoints(
-      loyaltyData["PK"].S!,
-      parseFloat(loyaltyData["Points"].N!),
-      JSON.parse(loyaltyData["Orders"].S!)
-    );
+    const pk = loyaltyData["PK"];
+    const points = Number(loyaltyData["Points"]);
+    const ordersRaw = loyaltyData["Orders"];
+    const orders = Array.isArray(ordersRaw) ? ordersRaw : JSON.parse(ordersRaw ?? "[]");
+
+    const loyaltyAccount = new LoyaltyPoints(pk, points, orders);
 
     await eventPublisher.publishLoyaltyPointsUpdated({
       userId: loyaltyAccount.userId,

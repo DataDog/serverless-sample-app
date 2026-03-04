@@ -2,7 +2,6 @@ import {
   EventBus,
   EventPattern,
   IEventBus,
-  IRule,
   Rule,
 } from "aws-cdk-lib/aws-events";
 import { SharedProps } from "../constructs/sharedFunctionProps";
@@ -24,7 +23,7 @@ export class LoyaltyServiceProps {
       eventBusName: `${sharedProps.serviceName}-bus-${sharedProps.environment}`,
     });
 
-    var loyaltyEventBusArnParameter = new StringParameter(
+    new StringParameter(
       scope,
       "LoyaltyEventBusArnParameter",
       {
@@ -32,7 +31,7 @@ export class LoyaltyServiceProps {
         stringValue: this.loyaltyEventBus.eventBusArn,
       }
     );
-    var loyaltyEventBusNameParameter = new StringParameter(
+    new StringParameter(
       scope,
       "LoyaltyEventBusNameParameter",
       {

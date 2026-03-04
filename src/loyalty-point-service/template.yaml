@@ -44,7 +44,6 @@ Parameters:
     Type: String
   DDSite:
     Type: String
-    Type: String
 
 Globals:
   Function:
@@ -59,7 +58,7 @@ Globals:
         POWERTOOLS_LOG_LEVEL: 'INFO'
         DD_LOGS_INJECTION: "true"
         DD_DATA_STREAMS_ENABLED: "true"
-        DOMAIN: "products"
+        DOMAIN: "loyalty"
     Architectures:
       - x86_64
   Api:
@@ -263,7 +262,7 @@ Resources:
         Variables:
           DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
           DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "none"
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "false"
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "datadog,tracecontext"
       Events:
         UserCreatedQueue:
           Type: SQS
@@ -335,7 +334,7 @@ Resources:
         Variables:
           DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: !Sub '{"${LoyaltyAccountTable}": ["PK"]}'
           DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "none"
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "false"
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "datadog,tracecontext"
       Events:
         OrderCompletedQueue:
           Type: SQS

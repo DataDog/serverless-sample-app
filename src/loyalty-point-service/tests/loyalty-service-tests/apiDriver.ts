@@ -1,5 +1,4 @@
 import axios from "axios";
-import { HandlerResponse } from "../../src/loyalty-api/core/handlerResponse";
 import { LoyaltyPointsDTO } from "../../src/loyalty-api/core/loyaltyPointsDTO";
 import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
 const { PutEventsCommand } = require("@aws-sdk/client-eventbridge");

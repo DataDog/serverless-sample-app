@@ -8,7 +8,6 @@
 import {
   AttributeType,
   BillingMode,
-  ITable,
   StreamViewType,
   Table,
   TableClass,
@@ -26,6 +25,7 @@ import {
 } from "aws-cdk-lib/aws-lambda-event-sources";
 import { StartingPosition } from "aws-cdk-lib/aws-lambda";
 import { Queue } from "aws-cdk-lib/aws-sqs";
+
 
 export interface ApiProps {
   serviceProps: LoyaltyServiceProps;

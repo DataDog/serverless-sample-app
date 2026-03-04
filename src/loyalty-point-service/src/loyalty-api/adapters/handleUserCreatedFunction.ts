@@ -56,19 +56,23 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
         }
       );
 
-      await updatePointsCommandHandler.handle({
+      const result = await updatePointsCommandHandler.handle({
         orderNumber: "new-user",
         userId: evtWrapper.detail.data!.userId,
         pointsToAdd: 100,
       });
+
+      if (!result.success) {
+        throw new Error(
+          `Failed to process userCreated event: ${result.message.join(", ")}`
+        );
+      }
     } catch (error) {
       batchItemFailures.push({
         itemIdentifier: message.messageId,
       });
       logger.error(JSON.stringify(error));
       messageProcessingSpan?.logEvent("error", error);
-
-      messageProcessingSpan?.finish();
     } finally {
       messageProcessingSpan?.finish();
     }

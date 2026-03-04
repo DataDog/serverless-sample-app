@@ -11,7 +11,7 @@ import {
   PutEventsRequestEntry,
 } from "@aws-sdk/client-eventbridge";
 import { EventPublisher } from "../core/eventPublisher";
-import { Span, tracer, TracerProvider } from "dd-trace";
+import { Span, tracer } from "dd-trace";
 import { CloudEvent } from "cloudevents";
 import { randomUUID } from "crypto";
 import { Logger } from "@aws-lambda-powertools/logger";
@@ -38,7 +38,7 @@ export class EventBridgeEventPublisher implements EventPublisher {
     let messagingSpan: Span | undefined = undefined;
 
     try {
-      // Still publish V2 for backwards compatibility, with a depreciation date.
+      // Keep v1 events for backward compatibility in the demo flow.
       const v1Event: LoyaltyPointsAddedV1 = {
         newPointsTotal: evt.totalPoints,
         userId: evt.userId,
@@ -70,8 +70,8 @@ export class EventBridgeEventPublisher implements EventPublisher {
         cloudEventWrapper,
         {
           publicOrPrivate: MessagingType.PRIVATE,
-          messagingSystem: "sns",
-          destinationName: process.env.PRODUCT_CREATED_TOPIC_ARN ?? "",
+          messagingSystem: "eventbridge",
+          destinationName: process.env.EVENT_BUS_NAME ?? "",
           parentSpan: parentSpan,
         }
       );
@@ -93,7 +93,7 @@ export class EventBridgeEventPublisher implements EventPublisher {
 
       const headers = {};
       tracer.dataStreamsCheckpointer.setProduceCheckpoint(
-        "sns",
+        "eventbridge",
         "loyalty.pointsAdded.v2",
         headers
       );

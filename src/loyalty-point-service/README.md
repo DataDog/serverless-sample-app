@@ -1,401 +1,269 @@
 # Loyalty Point Service
 
-**Runtime: NodeJS**
+**Runtime:** Node.js 22 (TypeScript)
 
-**AWS Services Used: API Gateway, Lambda, SQS, DynamoDB, EventBridge**
+**AWS Services:** API Gateway, Lambda, SQS, DynamoDB (with Streams), EventBridge
 
-The loyalty account service tracks the status of a users loyalty account, and manages how many loyalty points a user has. It allows users to retrieve the current state of their loyalty account, and reacts to OrderCompleted events to add additional points to a loyalty account.
+## What This Service Does
 
-1. The `Api` provides various endpoints to get a users loyalty account, as well as an additional endpoint to spend their points
-2. The `LoyaltyACL` service is an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer) that consumes events published by external services, translates them to internal events and processes them
+The loyalty point service manages user loyalty accounts and points. It reacts to events from other services and exposes an API for querying and spending points.
+
+**Components:**
+
+1. **API** -- REST endpoints for retrieving a user's loyalty account (`GET /loyalty`) and spending points (`POST /loyalty`). Both endpoints require a JWT bearer token whose `sub` claim identifies the user.
+2. **ACL (Anti-Corruption Layer)** -- Consumes `users.userCreated.v1` and `orders.orderCompleted.v1`/`v2` events from EventBridge via SQS queues, translates them into internal operations (create account with 100 points, add 50 points per completed order).
+3. **Stream Handler** -- Listens to DynamoDB Streams on the loyalty table and publishes `loyalty.loyaltyPointsUpdated` events to EventBridge.
+
+### Architecture
+
+```
+EventBridge ──> SQS ──> HandleUserCreated Lambda ──> DynamoDB
+EventBridge ──> SQS ──> HandleOrderCompleted Lambda ──> DynamoDB
+                                                          │
+                                                    DynamoDB Stream
+                                                          │
+                                                  HandleLoyaltyPointsUpdated Lambda ──> EventBridge
+API Gateway ──> GetLoyaltyPoints Lambda ──> DynamoDB
+API Gateway ──> SpendLoyaltyPoints Lambda ──> DynamoDB
+```
+
+## Prerequisites
+
+- Node.js >= 22
+- npm
+- AWS CLI configured with appropriate credentials
+- One of: AWS CDK, AWS SAM CLI, Terraform, Serverless Framework, or SST v2
+
+### Environment Variables (all deployment methods)
+
+| Variable | Description |
+|---|---|
+| `DD_API_KEY` or `DD_API_KEY_SECRET_ARN` | Datadog API key (plain text or Secrets Manager ARN, depending on tool) |
+| `DD_SITE` | Datadog site (e.g. `datadoghq.com`, `datadoghq.eu`) |
+| `AWS_REGION` | AWS region to deploy to |
+| `ENV` | Environment name (e.g. `dev`, `prod`, or a personal stage name) |
+
+## Local Development
+
+```sh
+npm install
+npm run build        # Compile TypeScript
+npm run typecheck    # Type-check without emitting
+npm run watch        # Watch mode for TypeScript compilation
+```
 
 ## Testing
 
-The repo includes an integration test that hits all 4 of the CRUD API endpoints. If you have deployed all of the backend services, running this test will give you the full set of end to end traces. The integration test dynamically loads the API endpoint from an SSM parameter named `/node/product/api-endpoint`. If you need to override the API endpoint you are testing against, set the environment variable named `API_ENDPOINT`.
+The project includes integration tests that deploy against a live AWS environment. Tests exercise the full event-driven flow: creating a user, completing an order, and verifying loyalty point totals via the API.
+
+Tests auto-discover the API endpoint and EventBridge bus name from SSM Parameter Store (`/<ENV>/LoyaltyService/api-endpoint` and `/<ENV>/shared/event-bus-name`). You can override these by setting `API_ENDPOINT` and `EVENT_BUS_NAME` environment variables.
 
 ```sh
-npm run test -- product-service
+npm run test
 ```
 
-## Observability for Asynchronous Systems
+## Deployment
 
-### Span Links
+The service supports five deployment tools. Each deploys the same set of Lambda functions, DynamoDB table, SQS queues, EventBridge rules, and API Gateway.
 
-The default behavious of the Datadog tracer when working with serverless is to automatically create parent-child relationships. For example, if you consume a message from Amazon SNS and that message contains the `_datadog` trace context, the context is automatically extracted and your Lambda handler is set as a child of the upstream call.
+### AWS CDK (recommended)
 
-This is useful in some cases, but can cause more confusion by creating traces that are extremely long, or have hundreds of spans underneath them. [Span Links](https://docs.datadoghq.com/tracing/trace_collection/span_links/) are an alternative approach that link together causally related spans, that you don't neccessarily want to include as a parent-child relationship. This can be useful when events are crossing service boundaries, or if you're processing a batch of messages.
+The CDK stack is in `lib/loyalty-api/` with a custom [`InstrumentedFunction` L3 construct](./lib/constructs/lambdaFunction.ts) that ensures consistent Datadog instrumentation via the [Datadog CDK Construct](https://docs.datadoghq.com/serverless/libraries_integrations/cdk/).
 
-To configure Span Links, you can see an example in the [`observability.ts` file on line 61](./src/observability/observability.ts#L61). The trace and span ID's are parsed from the inbound event, and then used to create a link to the upstream context.
+Entry point: `bin/loyalty-point-service.ts`
 
-```ts
-if (evt.traceparent !== undefined && evt.traceparent !== undefined) {
-  const manualContext = new ManualContext(evt.traceparent!.toString());
-
-  messageProcessingSpan.addLink(manualContext);
-}
-
-class ManualContext implements SpanContext {
-  private traceId: string;
-  private spanId: string;
-  private traceParent: string;
-
-  constructor(traceParent: string) {
-    this.traceParent = traceParent;
-    const splitParent = traceParent.split("-");
-    this.traceId = splitParent[1];
-    this.spanId = splitParent[2];
-  }
-
-  toTraceId(): string {
-    return this.traceId;
-  }
-  toSpanId(): string {
-    return this.spanId;
-  }
-  toTraceparent(): string {
-    return this.traceParent;
-  }
-}
-```
-
-For this to work, you must also set the below two environment variables on your Lambda function to disable automatic propagation.
-
-```ts
-'DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT': "none",
-'DD_TRACE_PROPAGATION_STYLE_EXTRACT': 'false',
-```
-
-### Semantic Conventions
-
-The [Open Telemetry Semantic Conventions for Messaging Spans](https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/) define a set of best practices that all spans related to messaging should follow.
-
-You can see examples of this in [the `observability.ts`](./src/observability/observability.ts#L77) for starting a span and [here for adding the default attributes](./src/observability/observability.ts#L89).
-
-### Datadog Data Streams Monitoring
-
-The loyalty point service also demonstrates the use of [Datadog Data Streams Monitoring (DSM)](https://docs.datadoghq.com/data_streams/). DSM doesn't support all messaging transports automatically, so manual checkpoint is used to record both the *in* and *out* message channels. An example can be found in [observability.ts](./src/observability/observability.ts#L82).
-
-```ts
-tracer.dataStreamsCheckpointer.setProduceCheckpoint(
-  "sns",
-  evt.type,
-  headers
-);
-```
-
-## AWS CDK
-
-The [Datadog CDK Construct](https://docs.datadoghq.com/serverless/libraries_integrations/cdk/) simplifies the setup when instrumenting with Datadog. To get started:
+#### Deploy
 
 ```sh
-npm i --save-dev datadog-cdk-constructs-v2
-```
-
-Once installed, you can use the Construct to configure all of your Datadog settings. And then use the `addLambdaFunctions` function to instrument your Lambda functions.
-
-```typescript
-const datadogConfiguration = new Datadog(this, "Datadog", {
-  nodeLayerVersion: 130,
-  extensionLayerVersion: '90'
-  site: process.env.DD_SITE,
-  apiKeySecret: ddApiKey,
-  service,
-  version,
-  env,
-  enableColdStartTracing: true,
-  enableDatadogTracing: true,
-  captureLambdaPayload: true,
-});
-```
-
-This CDK implementation uses a [custom `InstrumentedFunction` L3 construct](./lib/constructs/lambdaFunction.ts) to ensure all Lambda functions are instrumented correctly and consistently.
-
-### Deploy
-
-To simplify deployment, all of the different microservices are managed in the same CDK project. This **is not recommended** in real applications, but simplifies the deployment for demonstration purposes.
-
-Each microservice is implemented as a seperate CloudFormation Stack, and there are no direct dependencies between stacks. Each stack stores relevant resource ARN's (SNS Topic ARN etc) in SSM Parameter Store, and the other stacks dynamically load the ARN's:
-
-```typescript
-const productCreatedTopicArn = StringParameter.fromStringParameterName(
-  this,
-  "ProductCreatedTopicArn",
-  "/node/product/product-created-topic"
-);
-const productCreatedTopic = Topic.fromTopicArn(
-  this,
-  "ProductCreatedTopic",
-  productCreatedTopicArn.stringValue
-);
-```
-
-The Datadog extension retrieves your Datadog API key from a Secrets Manager secret. For this to work, ensure you create a secret in your account containing your API key and set the `DD_API_KEY_SECRET_ARN` environment variable before deployment.
-
-To deploy all stacks and resources, run:
-
-```sh
-export DD_API_KEY_SECRET_ARN=<YOUR SECRET ARN>
-export DD_SITE=<YOUR PREFERRED DATADOG SITE>
+export DD_API_KEY=<YOUR_DATADOG_API_KEY>
+export DD_SITE=<YOUR_DATADOG_SITE>
+export ENV=dev
 cdk deploy --all --require-approval never
 ```
 
-If you wish to deploy individual stacks, you can do that by running the respective command below:
+Or using the Makefile:
 
 ```sh
-cdk deploy NodeSharedStack --require-approval never
-cdk deploy NodeProductApiStack --require-approval never
-cdk deploy NodeProductPublicEventPublisherStack --require-approval never
-cdk deploy NodeProductPricingServiceStack --require-approval never
+export DD_API_KEY=<YOUR_DATADOG_API_KEY>
+export DD_SITE=<YOUR_DATADOG_SITE>
+export ENV=dev
+export AWS_REGION=us-east-1
+make cdk-deploy
 ```
 
-Post deployment, run the below command to execute an integration test and populate the system with the full end to end flow.
+#### Cleanup
 
 ```sh
-npm run test -- product-service
+cdk destroy --all --force
 ```
 
-### Cleanup
+### AWS SAM
 
-To cleanup resources run
+Uses the [Datadog CloudFormation Macro](https://docs.datadoghq.com/serverless/libraries_integrations/macro/) for auto-instrumentation. Ensure the macro is installed in your account before deploying.
+
+Template: `template.yaml`
+
+Before deploying with SAM, build the Lambda deployment packages:
 
 ```sh
-cdk destroy --all
+./package.sh
 ```
 
-## AWS SAM
+#### Deploy
 
-The AWS SAM example leverages the Datadog CloudFormation Macro. The macro auto-instruments your Lambda functions at the point of deployment. Ensure you have followed the [installation instructions](https://docs.datadoghq.com/serverless/libraries_integrations/macro/) before continuing with the SAM deployment.
+```sh
+export DD_API_KEY=<YOUR_DATADOG_API_KEY>
+export DD_SITE=<YOUR_DATADOG_SITE>
+export ENV=dev
+export AWS_REGION=us-east-1
+make sam
+```
 
-Ensure you have set the below environment variables before starting deployment:
-
-- `DD_API_KEY_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
-- `DD_SITE`: The Datadog Site to use
-- `AWS_REGION`: The AWS region you want to deploy to
-
-Once both environment variables are set, use the below `sh` script to deploy all backend services. You can deploy individual services as well if required. Due to the SSM parameters holding SNS Topic ARN's, the order of deployment is important.
-
-### Deploy
-
-The `template.yaml` file contains an example of using a nested stack to deploy all 6 backend services in a single command. This **is not** recommended for production use cases, instead preferring independent deployments. For the purposes of this demonstration, a single template makes test deployments easier.
+Or directly:
 
 ```sh
 sam build
-sam deploy --stack-name NodeTracing --parameter-overrides ParameterKey=DDApiKeySecretArn,ParameterValue="$DD_API_KEY_SECRET_ARN" ParameterKey=DDSite,ParameterValue="$DD_SITE" --resolve-s3 --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $AWS_REGION
+sam deploy --stack-name LoyaltyService-dev \
+  --parameter-overrides ParameterKey=DDApiKey,ParameterValue="$DD_API_KEY" ParameterKey=DDSite,ParameterValue="$DD_SITE" \
+  --resolve-s3 --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $AWS_REGION
 ```
 
-### Cleanup
-
-Use the below `sh` script to cleanup resources deployed with AWS SAM.
+#### Cleanup
 
 ```sh
-sam delete --stack-name NodeInventoryOrderingService --region $AWS_REGION --no-prompts &&
-sam delete --stack-name NodeInventoryAcl --region $AWS_REGION --no-prompts &&
-sam delete --stack-name NodeProductApiWorkerStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name NodeProductPublicEventPublisherStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name NodeProductPricingServiceStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name NodeProductApiStack --region $AWS_REGION --no-prompts &&
-sam delete --stack-name NodeSharedStack --region $AWS_REGION --no-prompts
+make sam-destroy
 ```
 
-## Terraform
+### Terraform
 
-Terraform does not natively support transpiling Typescript into JS code. When deploying with Typescript, you first need to transpile and ZIP up the typescript code. The [`deploy.sh`](./deploy.sh) script performs this action. Iterating over all of the `build*.js` files and running esbuild before zipping up all folders in the output folder.
+Terraform requires pre-built ZIP artifacts. The `package.sh` script transpiles TypeScript via esbuild and creates ZIP files in the `out/` directory.
 
-### Configuration
+Configuration is in `infra/`, using a custom [`lambda_function` module](./infra/modules/lambda-function/main.tf) that wraps the [Datadog Lambda Terraform module](https://registry.terraform.io/modules/DataDog/lambda-datadog/aws/latest).
 
-A customer [`lambda_function`](./infra/modules/lambda-function/main.tf) module is used to group together all the functionality for deploying Lambda functions. This handles the creation of the CloudWatch Log Groups, and default IAM roles.
+#### Deploy
 
-The Datadog Lambda Terraform module is used to create and configure the Lambda function with the required extensions, layers and configurations.
+1. Build deployment packages:
 
-> **IMPORTANT!** If you are using AWS Secrets Manager to hold your Datadog API key, ensure your Lambda function has permissions to call the `secretsmanager:GetSecretValue` IAM action.
+    ```sh
+    ./package.sh
+    ```
 
-```terraform
-module "aws_lambda_function" {
-  source  = "DataDog/lambda-datadog/aws"
-  version = "1.3.0"
+2. Create `infra/dev.tfvars`:
 
-  filename                 = var.zip_file
-  function_name            = var.function_name
-  role                     = aws_iam_role.lambda_function_role.arn
-  handler                  = var.lambda_handler
-  runtime                  = "nodejs22.x"
-  memory_size              = 512
-  logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
-  source_code_hash = "${filebase64sha256(var.zip_file)}"
-  timeout = 29
+    ```hcl
+    dd_api_key  = "<YOUR_DATADOG_API_KEY>"
+    dd_site     = "<YOUR_DATADOG_SITE>"
+    env         = "dev"
+    region      = "us-east-1"
+    ```
 
-  environment_variables = merge(tomap({
-    "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
-    "DD_EXTENSION_VERSION": "next"
-    "DD_ENV" : var.env
-    "DD_SERVICE" : var.service_name
-    "DD_SITE" : var.dd_site
-    "DD_VERSION" : var.app_version
-    "ENV": var.env
-    "POWERTOOLS_SERVICE_NAME": var.service_name
-    "POWERTOOLS_LOG_LEVEL": "INFO" }),
-    var.environment_variables
-  )
+3. Deploy:
 
-  datadog_extension_layer_version = 90
-  datadog_node_layer_version      = 127
-}
-```
+    ```sh
+    export ENV=dev
+    export AWS_REGION=us-east-1
+    make tf-apply-local
+    ```
 
-### Deploy
+    For remote state, set `TF_STATE_BUCKET_NAME` and use `make tf-apply` instead.
 
-To deploy, first create a file named `infra/dev.tfvars`. In your tfvars file, you need to add your the AWS Secrets Manager ARN for the secret containing your Datadog API Key.
-
-```tf
-dd_api_key_secret_arn="<DD_API_KEY_SECRET_ARN>"
-dd_site="<YOUR PREFERRED DATADOG SITE>"
-```
-
-There's a single `main.tf` that contains all 7 backend services as modules. This is **not** recommended in production, and you should deploy backend services independenly. However, to simplify this demo deployment a single file is used.
-
-The root of the repository contains a Makefile, this will transpile all Typescript code, generate the ZIP files and run `terraform apply`. To deploy the Terraform example, simply run:
-
-You can optionally provide an S3 backend to use as your state store, to do this set the below environment variables and run `terraform init`
+#### Cleanup
 
 ```sh
-export AWS_REGION=<YOUR PREFERRED AWS_REGION>
-export TF_STATE_BUCKET_NAME=<THE NAME OF THE S3 BUCKET>
-export ENV=<ENVIRONMENT NAME>
-make tf-node-local
+make tf-destroy
 ```
 
-Alternatively, comment out the S3 backend section in [`providers.tf'](./infra/providers.tf).
+### Serverless Framework
 
-Alternatively, comment out the S3 backend section in [`providers.tf'](./infra/providers.tf).
+Uses the [Datadog Serverless Plugin](https://www.serverless.com/plugins/serverless-plugin-datadog). Configuration is in `serverless.yml`.
 
-```tf
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.61"
-    }
-  }
-#  backend "s3" {}
-}
+> **Note:** The `serverless.yml` in this repo is configured for a product API service, not the loyalty service. It is included as a reference for the Serverless Framework deployment pattern.
 
-provider "aws" {
-  region = var.region
-}
-```
-
-### Cleanup
-
-To cleanup all Terraform resources run:
+#### Deploy
 
 ```sh
-cd infra
-terraform destroy --var-file dev.tfvars
+export DD_API_KEY_SECRET_ARN=<YOUR_SECRET_ARN>
+export DD_SITE=<YOUR_DATADOG_SITE>
+export AWS_REGION=us-east-1
+serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION}
 ```
 
-## Serverless Framework
-
-Datadog provides a [plugin](https://www.serverless.com/plugins/serverless-plugin-datadog) to simply configuration of your serverless applications when using the [serverless framework](https://www.serverless.com/). Inside your `serverless.yml` add a `custom.datadog` block. The available configuration options are available in the [documentation](https://www.serverless.com/plugins/serverless-plugin-datadog#configuration-parameters).
-
-> **IMPORTANT** Ensure you add permissions to `secretsmanager:GetSecretValue` for the Secrets Manager secret holding your Datadog API key
-
-```yaml
-custom:
-  datadog:
-    apiKeySecretArn: ${param:DD_API_KEY_SECRET_ARN}
-    site: ${param:DD_SITE}
-    env: ${sls:stage}
-    service: ${self:custom.serviceName}
-    version: latest
-    # Use this property with care in production to ensure PII/Sensitive data is not stored in Datadog
-    captureLambdaPayload: true
-    propagateUpstreamTrace: true
-```
-
-### Deploy
-
-Ensure you have set the below environment variables before starting deployment:
-
-- `DD_API_KEY_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
-- `DD_SITE`: The Datadog site to use
-- `AWS_REGION`: The AWS region you want to deploy to
-
-Once set, use the below commands to deploy each of the individual backend services on by one.
+#### Cleanup
 
 ```sh
-serverless deploy --stage dev --region=${AWS_REGION} --config serverless-shared.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-api.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-pricing-service.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-product-acl.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api-worker.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-product-event-publisher.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-acl.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-ordering-service.yml &&
-serverless deploy --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-analytics-service.yml
+serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION}
 ```
 
-### Cleanup
+### SST (Serverless Stack v2)
 
-The same commands can be used to cleanup all resources, but replacing `deploy` with `remove`.
+Uses [SST v2](https://docs.sst.dev/what-is-sst) with AWS CDK under the hood. Configuration is in `sst.config.ts`, which reuses the same CDK stack definitions.
+
+#### Local Development (SST Live Lambda)
 
 ```sh
-serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-analytics-service.yml &&
-serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-ordering-service.yml &&
-serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-inventory-acl.yml &&
-serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-product-event-publisher.yml &&
-serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api-worker.yml &&
-serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-pricing-service.yml &&
-serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api.yml &&
-serverless remove --stage dev --region=${AWS_REGION} --config serverless-shared.yml
+export DD_API_KEY=<YOUR_DATADOG_API_KEY>
+export DD_SITE=<YOUR_DATADOG_SITE>
+npm run dev:sst
 ```
 
-## Serverless Stack (SST)
+This runs Lambda functions locally while interacting with remote AWS resources. Use the API URL printed on the terminal for testing.
 
-This sample uses [sst v2](https://docs.sst.dev/what-is-sst) with `AWS CDK` to deploy the app.
-
-**Note**: This is not using [Ion](https://sst.dev/), which is a complete rewrite of `sst`, using Pulumi and Terraform. 
-
-The majority of the setup is common with [AWS CDK](#AWS-CDK), using the same stack definitions as the `AWS-CDK` sample. The Datadog configuration is done within the stack definitions for the purpose of this sample. This can be centralized in the `sst.config.ts` if you wish.
-
-**Note**: `sst` provides a few useful L3 AWS CDK constructs that are not used much here, for brevity and convenience of using the same stacks as the `AWS-CDK` sample.
-
-### Deploy
-
-Ensure you have set the below environment variables before starting deployment:
-
-- `DD_API_KEY_SECRET_ARN`: The Secrets Manager Secret ARN holding your Datadog API Key
-- `DD_SITE`: The Datadog site to use
-- `AWS_REGION`: The AWS region you want to deploy to
-
-Once set, use the the sst `dev` command to run the stacks. This runs the functions locally, interacting with AWS services deployed remotely, e.g. API Gateway.  
-
-`npm run dev:sst`
-
-**Note**: Change the command in `package.json` to point to your personal stage, e.g. `james`. 
-
-Use the API URL printed on your terminal by setting the environment variable `API_ENDPOINT` and run the below command to execute an integration test and populate the system with the full end to end flow. This will run the tests against your local Lambda functions.
+#### Deploy to AWS
 
 ```sh
-npm run test -- product-service
+npm run deploy:sst
 ```
 
-Alternatively, you can deploy the entire stack to AWS, with the following command:
-
-`npm run deploy:sst`
-
-
-Post deployment, you can run the integration tests in the same way with the corresponding `API_ENDPOINT` value.
+#### Cleanup
 
 ```sh
-npm run test -- product-service
+npm run remove:sst            # Remove dev stage
+npm run remove:sst:personal   # Remove personal stage
 ```
 
-**Note**: You can't run these two apps "side by side" (unless you are deploying to a different account), as the name of the API (`NodeProductApiEndpoint`) is globally unique within an AWS account and therefore can be set as a stack output for two stacks. Delete your personal stack before you deploy the other stack.
+## Observability
 
+The service demonstrates several Datadog observability patterns for asynchronous, event-driven architectures.
 
-### Cleanup
+### Span Links
 
-To remove a dev stack (your personal stack you ran locally), run `npm run remove:sst:personal`.
+Instead of creating deep parent-child trace hierarchies across service boundaries, this service uses [Span Links](https://docs.datadoghq.com/tracing/trace_collection/span_links/) to connect causally related spans. See [`src/observability/observability.ts`](./src/observability/observability.ts) for the implementation.
 
-To remove a dev stack, run `npm run remove:sst`.
+This requires disabling automatic trace propagation on the consumer Lambda functions:
+
+```
+DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT=none
+DD_TRACE_PROPAGATION_STYLE_EXTRACT=false
+```
+
+### OpenTelemetry Semantic Conventions
+
+Message processing and publishing spans follow the [OTel Semantic Conventions for Messaging](https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/), including attributes like `messaging.system`, `messaging.operation.type`, `messaging.message.type`, and `messaging.destination.name`.
+
+### Datadog Data Streams Monitoring
+
+[Data Streams Monitoring (DSM)](https://docs.datadoghq.com/data_streams/) checkpoints are recorded manually for both consume and produce paths, since DSM does not automatically support all messaging transports. See the `setConsumeCheckpoint` and `setProduceCheckpoint` calls in [`observability.ts`](./src/observability/observability.ts).
+
+## Project Structure
+
+```
+.
+├── bin/                        # CDK app entry point
+├── lib/
+│   ├── constructs/             # Reusable CDK constructs (InstrumentedFunction, ResilientQueue)
+│   └── loyalty-api/            # CDK stack definitions (API, ACL, props)
+├── src/
+│   ├── loyalty-api/
+│   │   ├── adapters/           # Lambda handler entry points and infrastructure adapters
+│   │   └── core/               # Domain logic, DTOs, event definitions
+│   └── observability/          # Shared tracing and DSM helpers
+├── tests/
+│   └── loyalty-service-tests/  # Integration tests
+├── infra/                      # Terraform configuration
+├── template.yaml               # SAM template
+├── serverless.yml              # Serverless Framework config
+├── sst.config.ts               # SST configuration
+├── package.sh                  # Build script for SAM/Terraform deployments
+├── Makefile                    # Shortcuts for build, deploy, and destroy
+└── cdk.json                    # CDK project configuration
+```

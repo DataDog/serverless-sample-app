@@ -1,11 +1,9 @@
 import { Logger } from "@aws-lambda-powertools/logger";
 import { CloudEvent } from "cloudevents";
-import { Span, SpanContext, SpanOptions, TraceOptions, tracer } from "dd-trace";
-import * as os from "os";
+import { Span, SpanContext, tracer } from "dd-trace";
 
 const textEncoder = new TextEncoder();
 const logger = new Logger({});
-const cpuCount = os.cpus().length;
 
 export enum MessagingType {
   PUBLIC,
@@ -82,7 +80,7 @@ export function startPublishSpanWithSemanticConventions(
   try {
     const headers = {};
     tracer.dataStreamsCheckpointer.setProduceCheckpoint(
-      "sns",
+      conventions.messagingSystem,
       evt.type,
       headers
     );

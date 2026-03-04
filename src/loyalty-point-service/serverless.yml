@@ -5,7 +5,11 @@
 # Copyright 2024 Datadog, Inc.
 #
 
-service: serverless-product-api
+# WARNING: This serverless.yml is NOT a supported deployment path for the loyalty-point-service.
+# Use template.yaml (SAM) for deployments instead.
+# If you want to use the Serverless Framework, verify all handler paths and resources below
+# reference valid loyalty-api handlers in src/loyalty-api/adapters/.
+service: serverless-loyalty-api
 frameworkVersion: "3"
 
 plugins:
@@ -13,7 +17,7 @@ plugins:
   - serverless-esbuild
 
 custom:
-  serviceName: NodeProductApi
+  serviceName: NodeLoyaltyApi
   datadog:
     apiKeySecretArn: ${param:DD_API_KEY_SECRET_ARN}
     site: ${param:DD_SITE}
@@ -28,7 +32,7 @@ custom:
     target: "node22"
     bundle: true
     minify: true
-    exclude: 
+    exclude:
       - "opentracing"
       - "dd-trace"
       - "@datadog/native-metrics"
@@ -36,7 +40,7 @@ custom:
       - '@datadog/native-appsec'
       - '@datadog/native-iast-taint-tracking'
       - '@datadog/native-iast-rewriter'
-      - 'graphql/language/visitor' 
+      - 'graphql/language/visitor'
       - 'graphql/language/printer'
       - 'graphql/utilities'
       - '@aws-sdk/*'
@@ -52,7 +56,9 @@ provider:
     ENV: ${sls:stage}
     POWERTOOLS_SERVICE_NAME: ${self:custom.serviceName}
     POWERTOOLS_LOG_LEVEL: 'INFO'
-    DOMAIN: "products"
+    DOMAIN: "loyalty"
+    DD_LOGS_INJECTION: "true"
+    DD_DATA_STREAMS_ENABLED: "true"
   httpApi:
     cors: true
   iam:
@@ -73,53 +79,26 @@ provider:
           Resource: ${param:DD_API_KEY_SECRET_ARN}
         - Effect: Allow
           Action:
-            - sns:Publish
-          Resource:
-            - !Ref ProductCreatedTopic
-            - !Ref ProductUpdatedTopic
-            - !Ref ProductDeletedTopic
+            - events:PutEvents
+          Resource: "*"
 
 functions:
-  create:
-    handler: src/product-api/adapters/createProductFunction.handler
-    environment:
-      PRODUCT_CREATED_TOPIC_ARN: !Ref ProductCreatedTopic
+  getLoyaltyPoints:
+    handler: src/loyalty-api/adapters/getLoyaltyAccountFunction.handler
     events:
       - httpApi:
-          path: /product
+          path: /loyalty
+          method: get
+  spendLoyaltyPoints:
+    handler: src/loyalty-api/adapters/spendLoyaltyPointsFunction.handler
+    events:
+      - httpApi:
+          path: /loyalty
           method: post
-  get:
-    handler: src/product-api/adapters/getProductFunction.handler
-    events:
-      - httpApi:
-          path: /product/{productId}
-          method: get
-  list:
-    handler: src/product-api/adapters/listProductsFunction.handler
-    events:
-      - httpApi:
-          path: /product
-          method: get
-  update:
-    handler: src/product-api/adapters/updateProductFunction.handler
-    environment:
-      PRODUCT_UPDATED_TOPIC_ARN: !Ref ProductUpdatedTopic
-    events:
-      - httpApi:
-          path: /product
-          method: put
-  delete:
-    handler: src/product-api/adapters/deleteProductFunction.handler
-    environment:
-      PRODUCT_DELETED_TOPIC_ARN: !Ref ProductDeletedTopic
-    events:
-      - httpApi:
-          path: /product/{productId}
-          method: delete
 
 resources:
   Resources:
-    ProductDynamoDbTable:
+    LoyaltyAccountTable:
       Type: "AWS::DynamoDB::Table"
       DeletionPolicy: Delete
       Properties:
@@ -131,65 +110,5 @@ resources:
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:provider.environment.TABLE_NAME}
-
-    ProductCreatedTopic:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: !Sub "ProductCreatedTopic-${sls:stage}"
-    ProductUpdatedTopic:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: !Sub "ProductUpdatedTopic-${sls:stage}"
-    ProductDeletedTopic:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: !Sub "ProductDeletedTopic-${sls:stage}"
-
-    ProductCreatedTopicArn:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: /node/product/product-created-topic
-        Type: String
-        Value: !Ref ProductCreatedTopic
-    ProductUpdatedTopicArn:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: /node/product/product-updated-topic
-        Type: String
-        Value: !Ref ProductUpdatedTopic
-    ProductDeletedTopicArn:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: /node/product/product-deleted-topic
-        Type: String
-        Value: !Ref ProductDeletedTopic
-    ProductCreatedTopicName:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: /node/product/product-created-topic-name
-        Type: String
-        Value: !GetAtt ProductCreatedTopic.TopicName
-    ProductUpdatedTopicName:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: /node/product/product-updated-topic-name
-        Type: String
-        Value: !GetAtt ProductUpdatedTopic.TopicName
-    ProductDeletedTopicName:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: /node/product/product-deleted-topic-name
-        Type: String
-        Value: !GetAtt ProductDeletedTopic.TopicName
-    ProductApiTableName:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: /node/product/product-table-name
-        Type: String
-        Value: !Ref ProductDynamoDbTable
-    ProductApiEndpoint:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: /node/product/api-endpoint
-        Type: String
-        Value: !GetAtt HttpApi.ApiEndpoint
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
