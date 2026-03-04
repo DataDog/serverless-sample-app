@@ -39,6 +39,14 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 	defer span.Finish()
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated.v1", evt)
 
+	// Inject DSM context before marshaling so _datadog carrier is included in the message.
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-publiceventpublisher",
+	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
+	}
+
 	evtData, _ := json.Marshal(cloudEvent)
 	message := string(evtData)
 	detailType := cloudEvent.Type
@@ -65,13 +73,6 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 
 	input := &eventbridge.PutEventsInput{
 		Entries: entiries,
-	}
-
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
 	}
 
 	_, err := publisher.client.PutEvents(ctx, input)
@@ -86,6 +87,14 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 	defer span.Finish()
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productUpdated.v1", evt)
 
+	// Inject DSM context before marshaling so _datadog carrier is included in the message.
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-publiceventpublisher",
+	}, "direction:out", "type:sns", fmt.Sprintf("topic:%s", cloudEvent.Type))
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
+	}
+
 	evtData, _ := json.Marshal(cloudEvent)
 	message := string(evtData)
 	detailType := cloudEvent.Type
@@ -112,13 +121,6 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 
 	input := &eventbridge.PutEventsInput{
 		Entries: entiries,
-	}
-
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", "type:sns", fmt.Sprintf("topic:%s", cloudEvent.Type))
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
 	}
 
 	_, err := publisher.client.PutEvents(ctx, input)
@@ -134,6 +136,14 @@ func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Con
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productDeleted.v1", evt)
 
+	// Inject DSM context before marshaling so _datadog carrier is included in the message.
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-publiceventpublisher",
+	}, "direction:out", "type:sns", fmt.Sprintf("topic:%s", cloudEvent.Type))
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
+	}
+
 	evtData, _ := json.Marshal(cloudEvent)
 	message := string(evtData)
 	detailType := cloudEvent.Type
@@ -156,13 +166,6 @@ func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Con
 			EventBusName: &busName,
 			Source:       &source,
 		},
-	}
-
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", "type:sns", fmt.Sprintf("topic:%s", cloudEvent.Type))
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
 	}
 
 	input := &eventbridge.PutEventsInput{

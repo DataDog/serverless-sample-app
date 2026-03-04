@@ -15,7 +15,8 @@ import { ConcurrentModificationError } from "../concurrentModificationError";
 
 export class UpdatePointsCommand {
   userId: string;
-  orderNumber: string;
+  orderNumber?: string;
+  orderId?: string;
   pointsToAdd: number;
 }
 
@@ -34,12 +35,21 @@ export class UpdatePointsCommandHandler {
   public async handle(
     command: UpdatePointsCommand
   ): Promise<HandlerResponse<LoyaltyPointsDTO>> {
+    const idempotencyKey = command.orderId ?? command.orderNumber;
+    if (!idempotencyKey) {
+      return {
+        data: undefined,
+        success: false,
+        message: ["Either orderId or orderNumber must be provided"],
+      };
+    }
+
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
         const span = tracer.scope().active();
         span?.addTags({
           "user.id": command.userId,
-          "order.id": command.orderNumber,
+          "order.id": idempotencyKey,
         });
 
         let loyaltyAccount = await this.repository.forUser(command.userId);
@@ -50,7 +60,7 @@ export class UpdatePointsCommandHandler {
         }
 
         const pointsAdded = loyaltyAccount.addPoints(
-          command.orderNumber,
+          idempotencyKey,
           command.pointsToAdd
         );
 

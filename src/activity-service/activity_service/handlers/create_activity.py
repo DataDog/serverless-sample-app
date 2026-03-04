@@ -8,6 +8,7 @@ from aws_lambda_powertools.utilities.data_classes.sqs_event import SQSRecord
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from ddtrace import tracer
 from ddtrace._trace.context import Context
+from ddtrace.data_streams import set_consume_checkpoint
 
 from activity_service.dal import get_dal_handler
 from activity_service.dal.db_handler import DalHandler
@@ -76,34 +77,35 @@ def process_cloud_event(cloud_event_wrapper: dict, time: int, lambda_context: La
     event_data = cloud_event_wrapper.get("data")
     event_id = cloud_event_wrapper.get("id")
     trace_parent = cloud_event_wrapper.get("traceparent")
+    datadog_context = cloud_event_wrapper.get("_datadog", {})
 
     if event_type == PRODUCT_CREATED_EVENT_NAME:
-        handle_product_created(event_id, event_type, event_data, trace_parent, time)
+        handle_product_created(event_id, event_type, event_data, trace_parent, time, datadog_context)
     elif event_type == PRODUCT_UPDATED_EVENT_NAME:
-        handle_product_updated(event_id, event_type, event_data, trace_parent, time)
+        handle_product_updated(event_id, event_type, event_data, trace_parent, time, datadog_context)
     elif event_type == PRODUCT_DELETED_EVENT_NAME:
-        handle_product_deleted(event_id, event_type, event_data, trace_parent, time)
+        handle_product_deleted(event_id, event_type, event_data, trace_parent, time, datadog_context)
     elif event_type == USER_REGISTERED_EVENT_NAME:
-        handle_user_registered(event_id, event_type, event_data, trace_parent, time)
+        handle_user_registered(event_id, event_type, event_data, trace_parent, time, datadog_context)
     elif event_type == ORDER_CREATED_EVENT_NAME:
-        handle_order_created(event_id, event_type, event_data, trace_parent, time)
+        handle_order_created(event_id, event_type, event_data, trace_parent, time, datadog_context)
     elif event_type == ORDER_CONFIRMED_EVENT_NAME:
-        handle_order_confirmed(event_id, event_type, event_data, trace_parent, time)
+        handle_order_confirmed(event_id, event_type, event_data, trace_parent, time, datadog_context)
     elif event_type == ORDER_COMPLETED_EVENT_NAME:
-        handle_order_completed(event_id, event_type, event_data, trace_parent, time)
+        handle_order_completed(event_id, event_type, event_data, trace_parent, time, datadog_context)
     elif event_type == STOCK_UPDATED:
-        handle_stock_updated(event_id, event_type, event_data, trace_parent, time)
+        handle_stock_updated(event_id, event_type, event_data, trace_parent, time, datadog_context)
     elif event_type == STOCK_RESERVED_EVENT_NAME:
-        handle_stock_reserved(event_id, event_type, event_data, trace_parent, time)
+        handle_stock_reserved(event_id, event_type, event_data, trace_parent, time, datadog_context)
     elif event_type == STOCK_RESERVATION_FAILED_EVENT_NAME:
-        handle_stock_reservation_failed(event_id, event_type, event_data, trace_parent, time)
+        handle_stock_reservation_failed(event_id, event_type, event_data, trace_parent, time, datadog_context)
     else:
         logger.error(f"Unhandled event_type: {event_type}")
 
 @tracer.wrap(resource=f"process {PRODUCT_CREATED_EVENT_NAME}")
-def handle_product_created(event_id: str, activity_type: str, detail: dict, trace_parent: str, time: int) -> None:
+def handle_product_created(event_id: str, activity_type: str, detail: dict, trace_parent: str, time: int, datadog_context: dict) -> None:
     """Handle product creation events"""
-    _add_default_span_tags(event_id, PRODUCT_CREATED_EVENT_NAME, trace_parent)
+    _add_default_span_tags(event_id, PRODUCT_CREATED_EVENT_NAME, trace_parent, datadog_context)
     span = tracer.current_span()
 
     product_id = detail.get("productId")
@@ -122,9 +124,9 @@ def handle_product_created(event_id: str, activity_type: str, detail: dict, trac
 
 
 @tracer.wrap(resource=f"process {PRODUCT_UPDATED_EVENT_NAME}")
-def handle_product_updated(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
+def handle_product_updated(event_id: str, activity_type: str, detail: dict, trace_parent: str, time: int, datadog_context: dict) -> None:
     """Handle product update events"""
-    _add_default_span_tags(event_id, PRODUCT_UPDATED_EVENT_NAME, trace_parent)
+    _add_default_span_tags(event_id, PRODUCT_UPDATED_EVENT_NAME, trace_parent, datadog_context)
 
     product_id = detail.get("productId")
 
@@ -142,9 +144,9 @@ def handle_product_updated(event_id: str, activity_type: str, detail: dict,trace
 
 
 @tracer.wrap(resource=f"process {PRODUCT_DELETED_EVENT_NAME}")
-def handle_product_deleted(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
+def handle_product_deleted(event_id: str, activity_type: str, detail: dict, trace_parent: str, time: int, datadog_context: dict) -> None:
     """Handle product update events"""
-    _add_default_span_tags(event_id, PRODUCT_DELETED_EVENT_NAME, trace_parent)
+    _add_default_span_tags(event_id, PRODUCT_DELETED_EVENT_NAME, trace_parent, datadog_context)
 
     product_id = detail.get("productId")
 
@@ -161,8 +163,8 @@ def handle_product_deleted(event_id: str, activity_type: str, detail: dict,trace
     logger.info("Successfully processed product update", product_id=detail.get("productId"))
 
 @tracer.wrap(resource=f"process {USER_REGISTERED_EVENT_NAME}")
-def handle_user_registered(event_id: str, activity_type: str, detail: dict,trace_parent: str,  time: int) -> None:
-    _add_default_span_tags(event_id, USER_REGISTERED_EVENT_NAME, trace_parent)
+def handle_user_registered(event_id: str, activity_type: str, detail: dict, trace_parent: str, time: int, datadog_context: dict) -> None:
+    _add_default_span_tags(event_id, USER_REGISTERED_EVENT_NAME, trace_parent, datadog_context)
 
     user_id = detail.get("userId")
 
@@ -178,8 +180,8 @@ def handle_user_registered(event_id: str, activity_type: str, detail: dict,trace
 
 
 @tracer.wrap(resource=f"process {ORDER_CREATED_EVENT_NAME}")
-def handle_order_created(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
-    _add_default_span_tags(event_id, ORDER_CREATED_EVENT_NAME, trace_parent)
+def handle_order_created(event_id: str, activity_type: str, detail: dict, trace_parent: str, time: int, datadog_context: dict) -> None:
+    _add_default_span_tags(event_id, ORDER_CREATED_EVENT_NAME, trace_parent, datadog_context)
 
     order_number = detail.get("orderNumber")
 
@@ -210,8 +212,8 @@ def handle_order_created(event_id: str, activity_type: str, detail: dict,trace_p
 
 
 @tracer.wrap(resource=f"process {ORDER_CONFIRMED_EVENT_NAME}")
-def handle_order_confirmed(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
-    _add_default_span_tags(event_id, ORDER_CONFIRMED_EVENT_NAME, trace_parent)
+def handle_order_confirmed(event_id: str, activity_type: str, detail: dict, trace_parent: str, time: int, datadog_context: dict) -> None:
+    _add_default_span_tags(event_id, ORDER_CONFIRMED_EVENT_NAME, trace_parent, datadog_context)
 
     order_number = detail.get("orderNumber")
 
@@ -241,8 +243,8 @@ def handle_order_confirmed(event_id: str, activity_type: str, detail: dict,trace
     create_activity_handler(confirm_order_user_activity_request, dal_handler)
 
 @tracer.wrap(resource=f"process {ORDER_COMPLETED_EVENT_NAME}")
-def handle_order_completed(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
-    _add_default_span_tags(event_id, ORDER_COMPLETED_EVENT_NAME, trace_parent)
+def handle_order_completed(event_id: str, activity_type: str, detail: dict, trace_parent: str, time: int, datadog_context: dict) -> None:
+    _add_default_span_tags(event_id, ORDER_COMPLETED_EVENT_NAME, trace_parent, datadog_context)
 
     order_number = detail.get("orderNumber")
 
@@ -272,8 +274,8 @@ def handle_order_completed(event_id: str, activity_type: str, detail: dict,trace
     create_activity_handler(user_activity_request, dal_handler)
 
 @tracer.wrap(resource=f"process {STOCK_UPDATED}")
-def handle_stock_updated(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
-    _add_default_span_tags(event_id, STOCK_UPDATED, trace_parent)
+def handle_stock_updated(event_id: str, activity_type: str, detail: dict, trace_parent: str, time: int, datadog_context: dict) -> None:
+    _add_default_span_tags(event_id, STOCK_UPDATED, trace_parent, datadog_context)
 
     product_id = detail.get("productId")
     product_activity_request: CreateActivityRequest = CreateActivityRequest(
@@ -286,8 +288,8 @@ def handle_stock_updated(event_id: str, activity_type: str, detail: dict,trace_p
     create_activity_handler(product_activity_request, dal_handler)
 
 @tracer.wrap(resource=f"process {STOCK_RESERVED_EVENT_NAME}")
-def handle_stock_reserved(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
-    _add_default_span_tags(event_id, STOCK_RESERVED_EVENT_NAME, trace_parent)
+def handle_stock_reserved(event_id: str, activity_type: str, detail: dict, trace_parent: str, time: int, datadog_context: dict) -> None:
+    _add_default_span_tags(event_id, STOCK_RESERVED_EVENT_NAME, trace_parent, datadog_context)
 
     order_number = detail.get("orderNumber")
 
@@ -301,8 +303,8 @@ def handle_stock_reserved(event_id: str, activity_type: str, detail: dict,trace_
     create_activity_handler(activity_request, dal_handler)
 
 @tracer.wrap(resource=f"process {STOCK_RESERVATION_FAILED_EVENT_NAME}")
-def handle_stock_reservation_failed(event_id: str, activity_type: str, detail: dict,trace_parent: str, time: int) -> None:
-    _add_default_span_tags(event_id, STOCK_RESERVATION_FAILED_EVENT_NAME, trace_parent)
+def handle_stock_reservation_failed(event_id: str, activity_type: str, detail: dict, trace_parent: str, time: int, datadog_context: dict) -> None:
+    _add_default_span_tags(event_id, STOCK_RESERVATION_FAILED_EVENT_NAME, trace_parent, datadog_context)
 
     order_number = detail.get("orderNumber")
 
@@ -315,8 +317,10 @@ def handle_stock_reservation_failed(event_id: str, activity_type: str, detail: d
     tracer.current_span().set_tag("order.number", order_number)
     create_activity_handler(activity_request, dal_handler)
 
-def _add_default_span_tags(event_id: str, event_type: str, trace_parent: str) -> None:
+def _add_default_span_tags(event_id: str, event_type: str, trace_parent: str, datadog_context: dict) -> None:
     """Add default span tags using the current span from tracer"""
+
+    set_consume_checkpoint("sqs", event_type, lambda key: datadog_context.get(key))
 
     span = tracer.current_span()
     span.set_tag("domain", "activity")

@@ -218,7 +218,7 @@ public class Functions
             }
 
             var parentContext = new SpanContextExtractor().ExtractIncludingDsm(
-                JsonSerializer.SerializeToDocument(evtData.Detail),
+                JsonDocument.Parse(record.Body),
                 GetHeader,
                 "sns",
                 evtData.Detail.Type);

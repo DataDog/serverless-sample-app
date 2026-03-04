@@ -89,7 +89,7 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
       } else if (evtWrapper.detail.type.indexOf("v2") > 0) {
         const evtData = evtWrapper.detail.data as OrderCompletedEventV2;
         const result = await updatePointsCommandHandler.handle({
-          orderNumber: evtData.orderId,
+          orderId: evtData.orderId,
           userId: evtData.userId,
           pointsToAdd: 50,
         });

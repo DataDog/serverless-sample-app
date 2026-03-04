@@ -10,10 +10,7 @@ public record StockReservationFailedEvent
 {
     [JsonPropertyName("orderNumber")]
     public string OrderNumber { get; set; } = "";
-    
-    [JsonPropertyName("productId")]
-    public string ProductId { get; set; } = "";
-    
+
     [JsonPropertyName("conversationId")]
     public string ConversationId { get; set; } = "";
 }

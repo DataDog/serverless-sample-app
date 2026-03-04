@@ -36,6 +36,14 @@ func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context,
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.stockUpdated", evt)
 
+	// Inject DSM context before marshaling so _datadog carrier is included in the message.
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-acl",
+	}, "direction:out", "type:sns", "topic:product.stockUpdated", "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
+	}
+
 	tracedMessageData, _ := json.Marshal(cloudEvent)
 
 	message := string(tracedMessageData)
@@ -49,13 +57,6 @@ func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context,
 	span.SetTag("messaging.operation.name", "publish")
 	span.SetTag("messaging.operation.type", "publish")
 	span.SetTag("messaging.system", "aws_sns")
-
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-acl",
-	}, "direction:out", "type:sns", "topic:product.stockUpdated", "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
-	}
 
 	input := &sns.PublishInput{
 		TopicArn: &topicArn,
@@ -75,6 +76,14 @@ func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Contex
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.pricingChanged", evt)
 
+	// Inject DSM context before marshaling so _datadog carrier is included in the message.
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-acl",
+	}, "direction:out", "type:sns", "topic:product.pricingChanged", "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
+	}
+
 	tracedMessageData, _ := json.Marshal(cloudEvent)
 
 	message := string(tracedMessageData)
@@ -88,13 +97,6 @@ func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Contex
 	span.SetTag("messaging.operation.name", "publish")
 	span.SetTag("messaging.operation.type", "publish")
 	span.SetTag("messaging.system", "aws_sns")
-
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-acl",
-	}, "direction:out", "type:sns", "topic:product.pricingChanged", "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
-	}
 
 	input := &sns.PublishInput{
 		TopicArn: &topicArn,

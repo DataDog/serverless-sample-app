@@ -1,0 +1,593 @@
+asyncapi: 2.6.0
+info:
+  title: Loyalty Point Service — Async Events
+  version: 1.0.0
+  description: |
+    Describes all asynchronous events published and consumed by the Loyalty Point Service.
+
+    **Published events**
+    - `loyalty.pointsAdded.v1` (deprecated) — published to EventBridge whenever a loyalty
+      account is modified (insert or update), detected via a DynamoDB Stream.
+    - `loyalty.pointsAdded.v2` — the current version of the points-added event, published
+      alongside v1 on every account change.
+
+    **Consumed events**
+    - `users.userCreated.v1` — emitted by the Users service when a new user registers.
+      The loyalty service creates a new account and awards 100 welcome points.
+    - `orders.orderCompleted.v1` — emitted by the Orders service (v1 schema).
+      The loyalty service awards 50 points for the completed order.
+    - `orders.orderCompleted.v2` — emitted by the Orders service (v2 schema, field renamed).
+      The loyalty service awards 50 points for the completed order.
+
+    **Transport**
+    All events use Amazon EventBridge as the backbone. Consumed events are delivered to
+    the service through SQS queues via EventBridge rules. Published events are sent with
+    `PutEvents` wrapped in CloudEvents 1.0 envelopes and include Datadog Data Streams
+    propagation headers in a `_datadog` carrier object at the top level of the detail.
+
+defaultContentType: application/json
+
+servers:
+  loyaltyEventBus:
+    url: arn:aws:events:{region}:{accountId}:event-bus/LoyaltyService-bus-{env}
+    protocol: eventbridge
+    description: |
+      The Loyalty Service's own EventBridge event bus. In integrated environments
+      (dev/prod) events are forwarded to/from the shared event bus via EventBridge rules.
+    variables:
+      region:
+        description: AWS region
+        default: us-east-1
+      accountId:
+        description: AWS account ID
+        default: "000000000000"
+      env:
+        description: Deployment environment (e.g. dev, prod, staging)
+        default: dev
+
+channels:
+  loyalty/pointsAdded/v1:
+    description: |
+      Published by the Loyalty service whenever a loyalty account is created or updated.
+      This version is **deprecated** as of 2025-12-31 and will be superseded by
+      `loyalty.pointsAdded.v2`. Both versions are published simultaneously for every
+      account change so consumers can migrate at their own pace.
+
+      The event is triggered by a DynamoDB Stream on the LoyaltyAccountTable and published
+      via `HandleLoyaltyPointsUpdatedFunction`.
+
+      The EventBridge `detail-type` is `loyalty.pointsAdded.v1`.
+      The EventBridge `source` is `{env}.loyalty`.
+    publish:
+      operationId: publishLoyaltyPointsAddedV1
+      summary: Loyalty points updated (v1, deprecated)
+      description: |
+        Raised after any DynamoDB INSERT or MODIFY event on the loyalty accounts table.
+        The `difference` field is currently hardcoded to `50` in the publishing handler.
+      tags:
+        - name: loyalty
+        - name: deprecated
+      message:
+        $ref: '#/components/messages/LoyaltyPointsAddedV1CloudEvent'
+
+  loyalty/pointsAdded/v2:
+    description: |
+      Current version of the loyalty-points-added event. Published by the Loyalty service
+      on every loyalty account INSERT or MODIFY, alongside the deprecated v1 event.
+
+      The EventBridge `detail-type` is `loyalty.pointsAdded.v2`.
+      The EventBridge `source` is `{env}.loyalty`.
+    publish:
+      operationId: publishLoyaltyPointsAddedV2
+      summary: Loyalty points updated (v2)
+      tags:
+        - name: loyalty
+      message:
+        $ref: '#/components/messages/LoyaltyPointsAddedV2CloudEvent'
+
+  users/userCreated/v1:
+    description: |
+      Consumed by the Loyalty service from the Users domain. When received, a new loyalty
+      account is created for the user (or a pre-existing account is left unchanged due to
+      idempotency) and 100 welcome points are awarded.
+
+      EventBridge rule filter:
+      - `source`: `{env}.users`
+      - `detail-type`: `users.userCreated.v1`
+
+      The event is routed from EventBridge to the `UserCreatedQueue` SQS queue and then
+      processed by `HandleUserCreatedEventFunction`.
+    subscribe:
+      operationId: consumeUserCreatedV1
+      summary: New user registered — create loyalty account and award welcome points
+      tags:
+        - name: users
+      message:
+        $ref: '#/components/messages/UserCreatedV1CloudEvent'
+
+  orders/orderCompleted/v1:
+    description: |
+      Consumed by the Loyalty service from the Orders domain (v1 schema). When received,
+      50 points are added to the user's loyalty account for the completed order.
+      Duplicate orders for the same `orderNumber` are ignored (idempotent).
+
+      EventBridge rule filter:
+      - `source`: `{env}.orders`
+      - `detail-type`: `orders.orderCompleted.v1`
+
+      The event is routed from EventBridge to the `OrderCompletedQueue` SQS queue and
+      processed by `HandleOrderCompletedEventFunction`.
+    subscribe:
+      operationId: consumeOrderCompletedV1
+      summary: Order completed (v1) — award 50 loyalty points
+      tags:
+        - name: orders
+      message:
+        $ref: '#/components/messages/OrderCompletedV1CloudEvent'
+
+  orders/orderCompleted/v2:
+    description: |
+      Consumed by the Loyalty service from the Orders domain (v2 schema). Functionally
+      equivalent to v1 but uses `orderId` instead of `orderNumber`. When received, 50 points
+      are added to the user's loyalty account for the completed order.
+      Duplicate orders for the same `orderId` are ignored (idempotent).
+
+      EventBridge rule filter:
+      - `source`: `{env}.orders`
+      - `detail-type`: `orders.orderCompleted.v1`
+        (NOTE: the rule currently uses `orders.orderCompleted.v1` detail-type on the bus;
+        the handler discriminates v1 vs v2 from the CloudEvent `type` field inside the
+        message body.)
+
+      The event is routed from EventBridge to the `OrderCompletedQueue` SQS queue and
+      processed by `HandleOrderCompletedEventFunction`.
+    subscribe:
+      operationId: consumeOrderCompletedV2
+      summary: Order completed (v2) — award 50 loyalty points
+      tags:
+        - name: orders
+      message:
+        $ref: '#/components/messages/OrderCompletedV2CloudEvent'
+
+components:
+  messages:
+    LoyaltyPointsAddedV1CloudEvent:
+      name: loyalty.pointsAdded.v1
+      title: Loyalty Points Added — v1 (deprecated)
+      summary: |
+        Published whenever a loyalty account is created or modified. Deprecated in favour
+        of `loyalty.pointsAdded.v2`. Both versions are published simultaneously.
+      deprecated: true
+      contentType: application/json
+      headers:
+        type: object
+        description: EventBridge envelope headers
+        properties:
+          detail-type:
+            type: string
+            const: loyalty.pointsAdded.v1
+          source:
+            type: string
+            pattern: "^[a-z]+\\.loyalty$"
+            example: dev.loyalty
+      payload:
+        $ref: '#/components/schemas/LoyaltyPointsAddedV1CloudEventPayload'
+      examples:
+        - name: sampleV1Event
+          summary: Example v1 event published to EventBridge
+          payload:
+            specversion: "1.0"
+            id: "550e8400-e29b-41d4-a716-446655440000"
+            source: "loyalty"
+            type: loyalty.pointsAdded.v1
+            datacontenttype: application/json
+            time: "2024-06-01T12:00:00Z"
+            traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+            deprecationdate: "2025-12-31T00:00:00.000Z"
+            supercededby: loyalty.pointsAdded.v2
+            data:
+              newPointsTotal: 150
+              userId: "user-uuid-1234"
+            _datadog:
+              traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              dd-pathway-ctx-base64: "AAAAAAAAAA=="
+
+    LoyaltyPointsAddedV2CloudEvent:
+      name: loyalty.pointsAdded.v2
+      title: Loyalty Points Added — v2
+      summary: |
+        Published whenever a loyalty account is created or modified. Carries additional
+        `difference` field not present in v1.
+      contentType: application/json
+      headers:
+        type: object
+        description: EventBridge envelope headers
+        properties:
+          detail-type:
+            type: string
+            const: loyalty.pointsAdded.v2
+          source:
+            type: string
+            pattern: "^[a-z]+\\.loyalty$"
+            example: dev.loyalty
+      payload:
+        $ref: '#/components/schemas/LoyaltyPointsAddedV2CloudEventPayload'
+      examples:
+        - name: sampleV2Event
+          summary: Example v2 event published to EventBridge
+          payload:
+            specversion: "1.0"
+            id: "550e8400-e29b-41d4-a716-446655440000"
+            source: "loyalty"
+            type: loyalty.pointsAdded.v2
+            datacontenttype: application/json
+            time: "2024-06-01T12:00:00Z"
+            traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+            data:
+              totalPoints: 150
+              difference: 50
+              userId: "user-uuid-1234"
+            _datadog:
+              traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              dd-pathway-ctx-base64: "AAAAAAAAAA=="
+
+    UserCreatedV1CloudEvent:
+      name: users.userCreated.v1
+      title: User Created — v1
+      summary: |
+        Published by the Users service when a new user registers. The Loyalty service
+        consumes this to create a new loyalty account and award 100 welcome points.
+      contentType: application/json
+      headers:
+        type: object
+        description: EventBridge envelope headers
+        properties:
+          detail-type:
+            type: string
+            const: users.userCreated.v1
+          source:
+            type: string
+            pattern: "^[a-z]+\\.users$"
+            example: dev.users
+      payload:
+        $ref: '#/components/schemas/UserCreatedV1CloudEventPayload'
+      examples:
+        - name: sampleUserCreated
+          summary: User created event consumed from SQS/EventBridge
+          payload:
+            specversion: "1.0"
+            id: "abc12345-dead-beef-0000-000000000001"
+            source: "dev.users"
+            type: users.userCreated.v1
+            datacontenttype: application/json
+            time: "2024-06-01T09:00:00Z"
+            data:
+              userId: "user-uuid-5678"
+
+    OrderCompletedV1CloudEvent:
+      name: orders.orderCompleted.v1
+      title: Order Completed — v1
+      summary: |
+        Published by the Orders service when an order is completed (v1 schema).
+        The Loyalty service consumes this to award 50 points for the completed order.
+        Duplicate events for the same `orderNumber` are idempotently ignored.
+      contentType: application/json
+      headers:
+        type: object
+        description: EventBridge envelope headers
+        properties:
+          detail-type:
+            type: string
+            const: orders.orderCompleted.v1
+          source:
+            type: string
+            pattern: "^[a-z]+\\.orders$"
+            example: dev.orders
+      payload:
+        $ref: '#/components/schemas/OrderCompletedV1CloudEventPayload'
+      examples:
+        - name: sampleOrderCompletedV1
+          summary: Order completed v1 event consumed from SQS/EventBridge
+          payload:
+            specversion: "1.0"
+            id: "abc12345-dead-beef-0000-000000000002"
+            source: "dev.orders"
+            type: orders.orderCompleted.v1
+            datacontenttype: application/json
+            time: "2024-06-01T10:00:00Z"
+            data:
+              orderNumber: "ORD-001"
+              userId: "user-uuid-1234"
+
+    OrderCompletedV2CloudEvent:
+      name: orders.orderCompleted.v2
+      title: Order Completed — v2
+      summary: |
+        Published by the Orders service when an order is completed (v2 schema).
+        Uses `orderId` instead of `orderNumber`. The Loyalty service awards 50 points
+        for the completed order. Duplicate events for the same `orderId` are idempotently ignored.
+      contentType: application/json
+      headers:
+        type: object
+        description: EventBridge envelope headers
+        properties:
+          detail-type:
+            type: string
+            const: orders.orderCompleted.v1
+            description: |
+              Note: the EventBridge rule still matches on `orders.orderCompleted.v1` detail-type.
+              The handler discriminates v1 vs v2 from the CloudEvent `type` field in the body.
+          source:
+            type: string
+            pattern: "^[a-z]+\\.orders$"
+            example: dev.orders
+      payload:
+        $ref: '#/components/schemas/OrderCompletedV2CloudEventPayload'
+      examples:
+        - name: sampleOrderCompletedV2
+          summary: Order completed v2 event consumed from SQS/EventBridge
+          payload:
+            specversion: "1.0"
+            id: "abc12345-dead-beef-0000-000000000003"
+            source: "dev.orders"
+            type: orders.orderCompleted.v2
+            datacontenttype: application/json
+            time: "2024-06-01T11:00:00Z"
+            data:
+              orderId: "ORD-001"
+              userId: "user-uuid-1234"
+
+  schemas:
+    # -------------------------------------------------------
+    # Shared CloudEvent envelope wrapper
+    # -------------------------------------------------------
+    CloudEventEnvelope:
+      type: object
+      description: |
+        CloudEvents 1.0 envelope. All events published and consumed by this service
+        use this structure with domain-specific payloads in the `data` field.
+      required:
+        - specversion
+        - id
+        - source
+        - type
+        - datacontenttype
+      properties:
+        specversion:
+          type: string
+          description: The CloudEvents specification version.
+          const: "1.0"
+        id:
+          type: string
+          description: Unique identifier for the event (UUID).
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        source:
+          type: string
+          description: |
+            Identifies the context in which the event occurred.
+            Format: `{domain}` for published events, `{env}.{domain}` for consumed events.
+          example: "loyalty"
+        type:
+          type: string
+          description: |
+            The event type identifier in the format `{domain}.{event}.{version}`.
+          example: "loyalty.pointsAdded.v2"
+        datacontenttype:
+          type: string
+          description: The content type of the `data` field.
+          const: application/json
+        time:
+          type: string
+          format: date-time
+          description: Timestamp of when the event occurred (ISO 8601).
+          example: "2024-06-01T12:00:00Z"
+        traceparent:
+          type: string
+          description: W3C Trace Context traceparent header for distributed tracing.
+          example: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        deprecationdate:
+          type: string
+          format: date-time
+          description: |
+            ISO 8601 date after which this event version should no longer be produced.
+            Present only on deprecated event versions.
+          example: "2025-12-31T00:00:00.000Z"
+        supercededby:
+          type: string
+          description: |
+            The event type that supersedes this deprecated version.
+            Present only on deprecated event versions.
+          example: "loyalty.pointsAdded.v2"
+
+    # -------------------------------------------------------
+    # Datadog propagation carrier (present in published events)
+    # -------------------------------------------------------
+    DatadogCarrier:
+      type: object
+      description: |
+        Datadog Data Streams Management and distributed tracing carrier object.
+        Included at the top level of the EventBridge `detail` alongside the CloudEvent
+        envelope for all events published by this service.
+      properties:
+        traceparent:
+          type: string
+          description: W3C Trace Context traceparent, used for trace propagation.
+          example: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        dd-pathway-ctx-base64:
+          type: string
+          description: Base64-encoded Datadog Data Streams pathway context.
+          example: "AAAAAAAAAA=="
+
+    # -------------------------------------------------------
+    # Published event data payloads
+    # -------------------------------------------------------
+    LoyaltyPointsAddedV1Data:
+      type: object
+      description: |
+        Data payload of the `loyalty.pointsAdded.v1` event (deprecated).
+        Mapped from `LoyaltyPointsAddedV2` before publishing: `newPointsTotal` = `totalPoints`.
+      required:
+        - newPointsTotal
+        - userId
+      properties:
+        newPointsTotal:
+          type: integer
+          description: The user's total loyalty points after the update.
+          example: 150
+        userId:
+          type: string
+          description: The unique identifier of the user whose account was updated.
+          example: "user-uuid-1234"
+
+    LoyaltyPointsAddedV2Data:
+      type: object
+      description: Data payload of the `loyalty.pointsAdded.v2` event.
+      required:
+        - totalPoints
+        - difference
+        - userId
+      properties:
+        totalPoints:
+          type: integer
+          description: The user's total loyalty points after the update.
+          example: 150
+        difference:
+          type: integer
+          description: |
+            The change in points that triggered the event. Currently hardcoded to 50
+            in the `HandleLoyaltyPointsUpdatedFunction` handler.
+          example: 50
+        userId:
+          type: string
+          description: The unique identifier of the user whose account was updated.
+          example: "user-uuid-1234"
+
+    # -------------------------------------------------------
+    # Full CloudEvent payloads (envelope + data)
+    # -------------------------------------------------------
+    LoyaltyPointsAddedV1CloudEventPayload:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventEnvelope'
+        - type: object
+          properties:
+            type:
+              type: string
+              const: loyalty.pointsAdded.v1
+            data:
+              $ref: '#/components/schemas/LoyaltyPointsAddedV1Data'
+            _datadog:
+              $ref: '#/components/schemas/DatadogCarrier'
+          required:
+            - data
+            - _datadog
+
+    LoyaltyPointsAddedV2CloudEventPayload:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventEnvelope'
+        - type: object
+          properties:
+            type:
+              type: string
+              const: loyalty.pointsAdded.v2
+            data:
+              $ref: '#/components/schemas/LoyaltyPointsAddedV2Data'
+            _datadog:
+              $ref: '#/components/schemas/DatadogCarrier'
+          required:
+            - data
+            - _datadog
+
+    # -------------------------------------------------------
+    # Consumed event data payloads
+    # -------------------------------------------------------
+    UserCreatedV1Data:
+      type: object
+      description: |
+        Data payload of the `users.userCreated.v1` CloudEvent.
+        Published by the Users service; consumed by the Loyalty service to create a
+        new account and award 100 welcome points.
+      required:
+        - userId
+      properties:
+        userId:
+          type: string
+          description: The unique identifier of the newly registered user.
+          example: "user-uuid-5678"
+
+    OrderCompletedV1Data:
+      type: object
+      description: |
+        Data payload of the `orders.orderCompleted.v1` CloudEvent.
+        Published by the Orders service; consumed by the Loyalty service to award
+        50 points per completed order (idempotent on `orderNumber`).
+      required:
+        - orderNumber
+        - userId
+      properties:
+        orderNumber:
+          type: string
+          description: The unique identifier of the completed order.
+          example: "ORD-001"
+        userId:
+          type: string
+          description: The identifier of the user who placed the order.
+          example: "user-uuid-1234"
+
+    OrderCompletedV2Data:
+      type: object
+      description: |
+        Data payload of the `orders.orderCompleted.v2` CloudEvent.
+        Published by the Orders service (v2 schema, field renamed from `orderNumber` to
+        `orderId`); consumed by the Loyalty service to award 50 points per completed order
+        (idempotent on `orderId`).
+      required:
+        - orderId
+        - userId
+      properties:
+        orderId:
+          type: string
+          description: The unique identifier of the completed order.
+          example: "ORD-001"
+        userId:
+          type: string
+          description: The identifier of the user who placed the order.
+          example: "user-uuid-1234"
+
+    UserCreatedV1CloudEventPayload:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventEnvelope'
+        - type: object
+          properties:
+            type:
+              type: string
+              const: users.userCreated.v1
+            data:
+              $ref: '#/components/schemas/UserCreatedV1Data'
+          required:
+            - data
+
+    OrderCompletedV1CloudEventPayload:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventEnvelope'
+        - type: object
+          properties:
+            type:
+              type: string
+              const: orders.orderCompleted.v1
+            data:
+              $ref: '#/components/schemas/OrderCompletedV1Data'
+          required:
+            - data
+
+    OrderCompletedV2CloudEventPayload:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventEnvelope'
+        - type: object
+          properties:
+            type:
+              type: string
+              const: orders.orderCompleted.v2
+            data:
+              $ref: '#/components/schemas/OrderCompletedV2Data'
+          required:
+            - data

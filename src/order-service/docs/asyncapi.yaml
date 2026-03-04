@@ -1,0 +1,418 @@
+asyncapi: 2.6.0
+info:
+  title: Orders Service - Published Events
+  version: 1.0.0
+  description: |
+    AsyncAPI specification for all events **published** by the Orders service to the
+    shared AWS EventBridge event bus.
+
+    The Orders service publishes events at each significant lifecycle transition of an
+    order. Events are published using the CloudEvents envelope format via the
+    `EventBridgeEventPublisher` adapter and use the CloudNative.CloudEvents SDK for
+    serialisation.
+
+    ## EventBridge Source
+
+    All events originate from the source `{ENV}.orders` (e.g. `production.orders`),
+    where `ENV` is the deployment environment name.
+
+    ## Event Bus
+
+    The target event bus is configured via the `EVENT_BUS_NAME` environment variable.
+    This is the shared internal EventBridge event bus deployed alongside the service.
+
+    ## Datadog Distributed Tracing
+
+    Each event carries Datadog trace context in a `_datadog` JSON field injected into
+    the event detail payload to enable distributed tracing across service boundaries.
+
+    ## Deprecation
+
+    `orders.orderCompleted.v1` is deprecated and will be superseded by
+    `orders.orderCompleted.v2` on 2025-12-01. Consumers should migrate to v2.
+    Deprecated events carry `supercededby` and `deprecationdate` CloudEvents
+    extension attributes.
+
+defaultContentType: application/json
+
+servers:
+  aws-eventbridge:
+    url: aws.eventbridge://{eventBusName}
+    protocol: eventbridge
+    description: |
+      AWS EventBridge event bus that receives all order lifecycle events.
+      The bus name is configured at deployment time via the `EVENT_BUS_NAME`
+      environment variable (e.g. `orders-service-EventBus-dev`).
+    variables:
+      eventBusName:
+        description: The name of the shared EventBridge event bus.
+        default: orders-service-EventBus-dev
+
+channels:
+  orders.orderCreated.v1:
+    description: |
+      Channel for the `orders.orderCreated.v1` EventBridge event.
+      Published when a new order is successfully persisted and its processing
+      workflow has been started.
+
+      **EventBridge Detail Type:** `orders.orderCreated.v1`
+      **Source:** `{ENV}.orders`
+
+      This event is published synchronously as part of the `POST /orders` API
+      request flow via `EventGateway.HandleOrderCreated`.
+    publish:
+      operationId: onOrderCreatedV1
+      summary: Order created event (v1)
+      description: |
+        Consumed by downstream services that need to react to a newly placed order.
+        For example, inventory or stock reservation services listen for this event
+        to initiate stock checks and reservation.
+      message:
+        $ref: '#/components/messages/OrderCreatedV1'
+
+  orders.orderConfirmed.v1:
+    description: |
+      Channel for the `orders.orderConfirmed.v1` EventBridge event.
+      Published when an order has its stock successfully reserved and the order
+      status transitions from `Created` to `Confirmed`.
+
+      **EventBridge Detail Type:** `orders.orderConfirmed.v1`
+      **Source:** `{ENV}.orders`
+
+      This event is published by the `StockReservationSuccessHandler`, which is
+      invoked from the Step Functions order processing workflow
+      (`ReservationSuccess` Lambda) after a successful stock reservation callback.
+    publish:
+      operationId: onOrderConfirmedV1
+      summary: Order confirmed event (v1)
+      description: |
+        Consumed by downstream services (e.g. notifications, analytics) that need
+        to react when an order is confirmed and stock is reserved.
+      message:
+        $ref: '#/components/messages/OrderConfirmedV1'
+
+  orders.orderCompleted.v1:
+    description: |
+      Channel for the `orders.orderCompleted.v1` EventBridge event.
+
+      **DEPRECATED** — This event version is deprecated and will be removed on
+      2025-12-01. Superseded by `orders.orderCompleted.v2`. Consumers must migrate
+      to `orders.orderCompleted.v2` before the deprecation date.
+
+      Published when an admin marks an order as `Completed` via the
+      `POST /orders/{orderId}/complete` endpoint. Both v1 and v2 are published
+      simultaneously during the deprecation transition period.
+
+      **EventBridge Detail Type:** `orders.orderCompleted.v1`
+      **Source:** `{ENV}.orders`
+    publish:
+      operationId: onOrderCompletedV1
+      summary: Order completed event (v1) — DEPRECATED
+      description: |
+        Deprecated. Published alongside `orders.orderCompleted.v2`. Contains the
+        order number under the field name `orderNumber`. New consumers should use
+        `orders.orderCompleted.v2` instead.
+      message:
+        $ref: '#/components/messages/OrderCompletedV1'
+
+  orders.orderCompleted.v2:
+    description: |
+      Channel for the `orders.orderCompleted.v2` EventBridge event.
+      This is the current, non-deprecated version of the order completed event.
+
+      Published when an admin marks an order as `Completed` via the
+      `POST /orders/{orderId}/complete` endpoint. Both v1 and v2 are published
+      simultaneously during the deprecation transition period.
+
+      **EventBridge Detail Type:** `orders.orderCompleted.v2`
+      **Source:** `{ENV}.orders`
+
+      Key difference from v1: the order identifier field is named `orderId`
+      instead of `orderNumber`.
+    publish:
+      operationId: onOrderCompletedV2
+      summary: Order completed event (v2)
+      description: |
+        Published when an order is completed by an admin. This is the current
+        version and the one consumers should use. The order identifier field is
+        `orderId` (renamed from `orderNumber` in v1).
+      message:
+        $ref: '#/components/messages/OrderCompletedV2'
+
+components:
+  messages:
+    OrderCreatedV1:
+      name: OrderCreatedV1
+      title: Order Created (v1)
+      summary: An order has been created and its workflow started.
+      description: |
+        Published by `EventGateway.HandleOrderCreated` immediately after a new order
+        is stored in DynamoDB and the Step Functions order workflow is started.
+
+        The event is wrapped in a CloudEvents envelope before being sent to EventBridge.
+        The raw EventBridge `detail` field contains the CloudEvents JSON representation.
+        A `_datadog` object is injected into the detail for distributed trace propagation.
+      contentType: application/json
+      traits:
+        - $ref: '#/components/messageTraits/CloudEventsEnvelope'
+      payload:
+        $ref: '#/components/schemas/OrderCreatedV1Payload'
+      examples:
+        - name: StandardOrderCreated
+          summary: A standard order was created with two products
+          payload:
+            orderNumber: "ord-abc123"
+            userId: "user-456"
+            products:
+              - "prod-001"
+              - "prod-002"
+
+    OrderConfirmedV1:
+      name: OrderConfirmedV1
+      title: Order Confirmed (v1)
+      summary: An order has been confirmed after successful stock reservation.
+      description: |
+        Published by `StockReservationSuccessHandler` when the Step Functions workflow
+        invokes the `ReservationSuccess` Lambda. At this point the order status has
+        been transitioned from `Created` to `Confirmed` in DynamoDB.
+
+        The event is wrapped in a CloudEvents envelope before being sent to EventBridge.
+        Note: the `userId` field is intentionally omitted from this event payload —
+        only `orderNumber` is included.
+      contentType: application/json
+      traits:
+        - $ref: '#/components/messageTraits/CloudEventsEnvelope'
+      payload:
+        $ref: '#/components/schemas/OrderConfirmedV1Payload'
+      examples:
+        - name: OrderConfirmed
+          summary: An order was confirmed after stock was reserved
+          payload:
+            orderNumber: "ord-abc123"
+            userId: ""
+
+    OrderCompletedV1:
+      name: OrderCompletedV1
+      title: Order Completed (v1) — DEPRECATED
+      summary: An order has been completed (deprecated event version).
+      description: |
+        **Deprecated.** Published alongside `OrderCompletedV2` by
+        `EventGateway.HandleOrderCompleted` when an admin calls
+        `POST /orders/{orderId}/complete`.
+
+        This version uses the field name `orderNumber` for the order identifier.
+        It carries `supercededby: orders.orderCompleted.v2` and
+        `deprecationdate: 2025-12-01T00:00:00Z` as CloudEvents extension attributes.
+
+        Consumers must migrate to `orders.orderCompleted.v2` before 2025-12-01.
+      contentType: application/json
+      traits:
+        - $ref: '#/components/messageTraits/CloudEventsEnvelope'
+        - $ref: '#/components/messageTraits/DeprecatedEvent'
+      payload:
+        $ref: '#/components/schemas/OrderCompletedV1Payload'
+      examples:
+        - name: OrderCompleted
+          summary: An order was completed by an admin
+          payload:
+            orderNumber: "ord-abc123"
+            userId: "user-456"
+
+    OrderCompletedV2:
+      name: OrderCompletedV2
+      title: Order Completed (v2)
+      summary: An order has been completed (current event version).
+      description: |
+        Published by `EventGateway.HandleOrderCompleted` when an admin calls
+        `POST /orders/{orderId}/complete`. This is the current, non-deprecated
+        version of the order completed event.
+
+        The order identifier field is `orderId` (cf. `orderNumber` in v1).
+        Both v1 and v2 are published simultaneously until v1 is retired on
+        2025-12-01.
+      contentType: application/json
+      traits:
+        - $ref: '#/components/messageTraits/CloudEventsEnvelope'
+      payload:
+        $ref: '#/components/schemas/OrderCompletedV2Payload'
+      examples:
+        - name: OrderCompleted
+          summary: An order was completed by an admin
+          payload:
+            orderId: "ord-abc123"
+            userId: "user-456"
+
+  schemas:
+    OrderCreatedV1Payload:
+      type: object
+      description: |
+        Payload for the `orders.orderCreated.v1` event.
+        Serialised from `Orders.Core.PublicEvents.OrderCreatedEventV1`.
+      required:
+        - orderNumber
+        - userId
+        - products
+      properties:
+        orderNumber:
+          type: string
+          description: |
+            The unique order identifier (equivalent to `orderId` in API responses).
+            This is the value of `Order.OrderNumber`, which is an alias for
+            `Order.OrderId.Value`.
+          example: "ord-abc123"
+        userId:
+          type: string
+          description: The identifier of the user who placed the order.
+          example: "user-456"
+        products:
+          type: array
+          description: The list of product identifiers included in the order.
+          items:
+            type: string
+          minItems: 1
+          maxItems: 50
+          example:
+            - "prod-001"
+            - "prod-002"
+
+    OrderConfirmedV1Payload:
+      type: object
+      description: |
+        Payload for the `orders.orderConfirmed.v1` event.
+        Serialised from `Orders.Core.PublicEvents.OrderConfirmedEventV1`.
+      required:
+        - orderNumber
+      properties:
+        orderNumber:
+          type: string
+          description: |
+            The unique order identifier for the confirmed order.
+            The `userId` field is not set in this event version — consumers
+            should look up user context using the order number if needed.
+          example: "ord-abc123"
+        userId:
+          type: string
+          description: |
+            The identifier of the user who placed the order. Currently always
+            an empty string in this event version — this field is not populated
+            by the publisher.
+          example: ""
+
+    OrderCompletedV1Payload:
+      type: object
+      description: |
+        Payload for the deprecated `orders.orderCompleted.v1` event.
+        Serialised from `Orders.Core.PublicEvents.OrderCompletedEventV1`.
+        Consumers should migrate to `orders.orderCompleted.v2`.
+      required:
+        - orderNumber
+        - userId
+      properties:
+        orderNumber:
+          type: string
+          description: |
+            The unique order identifier of the completed order.
+            Note: this field is named `orderNumber` in v1. In v2 the same value
+            is exposed as `orderId`.
+          example: "ord-abc123"
+        userId:
+          type: string
+          description: The identifier of the user who owns the completed order.
+          example: "user-456"
+
+    OrderCompletedV2Payload:
+      type: object
+      description: |
+        Payload for the `orders.orderCompleted.v2` event.
+        Serialised from `Orders.Core.PublicEvents.OrderCompletedEventV2`.
+      required:
+        - orderId
+        - userId
+      properties:
+        orderId:
+          type: string
+          description: |
+            The unique order identifier of the completed order.
+            Note: this field is named `orderId` in v2 (renamed from `orderNumber`
+            in v1). The value is the same — `Order.OrderNumber` / `Order.OrderId.Value`.
+          example: "ord-abc123"
+        userId:
+          type: string
+          description: The identifier of the user who owns the completed order.
+          example: "user-456"
+
+    CloudEventsExtension:
+      type: object
+      description: |
+        Standard CloudEvents attributes injected into the EventBridge detail payload
+        by the `EventBridgeEventPublisher`. The publisher uses the
+        `CloudNative.CloudEvents.SystemTextJson.JsonEventFormatter` to serialise
+        the event in CloudEvents JSON format.
+      properties:
+        specversion:
+          type: string
+          description: CloudEvents specification version.
+          example: "1.0"
+        type:
+          type: string
+          description: EventBridge `DetailType` mirrored into the CloudEvents `type` attribute.
+          example: "orders.orderCreated.v1"
+        source:
+          type: string
+          description: EventBridge `Source` mirrored into the CloudEvents `source` attribute.
+          example: "production.orders"
+        id:
+          type: string
+          format: uuid
+          description: Unique event ID (CloudEvents `id` attribute).
+        time:
+          type: string
+          format: date-time
+          description: Event timestamp in RFC 3339 format.
+        supercededby:
+          type: string
+          description: |
+            Only present on deprecated events. The `DetailType` of the event that
+            supersedes this one.
+          example: "orders.orderCompleted.v2"
+        deprecationdate:
+          type: string
+          format: date-time
+          description: |
+            Only present on deprecated events. The ISO 8601 date on which this
+            event version will be retired.
+          example: "2025-12-01T00:00:00Z"
+        _datadog:
+          type: object
+          description: |
+            Datadog distributed tracing context injected by `SpanContextInjector`.
+            Contains trace propagation headers to enable cross-service trace
+            correlation in Datadog APM.
+          additionalProperties:
+            type: string
+
+  messageTraits:
+    CloudEventsEnvelope:
+      description: |
+        All events published by the Orders service are wrapped in a CloudEvents
+        envelope using the CloudNative.CloudEvents SDK. The EventBridge `detail`
+        field contains the full CloudEvents JSON structure including `specversion`,
+        `type`, `source`, `id`, `time`, and `data` (the domain payload).
+      headers:
+        type: object
+        properties:
+          content-type:
+            type: string
+            const: application/cloudevents+json
+
+    DeprecatedEvent:
+      description: |
+        Trait applied to deprecated event versions. The publisher logs a warning
+        and sets the following CloudEvents extension attributes:
+        - `supercededby`: the `DetailType` of the replacement event.
+        - `deprecationdate`: the ISO 8601 date when the deprecated event will
+          be retired.
+      tags:
+        - name: deprecated
+          description: This event version is deprecated. Migrate to the version
+            specified in the `supercededby` CloudEvents extension attribute.
