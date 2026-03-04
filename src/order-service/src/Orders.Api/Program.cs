@@ -1,7 +1,7 @@
 using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Asp.Versioning;
 using Orders.Api;
 using Orders.Api.CompleteOrder;

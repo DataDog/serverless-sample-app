@@ -236,7 +236,7 @@ public class OrdersApi : Construct
                             { "Host", $"http-intake.logs.{props.SharedProps.DDSite}" },
                             { "TLS", "on" },
                             { "dd_service", props.SharedProps.ServiceName },
-                            { "dd_source", "expressjs" },
+                            { "dd_source", "dotnet" },
                             { "dd_message_key", "log" },
                             { "provider", "ecs" },
                             { "apikey", props.SharedProps.DDApiKeySecret.SecretValue.UnsafeUnwrap() }

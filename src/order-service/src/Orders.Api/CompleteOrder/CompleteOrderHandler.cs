@@ -46,8 +46,8 @@ public class CompleteOrderHandler
             // Validate authorization
             if (user.UserType != "ADMIN")
             {
-                logger.LogWarning("Unauthorized order completion attempt by user {UserId} with type {UserType}", 
-                    user.UserId, user.UserType);
+                logger.LogWarning("Unauthorized order completion attempt by user with type {UserType}",
+                    user.UserType);
                 
                 return Results.Problem(
                     detail: "Only administrators can complete orders",
@@ -64,11 +64,11 @@ public class CompleteOrderHandler
 
             if (existingOrder == null)
             {
-                logger.LogWarning("Order {OrderId} not found for user {UserId}", 
-                    request.OrderId, request.UserId);
+                logger.LogWarning("Order {OrderId} not found",
+                    request.OrderId);
                 
                 return Results.Problem(
-                    detail: $"Order with ID '{request.OrderId}' not found for user '{request.UserId}'",
+                    detail: $"Order with ID '{request.OrderId}' not found",
                     title: "Order Not Found",
                     statusCode: 404,
                     extensions: new Dictionary<string, object?>
@@ -82,8 +82,8 @@ public class CompleteOrderHandler
             await orders.Store(existingOrder);
             await eventGateway.HandleOrderCompleted(existingOrder);
 
-            logger.LogInformation("Order {OrderId} completed successfully by admin {AdminUserId}", 
-                existingOrder.OrderNumber, user.UserId);
+            logger.LogInformation("Order {OrderId} completed successfully",
+                existingOrder.OrderNumber);
 
             return Results.Ok(new OrderDTO(existingOrder));
         }
@@ -122,8 +122,8 @@ public class CompleteOrderHandler
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error completing order {OrderId} for user {UserId}", 
-                request.OrderId, request.UserId);
+            logger.LogError(ex, "Unexpected error completing order {OrderId}",
+                request.OrderId);
             
             return Results.Problem(
                 detail: "An unexpected error occurred while completing the order",
