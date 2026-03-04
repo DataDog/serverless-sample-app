@@ -13,6 +13,7 @@ esbuild
     entryPoints: ["./src/loyalty-api/adapters/handleLoyaltyPointsUpdated.ts"],
     bundle: true,
     minify: true,
+    keepNames: true,
     outfile: "out/handleLoyaltyPointsUpdated/index.js",
     plugins: [ddPlugin],
     platform: "node", // allows built-in modules to be required

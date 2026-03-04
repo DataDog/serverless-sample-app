@@ -12,6 +12,7 @@ esbuild.build({
   entryPoints: ['./src/loyalty-api/adapters/spendLoyaltyPointsFunction.ts'],
   bundle: true,
   minify: true,
+  keepNames: true,
   outfile: 'out/spendLoyaltyPointsFunction/index.js',
   plugins: [ddPlugin],
   platform: 'node', // allows built-in modules to be required
