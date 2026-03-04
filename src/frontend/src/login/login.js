@@ -19,7 +19,7 @@ export function login() {
   xhr.setRequestHeader("Content-Type", "application/json");
   xhr.send(
     JSON.stringify({
-      username: username,
+      email_address: username,
       password: password,
     })
   );
@@ -61,7 +61,7 @@ export function registerUser() {
   }
 
   var xhr = new XMLHttpRequest();
-  xhr.open("POST", `${config.USER_API_ENDPOINT}/register`, true);
+  xhr.open("POST", `${config.USER_API_ENDPOINT}/user`, true);
   xhr.setRequestHeader("Content-Type", "application/json");
   xhr.send(
     JSON.stringify({

@@ -4,9 +4,7 @@
 
 using System.Text;
 using Amazon.Lambda.SNSEvents;
-using AWS.Lambda.Powertools.Logging;
 using Datadog.Trace;
-using NJsonSchema;
 
 namespace TestHarness.Lambda;
 
@@ -19,15 +17,11 @@ public static class ObservabilityExtensions
         activeSpan?.SetTag("messaging.system", "aws_sns");
         activeSpan?.SetTag("messaging.batch.message_count", evt.Records.Count);
     }
-    
+
     public static void AddToTelemetry(this SNSEvent.SNSRecord record)
     {
-        var schema = JsonSchema.FromSampleJson(record.Sns.Message);
-        Logger.LogInformation(schema.ToJson());
-        
         var processingSpan = Tracer.Instance.ActiveScope?.Span;
         processingSpan?.SetTag("messaging.message.body.size",
             Encoding.UTF8.GetByteCount(record.Sns.Message));
-        processingSpan?.SetTag("messaging.message.schema", schema.ToJson());
     }
 }

@@ -1,0 +1,313 @@
+openapi: 3.1.0
+info:
+  title: Loyalty Point Service API
+  description: |
+    REST API for the Loyalty Point Service. Allows authenticated users to retrieve their
+    current loyalty point balance and spend accumulated points.
+
+    Authentication is performed via a JWT Bearer token. The token's `sub` claim is used
+    as the `userId` to look up the loyalty account. Tokens are verified against a secret
+    stored in AWS SSM Parameter Store.
+  version: 1.0.0
+  contact:
+    name: Loyalty Team
+
+servers:
+  - url: https://{apiGatewayId}.execute-api.{region}.amazonaws.com/Prod
+    description: AWS API Gateway (SAM/CDK deployment)
+    variables:
+      apiGatewayId:
+        description: The API Gateway REST API ID assigned at deployment time
+        default: unknown
+      region:
+        description: AWS region where the service is deployed
+        default: us-east-1
+
+security:
+  - BearerAuth: []
+
+paths:
+  /loyalty:
+    get:
+      summary: Get loyalty account
+      description: |
+        Returns the current loyalty point balance for the authenticated user.
+        The `userId` is extracted from the JWT `sub` claim — no path or query parameters are required.
+
+        Returns `404` (wrapped in the standard response envelope with `success: false`) when
+        no loyalty account exists for the user.
+      operationId: getLoyaltyAccount
+      tags:
+        - Loyalty
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Loyalty account found and returned successfully.
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+                example: '*'
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+                example: '*'
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+                example: '*'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoyaltyAccountResponse'
+              examples:
+                found:
+                  summary: Account with accumulated points
+                  value:
+                    success: true
+                    message: []
+                    data:
+                      userId: "user-uuid-1234"
+                      currentPoints: 150
+        '401':
+          description: |
+            Unauthorized. The `Authorization` header is missing, the token is invalid,
+            or the JWT `sub` claim cannot be resolved to a user ID.
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Unauthorized
+        '404':
+          description: |
+            No loyalty account found for the authenticated user. Returned as HTTP 404
+            with `success: false` in the response envelope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoyaltyAccountNotFoundResponse'
+              examples:
+                notFound:
+                  summary: Account not found
+                  value:
+                    success: false
+                    message:
+                      - "Not found"
+                    data: null
+
+    post:
+      summary: Spend loyalty points
+      description: |
+        Deducts the specified number of points from the authenticated user's loyalty account.
+        The `userId` is extracted from the JWT `sub` claim.
+
+        Returns `400` when the account is not found or when the user does not have enough
+        points to satisfy the request. The response body contains a `success: false` envelope
+        with a descriptive `message` array.
+
+        Optimistic locking is applied at the persistence layer. Up to 3 retries are attempted
+        on concurrent modification conflicts before returning an error.
+      operationId: spendLoyaltyPoints
+      tags:
+        - Loyalty
+      security:
+        - BearerAuth: []
+      requestBody:
+        description: The number of points to spend from the authenticated user's account.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpendPointsRequest'
+            examples:
+              spendPoints:
+                summary: Spend 50 points
+                value:
+                  points: 50
+      responses:
+        '201':
+          description: Points spent successfully. Returns the updated account balance.
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+                example: '*'
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+                example: 'Content-Type'
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+                example: 'POST,GET,PUT,DELETE'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoyaltyAccountResponse'
+              examples:
+                success:
+                  summary: Points spent, updated balance returned
+                  value:
+                    success: true
+                    message: []
+                    data:
+                      userId: "user-uuid-1234"
+                      currentPoints: 100
+        '400':
+          description: |
+            Bad request. Possible reasons:
+            - Request body is missing or cannot be parsed.
+            - Account not found for the authenticated user.
+            - User does not have sufficient points to complete the spend.
+            - Concurrent modification conflict could not be resolved after 3 retries.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpendPointsErrorResponse'
+              examples:
+                insufficientPoints:
+                  summary: Not enough points
+                  value:
+                    success: false
+                    message:
+                      - "You don't have enough points"
+                    data:
+                      userId: "user-uuid-1234"
+                      currentPoints: 30
+                notFound:
+                  summary: Account not found
+                  value:
+                    success: false
+                    message:
+                      - "Not found"
+                    data: null
+                concurrentModification:
+                  summary: Concurrent modification after max retries
+                  value:
+                    success: false
+                    message:
+                      - "Concurrent modification conflict after retries"
+                    data: null
+        '401':
+          description: |
+            Unauthorized. The `Authorization` header is missing, the token is invalid,
+            or the JWT `sub` claim cannot be resolved to a user ID.
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Unauthorized
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT signed with a shared secret stored in AWS SSM Parameter Store.
+        The token's `sub` claim is used as the `userId` for all operations.
+        Tokens should have a reasonable expiry (e.g. 1 hour).
+
+  schemas:
+    LoyaltyPointsDTO:
+      type: object
+      description: The loyalty account data transfer object returned in API responses.
+      required:
+        - userId
+        - currentPoints
+      properties:
+        userId:
+          type: string
+          description: The unique identifier of the user who owns this loyalty account.
+          example: "user-uuid-1234"
+        currentPoints:
+          type: integer
+          description: The current point balance on the loyalty account.
+          example: 150
+
+    LoyaltyAccountResponse:
+      type: object
+      description: Standard success response envelope wrapping a LoyaltyPointsDTO.
+      required:
+        - success
+        - message
+        - data
+      properties:
+        success:
+          type: boolean
+          description: Indicates whether the operation succeeded.
+          example: true
+        message:
+          type: array
+          description: List of informational or error messages. Empty on success.
+          items:
+            type: string
+          example: []
+        data:
+          $ref: '#/components/schemas/LoyaltyPointsDTO'
+
+    LoyaltyAccountNotFoundResponse:
+      type: object
+      description: Response envelope returned when the loyalty account is not found.
+      required:
+        - success
+        - message
+        - data
+      properties:
+        success:
+          type: boolean
+          description: Always false when the account is not found.
+          example: false
+        message:
+          type: array
+          description: Human-readable reason for the failure.
+          items:
+            type: string
+          example:
+            - "Not found"
+        data:
+          type: 'null'
+          description: Always null when no account is found.
+
+    SpendPointsRequest:
+      type: object
+      description: Request body for spending loyalty points.
+      required:
+        - points
+      properties:
+        points:
+          type: integer
+          description: |
+            The number of points to deduct from the user's loyalty account.
+            Must be a positive integer and must not exceed the user's current balance.
+          example: 50
+
+    SpendPointsErrorResponse:
+      type: object
+      description: Response envelope returned when the spend-points operation fails.
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Always false on failure.
+          example: false
+        message:
+          type: array
+          description: One or more human-readable error messages describing the failure.
+          items:
+            type: string
+          example:
+            - "You don't have enough points"
+        data:
+          description: The current loyalty account state if available, otherwise null.
+          oneOf:
+            - $ref: '#/components/schemas/LoyaltyPointsDTO'
+            - type: 'null'
+
+tags:
+  - name: Loyalty
+    description: Operations for managing loyalty point balances.

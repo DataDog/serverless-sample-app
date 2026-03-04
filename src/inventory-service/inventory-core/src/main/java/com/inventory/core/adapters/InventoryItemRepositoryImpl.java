@@ -10,10 +10,11 @@ import com.inventory.core.DataAccessException;
 import com.inventory.core.InventoryItem;
 import com.inventory.core.InventoryItemNotFoundException;
 import com.inventory.core.InventoryItemRepository;
+import com.inventory.core.StaleItemException;
 import com.inventory.core.config.AppConfig;
 
-import io.opentracing.Span;
-import io.opentracing.util.GlobalTracer;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Context;
 import io.quarkus.cache.CacheInvalidate;
 import io.quarkus.cache.CacheInvalidateAll;
 import io.quarkus.cache.CacheResult;
@@ -41,6 +42,7 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
     private static final String RESERVED_STOCK_LEVEL_KEY = "reservedStockLevel";
     private static final String RESERVED_STOCK_ORDERS_KEY = "stockOrders";
     private static final String TYPE_KEY = "Type";
+    private static final String VERSION_KEY = "itemVersion";
 
     @Inject
     public InventoryItemRepositoryImpl(DynamoDbClient dynamoDB, AppConfig appConfig) {
@@ -51,10 +53,10 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
     @Override
     @CacheResult(cacheName = "inventory-cache")
     public InventoryItem withProductId(String productId) throws DataAccessException, InventoryItemNotFoundException {
-        final Span span = GlobalTracer.get().activeSpan();
-        if (span != null) {
-            span.setTag("cache.inventory.operation", "get");
-            span.setTag("product.id", productId);
+        final Span span = Span.fromContext(Context.current());
+        if (span.getSpanContext().isValid()) {
+            span.setAttribute("cache.inventory.operation", "get");
+            span.setAttribute("product.id", productId);
         }
 
         HashMap<String, AttributeValue> key = new HashMap<>();
@@ -74,24 +76,28 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
             Map<String, AttributeValue> item = result.item();
 
             if (item.isEmpty() || !item.containsKey(PRODUCT_ID_KEY)) {
-                if (span != null) {
-                    span.setTag("product.found", false);
+                if (span.getSpanContext().isValid()) {
+                    span.setAttribute("product.found", false);
                 }
                 throw new InventoryItemNotFoundException(productId);
             }
 
-            if (span != null) {
-                span.setTag("db.wcu", result.consumedCapacity().writeCapacityUnits());
-                span.setTag("db.rcu", result.consumedCapacity().readCapacityUnits());
-                span.setTag("product.found", true);
+            if (span.getSpanContext().isValid()) {
+                span.setAttribute("db.wcu", result.consumedCapacity().writeCapacityUnits());
+                span.setAttribute("db.rcu", result.consumedCapacity().readCapacityUnits());
+                span.setAttribute("product.found", true);
             }
 
             ArrayList<String> orders = new ArrayList<>(item.get(RESERVED_STOCK_ORDERS_KEY).ss());
+            long version = item.containsKey(VERSION_KEY)
+                    ? Long.parseLong(item.get(VERSION_KEY).n())
+                    : 0;
             return new InventoryItem(
                     item.get(PARTITION_KEY).s(),
                     Double.parseDouble(item.get(STOCK_LEVEL_KEY).n()),
                     Double.parseDouble(item.get(RESERVED_STOCK_LEVEL_KEY).n()),
-                    orders
+                    orders,
+                    version
             );
         }
         catch (AwsServiceException |
@@ -104,11 +110,14 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
     @Override
     @CacheInvalidate(cacheName = "inventory-cache")
     public void update(InventoryItem product) throws DataAccessException  {
-        final Span span = GlobalTracer.get().activeSpan();
-        if (span != null) {
-            span.setTag("cache.inventory.operation", "invalidate");
-            span.setTag("product.id", product.getProductId());
+        final Span span = Span.fromContext(Context.current());
+        if (span.getSpanContext().isValid()) {
+            span.setAttribute("cache.inventory.operation", "invalidate");
+            span.setAttribute("product.id", product.getProductId());
         }
+
+        long currentVersion = product.getVersion();
+        product.incrementVersion();
 
         HashMap<String, AttributeValue> item = new HashMap<>();
         item.put(PARTITION_KEY, AttributeValue.fromS(product.getProductId()));
@@ -117,22 +126,43 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
         item.put(STOCK_LEVEL_KEY, AttributeValue.fromN(product.getCurrentStockLevel().toString()));
         item.put(RESERVED_STOCK_LEVEL_KEY, AttributeValue.fromN(product.getReservedStockLevel().toString()));
         item.put(RESERVED_STOCK_ORDERS_KEY, AttributeValue.fromSs(product.getReservedStockOrders()));
+        item.put(VERSION_KEY, AttributeValue.fromN(Long.toString(product.getVersion())));
+
+        HashMap<String, AttributeValue> expressionValues = new HashMap<>();
+        expressionValues.put(":expectedVersion", AttributeValue.fromN(Long.toString(currentVersion)));
+
+        String conditionExpression;
+        if (currentVersion == 0) {
+            conditionExpression = "attribute_not_exists(" + VERSION_KEY + ") OR " + VERSION_KEY + " = :expectedVersion";
+        } else {
+            conditionExpression = VERSION_KEY + " = :expectedVersion";
+        }
 
         PutItemRequest putItemRequest = PutItemRequest.builder()
                 .tableName(appConfig.getTableName())
                 .item(item)
+                .conditionExpression(conditionExpression)
+                .expressionAttributeValues(expressionValues)
                 .returnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
                 .build();
-        try{
+        try {
 
             var response = this.dynamoDB.putItem(putItemRequest);
 
-            if (span != null) {
-                span.setTag("db.wcu", response.consumedCapacity().writeCapacityUnits());
-                span.setTag("db.rcu", response.consumedCapacity().readCapacityUnits());
-                span.setTag("product.found", true);
+            if (span.getSpanContext().isValid()) {
+                span.setAttribute("db.wcu", response.consumedCapacity().writeCapacityUnits());
+                span.setAttribute("db.rcu", response.consumedCapacity().readCapacityUnits());
+                span.setAttribute("product.found", true);
             }
-            logger.info("Updated inventory item in DynamoDB: {}", product.getProductId());
+            logger.info("Updated inventory item in DynamoDB: {} (version {} -> {})",
+                    product.getProductId(), currentVersion, product.getVersion());
+        }
+        catch (ConditionalCheckFailedException e) {
+            // Revert the version increment since the write did not succeed
+            product.setVersion(currentVersion);
+            logger.warn("Optimistic lock conflict for item {}: expected version {}",
+                    product.getProductId(), currentVersion);
+            throw new StaleItemException(product.getProductId(), e);
         }
         catch (AwsServiceException |
             SdkClientException e) {

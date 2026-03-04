@@ -8,15 +8,16 @@ package com.inventory.core.adapters;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
+import org.jboss.logging.Logger;
 import software.amazon.awssdk.http.crt.AwsCrtHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
-import software.amazon.awssdk.services.eventbridge.model.ListEventBusesRequest;
 
 import java.time.Duration;
 
 @ApplicationScoped
 public class EventBridgeClientProducer {
+    private static final Logger LOG = Logger.getLogger(EventBridgeClientProducer.class.getName());
 
     @Produces
     @ApplicationScoped
@@ -29,8 +30,8 @@ public class EventBridgeClientProducer {
                         .maxConcurrency(100))
                 .build();
 
-        client.listEventBuses(ListEventBusesRequest.builder().build());
-        
+        LOG.info("EventBridge client created");
+
         return client;
     }
 }

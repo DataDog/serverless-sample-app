@@ -1,0 +1,185 @@
+openapi: 3.1.0
+
+info:
+  title: Activity Service REST API
+  description: >
+    Serverless activity tracking service. Provides a read-only REST API for
+    retrieving activity records associated with any entity (product, user,
+    order, etc.).  Activity records are created asynchronously by processing
+    domain events from EventBridge via SQS.
+  version: 1.0.0
+  contact:
+    name: Analytics Team
+
+servers:
+  - url: https://{apiId}.execute-api.{region}.amazonaws.com/Prod
+    description: AWS API Gateway (SAM deployment)
+    variables:
+      apiId:
+        description: API Gateway REST API identifier
+        default: "xxxxxxxxxx"
+      region:
+        description: AWS region
+        default: us-east-1
+  - url: https://{apiId}.execute-api.{region}.amazonaws.com/{env}
+    description: AWS API Gateway (Terraform deployment)
+    variables:
+      apiId:
+        description: API Gateway REST API identifier
+        default: "xxxxxxxxxx"
+      region:
+        description: AWS region
+        default: us-east-1
+      env:
+        description: Deployment environment
+        default: dev
+
+tags:
+  - name: Activity
+    description: Activity retrieval operations
+
+paths:
+  /api/activity/{entity_type}/{entity_id}:
+    get:
+      tags:
+        - Activity
+      summary: Get activities for an entity
+      description: >
+        Returns all recorded activity items for the specified entity. Activities
+        are stored when domain events (product created/updated/deleted, user
+        registered, order lifecycle, inventory changes) are received and
+        processed from EventBridge via SQS.
+      operationId: handle_get_activities
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          description: >
+            The category of entity whose activities are being requested.
+            Typical values are `product`, `user`, and `order`.
+          schema:
+            type: string
+            minLength: 1
+          example: product
+        - name: entity_id
+          in: path
+          required: true
+          description: >
+            The unique identifier of the entity whose activities are being
+            requested. For products this is the product ID, for users the user
+            ID, and for orders the order number.
+          schema:
+            type: string
+            minLength: 1
+          example: "prod-12345"
+      responses:
+        "200":
+          description: >
+            Activity record for the requested entity. If no activities have
+            been recorded yet, an empty `activities` list is returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+              examples:
+                product_with_activities:
+                  summary: Product with multiple activity entries
+                  value:
+                    entity_id: "prod-12345"
+                    entity_type: "product"
+                    activities:
+                      - type: "product.productCreated.v1"
+                        activity_time: 1700000000000
+                      - type: "product.productUpdated.v1"
+                        activity_time: 1700001000000
+                empty_entity:
+                  summary: Entity with no recorded activities
+                  value:
+                    entity_id: "prod-99999"
+                    entity_type: "product"
+                    activities: []
+        "500":
+          description: >
+            An unexpected error occurred while retrieving activities, for
+            example a DynamoDB connectivity failure.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalServerErrorOutput"
+              example:
+                error: "internal server error"
+
+components:
+  schemas:
+    Activity:
+      type: object
+      description: >
+        Aggregated activity record for a single entity. Contains all activity
+        items that have been recorded for the entity, ordered by insertion
+        sequence.
+      required:
+        - entity_id
+        - entity_type
+        - activities
+      properties:
+        entity_id:
+          type: string
+          minLength: 1
+          description: The unique identifier of the underlying entity.
+          example: "prod-12345"
+        entity_type:
+          type: string
+          minLength: 1
+          description: >
+            The category of entity, e.g. `product`, `user`, or `order`.
+          example: "product"
+        activities:
+          type: array
+          description: >
+            Chronologically ordered list of activity items recorded for this
+            entity.
+          items:
+            $ref: "#/components/schemas/ActivityItem"
+
+    ActivityItem:
+      type: object
+      description: A single activity event recorded against an entity.
+      required:
+        - type
+        - activity_time
+      properties:
+        type:
+          type: string
+          minLength: 1
+          description: >
+            The event type string that generated this activity record.
+            Corresponds directly to the EventBridge `detail-type` of the
+            originating domain event, e.g. `product.productCreated.v1`.
+          example: "product.productCreated.v1"
+        activity_time:
+          type: integer
+          format: int64
+          description: >
+            The time the originating event occurred, expressed as a Unix epoch
+            timestamp in milliseconds.
+          example: 1700000000000
+
+    InternalServerErrorOutput:
+      type: object
+      description: Response body returned when an internal server error occurs.
+      properties:
+        error:
+          type: string
+          description: Human-readable error description.
+          default: "internal server error"
+          example: "internal server error"
+
+    InvalidRestApiRequest:
+      type: object
+      description: Response body returned when the request is invalid.
+      properties:
+        error:
+          type: string
+          description: Human-readable error description.
+          default: "invalid request"
+          example: "invalid request"

@@ -18,15 +18,15 @@ public class HandlerFunctions(IEventStore eventStore)
     public async Task HandleSns(SNSEvent evt)
     {
         Logger.LogInformation("Handling SNS Event");
-        
+
         var activeSpan = Tracer.Instance.ActiveScope?.Span;
         evt.AddToTelemetry();
 
         foreach (var record in evt.Records)
         {
-            Logger.LogInformation($"Handling SNS message from {record.Sns.TopicArn}");
-            
-            var processingSpan = Tracer.Instance.StartActive($"process {record.Sns.TopicArn}", new SpanCreationSettings()
+            Logger.LogInformation("Handling SNS message from {TopicArn}", record.Sns.TopicArn);
+
+            using var processingSpan = Tracer.Instance.StartActive($"process {record.Sns.TopicArn}", new SpanCreationSettings()
             {
                 Parent = activeSpan?.Context
             });
@@ -39,25 +39,20 @@ public class HandlerFunctions(IEventStore eventStore)
                 var root = document.RootElement;
 
                 var keyName = Environment.GetEnvironmentVariable("KEY_PROPERTY_NAME") ?? "unknown";
-                
+
                 if (root.TryGetProperty(keyName, out JsonElement orderIdentifierElement))
                 {
                     await eventStore.Store(new ReceivedEvent(orderIdentifierElement.GetString() ?? "unknown", record.Sns.Message, record.Sns.TopicArn, DateTime.Now, record.Sns.TopicArn));
                 }
                 else
                 {
-                    Logger.LogInformation($"Key property named '{keyName}'  not found.");
+                    Logger.LogInformation("Key property named {KeyName} not found", keyName);
                 }
-
-                processingSpan.Close();
             }
             catch (Exception e)
             {
                 Logger.LogError(e, "Failure processing event");
-            }
-            finally
-            {
-                processingSpan.Close();
+                processingSpan.Span.SetException(e);
             }
         }
     }
@@ -66,10 +61,10 @@ public class HandlerFunctions(IEventStore eventStore)
     public async Task HandleEventBridge(CloudWatchEvent<JsonObject> evt)
     {
         var activeSpan = Tracer.Instance.ActiveScope?.Span;
-        
-        Logger.LogInformation($"Handling EventBridge event from {evt.Source} with type {evt.DetailType}");
 
-        var processingSpan = Tracer.Instance.StartActive($"process {evt.DetailType}", new SpanCreationSettings()
+        Logger.LogInformation("Handling EventBridge event from {Source} with type {DetailType}", evt.Source, evt.DetailType);
+
+        using var processingSpan = Tracer.Instance.StartActive($"process {evt.DetailType}", new SpanCreationSettings()
         {
             Parent = activeSpan?.Context
         });
@@ -87,8 +82,7 @@ public class HandlerFunctions(IEventStore eventStore)
             {
                 conversationId = conversationIdElement.GetString();
             }
-            
-            // First try to extract from the data property
+
             if (root.TryGetProperty("data", out JsonElement dataElement))
             {
                 if (dataElement.TryGetProperty(keyName, out JsonElement childOrderIdentifierElement))
@@ -96,29 +90,20 @@ public class HandlerFunctions(IEventStore eventStore)
                     await eventStore.Store(new ReceivedEvent(childOrderIdentifierElement.GetString() ?? "unknown", evt.Detail.ToJsonString(), evt.DetailType, DateTime.Now, evt.Source, conversationId));
                 }
 
-                processingSpan.Close();
                 return;
             }
-            else
-            {
-                Logger.LogInformation($"Data property not found.");
-            }
-            
-            // Then try to extract from a top level property
+
+            Logger.LogInformation("Data property not found in event from {Source}", evt.Source);
+
             if (root.TryGetProperty(keyName, out JsonElement orderIdentifierElement))
             {
                 await eventStore.Store(new ReceivedEvent(orderIdentifierElement.GetString() ?? "unknown", evt.Detail.ToJsonString(), evt.DetailType, DateTime.Now, evt.Source, conversationId));
             }
-
-            processingSpan.Close();
         }
         catch (Exception e)
         {
             Logger.LogError(e, "Failure processing event");
-        }
-        finally
-        {
-            processingSpan.Close();
+            processingSpan.Span.SetException(e);
         }
     }
 }

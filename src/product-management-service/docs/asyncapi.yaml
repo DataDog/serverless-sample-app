@@ -1,0 +1,894 @@
+asyncapi: 2.6.0
+info:
+  title: Product Management Service – Async API
+  description: |
+    Describes all events **published** by the Product Management Service and
+    the external events it **subscribes** to.
+
+    ## Publishing architecture
+
+    Events flow through two stages before reaching downstream consumers:
+
+    1. **Outbox pattern (private SNS topics)** – When a product is created,
+       updated, or deleted the domain handler writes a record to an Aurora DSQL
+       outbox table and returns. A scheduled Lambda (`outbox-processor`) polls
+       the table every 60 seconds and publishes a `CloudEvent`-wrapped message
+       to one of three internal SNS topics:
+       - `ProductService-ProductCreated-{env}`
+       - `ProductService-ProductUpdated-{env}`
+       - `ProductService-ProductDeleted-{env}`
+
+    2. **Public event publisher (EventBridge)** – An SQS queue fans-out from
+       all three private SNS topics. A Lambda (`public-event-publisher`) reads
+       the queue and re-publishes simplified `v1` events to the shared
+       EventBridge bus with source `{env}.products`.
+
+    ## Subscription architecture (ACL)
+
+    The service subscribes to two external event types via an Anti-Corruption
+    Layer (ACL):
+
+    - `inventory.stockUpdated.v1` – published by the Inventory service on the
+      shared EventBridge bus. An EventBridge rule routes these to an SQS queue
+      consumed by the `inventory-stock-updated-event-handler` Lambda.
+    - `pricing.pricingCalculated.v1` – published by the Pricing service on
+      the shared EventBridge bus. An EventBridge rule routes these to an SQS
+      queue consumed by the `pricing-changed-handler` Lambda.
+
+    ## Message envelope
+
+    All messages use the CloudEvents 1.0 specification with additional
+    Datadog trace-propagation metadata:
+
+    ```json
+    {
+      "specversion": "1.0",
+      "id":          "<uuid>",
+      "type":        "<event-type>",
+      "source":      "<env>.products",
+      "time":        "<RFC3339>",
+      "traceparent": "00-<trace-id>-<span-id>-01",
+      "data":        { ... }
+    }
+    ```
+  version: 1.0.0
+  contact:
+    name: Datadog Serverless Sample
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+defaultContentType: application/json
+
+servers:
+  sharedEventBus:
+    url: arn:aws:events:{region}:{accountId}:event-bus/{env}-shared
+    protocol: aws-eventbridge
+    description: |
+      The shared Amazon EventBridge event bus used for inter-service
+      communication. Public product events are published here. External events
+      (inventory, pricing) are consumed from here via EventBridge rules that
+      forward matching events to per-service SQS queues.
+    variables:
+      region:
+        description: AWS region
+        default: us-east-1
+      accountId:
+        description: AWS account ID
+      env:
+        description: Deployment environment (dev, staging, prod)
+        default: dev
+
+  productCreatedTopic:
+    url: arn:aws:sns:{region}:{accountId}:{ServiceName}-ProductCreated-{env}
+    protocol: sns
+    description: |
+      Internal SNS topic for `product.productCreated` private events.
+      Used by the outbox-processor to publish and by the
+      public-event-publisher to consume.
+    variables:
+      region:
+        description: AWS region
+        default: us-east-1
+      accountId:
+        description: AWS account ID
+      ServiceName:
+        default: ProductService
+      env:
+        default: dev
+
+  productUpdatedTopic:
+    url: arn:aws:sns:{region}:{accountId}:{ServiceName}-ProductUpdated-{env}
+    protocol: sns
+    description: |
+      Internal SNS topic for `product.productUpdated` private events.
+    variables:
+      region:
+        description: AWS region
+        default: us-east-1
+      accountId:
+        description: AWS account ID
+      ServiceName:
+        default: ProductService
+      env:
+        default: dev
+
+  productDeletedTopic:
+    url: arn:aws:sns:{region}:{accountId}:{ServiceName}-ProductDeleted-{env}
+    protocol: sns
+    description: |
+      Internal SNS topic for `product.productDeleted` private events.
+    variables:
+      region:
+        description: AWS region
+        default: us-east-1
+      accountId:
+        description: AWS account ID
+      ServiceName:
+        default: ProductService
+      env:
+        default: dev
+
+channels:
+  # ---------------------------------------------------------------------------
+  # PUBLIC events published to the shared EventBridge bus
+  # ---------------------------------------------------------------------------
+  product/productCreated/v1:
+    description: |
+      Channel on the shared EventBridge bus for the public
+      `product.productCreated.v1` event. The service publishes here after the
+      outbox-processor forwards the private event through the
+      public-event-publisher Lambda.
+
+      EventBridge detail-type: `product.productCreated.v1`
+      EventBridge source: `{env}.products`
+    servers:
+      - sharedEventBus
+    publish:
+      operationId: publishProductCreatedV1
+      summary: A new product was created
+      description: |
+        Published to the shared EventBridge bus when a new product has been
+        successfully stored in the catalogue. Downstream services (e.g. the
+        Pricing service) subscribe to this event to initialise their own
+        records for the new product.
+
+        **Event flow:**
+        1. `POST /product` handler writes a `product.productCreated` entry to
+           the Aurora DSQL outbox table containing the full
+           `ProductCreatedEvent` payload (productId, name, price).
+        2. The scheduled `outbox-processor` Lambda reads the outbox and
+           publishes the event to the private `ProductCreated` SNS topic,
+           wrapped in a CloudEvent envelope.
+        3. An SQS subscription fans-out to the `PublicEventPublisherQueue`.
+        4. The `public-event-publisher` Lambda consumes the queue, extracts
+           only the `productId`, and publishes
+           `product.productCreated.v1` to the shared EventBridge bus.
+      message:
+        $ref: "#/components/messages/ProductCreatedV1"
+
+  product/productUpdated/v1:
+    description: |
+      Channel on the shared EventBridge bus for the public
+      `product.productUpdated.v1` event.
+
+      EventBridge detail-type: `product.productUpdated.v1`
+      EventBridge source: `{env}.products`
+    servers:
+      - sharedEventBus
+    publish:
+      operationId: publishProductUpdatedV1
+      summary: An existing product was updated
+      description: |
+        Published to the shared EventBridge bus when a product's name or price
+        has been changed.
+
+        **Event flow:**
+        1. `PUT /product` handler writes a `product.productUpdated` outbox
+           entry containing the full `ProductUpdatedEvent` (productId, previous
+           and new name/price).
+        2. The `outbox-processor` publishes to the private `ProductUpdated`
+           SNS topic.
+        3. The `public-event-publisher` publishes
+           `product.productUpdated.v1` (containing only `productId`) to
+           EventBridge.
+      message:
+        $ref: "#/components/messages/ProductUpdatedV1"
+
+  product/productDeleted/v1:
+    description: |
+      Channel on the shared EventBridge bus for the public
+      `product.productDeleted.v1` event.
+
+      EventBridge detail-type: `product.productDeleted.v1`
+      EventBridge source: `{env}.products`
+    servers:
+      - sharedEventBus
+    publish:
+      operationId: publishProductDeletedV1
+      summary: A product was deleted from the catalogue
+      description: |
+        Published to the shared EventBridge bus when a product has been
+        permanently removed from the catalogue.
+
+        **Event flow:**
+        1. `DELETE /product/{productId}` handler writes a
+           `product.productDeleted` outbox entry containing the
+           `ProductDeletedEvent` (productId).
+        2. The `outbox-processor` publishes to the private `ProductDeleted`
+           SNS topic.
+        3. The `public-event-publisher` publishes
+           `product.productDeleted.v1` (containing only `productId`) to
+           EventBridge.
+      message:
+        $ref: "#/components/messages/ProductDeletedV1"
+
+  # ---------------------------------------------------------------------------
+  # PRIVATE events on internal SNS topics (outbox-processor output)
+  # ---------------------------------------------------------------------------
+  internal/sns/product/productCreated:
+    description: |
+      Internal SNS topic carrying the private `product.productCreated` event.
+      Published by the `outbox-processor` Lambda; consumed by the
+      `public-event-publisher` via an SQS subscription.
+    servers:
+      - productCreatedTopic
+    publish:
+      operationId: publishPrivateProductCreated
+      summary: Internal product-created event (outbox output)
+      description: |
+        Contains the full product details at creation time. Only consumed
+        within the service boundary by the public-event-publisher.
+      message:
+        $ref: "#/components/messages/PrivateProductCreated"
+
+  internal/sns/product/productUpdated:
+    description: |
+      Internal SNS topic carrying the private `product.productUpdated` event.
+    servers:
+      - productUpdatedTopic
+    publish:
+      operationId: publishPrivateProductUpdated
+      summary: Internal product-updated event (outbox output)
+      description: |
+        Contains the previous and new product details at update time. Only
+        consumed within the service boundary by the public-event-publisher.
+      message:
+        $ref: "#/components/messages/PrivateProductUpdated"
+
+  internal/sns/product/productDeleted:
+    description: |
+      Internal SNS topic carrying the private `product.productDeleted` event.
+    servers:
+      - productDeletedTopic
+    publish:
+      operationId: publishPrivateProductDeleted
+      summary: Internal product-deleted event (outbox output)
+      description: |
+        Contains the deleted product's ID. Only consumed within the service
+        boundary by the public-event-publisher.
+      message:
+        $ref: "#/components/messages/PrivateProductDeleted"
+
+  # ---------------------------------------------------------------------------
+  # SUBSCRIBED events from external services (ACL input)
+  # ---------------------------------------------------------------------------
+  inventory/stockUpdated/v1:
+    description: |
+      EventBridge channel for `inventory.stockUpdated.v1` events published
+      by the Inventory service on the shared bus. An EventBridge rule forwards
+      matching events (source `{env}.inventory`) to the
+      `ProductStockUpdatedEventQueue` SQS queue, which is consumed by the
+      `inventory-stock-updated-event-handler` Lambda.
+
+      EventBridge detail-type: `inventory.stockUpdated.v1`
+      EventBridge source: `{env}.inventory`
+    servers:
+      - sharedEventBus
+    subscribe:
+      operationId: receiveInventoryStockUpdated
+      summary: Inventory stock level changed for a product
+      description: |
+        When received, the ACL Lambda translates the public event into the
+        internal `StockUpdatedEvent` format and updates the product's
+        `stockLevel` field in the DSQL database.
+      message:
+        $ref: "#/components/messages/InventoryStockUpdatedV1"
+
+  pricing/pricingCalculated/v1:
+    description: |
+      EventBridge channel for `pricing.pricingCalculated.v1` events published
+      by the Pricing service on the shared bus. An EventBridge rule forwards
+      matching events (source `{env}.pricing`) to the
+      `ProductPricingUpdatedEventQueue` SQS queue, which is consumed by the
+      `pricing-changed-handler` Lambda.
+
+      EventBridge detail-type: `pricing.pricingCalculated.v1`
+      EventBridge source: `{env}.pricing`
+    servers:
+      - sharedEventBus
+    subscribe:
+      operationId: receivePricingCalculated
+      summary: Pricing brackets calculated for a product
+      description: |
+        When received, the ACL Lambda translates the public event into the
+        internal `PriceCalculatedEvent` format and replaces the product's
+        `pricingBrackets` in the DSQL database.
+      message:
+        $ref: "#/components/messages/PricingCalculatedV1"
+
+components:
+  messages:
+    # -------------------------------------------------------------------------
+    # Public events (EventBridge – outbound)
+    # -------------------------------------------------------------------------
+    ProductCreatedV1:
+      name: product.productCreated.v1
+      title: Product Created (v1)
+      summary: A new product has been added to the catalogue.
+      description: |
+        The minimal public event emitted to the shared EventBridge bus when a
+        product is created. Downstream services use `productId` to fetch full
+        details from the Product API if required.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/CloudEventProductCreatedV1"
+      examples:
+        - name: exampleProductCreatedV1
+          summary: Example product.productCreated.v1 EventBridge event
+          payload:
+            specversion: "1.0"
+            id: 550e8400-e29b-41d4-a716-446655440000
+            type: product.productCreated.v1
+            source: dev.products
+            time: "2024-01-15T10:30:00Z"
+            traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+            data:
+              productId: FLATWHITE
+
+    ProductUpdatedV1:
+      name: product.productUpdated.v1
+      title: Product Updated (v1)
+      summary: An existing product has been modified.
+      description: |
+        The minimal public event emitted to the shared EventBridge bus when a
+        product's name or price changes. Contains only the `productId`; consumers
+        should query the Product API for the current state if full details are
+        needed.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/CloudEventProductUpdatedV1"
+      examples:
+        - name: exampleProductUpdatedV1
+          summary: Example product.productUpdated.v1 EventBridge event
+          payload:
+            specversion: "1.0"
+            id: 660e8400-e29b-41d4-a716-446655440001
+            type: product.productUpdated.v1
+            source: dev.products
+            time: "2024-01-15T11:00:00Z"
+            traceparent: 00-5bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b8-01
+            data:
+              productId: FLATWHITE
+
+    ProductDeletedV1:
+      name: product.productDeleted.v1
+      title: Product Deleted (v1)
+      summary: A product has been removed from the catalogue.
+      description: |
+        The minimal public event emitted to the shared EventBridge bus when a
+        product is deleted. Contains only the `productId` so that downstream
+        services can remove their own records.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/CloudEventProductDeletedV1"
+      examples:
+        - name: exampleProductDeletedV1
+          summary: Example product.productDeleted.v1 EventBridge event
+          payload:
+            specversion: "1.0"
+            id: 770e8400-e29b-41d4-a716-446655440002
+            type: product.productDeleted.v1
+            source: dev.products
+            time: "2024-01-15T12:00:00Z"
+            traceparent: 00-6bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b9-01
+            data:
+              productId: FLATWHITE
+
+    # -------------------------------------------------------------------------
+    # Private events (internal SNS topics – outbox-processor output)
+    # -------------------------------------------------------------------------
+    PrivateProductCreated:
+      name: product.productCreated
+      title: Private Product Created Event
+      summary: |
+        Full product-created event on the internal SNS topic. Published by the
+        outbox-processor Lambda.
+      description: |
+        Contains the complete product state at creation time: `productId`,
+        `name`, and `price`. This event is internal to the service and is
+        translated to `product.productCreated.v1` before being emitted to
+        external consumers.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/CloudEventPrivateProductCreated"
+      examples:
+        - name: examplePrivateProductCreated
+          payload:
+            specversion: "1.0"
+            id: 880e8400-e29b-41d4-a716-446655440003
+            type: product.productCreated
+            source: dev.products
+            time: "2024-01-15T10:29:55Z"
+            traceparent: 00-7bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902ba-01
+            data:
+              productId: FLATWHITE
+              name: Flat White
+              price: 3.5
+
+    PrivateProductUpdated:
+      name: product.productUpdated
+      title: Private Product Updated Event
+      summary: |
+        Full product-updated event on the internal SNS topic. Published by the
+        outbox-processor Lambda.
+      description: |
+        Contains the previous and new product details (`name`, `price`) so that
+        downstream internal consumers (e.g. the public-event-publisher) can
+        determine what changed.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/CloudEventPrivateProductUpdated"
+      examples:
+        - name: examplePrivateProductUpdated
+          payload:
+            specversion: "1.0"
+            id: 990e8400-e29b-41d4-a716-446655440004
+            type: product.productUpdated
+            source: dev.products
+            time: "2024-01-15T11:00:00Z"
+            traceparent: 00-8bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902bb-01
+            data:
+              productId: FLATWHITE
+              previous:
+                name: Flat White
+                price: 3.5
+              new:
+                name: Flat White
+                price: 4.0
+
+    PrivateProductDeleted:
+      name: product.productDeleted
+      title: Private Product Deleted Event
+      summary: |
+        Product-deleted event on the internal SNS topic. Published by the
+        outbox-processor Lambda.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/CloudEventPrivateProductDeleted"
+      examples:
+        - name: examplePrivateProductDeleted
+          payload:
+            specversion: "1.0"
+            id: aa0e8400-e29b-41d4-a716-446655440005
+            type: product.productDeleted
+            source: dev.products
+            time: "2024-01-15T12:00:00Z"
+            traceparent: 00-9bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902bc-01
+            data:
+              productId: FLATWHITE
+
+    # -------------------------------------------------------------------------
+    # Subscribed / consumed events (inbound from external services)
+    # -------------------------------------------------------------------------
+    InventoryStockUpdatedV1:
+      name: inventory.stockUpdated.v1
+      title: Inventory Stock Updated (v1)
+      summary: The stock level for a product has changed (published by Inventory service).
+      description: |
+        Consumed by the `inventory-stock-updated-event-handler` Lambda via an
+        SQS queue backed by an EventBridge rule. The ACL translates this into
+        the internal `StockUpdatedEvent` and updates the product record's
+        `stockLevel` field.
+
+        The message body is an EventBridge event whose `detail` field contains
+        a CloudEvent-wrapped `PublicInventoryStockUpdatedEventV1` payload.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/CloudEventInventoryStockUpdatedV1"
+      examples:
+        - name: exampleInventoryStockUpdated
+          payload:
+            specversion: "1.0"
+            id: bb0e8400-e29b-41d4-a716-446655440006
+            type: inventory.stockUpdated.v1
+            source: dev.inventory
+            time: "2024-01-15T13:00:00Z"
+            traceparent: 00-abf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902bd-01
+            data:
+              productId: FLATWHITE
+              newStockLevel: 50.0
+
+    PricingCalculatedV1:
+      name: pricing.pricingCalculated.v1
+      title: Pricing Calculated (v1)
+      summary: Price brackets have been calculated for a product (published by Pricing service).
+      description: |
+        Consumed by the `pricing-changed-handler` Lambda via an SQS queue
+        backed by an EventBridge rule. The ACL translates this into the
+        internal `PriceCalculatedEvent` and replaces the product's
+        `pricingBrackets`.
+
+        The message body is an EventBridge event whose `detail` field contains
+        a CloudEvent-wrapped `PublicPricingUpdatedEventV1` payload.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/CloudEventPricingCalculatedV1"
+      examples:
+        - name: examplePricingCalculated
+          payload:
+            specversion: "1.0"
+            id: cc0e8400-e29b-41d4-a716-446655440007
+            type: pricing.pricingCalculated.v1
+            source: dev.pricing
+            time: "2024-01-15T14:00:00Z"
+            traceparent: 00-bbf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902be-01
+            data:
+              productId: FLATWHITE
+              priceBrackets:
+                - quantity: 1
+                  price: 3.5
+                - quantity: 5
+                  price: 3.0
+                - quantity: 10
+                  price: 2.75
+
+  schemas:
+    # -------------------------------------------------------------------------
+    # CloudEvent envelope (generic)
+    # -------------------------------------------------------------------------
+    CloudEventBase:
+      type: object
+      description: |
+        CloudEvents 1.0 envelope used for all messages in this service.
+        Includes a W3C `traceparent` extension field for Datadog distributed
+        tracing.
+      required:
+        - specversion
+        - id
+        - type
+        - source
+        - time
+        - data
+      properties:
+        specversion:
+          type: string
+          description: CloudEvents specification version.
+          enum:
+            - "1.0"
+          example: "1.0"
+        id:
+          type: string
+          format: uuid
+          description: Unique event identifier (UUID v4).
+          example: 550e8400-e29b-41d4-a716-446655440000
+        type:
+          type: string
+          description: Event type identifier (used as SNS/EventBridge routing key).
+          example: product.productCreated.v1
+        source:
+          type: string
+          description: |
+            Origin of the event. Always `{env}.products` for events published
+            by this service (e.g. `dev.products`, `prod.products`).
+          example: dev.products
+        time:
+          type: string
+          format: date-time
+          description: ISO 8601 / RFC 3339 timestamp of when the event was created.
+          example: "2024-01-15T10:30:00Z"
+        traceparent:
+          type: string
+          description: |
+            W3C Trace Context `traceparent` header value, used by Datadog to
+            propagate distributed traces across service boundaries.
+            Format: `00-<trace-id>-<span-id>-01`
+          example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+
+    # -------------------------------------------------------------------------
+    # Data payloads for public outbound events
+    # -------------------------------------------------------------------------
+    PublicProductCreatedEventV1Data:
+      type: object
+      description: |
+        Data payload for `product.productCreated.v1`. Contains only the
+        `productId` — consumers should query the Product API for full details.
+      required:
+        - productId
+      properties:
+        productId:
+          type: string
+          description: |
+            Unique product identifier. Derived from the product name
+            (uppercased, spaces removed). E.g. "Flat White" -> "FLATWHITE".
+          example: FLATWHITE
+
+    PublicProductUpdatedEventV1Data:
+      type: object
+      description: |
+        Data payload for `product.productUpdated.v1`. Contains only the
+        `productId` — consumers should query the Product API for the current
+        state.
+      required:
+        - productId
+      properties:
+        productId:
+          type: string
+          description: Unique product identifier.
+          example: FLATWHITE
+
+    PublicProductDeletedEventV1Data:
+      type: object
+      description: |
+        Data payload for `product.productDeleted.v1`. Contains only the
+        `productId` to allow downstream services to remove their own records.
+      required:
+        - productId
+      properties:
+        productId:
+          type: string
+          description: Unique product identifier of the deleted product.
+          example: FLATWHITE
+
+    # -------------------------------------------------------------------------
+    # Data payloads for private internal events
+    # -------------------------------------------------------------------------
+    PrivateProductCreatedEventData:
+      type: object
+      description: |
+        Full data payload for the internal `product.productCreated` SNS event.
+        Contains the complete product state at creation time.
+      required:
+        - productId
+        - name
+        - price
+      properties:
+        productId:
+          type: string
+          description: Unique product identifier.
+          example: FLATWHITE
+        name:
+          type: string
+          description: Product name at creation time.
+          example: Flat White
+        price:
+          type: number
+          format: float
+          description: Base product price at creation time.
+          example: 3.5
+
+    PrivateProductUpdatedEventData:
+      type: object
+      description: |
+        Full data payload for the internal `product.productUpdated` SNS event.
+        Contains the previous and new product state so that consumers can
+        identify what changed.
+      required:
+        - productId
+        - previous
+        - new
+      properties:
+        productId:
+          type: string
+          description: Unique product identifier.
+          example: FLATWHITE
+        previous:
+          $ref: "#/components/schemas/ProductDetails"
+        new:
+          $ref: "#/components/schemas/ProductDetails"
+
+    PrivateProductDeletedEventData:
+      type: object
+      description: |
+        Data payload for the internal `product.productDeleted` SNS event.
+      required:
+        - productId
+      properties:
+        productId:
+          type: string
+          description: Unique product identifier of the deleted product.
+          example: FLATWHITE
+
+    ProductDetails:
+      type: object
+      description: A snapshot of product name and price at a point in time.
+      required:
+        - name
+        - price
+      properties:
+        name:
+          type: string
+          description: Product name.
+          example: Flat White
+        price:
+          type: number
+          format: float
+          description: Product price.
+          example: 3.5
+
+    # -------------------------------------------------------------------------
+    # Data payloads for subscribed / inbound events
+    # -------------------------------------------------------------------------
+    InventoryStockUpdatedV1Data:
+      type: object
+      description: |
+        Data payload of `inventory.stockUpdated.v1` received from the
+        Inventory service. Maps to the internal `StockUpdatedEvent` after ACL
+        translation.
+      required:
+        - productId
+        - newStockLevel
+      properties:
+        productId:
+          type: string
+          description: Identifier of the product whose stock level changed.
+          example: FLATWHITE
+        newStockLevel:
+          type: number
+          format: float
+          description: The new absolute stock level for the product.
+          example: 50.0
+
+    PricingCalculatedV1Data:
+      type: object
+      description: |
+        Data payload of `pricing.pricingCalculated.v1` received from the
+        Pricing service. Maps to the internal `PriceCalculatedEvent` after ACL
+        translation.
+      required:
+        - productId
+        - priceBrackets
+      properties:
+        productId:
+          type: string
+          description: Identifier of the product whose pricing was calculated.
+          example: FLATWHITE
+        priceBrackets:
+          type: array
+          description: |
+            Ordered list of volume-pricing brackets. Each bracket defines a
+            minimum quantity and the unit price at that quantity.
+          items:
+            $ref: "#/components/schemas/PriceBracket"
+
+    PriceBracket:
+      type: object
+      description: A single volume-pricing bracket received from the Pricing service.
+      required:
+        - quantity
+        - price
+      properties:
+        quantity:
+          type: integer
+          description: Minimum quantity to qualify for this price bracket.
+          example: 5
+        price:
+          type: number
+          format: float
+          description: Unit price for this bracket.
+          example: 3.0
+
+    # -------------------------------------------------------------------------
+    # Full CloudEvent wrappers (combining envelope + specific data payload)
+    # -------------------------------------------------------------------------
+    CloudEventProductCreatedV1:
+      allOf:
+        - $ref: "#/components/schemas/CloudEventBase"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - product.productCreated.v1
+              example: product.productCreated.v1
+            data:
+              $ref: "#/components/schemas/PublicProductCreatedEventV1Data"
+
+    CloudEventProductUpdatedV1:
+      allOf:
+        - $ref: "#/components/schemas/CloudEventBase"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - product.productUpdated.v1
+              example: product.productUpdated.v1
+            data:
+              $ref: "#/components/schemas/PublicProductUpdatedEventV1Data"
+
+    CloudEventProductDeletedV1:
+      allOf:
+        - $ref: "#/components/schemas/CloudEventBase"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - product.productDeleted.v1
+              example: product.productDeleted.v1
+            data:
+              $ref: "#/components/schemas/PublicProductDeletedEventV1Data"
+
+    CloudEventPrivateProductCreated:
+      allOf:
+        - $ref: "#/components/schemas/CloudEventBase"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - product.productCreated
+              example: product.productCreated
+            data:
+              $ref: "#/components/schemas/PrivateProductCreatedEventData"
+
+    CloudEventPrivateProductUpdated:
+      allOf:
+        - $ref: "#/components/schemas/CloudEventBase"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - product.productUpdated
+              example: product.productUpdated
+            data:
+              $ref: "#/components/schemas/PrivateProductUpdatedEventData"
+
+    CloudEventPrivateProductDeleted:
+      allOf:
+        - $ref: "#/components/schemas/CloudEventBase"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - product.productDeleted
+              example: product.productDeleted
+            data:
+              $ref: "#/components/schemas/PrivateProductDeletedEventData"
+
+    CloudEventInventoryStockUpdatedV1:
+      allOf:
+        - $ref: "#/components/schemas/CloudEventBase"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - inventory.stockUpdated.v1
+              example: inventory.stockUpdated.v1
+            source:
+              type: string
+              description: Source of the event (set by the Inventory service).
+              example: dev.inventory
+            data:
+              $ref: "#/components/schemas/InventoryStockUpdatedV1Data"
+
+    CloudEventPricingCalculatedV1:
+      allOf:
+        - $ref: "#/components/schemas/CloudEventBase"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - pricing.pricingCalculated.v1
+              example: pricing.pricingCalculated.v1
+            source:
+              type: string
+              description: Source of the event (set by the Pricing service).
+              example: dev.pricing
+            data:
+              $ref: "#/components/schemas/PricingCalculatedV1Data"

@@ -10,9 +10,10 @@ package productacladapters
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
 	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
-	"os"
 
 	core "github.com/datadog/serverless-sample-product-core"
 
@@ -35,6 +36,7 @@ func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context,
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.stockUpdated", evt)
 
+	// Inject DSM context before marshaling so _datadog carrier is included in the message.
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-acl",
 	}, "direction:out", "type:sns", "topic:product.stockUpdated", "manual_checkpoint:true")
@@ -80,6 +82,7 @@ func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Contex
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.pricingChanged", evt)
 
+	// Inject DSM context before marshaling so _datadog carrier is included in the message.
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-acl",
 	}, "direction:out", "type:sns", "topic:product.pricingChanged", "manual_checkpoint:true")

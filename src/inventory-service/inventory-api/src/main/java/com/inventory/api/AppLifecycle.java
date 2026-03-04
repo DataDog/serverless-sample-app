@@ -16,31 +16,34 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 import software.amazon.awssdk.services.eventbridge.model.ListEventBusesRequest;
 
+import java.util.concurrent.CompletableFuture;
+
 @ApplicationScoped
 public class AppLifecycle {
     @Inject
     DynamoDbClient dynamoDbClient;
     @Inject
     EventBridgeClient eventBridgeClient;
-    
+
     private static final Logger LOGGER = Logger.getLogger("Listener");
 
     void onStart(@Observes StartupEvent ev) {
         LOGGER.info("The application is starting...");
         if (!"local".equalsIgnoreCase(System.getenv("ENV"))) {
-            LOGGER.info("Priming AWS SDKs...");
-            try {
-                dynamoDbClient.describeTable(r -> r.tableName(System.getenv("TABLE_NAME")));
-
-                eventBridgeClient.listEventBuses(ListEventBusesRequest.builder().build());
-            }
-            catch (Exception e) {
-                LOGGER.warn("Failed to prime AWS SDKs. This may be expected if the resources do not exist yet.");
-                LOGGER.warn(e);
-            }
+            LOGGER.info("Priming AWS SDKs asynchronously...");
+            CompletableFuture.runAsync(() -> {
+                try {
+                    dynamoDbClient.describeTable(r -> r.tableName(System.getenv("TABLE_NAME")));
+                    eventBridgeClient.listEventBuses(ListEventBusesRequest.builder().build());
+                    LOGGER.info("AWS SDK priming completed successfully.");
+                } catch (Exception e) {
+                    LOGGER.warn("Failed to prime AWS SDKs. This may be expected if the resources do not exist yet.");
+                    LOGGER.warn(e);
+                }
+            });
         }
-        
-        LOGGER.info("The application is starting...");
+
+        LOGGER.info("The application has started.");
     }
 
     void onStop(@Observes ShutdownEvent ev) {

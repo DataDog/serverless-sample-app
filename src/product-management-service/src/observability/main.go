@@ -13,6 +13,9 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
+// CloudEvent is a CloudEvents 1.0 envelope. The _datadog field holds the Datadog
+// DSM carrier context (dd-pathway-ctx-base64) and traceparent, matching the nested
+// _datadog object format used by the Java, .NET, and TypeScript services.
 type CloudEvent[T any] struct {
 	Data        T                 `json:"data"`
 	SpecVersion string            `json:"specversion"`
@@ -21,7 +24,7 @@ type CloudEvent[T any] struct {
 	Id          string            `json:"id"`
 	Time        string            `json:"time"`
 	TraceParent string            `json:"traceparent"`
-	DataDog     map[string]string `json:"_datadog,omitempty"`
+	Datadog     map[string]string `json:"_datadog,omitempty"`
 }
 
 func NewCloudEvent[T any](ctx context.Context, evtType string, data T) CloudEvent[T] {
@@ -52,7 +55,7 @@ func NewCloudEvent[T any](ctx context.Context, evtType string, data T) CloudEven
 		Time:        time.Now().Format(time.RFC3339),
 		TraceParent: traceParent,
 		Data:        data,
-		DataDog:     make(map[string]string),
+		Datadog:     make(map[string]string),
 	}
 }
 
@@ -61,19 +64,19 @@ func (ce CloudEvent[T]) ToJSON() ([]byte, error) {
 }
 
 // Set implements the datastreams TextMapWriter interface.
-// Uses a pointer receiver so that DSM can inject keys into the DataDog map
+// Uses a pointer receiver so that DSM can inject keys into the Datadog map
 // on the actual CloudEvent value, not a copy.
 func (evt *CloudEvent[T]) Set(key string, val string) {
-	if evt.DataDog == nil {
-		evt.DataDog = make(map[string]string)
+	if evt.Datadog == nil {
+		evt.Datadog = make(map[string]string)
 	}
-	evt.DataDog[key] = val
+	evt.Datadog[key] = val
 }
 
 // ForeachKey implements the datastreams TextMapReader interface.
 // Uses a pointer receiver for consistency with Set.
 func (evt *CloudEvent[T]) ForeachKey(handler func(key string, val string) error) error {
-	for key, val := range evt.DataDog {
+	for key, val := range evt.Datadog {
 		if err := handler(key, val); err != nil {
 			return err
 		}

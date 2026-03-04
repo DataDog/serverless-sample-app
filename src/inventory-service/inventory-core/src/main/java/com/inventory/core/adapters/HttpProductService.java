@@ -12,20 +12,31 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
 public class HttpProductService implements ProductService {
     private final SsmClient ssmClient;
     private String productApiEndpoint = "";
-    private static final Logger LOG = Logger.getLogger(HttpProductService.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(HttpProductService.class);
     private final ObjectMapper objectMapper;
+    private final HttpClient httpClient;
+
+    private static final int MAX_RETRIES = 3;
+    private static final long INITIAL_BACKOFF_MS = 200;
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
     @Inject
     public HttpProductService(SsmClient ssmClient) {
         this.ssmClient = ssmClient;
         this.objectMapper = new ObjectMapper();
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(CONNECT_TIMEOUT)
+                .build();
         this.refreshApiEndpoint(ssmClient);
     }
 
@@ -33,31 +44,59 @@ public class HttpProductService implements ProductService {
     public ArrayList<ProductCatalogueItem> getProductCatalogue() {
         this.refreshApiEndpoint(ssmClient);
         if (productApiEndpoint == null) {
-            LOG.info("Product API endpoint not set");
+            logger.info("Product API endpoint not set");
             return new ArrayList<>();
         }
 
-        LOG.info("Fetching product catalogue from: " + productApiEndpoint);
+        logger.info("Fetching product catalogue from: " + productApiEndpoint);
         try {
             var httpRequest = HttpRequest.newBuilder(new URI(this.productApiEndpoint))
                     .header("accept", MediaType.APPLICATION_JSON)
                     .header("Content-Type", MediaType.APPLICATION_JSON)
+                    .timeout(REQUEST_TIMEOUT)
                     .GET()
                     .build();
 
-            var response = HttpClient.newBuilder()
-                    .build()
-                    .send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = sendWithRetry(httpRequest);
 
-            LOG.info("Response from product API: " + response.body());
+            int statusCode = response.statusCode();
+            if (statusCode < 200 || statusCode >= 300) {
+                logger.error("Product API returned non-2xx status: " + statusCode);
+                return new ArrayList<>();
+            }
+
+            logger.info("Product API responded with status: " + statusCode);
 
             ProductCatalogueGetResponse products = objectMapper.readValue(response.body(), ProductCatalogueGetResponse.class);
 
             return products.getData();
         } catch (Exception e) {
-            LOG.severe("Error fetching product catalogue: " + e.getMessage());
+            logger.error("Error fetching product catalogue: " + e.getMessage());
             return new ArrayList<>();
         }
+    }
+
+    private HttpResponse<String> sendWithRetry(HttpRequest request) throws Exception {
+        Exception lastException = null;
+        for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                int statusCode = response.statusCode();
+                if (statusCode >= 500 && attempt < MAX_RETRIES) {
+                    logger.warn("Product API returned server error " + statusCode + ", retrying (attempt " + (attempt + 1) + "/" + MAX_RETRIES + ")");
+                    Thread.sleep(INITIAL_BACKOFF_MS * (1L << attempt));
+                    continue;
+                }
+                return response;
+            } catch (java.io.IOException e) {
+                lastException = e;
+                if (attempt < MAX_RETRIES) {
+                    logger.warn("HTTP request failed, retrying (attempt " + (attempt + 1) + "/" + MAX_RETRIES + "): " + e.getMessage());
+                    Thread.sleep(INITIAL_BACKOFF_MS * (1L << attempt));
+                }
+            }
+        }
+        throw lastException;
     }
 
     private void refreshApiEndpoint(SsmClient ssmClient) {
@@ -73,9 +112,9 @@ public class HttpProductService implements ProductService {
                 productApiBase = productApiBase.substring(0, productApiBase.length() - 1);
             }
             this.productApiEndpoint = String.format("%s/product", productApiBase);
-            LOG.info("Product API endpoint set to: " + this.productApiEndpoint);
+            logger.info("Product API endpoint set to: " + this.productApiEndpoint);
         } catch (Exception e) {
-            LOG.severe("Failed to retrieve product API endpoint: " + e.getMessage());
+            logger.error("Failed to retrieve product API endpoint: " + e.getMessage());
         }
     }
 }

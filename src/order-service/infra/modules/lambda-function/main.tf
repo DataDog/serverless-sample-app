@@ -76,7 +76,7 @@ resource "aws_cloudwatch_log_group" "lambda_log_group" {
   lifecycle {
     prevent_destroy = false
   }
-} 
+}
 
 module "aws_lambda_function" {
   source  = "DataDog/lambda-datadog/aws"
@@ -93,23 +93,24 @@ module "aws_lambda_function" {
   timeout                  = var.timeout
 
   environment_variables = merge(tomap({
-    "TEAM": "orders",
+    "TEAM" : "orders",
     "DOMAIN" : "orders",
-    "ENV": var.env,
-    "DD_SITE" : var.dd_site
-    "DD_SERVICE" : var.service_name
-    "DD_ENV" : var.env
-    "DD_VERSION" : var.app_version
-    "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
-    "DD_CAPTURE_LAMBDA_PAYLOAD": "true"
-    "AWS_LAMBDA_EXEC_WRAPPER": "/opt/datadog_wrapper"
-    "DD_LOGS_INJECTION": "true"
-    "DD_DATA_STREAMS_ENABLED" = "true"
-    "POWERTOOLS_SERVICE_NAME": var.service_name
-    "POWERTOOLS_LOG_LEVEL": "DEBUG"}),
+    "ENV" : var.env,
+    "DD_SITE" : var.dd_site,
+    "DD_SERVICE" : var.service_name,
+    "DD_ENV" : var.env,
+    "DD_VERSION" : var.app_version,
+    "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn,
+    "DD_CAPTURE_LAMBDA_PAYLOAD" : "true",
+    "AWS_LAMBDA_EXEC_WRAPPER" : "/opt/datadog_wrapper",
+    "DD_LOGS_INJECTION" : "true",
+    "DD_DATA_STREAMS_ENABLED" : "true",
+    "POWERTOOLS_SERVICE_NAME" : var.service_name,
+    "POWERTOOLS_LOG_LEVEL" : "DEBUG"
+    }),
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 90
-  datadog_dotnet_layer_version      = 20
+  datadog_extension_layer_version = 93
+  datadog_dotnet_layer_version    = 23
 }

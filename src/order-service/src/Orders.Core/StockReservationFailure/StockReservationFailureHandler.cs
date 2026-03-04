@@ -13,13 +13,12 @@ public class StockReservationFailureHandler(IOrders orders)
     {
         var activeSpan = Tracer.Instance.ActiveScope?.Span;
 
-        using var processingSpan = Tracer.Instance.StartActive($"handle StockReservationSuccess",
+        using var processingSpan = Tracer.Instance.StartActive($"handle StockReservationFailure",
             new SpanCreationSettings
             {
                 Parent = activeSpan?.Context
             });
         request.OrderNumber.AddToTelemetry("order.id");
-        request.UserId.AddToTelemetry("user.id");
         
         var order = await orders.WithOrderId(request.UserId, request.OrderNumber);
 

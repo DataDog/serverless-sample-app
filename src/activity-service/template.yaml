@@ -53,7 +53,7 @@ Globals:
     Environment:
       Variables:
         POWERTOOLS_SERVICE_NAME: ActivityService
-        LOG_LEVEL: INFO
+        POWERTOOLS_LOG_LEVEL: INFO
         DD_CAPTURE_LAMBDA_PAYLOAD: true
         DD_COLD_START_TRACING: true
         DD_TRACE_ENABLED: true

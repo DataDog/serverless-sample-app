@@ -19,7 +19,6 @@ public class StockReservationSuccessHandler(IOrders orders, IPublicEventPublishe
             Parent = activeSpan?.Context
         });
         request.OrderNumber.AddToTelemetry("order.id");
-        request.UserId.AddToTelemetry("user.id");
 
         var order = await orders.WithOrderId(request.UserId, request.OrderNumber);
 
