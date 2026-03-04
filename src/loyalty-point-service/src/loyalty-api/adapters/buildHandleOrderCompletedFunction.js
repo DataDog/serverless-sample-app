@@ -5,7 +5,6 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-const ddPlugin = require("dd-trace/esbuild");
 const esbuild = require("esbuild");
 
 esbuild
@@ -15,10 +14,12 @@ esbuild
     minify: true,
     keepNames: true,
     outfile: "out/handleOrderCompletedFunction/index.js",
-    plugins: [ddPlugin],
     platform: "node", // allows built-in modules to be required
     target: ["node22"],
     external: [
+      // provided by the Datadog Lambda layer at runtime
+      "dd-trace",
+
       // esbuild cannot bundle native modules
       "@datadog/native-metrics",
 

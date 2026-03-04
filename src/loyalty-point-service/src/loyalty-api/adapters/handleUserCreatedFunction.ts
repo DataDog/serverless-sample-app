@@ -33,6 +33,7 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
   const mainSpan = tracer.scope().active()!;
   mainSpan.addTags({
     "messaging.operation.type": "receive",
+    "messaging.batch.size": event.Records.length,
   });
 
   const batchItemFailures: SQSBatchItemFailure[] = [];

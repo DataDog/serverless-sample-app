@@ -32,71 +32,102 @@ export class EventBridgeEventPublisher implements EventPublisher {
     this.textEncoder = new TextEncoder();
     this.logger = new Logger({});
   }
+
   async publishLoyaltyPointsUpdated(evt: LoyaltyPointsAddedV2): Promise<void> {
     const parentSpan = tracer.scope().active();
 
     let messagingSpan: Span | undefined = undefined;
 
     try {
-      // Keep v1 events for backward compatibility in the demo flow.
       const v1Event: LoyaltyPointsAddedV1 = {
         newPointsTotal: evt.totalPoints,
         userId: evt.userId,
       };
 
       const eventId = randomUUID();
+      const traceparent = parentSpan?.context().toTraceparent();
 
-      const v1CloudEventWrapper = new CloudEvent({
-        id: eventId,
-        source: process.env.DOMAIN,
-        type: "loyalty.pointsAdded.v1",
-        datacontenttype: "application/json",
-        data: v1Event,
-        traceparent: parentSpan?.context().toTraceparent(),
-        deprecationdate: new Date(2025, 11, 31).toISOString(),
-        supercededby: "loyalty.pointsAdded.v2",
-      });
-
-      const cloudEventWrapper = new CloudEvent({
+      // Build a v2 CloudEvent to derive span tags and DSM topic.
+      const v2EventForSpan = new CloudEvent({
         id: eventId,
         source: process.env.DOMAIN,
         type: "loyalty.pointsAdded.v2",
         datacontenttype: "application/json",
         data: evt,
-        traceparent: parentSpan?.context().toTraceparent(),
+        traceparent,
       });
 
+      // _datadog becomes the DSM + trace propagation carrier, matching the
+      // structure published by Java services:
+      //   { "_datadog": { "traceparent": "...", "dd-pathway-ctx-base64": "..." }, ... }
+      // DsmPathwayCodec.decode() understands both dd-pathway-ctx-base64 (ours)
+      // and dd-pathway-ctx (Java), so consumers on either side work correctly.
+      const _datadog: Record<string, string> = {};
+
       messagingSpan = startPublishSpanWithSemanticConventions(
-        cloudEventWrapper,
+        v2EventForSpan,
         {
           publicOrPrivate: MessagingType.PRIVATE,
           messagingSystem: "eventbridge",
           destinationName: process.env.EVENT_BUS_NAME ?? "",
           parentSpan: parentSpan,
-        }
+        },
+        _datadog
       );
+      // After this call _datadog contains:
+      //   "dd-pathway-ctx-base64": "<encoded>"
+      //   "traceparent": "<w3c-traceparent>"
+
+      // Serialize each CloudEvent to a plain object and add _datadog at the
+      // same level — matching the Java event structure exactly.
+      const v1Detail = {
+        ...JSON.parse(
+          JSON.stringify(
+            new CloudEvent({
+              id: eventId,
+              source: process.env.DOMAIN,
+              type: "loyalty.pointsAdded.v1",
+              datacontenttype: "application/json",
+              data: v1Event,
+              traceparent,
+              deprecationdate: new Date(2025, 11, 31).toISOString(),
+              supercededby: "loyalty.pointsAdded.v2",
+            })
+          )
+        ),
+        _datadog,
+      };
+
+      const v2Detail = {
+        ...JSON.parse(
+          JSON.stringify(
+            new CloudEvent({
+              id: eventId,
+              source: process.env.DOMAIN,
+              type: "loyalty.pointsAdded.v2",
+              datacontenttype: "application/json",
+              data: evt,
+              traceparent,
+            })
+          )
+        ),
+        _datadog,
+      };
 
       const evtEntries: PutEventsRequestEntry[] = [
         {
           EventBusName: process.env.EVENT_BUS_NAME,
-          Detail: JSON.stringify(v1CloudEventWrapper),
+          Detail: JSON.stringify(v1Detail),
           DetailType: "loyalty.pointsAdded.v1",
           Source: `${process.env.ENV}.loyalty`,
         },
         {
           EventBusName: process.env.EVENT_BUS_NAME,
-          Detail: JSON.stringify(cloudEventWrapper),
+          Detail: JSON.stringify(v2Detail),
           DetailType: "loyalty.pointsAdded.v2",
           Source: `${process.env.ENV}.loyalty`,
         },
       ];
-
-      const headers = {};
-      tracer.dataStreamsCheckpointer.setProduceCheckpoint(
-        "eventbridge",
-        "loyalty.pointsAdded.v2",
-        headers
-      );
 
       await this.client.send(
         new PutEventsCommand({
