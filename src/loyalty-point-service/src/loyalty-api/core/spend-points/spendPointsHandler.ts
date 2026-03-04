@@ -32,14 +32,13 @@ export class SpendPointsCommandHandler {
   public async handle(
     query: SpendPointsCommand
   ): Promise<HandlerResponse<LoyaltyPointsDTO>> {
-    const span = tracer.scope().active()!;
-
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
+        const span = tracer.scope().active();
         const loyaltyAccount = await this.repository.forUser(query.userId);
 
         if (loyaltyAccount === undefined) {
-          span.addTags({ "loyalty.notFound": true });
+          span?.addTags({ "loyalty.notFound": true });
           return {
             data: undefined,
             success: false,

@@ -34,18 +34,18 @@ export class UpdatePointsCommandHandler {
   public async handle(
     command: UpdatePointsCommand
   ): Promise<HandlerResponse<LoyaltyPointsDTO>> {
-    const span = tracer.scope().active()!;
-    span.addTags({
-      "user.id": command.userId,
-      "order.id": command.orderNumber,
-    });
-
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
+        const span = tracer.scope().active();
+        span?.addTags({
+          "user.id": command.userId,
+          "order.id": command.orderNumber,
+        });
+
         let loyaltyAccount = await this.repository.forUser(command.userId);
 
         if (loyaltyAccount === undefined) {
-          span.addTags({ "loyalty.newAccount": true });
+          span?.addTags({ "loyalty.newAccount": true });
           loyaltyAccount = new LoyaltyPoints(command.userId, 0, []);
         }
 
