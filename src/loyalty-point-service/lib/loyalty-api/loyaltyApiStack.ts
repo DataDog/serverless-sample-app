@@ -13,7 +13,6 @@ import { SharedProps } from "../constructs/sharedFunctionProps";
 import { Api } from "./api";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { LoyaltyACL } from "./loyaltyAcl";
-import { EventBus } from "aws-cdk-lib/aws-events";
 import { LoyaltyServiceProps } from "./loyaltyServiceProps";
 
 // no-dd-sa:typescript-best-practices/no-unnecessary-class
@@ -58,13 +57,13 @@ export class LoyaltyApiStack extends cdk.Stack {
       ddApiKeySecret: ddApiKey,
       jwtSecret: loyaltyServiceProps.getJwtSecret(),
     });
-    const acl = new LoyaltyACL(this, "LoyaltyACL", {
+    new LoyaltyACL(this, "LoyaltyACL", {
       serviceProps: loyaltyServiceProps,
       ddApiKeySecret: ddApiKey,
       loyaltyTable: api.table,
     });
 
-    const apiEndpoint = new StringParameter(this, "LoyaltyAPIEndpoint", {
+    new StringParameter(this, "LoyaltyAPIEndpoint", {
       parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/api-endpoint`,
       stringValue: api.api.url,
     });

@@ -13,7 +13,7 @@ import { IQueue } from "aws-cdk-lib/aws-sqs";
 import { ResiliantQueue } from "../constructs/resiliantQueue";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { SqsQueue } from "aws-cdk-lib/aws-events-targets";
-import { ITable, Table } from "aws-cdk-lib/aws-dynamodb";
+import { Table } from "aws-cdk-lib/aws-dynamodb";
 import { LoyaltyServiceProps } from "./loyaltyServiceProps";
 
 export interface LoyaltyACLServiceProps {
@@ -56,7 +56,7 @@ export class LoyaltyACL extends Construct {
           TABLE_NAME: props.loyaltyTable.tableName,
           DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${props.loyaltyTable.tableName}": ["PK"]}`,
           DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "none",
-          // DD_TRACE_PROPAGATION_STYLE_EXTRACT: "false",
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "datadog,tracecontext",
         },
         buildDef:
           "./src/loyalty-api/adapters/buildHandleUserCreatedFunction.js",
@@ -100,7 +100,7 @@ export class LoyaltyACL extends Construct {
           TABLE_NAME: props.loyaltyTable.tableName,
           DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${props.loyaltyTable.tableName}": ["PK"]}`,
           DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "none",
-          //DD_TRACE_PROPAGATION_STYLE_EXTRACT: "false",
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "datadog,tracecontext",
         },
         buildDef:
           "./src/loyalty-api/adapters/buildHandleOrderCompletedFunction.js",
@@ -117,7 +117,7 @@ export class LoyaltyACL extends Construct {
     );
 
     const rule = props.serviceProps.addSubscriptionRule(this, `${props.serviceProps.getSharedProps().serviceName}-OrderCompleted`, {
-      detailType: ["orders.orderCompleted.v1", "orders.orderCompleted.v1"],
+      detailType: ["orders.orderCompleted.v1"],
       source: [`${props.serviceProps.getSharedProps().environment}.orders`],
     });
     rule.addTarget(new SqsQueue(this.orderCompletedEventQueue));

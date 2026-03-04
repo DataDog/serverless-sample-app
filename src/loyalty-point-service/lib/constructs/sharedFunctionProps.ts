@@ -5,7 +5,7 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-import { Datadog } from "datadog-cdk-constructs-v2";
+import { DatadogLambda } from "datadog-cdk-constructs-v2";
 
 export interface SharedProps {
   team: string;
@@ -13,5 +13,5 @@ export interface SharedProps {
   serviceName: string;
   environment: string;
   version: string;
-  datadogConfiguration: Datadog;
+  datadogConfiguration: DatadogLambda;
 }

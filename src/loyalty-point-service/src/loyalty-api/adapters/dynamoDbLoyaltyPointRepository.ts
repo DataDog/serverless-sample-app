@@ -6,12 +6,14 @@
 //
 
 import {
+  ConditionalCheckFailedException,
   DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
 } from "@aws-sdk/client-dynamodb";
 import { loyaltyPointRepository } from "../core/loyaltyPointRepository";
 import { LoyaltyPoints } from "../core/loyaltyPoints";
+import { ConcurrentModificationError } from "../core/concurrentModificationError";
 import { Logger } from "@aws-lambda-powertools/logger";
 
 export class DynamoDbLoyaltyPointRepository implements loyaltyPointRepository {
@@ -41,31 +43,63 @@ export class DynamoDbLoyaltyPointRepository implements loyaltyPointRepository {
       return undefined;
     }
 
+    const version = getItemResponse.Item["Version"]?.N
+      ? parseInt(getItemResponse.Item["Version"].N, 10)
+      : 0;
+
     return new LoyaltyPoints(
       getItemResponse.Item["PK"].S!,
       parseFloat(getItemResponse.Item["Points"].N!),
-      JSON.parse(getItemResponse.Item["Orders"].S!)
+      JSON.parse(getItemResponse.Item["Orders"].S!),
+      version
     );
   }
   async save(loyaltyPoints: LoyaltyPoints): Promise<void> {
-    await this.client.send(
-      new PutItemCommand({
-        TableName: process.env.TABLE_NAME,
-        Item: {
-          PK: {
-            S: loyaltyPoints.userId,
+    const newVersion = loyaltyPoints.version + 1;
+    const isNewItem = loyaltyPoints.version === 0;
+
+    try {
+      await this.client.send(
+        new PutItemCommand({
+          TableName: process.env.TABLE_NAME,
+          Item: {
+            PK: {
+              S: loyaltyPoints.userId,
+            },
+            Type: {
+              S: "LoyaltyAccount",
+            },
+            Points: {
+              N: loyaltyPoints.currentPoints.toString(),
+            },
+            Orders: {
+              S: JSON.stringify(loyaltyPoints.orders),
+            },
+            Version: {
+              N: newVersion.toString(),
+            },
           },
-          Type: {
-            S: "LoyaltyAccount",
-          },
-          Points: {
-            N: loyaltyPoints.currentPoints.toString(),
-          },
-          Orders: {
-            S: JSON.stringify(loyaltyPoints.orders),
-          },
-        },
-      })
-    );
+          ConditionExpression: isNewItem
+            ? "attribute_not_exists(PK) OR attribute_not_exists(Version)"
+            : "Version = :expectedVersion",
+          ExpressionAttributeValues: isNewItem
+            ? undefined
+            : {
+                ":expectedVersion": { N: loyaltyPoints.version.toString() },
+              },
+        })
+      );
+
+      loyaltyPoints.version = newVersion;
+    } catch (error) {
+      if (error instanceof ConditionalCheckFailedException) {
+        this.logger.warn("Optimistic locking conflict", {
+          userId: loyaltyPoints.userId,
+          expectedVersion: loyaltyPoints.version,
+        });
+        throw new ConcurrentModificationError(loyaltyPoints.userId);
+      }
+      throw error;
+    }
   }
 }

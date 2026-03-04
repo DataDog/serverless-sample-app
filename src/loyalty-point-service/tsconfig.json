@@ -12,10 +12,10 @@
     "strictNullChecks": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": false,
+    "noFallthroughCasesInSwitch": true,
     "inlineSourceMap": true,
     "inlineSources": true,
     "experimentalDecorators": true,
@@ -26,6 +26,7 @@
   },
   "exclude": [
     "node_modules",
+    "node_modules_broken",
     "cdk.out",
     "@aws-sdk/*"
   ]

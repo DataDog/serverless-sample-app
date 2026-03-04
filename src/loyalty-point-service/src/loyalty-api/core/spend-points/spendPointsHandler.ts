@@ -10,7 +10,7 @@ import { HandlerResponse } from "../handlerResponse";
 import { LoyaltyPointsDTO } from "../loyaltyPointsDTO";
 import { Logger } from "@aws-lambda-powertools/logger";
 import { loyaltyPointRepository } from "../loyaltyPointRepository";
-import { EventPublisher } from "../eventPublisher";
+import { ConcurrentModificationError } from "../concurrentModificationError";
 
 export class SpendPointsCommand {
   userId: string;
@@ -18,6 +18,7 @@ export class SpendPointsCommand {
 }
 
 const logger = new Logger({});
+const MAX_RETRIES = 3;
 
 export class SpendPointsCommandHandler {
   private repository: loyaltyPointRepository;
@@ -31,49 +32,67 @@ export class SpendPointsCommandHandler {
   public async handle(
     query: SpendPointsCommand
   ): Promise<HandlerResponse<LoyaltyPointsDTO>> {
-    try {
-      const span = tracer.scope().active()!;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const span = tracer.scope().active();
+        const loyaltyAccount = await this.repository.forUser(query.userId);
 
-      const loyaltyAccount = await this.repository.forUser(query.userId);
+        if (loyaltyAccount === undefined) {
+          span?.addTags({ "loyalty.notFound": true });
+          return {
+            data: undefined,
+            success: false,
+            message: ["Not found"],
+          };
+        }
 
-      if (loyaltyAccount === undefined) {
-        span.addTags({ "loyalty.notFound": true });
-        return {
-          data: undefined,
-          success: false,
-          message: ["Not found"],
-        };
-      }
+        const spendResult = loyaltyAccount.spendPoints(query.points);
 
-      const spendResult = loyaltyAccount.spendPoints(query.points);
+        if (!spendResult) {
+          return {
+            data: {
+              userId: loyaltyAccount.userId,
+              currentPoints: loyaltyAccount.currentPoints,
+            },
+            success: false,
+            message: ["You don't have enough points"],
+          };
+        }
 
-      if (!spendResult) {
+        await this.repository.save(loyaltyAccount);
+
         return {
           data: {
             userId: loyaltyAccount.userId,
             currentPoints: loyaltyAccount.currentPoints,
           },
+          success: true,
+          message: [],
+        };
+      } catch (error) {
+        if (error instanceof ConcurrentModificationError && attempt < MAX_RETRIES) {
+          logger.warn("Concurrent modification on spend, retrying", {
+            userId: query.userId,
+            attempt: attempt + 1,
+          });
+          continue;
+        }
+
+        logger.error("Failed to spend points", { error });
+        return {
+          data: undefined,
           success: false,
-          message: ["You don't have enough points"],
+          message: [error instanceof ConcurrentModificationError
+            ? "Concurrent modification conflict after retries"
+            : "Unknown error"],
         };
       }
-
-      await this.repository.save(loyaltyAccount);
-
-      return {
-        data: {
-          userId: loyaltyAccount.userId,
-          currentPoints: loyaltyAccount.currentPoints,
-        },
-        success: true,
-        message: [],
-      };
-    } catch (error) {
-      return {
-        data: undefined,
-        success: false,
-        message: ["Unknown error"],
-      };
     }
+
+    return {
+      data: undefined,
+      success: false,
+      message: ["Unknown error"],
+    };
   }
 }

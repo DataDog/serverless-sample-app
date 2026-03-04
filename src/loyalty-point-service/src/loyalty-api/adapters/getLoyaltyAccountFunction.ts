@@ -32,8 +32,10 @@ export const handler = async (
   let verificationResult: JwtPayload | string = "";
 
   try {
+    const authHeader = event.headers["authorization"] ?? event.headers["Authorization"] ?? "";
+    const token = authHeader.replace(/^bearer\s+/i, "");
     verificationResult = verify(
-      event.headers.Authorization!.replace("Bearer ", ""),
+      token,
       parameter!
     );
   } catch (err: Error | any) {
@@ -45,7 +47,7 @@ export const handler = async (
       statusCode: 401,
       body: "Unauthorized",
       headers: {
-        "Content-Type": "application-json",
+        "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "*",
         "Access-Control-Allow-Methods": "*",
@@ -59,7 +61,7 @@ export const handler = async (
       statusCode: 401,
       body: "Unauthorized",
       headers: {
-        "Content-Type": "application-json",
+        "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "*",
         "Access-Control-Allow-Methods": "*",
@@ -75,7 +77,7 @@ export const handler = async (
     statusCode: result.success ? 200 : 404,
     body: JSON.stringify(result),
     headers: {
-      "Content-Type": "application-json",
+      "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Headers": "*",
       "Access-Control-Allow-Methods": "*",

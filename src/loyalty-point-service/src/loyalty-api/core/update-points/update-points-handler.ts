@@ -11,6 +11,7 @@ import { Logger } from "@aws-lambda-powertools/logger";
 import { loyaltyPointRepository } from "../loyaltyPointRepository";
 import { LoyaltyPointsDTO } from "../loyaltyPointsDTO";
 import { LoyaltyPoints } from "../loyaltyPoints";
+import { ConcurrentModificationError } from "../concurrentModificationError";
 
 export class UpdatePointsCommand {
   userId: string;
@@ -19,6 +20,7 @@ export class UpdatePointsCommand {
 }
 
 const logger = new Logger({});
+const MAX_RETRIES = 3;
 
 export class UpdatePointsCommandHandler {
   private repository: loyaltyPointRepository;
@@ -32,45 +34,62 @@ export class UpdatePointsCommandHandler {
   public async handle(
     command: UpdatePointsCommand
   ): Promise<HandlerResponse<LoyaltyPointsDTO>> {
-    try {
-      const span = tracer.scope().active()!;
-      span.addTags({
-        "user.id": command.userId,
-      });
-      span.addTags({
-        "order.id": command.orderNumber,
-      });
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const span = tracer.scope().active();
+        span?.addTags({
+          "user.id": command.userId,
+          "order.id": command.orderNumber,
+        });
 
-      let loyaltyAccount = await this.repository.forUser(command.userId);
+        let loyaltyAccount = await this.repository.forUser(command.userId);
 
-      if (loyaltyAccount === undefined) {
-        span.addTags({ "loyalty.newAccount": true });
-        loyaltyAccount = new LoyaltyPoints(command.userId, 0, []);
+        if (loyaltyAccount === undefined) {
+          span?.addTags({ "loyalty.newAccount": true });
+          loyaltyAccount = new LoyaltyPoints(command.userId, 0, []);
+        }
+
+        const pointsAdded = loyaltyAccount.addPoints(
+          command.orderNumber,
+          command.pointsToAdd
+        );
+
+        if (pointsAdded) {
+          await this.repository.save(loyaltyAccount);
+        }
+
+        return {
+          data: {
+            userId: loyaltyAccount.userId,
+            currentPoints: loyaltyAccount.currentPoints,
+          },
+          success: true,
+          message: [],
+        };
+      } catch (error) {
+        if (error instanceof ConcurrentModificationError && attempt < MAX_RETRIES) {
+          logger.warn("Concurrent modification, retrying", {
+            userId: command.userId,
+            attempt: attempt + 1,
+          });
+          continue;
+        }
+
+        logger.error("Failed to update points", { error });
+        return {
+          data: undefined,
+          success: false,
+          message: [error instanceof ConcurrentModificationError
+            ? "Concurrent modification conflict after retries"
+            : "Unknown error"],
+        };
       }
-
-      const pointsAdded = loyaltyAccount.addPoints(
-        command.orderNumber,
-        command.pointsToAdd
-      );
-
-      if (pointsAdded) {
-        await this.repository.save(loyaltyAccount);
-      }
-
-      return {
-        data: {
-          userId: loyaltyAccount.userId,
-          currentPoints: loyaltyAccount.currentPoints,
-        },
-        success: true,
-        message: [],
-      };
-    } catch (error) {
-      return {
-        data: undefined,
-        success: false,
-        message: ["Unknown error"],
-      };
     }
+
+    return {
+      data: undefined,
+      success: false,
+      message: ["Unknown error"],
+    };
   }
 }

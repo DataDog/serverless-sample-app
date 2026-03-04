@@ -76,18 +76,28 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
 
       if (evtWrapper.detail.type.indexOf("v1") > 0) {
         const evtData = evtWrapper.detail.data as OrderCompletedEventV1;
-        await updatePointsCommandHandler.handle({
+        const result = await updatePointsCommandHandler.handle({
           orderNumber: evtData.orderNumber,
           userId: evtData.userId,
           pointsToAdd: 50,
         });
+        if (!result.success) {
+          throw new Error(
+            `Failed to process orderCompleted.v1 event: ${result.message.join(", ")}`
+          );
+        }
       } else if (evtWrapper.detail.type.indexOf("v2") > 0) {
         const evtData = evtWrapper.detail.data as OrderCompletedEventV2;
-        await updatePointsCommandHandler.handle({
+        const result = await updatePointsCommandHandler.handle({
           orderNumber: evtData.orderId,
           userId: evtData.userId,
           pointsToAdd: 50,
         });
+        if (!result.success) {
+          throw new Error(
+            `Failed to process orderCompleted.v2 event: ${result.message.join(", ")}`
+          );
+        }
       } else {
         logger.warn("Loyalty function received unsupported event version");
         throw new Error(`Unsupported event version ${evtWrapper.detail.type}`);

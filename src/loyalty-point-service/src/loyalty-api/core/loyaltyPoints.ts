@@ -8,13 +8,14 @@
 export class LoyaltyPoints {
   userId: string;
   currentPoints: number;
-  orders: string[]
+  orders: string[];
+  version: number;
 
-
-  constructor(userId: string, currentPoints: number, orders: string[]) {
+  constructor(userId: string, currentPoints: number, orders: string[], version: number = 0) {
     this.userId = userId;
     this.currentPoints = currentPoints;
     this.orders = orders;
+    this.version = version;
   }
   
   addPoints(orderNumber: string, points: number): boolean {

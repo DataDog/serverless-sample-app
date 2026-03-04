@@ -9,7 +9,6 @@ import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 import { ApiDriver } from "./apiDriver";
 import { randomUUID } from "crypto";
 import { sign } from "jsonwebtoken";
-import { use } from "dd-trace";
 
 let apiDriver: ApiDriver;
 let jwtSecretValue: string;

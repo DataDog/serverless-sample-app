@@ -5,7 +5,6 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-const ddPlugin = require("dd-trace/esbuild");
 const esbuild = require("esbuild");
 
 esbuild
@@ -13,11 +12,14 @@ esbuild
     entryPoints: ["./src/loyalty-api/adapters/handleLoyaltyPointsUpdated.ts"],
     bundle: true,
     minify: true,
+    keepNames: true,
     outfile: "out/handleLoyaltyPointsUpdated/index.js",
-    plugins: [ddPlugin],
     platform: "node", // allows built-in modules to be required
     target: ["node22"],
     external: [
+      // provided by the Datadog Lambda layer at runtime
+      "dd-trace",
+
       // esbuild cannot bundle native modules
       "@datadog/native-metrics",
 

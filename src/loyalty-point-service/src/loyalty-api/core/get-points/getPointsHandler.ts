@@ -9,13 +9,10 @@ import { tracer } from "dd-trace";
 import { HandlerResponse } from "../handlerResponse";
 import { LoyaltyPointsDTO } from "../loyaltyPointsDTO";
 import { loyaltyPointRepository } from "../loyaltyPointRepository";
-import { Logger } from "@aws-lambda-powertools/logger";
 
 export class GetProductQuery {
   userId: string;
 }
-
-const logger = new Logger({});
 
 export class GetProductHandler {
   private repository: loyaltyPointRepository;
