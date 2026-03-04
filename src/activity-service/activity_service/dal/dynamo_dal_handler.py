@@ -32,19 +32,19 @@ class DynamoDalHandler(DalHandler):
     def update_activity(self, activity: Activity) -> Activity:
         logger.info('trying to save activity', entity_id=activity.entity_id, entity_type=activity.entity_type)
         try:
-            for item in activity.activities:
-                entry_partition_key = f"{activity.entity_id}-{activity.entity_type}"
-                entry_sort_key = f"{item.activity_time}"
-                entry = ActivityItemEntry(
-                    PK=entry_partition_key,
-                    SK=entry_sort_key,
-                    entity_id=activity.entity_id,
-                    entity_type=activity.entity_type,
-                    activity_type=item.type,
-                    created_at=item.activity_time,
-                )
-                table: Table = self._get_db_handler(self.table_name)
-                table.put_item(Item=entry.model_dump())
+            new_item = activity.activities[-1]
+            entry_partition_key = f"{activity.entity_id}-{activity.entity_type}"
+            entry_sort_key = f"{new_item.activity_time}"
+            entry = ActivityItemEntry(
+                PK=entry_partition_key,
+                SK=entry_sort_key,
+                entity_id=activity.entity_id,
+                entity_type=activity.entity_type,
+                activity_type=new_item.type,
+                created_at=new_item.activity_time,
+            )
+            table: Table = self._get_db_handler(self.table_name)
+            table.put_item(Item=entry.model_dump())
         except (ClientError, ValidationError) as exc:  # pragma: no cover
             error_msg = 'failed to store activity'
             logger.exception(error_msg, entity_id=activity.entity_id)
