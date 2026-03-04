@@ -267,6 +267,16 @@ public class InventoryItemService {
     private void reserveStockWithRetry(String productId, String orderNumber) {
         for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             var inventoryItem = this.repository.withProductId(productId);
+
+            // Re-validate availability against the freshly loaded state.
+            // A concurrent order may have consumed the last unit between the
+            // initial parallel check and this write.
+            if (inventoryItem.getAvailableStockLevel() <= 0) {
+                logger.warn("Stock no longer available for product {} on reservation attempt {} (concurrent reservation detected)",
+                        productId, attempt + 1);
+                throw new StaleItemException("Stock no longer available for product " + productId);
+            }
+
             inventoryItem.reserveStockFor(orderNumber);
             try {
                 this.repository.update(inventoryItem);

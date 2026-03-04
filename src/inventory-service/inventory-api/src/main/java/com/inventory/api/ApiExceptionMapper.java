@@ -3,6 +3,7 @@ package com.inventory.api;
 import com.inventory.core.DataAccessException;
 import com.inventory.core.HandlerResponse;
 import com.inventory.core.InventoryItemNotFoundException;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
@@ -17,6 +18,12 @@ public class ApiExceptionMapper implements ExceptionMapper<Exception> {
 
     @Override
     public Response toResponse(Exception exception) {
+        // Let JAX-RS framework exceptions (404, 405, 400, etc.) pass through unchanged
+        // so clients receive the correct HTTP status rather than a generic 500.
+        if (exception instanceof WebApplicationException wae) {
+            return wae.getResponse();
+        }
+
         if (exception instanceof InventoryItemNotFoundException e) {
             LOG.warn("Inventory item not found: " + e.getInventoryItemId());
             var body = new HandlerResponse<String>("Not found", List.of(e.getMessage()), false);
