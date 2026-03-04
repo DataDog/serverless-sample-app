@@ -165,8 +165,7 @@ public class DynamoDBOrders(
 
     public async Task<Order?> WithOrderId(string userId, string orderId, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Retrieving Order with orderId {orderId} and user {userId} from DynamoDB", orderId,
-            userId);
+        logger.LogInformation("Retrieving Order with orderId {orderId} from DynamoDB", orderId);
 
         var getItemRequest = new GetItemRequest()
         {

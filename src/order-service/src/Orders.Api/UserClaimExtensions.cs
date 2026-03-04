@@ -25,7 +25,6 @@ public static class UserClaimExtensions
 
         if (Tracer.Instance.ActiveScope != null)
         {
-            Tracer.Instance.ActiveScope.Span.SetTag("user.id", userId);
             Tracer.Instance.ActiveScope.Span.SetTag("user.type", userType);
         }
         

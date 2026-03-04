@@ -52,8 +52,8 @@ public class ConfirmedOrdersHandler
             var user = context.User.Claims.ExtractUserId();
             if (user?.UserType != "ADMIN")
             {
-                logger.LogWarning("Unauthorized access attempt to confirmed orders by user {UserId} with type {UserType}", 
-                    user?.UserId, user?.UserType);
+                logger.LogWarning("Unauthorized access attempt to confirmed orders by user with type {UserType}",
+                    user?.UserType);
                 
                 return Results.Problem(
                     detail: "Only administrators can access confirmed orders",
