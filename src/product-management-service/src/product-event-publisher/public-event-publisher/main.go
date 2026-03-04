@@ -45,6 +45,7 @@ var (
 
 func functionHandler(ctx context.Context, request events.SQSEvent) (events.SQSEventResponse, error) {
 	span, _ := tracer.SpanFromContext(ctx)
+	span.SetTag("messaging.batch.size", len(request.Records))
 
 	var failures []events.SQSBatchItemFailure
 
@@ -55,7 +56,8 @@ func functionHandler(ctx context.Context, request events.SQSEvent) (events.SQSEv
 
 		if err != nil {
 			span.SetTag("error.message", err.Error())
-			span.SetTag("error", "true")
+			span.SetTag("error", true)
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
 
 			failures = append(failures, events.SQSBatchItemFailure{
 				ItemIdentifier: record.MessageId,
@@ -119,9 +121,11 @@ func processCreatedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 	defer span.Finish()
 
-	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{
+	// Extract DSM context using the incoming ctx so the checkpoint is linked to
+	// the current trace, not an orphaned background context.
+	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
+	}, "direction:in", "type:sqs", "topic:"+evt.Type, "manual_checkpoint:true")
 
 	span.SetTag("product.id", evt.Data.ProductId)
 	span.SetTag("messaging.message.id", evt.Id)
@@ -131,7 +135,13 @@ func processCreatedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 	span.SetTag("messaging.operation.type", "process")
 	span.SetTag("messaging.system", "aws_sqs")
 
-	return handler.HandleCreated(ctx, evt.Data)
+	result, err := handler.HandleCreated(ctx, evt.Data)
+	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+	}
+	return result, err
 }
 
 func processUpdatedEvent(ctx context.Context, snsMessage events.SNSEntity) (string, error) {
@@ -147,9 +157,12 @@ func processUpdatedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 	defer span.Finish()
 
-	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{
+	// Extract DSM context using the incoming ctx so the checkpoint is linked to
+	// the current trace, not an orphaned background context.
+	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
+	}, "direction:in", "type:sqs", "topic:"+evt.Type, "manual_checkpoint:true")
+
 	span.SetTag("product.id", evt.Data.ProductId)
 	span.SetTag("messaging.message.id", evt.Id)
 	span.SetTag("messaging.message.type", evt.Type)
@@ -158,7 +171,13 @@ func processUpdatedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 	span.SetTag("messaging.operation.type", "process")
 	span.SetTag("messaging.system", "aws_sqs")
 
-	return handler.HandleUpdated(ctx, evt.Data)
+	result, err := handler.HandleUpdated(ctx, evt.Data)
+	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+	}
+	return result, err
 }
 
 func processDeletedEvent(ctx context.Context, snsMessage events.SNSEntity) (string, error) {
@@ -174,9 +193,12 @@ func processDeletedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 	defer span.Finish()
 
-	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(context.Background(), evt), options.CheckpointParams{
+	// Extract DSM context using the incoming ctx so the checkpoint is linked to
+	// the current trace, not an orphaned background context.
+	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
+	}, "direction:in", "type:sqs", "topic:"+evt.Type, "manual_checkpoint:true")
+
 	span.SetTag("product.id", evt.Data.ProductId)
 	span.SetTag("messaging.message.id", evt.Id)
 	span.SetTag("messaging.message.type", evt.Type)
@@ -185,7 +207,13 @@ func processDeletedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 	span.SetTag("messaging.operation.type", "process")
 	span.SetTag("messaging.system", "aws_sqs")
 
-	return handler.HandleDeleted(ctx, evt.Data)
+	result, err := handler.HandleDeleted(ctx, evt.Data)
+	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+	}
+	return result, err
 }
 
 func main() {

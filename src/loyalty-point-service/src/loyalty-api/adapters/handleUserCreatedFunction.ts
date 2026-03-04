@@ -43,7 +43,7 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
 
     try {
       const evtWrapper: EventBridgeEvent<
-        "order.orderCompleted.v1",
+        "users.userCreated.v1",
         CloudEvent<UserCreatedEventV1>
       > = JSON.parse(message.body);
 

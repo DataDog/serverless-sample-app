@@ -23,9 +23,6 @@ public static class MessagingExtensions
             return null;
         }
 
-        evtJsonData["PublishDateTime"] = DateTime.Now.ToString("s");
-        evtJsonData["EventId"] = Guid.NewGuid().ToString();
-
         var cloudEvent = new CloudEvent(CloudEventsSpecVersion.V1_0);
         cloudEvent.Data = evtJsonData;
         cloudEvent.Id = Guid.NewGuid().ToString();
@@ -33,9 +30,11 @@ public static class MessagingExtensions
         cloudEvent.Type = evt.DetailType;
         cloudEvent.Time = DateTimeOffset.UtcNow;
         cloudEvent.DataContentType = "application/json";
+        cloudEvent.SetAttributeFromString("publishdatetime", DateTime.UtcNow.ToString("s"));
+        cloudEvent.SetAttributeFromString("eventid", Guid.NewGuid().ToString());
         if (Tracer.Instance.ActiveScope?.Span != null)
         {
-            cloudEvent.SetAttributeFromString("traceparent", $"00-{Tracer.Instance.ActiveScope.Span.TraceId}-{Tracer.Instance.ActiveScope.Span.SpanId}-01");
+            cloudEvent.SetAttributeFromString("traceparent", $"00-{Tracer.Instance.ActiveScope.Span.TraceId:x32}-{Tracer.Instance.ActiveScope.Span.SpanId:x16}-01");
         }
 
         return cloudEvent;
@@ -51,7 +50,7 @@ public static class MessagingExtensions
         span.SetTag("messaging.operation.type", "publish");
         span.SetTag("messaging.system", "eventbridge");
         span.SetTag("messaging.batch.message_count", 1);
-        span.SetTag("messaging.destination.name", ebEvt.Source);
+        span.SetTag("messaging.destination.name", ebEvt.EventBusName);
         span.SetTag("messaging.client.id", Environment.GetEnvironmentVariable("DD_SERVICE") ?? "");
         span.SetTag("messaging.message.body.size", Encoding.UTF8.GetBytes(JsonSerializer.Serialize(evt.Data)).Length);
         span.SetTag("messaging.operation.name", "send");

@@ -7,7 +7,11 @@
 
 package core
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+)
 
 type ListProductsQuery struct {
 }
@@ -23,13 +27,20 @@ func NewListProductsQueryHandler(productRepository ProductRepository) *ListProdu
 }
 
 func (handler *ListProductsQueryHandler) Handle(ctx context.Context, command ListProductsQuery) ([]ProductListDTO, error) {
+	span, _ := tracer.SpanFromContext(ctx)
+
 	products, err := handler.productRepository.List(ctx)
 
 	listResponse := []ProductListDTO{}
 
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return listResponse, err
 	}
+
+	span.SetTag("products.count", len(products))
 
 	for _, element := range products {
 		listResponse = append(listResponse, *element.AsListDto())

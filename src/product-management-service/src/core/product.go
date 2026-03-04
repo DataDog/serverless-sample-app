@@ -32,13 +32,28 @@ type OutboxRepository interface {
 }
 
 type OutboxEntry struct {
-	Id         string    `json:"id"`
-	EventType  string    `json:"event_type"`
-	EventData  string    `json:"event_data"`
-	TraceId    string    `json:"trace_id"`
-	SpanId     string    `json:"span_id"`
-	CreatedAt  time.Time `json:"created_at"`
-	ProcessedAt *time.Time `json:"processed_at"`
+	Id          string            `json:"id"`
+	EventType   string            `json:"event_type"`
+	EventData   string            `json:"event_data"`
+	TraceId     string            `json:"trace_id"`
+	SpanId      string            `json:"span_id"`
+	DsmContext  map[string]string `json:"dsm_context,omitempty"`
+	CreatedAt   time.Time         `json:"created_at"`
+	ProcessedAt *time.Time        `json:"processed_at"`
+}
+
+// OutboxDsmCarrier is a TextMapWriter/TextMapReader backed by a plain map,
+// used to inject and extract DSM pathway context through the outbox table.
+type OutboxDsmCarrier map[string]string
+
+func (c OutboxDsmCarrier) Set(key, val string) { c[key] = val }
+func (c OutboxDsmCarrier) ForeachKey(handler func(key, val string) error) error {
+	for k, v := range c {
+		if err := handler(k, v); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type Product struct {

@@ -38,6 +38,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Orders.Core\Orders.Core.csproj" />
       <ProjectReference Include="..\Orders.Api\Orders.Api.csproj" />
+      <ProjectReference Include="..\Orders.BackgroundWorkers\Orders.BackgroundWorkers.csproj" />
     </ItemGroup>
 
 </Project>

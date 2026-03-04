@@ -1,0 +1,258 @@
+openapi: 3.1.0
+info:
+  title: Inventory Service API
+  description: |
+    The Inventory Service exposes a REST HTTP API for managing inventory stock levels.
+    It is implemented as a Quarkus-based JAX-RS application deployed on ECS Fargate behind
+    an Application Load Balancer and CloudFront distribution.
+
+    Authentication is handled via JWT bearer tokens on protected endpoints.
+    The GET /inventory/{productId} and GET /health endpoints are public and require no token.
+    The POST /inventory endpoint requires a valid admin JWT bearer token.
+  version: 1.0.0
+  contact:
+    name: Inventory Team
+
+servers:
+  - url: https://{cloudfrontDomain}
+    description: CloudFront distribution fronting the ALB (ECS Fargate, port 8080)
+    variables:
+      cloudfrontDomain:
+        default: <your-cloudfront-domain>.cloudfront.net
+        description: CloudFront distribution domain name (stored in SSM at /{env}/{service}/api-endpoint)
+
+tags:
+  - name: inventory
+    description: Inventory item stock operations
+  - name: health
+    description: Service health check
+
+paths:
+  /health:
+    get:
+      tags:
+        - health
+      summary: Health check
+      description: |
+        Returns a plain-text health check response. This endpoint is public and
+        is used by the ALB target-group health check (HTTP 200-499 acceptable).
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Healthy!
+
+  /inventory/{productId}:
+    get:
+      tags:
+        - inventory
+      summary: Get inventory item by product ID
+      description: |
+        Returns the current inventory information for the given product, including the
+        available stock level (currentStockLevel minus reservedStockLevel) and the
+        reserved stock level. This endpoint is public and does not require authentication.
+      operationId: getInventoryItemByProductId
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: The unique identifier of the product whose inventory is being queried.
+          schema:
+            type: string
+            minLength: 1
+          example: PROD-001
+      responses:
+        '200':
+          description: Inventory item found and returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HandlerResponseInventoryItemDTO'
+              example:
+                data:
+                  productId: PROD-001
+                  currentStockLevel: 48.0
+                  reservedStockLevel: 2.0
+                message:
+                  - OK
+                success: true
+        '404':
+          description: No inventory record found for the given product ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HandlerResponseNull'
+              example:
+                data: null
+                message:
+                  - Product not found
+                success: false
+
+  /inventory:
+    post:
+      tags:
+        - inventory
+      summary: Update stock level for a product
+      description: |
+        Sets the current stock level for the specified product. If no inventory record
+        exists yet for the product it will be created automatically. Optimistic locking
+        is used on the DynamoDB item; the operation is retried up to 3 times with
+        exponential back-off on write conflicts.
+
+        On success the service publishes an `inventory.stockUpdated.v1` event to
+        EventBridge.
+
+        **Authentication:** Requires a valid admin JWT bearer token in the
+        `Authorization: Bearer <token>` header.
+      operationId: updateStockLevel
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInventoryStockRequest'
+            example:
+              productId: PROD-001
+              stockLevel: 100.0
+      responses:
+        '200':
+          description: Stock level updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HandlerResponseInventoryItemDTO'
+              example:
+                data:
+                  productId: PROD-001
+                  currentStockLevel: 100.0
+                  reservedStockLevel: 0.0
+                message:
+                  - OK
+                success: true
+        '400':
+          description: |
+            Validation error. Possible messages:
+            - "Stock level be greater than 0"
+            - "ProductID must be at least 3 characters"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HandlerResponseNull'
+              example:
+                data: null
+                message:
+                  - Stock level be greater than 0
+                success: false
+        '401':
+          description: Missing or invalid JWT bearer token.
+        '500':
+          description: Unexpected server error (e.g. optimistic-locking retries exhausted, DynamoDB failure).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HandlerResponseNull'
+              example:
+                data: null
+                message:
+                  - Unknown error: <detail>
+                success: false
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Admin JWT token. Obtained from the authentication service. Supply as
+        `Authorization: Bearer <token>`. The secret is stored in AWS SSM and read
+        at startup via the `JWT_SECRET_PARAM_NAME` environment variable.
+
+  schemas:
+    UpdateInventoryStockRequest:
+      type: object
+      required:
+        - productId
+        - stockLevel
+      description: Request body for updating the stock level of a product.
+      properties:
+        productId:
+          type: string
+          minLength: 4
+          description: |
+            The unique identifier of the product to update. Must be at least 3 characters
+            (validation enforces length > 3, i.e. minimum 4 characters).
+          example: PROD-001
+        stockLevel:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+          description: The new absolute stock level to set. Must be greater than 0.
+          example: 100.0
+
+    InventoryItemDTO:
+      type: object
+      description: |
+        A read-only projection of an inventory item returned by the API. The
+        `currentStockLevel` field represents the *available* stock (total minus reserved).
+      properties:
+        productId:
+          type: string
+          description: The unique identifier of the product.
+          example: PROD-001
+        currentStockLevel:
+          type: number
+          format: double
+          description: |
+            The available stock level, calculated as total current stock minus the
+            reserved stock level.
+          example: 48.0
+        reservedStockLevel:
+          type: number
+          format: double
+          description: The quantity of stock currently reserved for pending orders.
+          example: 2.0
+
+    HandlerResponseInventoryItemDTO:
+      type: object
+      description: Generic handler response wrapper containing an InventoryItemDTO payload.
+      properties:
+        data:
+          $ref: '#/components/schemas/InventoryItemDTO'
+        message:
+          type: array
+          items:
+            type: string
+          description: List of informational or error messages.
+          example:
+            - OK
+        success:
+          type: boolean
+          description: Whether the operation succeeded.
+          example: true
+
+    HandlerResponseNull:
+      type: object
+      description: Generic handler response wrapper used when the operation fails and there is no data payload.
+      properties:
+        data:
+          nullable: true
+          description: Always null for error responses.
+          example: null
+        message:
+          type: array
+          items:
+            type: string
+          description: One or more human-readable error or status messages.
+          example:
+            - Product not found
+        success:
+          type: boolean
+          description: Always false for error responses.
+          example: false

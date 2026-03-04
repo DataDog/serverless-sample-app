@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -38,16 +40,22 @@ func NewUpdateProductCommandHandler(productRepository ProductRepository, outboxR
 func (handler *UpdateProductCommandHandler) Handle(ctx context.Context, command UpdateProductCommand) (*ProductDTO, error) {
 	span, _ := tracer.SpanFromContext(ctx)
 	span.SetTag("product.id", command.ProductId)
-	
+
 	product, err := handler.productRepository.Get(ctx, command.ProductId)
 
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return nil, err
 	}
 
 	err = product.UpdateDetail(command.Name, command.Price)
 
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return nil, err
 	}
 
@@ -58,12 +66,18 @@ func (handler *UpdateProductCommandHandler) Handle(ctx context.Context, command 
 	event := ProductUpdatedEvent{ProductId: command.ProductId, New: ProductDetails{Name: product.Name, Price: product.Price}, Previous: ProductDetails{Name: product.PreviousName, Price: product.PreviousPrice}}
 	outboxEntry, err := createOutboxEntryForUpdate(ctx, "product.productUpdated", event)
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return nil, err
 	}
 
 	err = handler.productRepository.UpdateProductWithOutboxEntry(ctx, *product, outboxEntry)
 
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return nil, err
 	}
 
@@ -86,12 +100,23 @@ func createOutboxEntryForUpdate(ctx context.Context, eventType string, eventData
 		return OutboxEntry{}, err
 	}
 
-	return OutboxEntry{
+	entry := OutboxEntry{
 		Id:        uuid.New().String(),
 		EventType: eventType,
 		EventData: string(eventJson),
 		TraceId:   traceId,
 		SpanId:    spanId,
 		CreatedAt: time.Now(),
-	}, nil
+	}
+
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-outbox",
+	}, "direction:out", "type:outbox", "topic:"+eventType, "manual_checkpoint:true")
+	if ok {
+		carrier := make(OutboxDsmCarrier)
+		datastreams.InjectToBase64Carrier(ctx, carrier)
+		entry.DsmContext = map[string]string(carrier)
+	}
+
+	return entry, nil
 }

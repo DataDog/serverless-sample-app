@@ -11,36 +11,24 @@ import jakarta.enterprise.inject.Produces;
 import org.jboss.logging.Logger;
 import software.amazon.awssdk.http.crt.AwsCrtHttpClient;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
-import software.amazon.awssdk.services.dynamodb.model.*;
 import software.amazon.awssdk.services.ssm.SsmClient;
 
-import java.net.URI;
 import java.time.Duration;
 
 @ApplicationScoped
 public class SSMClientProducer {
     private static final Logger LOGGER = Logger.getLogger("Listener");
-    private static final SsmClient CLIENT;
-    
-    static {
+
+    @Produces
+    @ApplicationScoped
+    public SsmClient createSsmClient() {
         LOGGER.info("Creating SSM client");
-        String environment = System.getenv("ENV");
-        
-        SsmClient client = SsmClient.builder()
+
+        return SsmClient.builder()
                 .httpClientBuilder(AwsCrtHttpClient.builder()
                         .connectionTimeout(Duration.ofSeconds(3))
                         .maxConcurrency(100))
                 .region(Region.of(System.getenv("AWS_REGION")))
                 .build();
-        
-        CLIENT = client;
-    }
-
-    @Produces
-    @ApplicationScoped
-    public SsmClient createSsmClient() {
-        return CLIENT;
     }
 }

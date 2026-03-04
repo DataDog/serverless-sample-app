@@ -1,0 +1,463 @@
+asyncapi: 2.6.0
+info:
+  title: Inventory Service Events
+  version: 1.0.0
+  description: |
+    AsyncAPI specification for all events **published** by the Inventory Service.
+
+    The service uses two messaging systems depending on the event:
+
+    - **Amazon EventBridge** – all internal domain events (stock updated, stock reserved,
+      stock reservation failed, product out of stock) are published as CloudEvent-wrapped
+      messages to the configured event bus (env var `EVENT_BUS_NAME`).
+    - **Amazon SNS** – the `inventory.productAdded.v1` event is published to a dedicated
+      SNS topic (env var `PRODUCT_ADDED_TOPIC_ARN` / `PRODUCT_ADDED_TOPIC_ARN`).
+
+    All messages share a common **CloudEvent envelope** that carries distributed-tracing
+    context alongside the domain payload. The envelope fields are documented in the
+    `CloudEventEnvelope` schema.
+
+    Source format: `{env}.inventory`  (e.g. `prod.inventory`)
+
+servers:
+  eventbridge:
+    url: aws.eventbridge
+    protocol: eventbridge
+    description: |
+      Amazon EventBridge custom event bus. The bus name is provided at runtime via
+      the `EVENT_BUS_NAME` environment variable. Domain events are put via
+      `PutEventsRequest` with `source = "{env}.inventory"` and `detailType` equal
+      to the event type string.
+
+  sns-new-product-added:
+    url: aws.sns
+    protocol: sns
+    description: |
+      Amazon SNS topic used for the `inventory.productAdded.v1` event. The topic ARN
+      is provided at runtime via the `PRODUCT_ADDED_TOPIC_ARN` environment variable.
+      This topic is subscribed to by the `inventory-ordering-service` Lambda which
+      triggers the Step Functions ordering workflow.
+
+defaultContentType: application/json
+
+channels:
+  inventory/stockUpdated/v1:
+    description: |
+      Published when the absolute stock level of a product is updated via the
+      `POST /inventory` HTTP endpoint or when an order is dispatched (order completed).
+      Uses EventBridge.
+    publish:
+      operationId: publishInventoryStockUpdated
+      summary: Publish inventory stock updated event
+      description: |
+        Triggered from `InventoryItemService.updateStock()` and
+        `InventoryItemService.orderDispatched()`. The `detailType` on the EventBridge
+        entry is `inventory.stockUpdated.v1`.
+      message:
+        $ref: '#/components/messages/inventoryStockUpdatedV1'
+
+  inventory/stockReserved/v1:
+    description: |
+      Published when inventory stock is successfully reserved for all products in an
+      order, triggered by an incoming `orders.orderCreated.V1` event.
+      Uses EventBridge.
+    publish:
+      operationId: publishInventoryStockReserved
+      summary: Publish stock reserved event
+      description: |
+        Triggered from `InventoryItemService.reserveStockForOrder()` when all
+        product reservations succeed. The `detailType` on the EventBridge entry is
+        `inventory.stockReserved.v1`.
+      message:
+        $ref: '#/components/messages/inventoryStockReservedV1'
+
+  inventory/stockReservationFailed/v1:
+    description: |
+      Published when stock reservation fails for one or more products in an order,
+      triggered by an incoming `orders.orderCreated.V1` event.
+      Uses EventBridge.
+    publish:
+      operationId: publishInventoryStockReservationFailed
+      summary: Publish stock reservation failed event
+      description: |
+        Triggered from `InventoryItemService.reserveStockForOrder()` when any product
+        is not found or is out of stock. Also published when an unexpected error occurs
+        during reservation. The `detailType` on the EventBridge entry is
+        `inventory.stockReservationFailed.v1`.
+      message:
+        $ref: '#/components/messages/inventoryStockReservationFailedV1'
+
+  inventory/outOfStock/v1:
+    description: |
+      Published when a product's available stock level drops to zero or below after an
+      order is dispatched (order completed event processed).
+      Uses EventBridge.
+    publish:
+      operationId: publishProductOutOfStock
+      summary: Publish product out of stock event
+      description: |
+        Triggered from `InventoryItemService.orderDispatched()` when, after decrementing
+        stock for each dispatched product, the available stock level is <= 0. The
+        `detailType` on the EventBridge entry is `inventory.outOfStock.v1`.
+      message:
+        $ref: '#/components/messages/productOutOfStockV1'
+
+  inventory/productAdded/v1:
+    description: |
+      Published when the inventory service learns about a new product that does not yet
+      have an inventory record. This event flows to an SNS topic (not EventBridge) and
+      is consumed by the `inventory-ordering-service` Lambda which starts a Step
+      Functions ordering workflow.
+
+      Triggered in two scenarios:
+      1. When a `product.productCreated.v1` EventBridge event is received from the
+         shared event bus via the ACL Lambda (`handleProductCreatedLambda`).
+      2. On a scheduled product-catalogue refresh (every 5 minutes) when the ACL Lambda
+         (`productCatalogueRefresh`) detects a product in the product service catalogue
+         that has no corresponding inventory record.
+      Uses SNS (`PRODUCT_ADDED_TOPIC_ARN`).
+    publish:
+      operationId: publishInventoryProductAdded
+      summary: Publish new product added event
+      description: |
+        Published via `EventPublisher.publishNewProductAddedEvent()`. The SNS message
+        body is a serialized `CloudEventWrapper<NewProductAddedEvent>` with type
+        `inventory.productAdded.v1`.
+      message:
+        $ref: '#/components/messages/inventoryProductAddedV1'
+
+components:
+  messages:
+    inventoryStockUpdatedV1:
+      name: inventoryStockUpdatedV1
+      title: Inventory Stock Updated
+      summary: Stock level for a product has been changed.
+      description: |
+        Emitted whenever the recorded stock level of a product changes: either via a
+        direct stock update API call or as a result of an order being completed
+        (dispatched). Consumers can use this event to maintain read models or trigger
+        downstream stock-level alerts.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CloudEventInventoryStockUpdated'
+      examples:
+        - name: stockSetToOneHundred
+          summary: Stock level set to 100 from 50
+          payload:
+            id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+            source: prod.inventory
+            type: inventory.stockUpdated.v1
+            time: '2024-11-15T14:23:00.123456'
+            traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+            _datadog:
+              traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+            data:
+              productId: PROD-001
+              previousStockLevel: 50.0
+              newStockLevel: 100.0
+
+    inventoryStockReservedV1:
+      name: inventoryStockReservedV1
+      title: Inventory Stock Reserved
+      summary: Stock has been successfully reserved for an order.
+      description: |
+        Published after all products in an order have been checked for availability and
+        their stock has been reserved. Downstream services (e.g. the orders service) use
+        this event to advance the order through the fulfillment workflow.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CloudEventInventoryStockReserved'
+      examples:
+        - name: stockReservedForOrder
+          summary: Stock reserved for order ORD-12345
+          payload:
+            id: 7b8c9d0e-1234-5678-abcd-ef0123456789
+            source: prod.inventory
+            type: inventory.stockReserved.v1
+            time: '2024-11-15T14:23:05.654321'
+            traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+            _datadog:
+              traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+            data:
+              orderNumber: ORD-12345
+              conversationId: conv-abc-123
+
+    inventoryStockReservationFailedV1:
+      name: inventoryStockReservationFailedV1
+      title: Inventory Stock Reservation Failed
+      summary: Stock reservation failed for an order.
+      description: |
+        Published when one or more products in an order cannot be reserved — either
+        because the product does not exist in inventory or the available stock level
+        is zero. Also emitted when an unexpected error occurs during the reservation
+        process. Downstream services should use this to roll back or notify the
+        customer of the failure.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CloudEventInventoryStockReservationFailed'
+      examples:
+        - name: reservationFailed
+          summary: Reservation failed for order ORD-99999
+          payload:
+            id: aabbccdd-eeff-0011-2233-445566778899
+            source: prod.inventory
+            type: inventory.stockReservationFailed.v1
+            time: '2024-11-15T14:24:00.000000'
+            traceparent: null
+            _datadog:
+              traceparent: null
+            data:
+              orderNumber: ORD-99999
+              conversationId: conv-xyz-456
+
+    productOutOfStockV1:
+      name: productOutOfStockV1
+      title: Product Out of Stock
+      summary: A product's available stock has reached zero.
+      description: |
+        Published during order dispatch processing when the available stock level of
+        a product drops to zero or below after stock is consumed. Consumers may use
+        this event to trigger replenishment workflows or notify buyers.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CloudEventProductOutOfStock'
+      examples:
+        - name: productOutOfStock
+          summary: Product PROD-001 is now out of stock
+          payload:
+            id: 11223344-5566-7788-99aa-bbccddeeff00
+            source: prod.inventory
+            type: inventory.outOfStock.v1
+            time: '2024-11-15T15:00:00.000000'
+            traceparent: 00-traceid-spanid-01
+            _datadog:
+              traceparent: 00-traceid-spanid-01
+            data:
+              productId: PROD-001
+
+    inventoryProductAddedV1:
+      name: inventoryProductAddedV1
+      title: Inventory New Product Added
+      summary: A new product has been registered in inventory.
+      description: |
+        Published to SNS when the inventory service discovers a product (via a
+        `product.productCreated.v1` event or the scheduled catalogue refresh) that
+        does not yet have an inventory record. The `inventory-ordering-service`
+        Lambda subscribes to this SNS topic and starts a Step Functions ordering
+        workflow to set the initial stock level.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CloudEventInventoryProductAdded'
+      examples:
+        - name: newProductAdded
+          summary: New product PROD-NEW-001 registered in inventory
+          payload:
+            id: ffeeddcc-bbaa-9988-7766-554433221100
+            source: prod.inventory
+            type: inventory.productAdded.v1
+            time: '2024-11-15T09:00:00.000000'
+            traceparent: 00-traceid-spanid-01
+            _datadog:
+              traceparent: 00-traceid-spanid-01
+            data:
+              productId: PROD-NEW-001
+
+  schemas:
+    # ---------------------------------------------------------------------------
+    # CloudEvent envelope (common wrapper for all events)
+    # ---------------------------------------------------------------------------
+    CloudEventEnvelope:
+      type: object
+      description: |
+        All events published by the Inventory Service are wrapped in this CloudEvent-
+        inspired envelope. It carries identity, routing, and distributed-tracing
+        metadata alongside the domain payload in `data`.
+      required:
+        - id
+        - source
+        - type
+        - time
+        - data
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for this event instance (UUID v4).
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        source:
+          type: string
+          description: |
+            Origin of the event in the format `{env}.inventory`
+            (e.g. `prod.inventory`, `dev.inventory`).
+          example: prod.inventory
+        conversationId:
+          type: string
+          nullable: true
+          description: |
+            Optional correlation identifier propagated from the originating request.
+            Present only on events that carry a conversation context (e.g. stock
+            reserved / reservation failed).
+          example: conv-abc-123
+        type:
+          type: string
+          description: Event type identifier used as the EventBridge `detailType` or SNS subject.
+          example: inventory.stockUpdated.v1
+        time:
+          type: string
+          format: date-time
+          description: ISO-8601 timestamp when the event was created (LocalDateTime.now().toString()).
+          example: '2024-11-15T14:23:00.123456'
+        traceparent:
+          type: string
+          nullable: true
+          description: |
+            W3C Trace Context `traceparent` header value derived from the active
+            OpenTelemetry span at the time of publishing. Null when no active span
+            exists.
+          example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+        _datadog:
+          $ref: '#/components/schemas/DatadogTelemetry'
+
+    DatadogTelemetry:
+      type: object
+      description: |
+        Datadog distributed-tracing and Data Streams Monitoring context injected into
+        every event. The `traceparent` field mirrors the W3C value at the top level.
+        Additional Datadog-specific keys (e.g. `dd-pathway-ctx` for DSM) may be
+        present as extra properties.
+      properties:
+        traceparent:
+          type: string
+          nullable: true
+          description: W3C Trace Context traceparent value.
+          example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+      additionalProperties:
+        description: Additional Datadog DSM context key-value pairs (e.g. dd-pathway-ctx).
+
+    # ---------------------------------------------------------------------------
+    # Domain payload schemas
+    # ---------------------------------------------------------------------------
+    InventoryStockUpdatedPayload:
+      type: object
+      description: Payload for the `inventory.stockUpdated.v1` event.
+      required:
+        - productId
+        - previousStockLevel
+        - newStockLevel
+      properties:
+        productId:
+          type: string
+          description: The unique identifier of the product whose stock changed.
+          example: PROD-001
+        previousStockLevel:
+          type: number
+          format: double
+          description: The stock level before the update.
+          example: 50.0
+        newStockLevel:
+          type: number
+          format: double
+          description: The stock level after the update.
+          example: 100.0
+
+    StockReservedPayload:
+      type: object
+      description: Payload for the `inventory.stockReserved.v1` event.
+      required:
+        - orderNumber
+        - conversationId
+      properties:
+        orderNumber:
+          type: string
+          description: The order number for which stock was successfully reserved.
+          example: ORD-12345
+        conversationId:
+          type: string
+          description: |
+            Correlation identifier carried forward from the originating
+            `orders.orderCreated.V1` event to allow downstream services to correlate
+            this response with the original request.
+          example: conv-abc-123
+
+    StockReservationFailedPayload:
+      type: object
+      description: Payload for the `inventory.stockReservationFailed.v1` event.
+      required:
+        - orderNumber
+        - conversationId
+      properties:
+        orderNumber:
+          type: string
+          description: The order number for which stock reservation failed.
+          example: ORD-99999
+        conversationId:
+          type: string
+          description: |
+            Correlation identifier carried forward from the originating
+            `orders.orderCreated.V1` event.
+          example: conv-xyz-456
+
+    ProductOutOfStockPayload:
+      type: object
+      description: Payload for the `inventory.outOfStock.v1` event.
+      required:
+        - productId
+      properties:
+        productId:
+          type: string
+          description: The unique identifier of the product that has run out of stock.
+          example: PROD-001
+
+    NewProductAddedPayload:
+      type: object
+      description: Payload for the `inventory.productAdded.v1` SNS event.
+      required:
+        - productId
+      properties:
+        productId:
+          type: string
+          description: The unique identifier of the newly registered product.
+          example: PROD-NEW-001
+
+    # ---------------------------------------------------------------------------
+    # Fully composed CloudEvent message schemas (envelope + typed data)
+    # ---------------------------------------------------------------------------
+    CloudEventInventoryStockUpdated:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/InventoryStockUpdatedPayload'
+
+    CloudEventInventoryStockReserved:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StockReservedPayload'
+
+    CloudEventInventoryStockReservationFailed:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StockReservationFailedPayload'
+
+    CloudEventProductOutOfStock:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ProductOutOfStockPayload'
+
+    CloudEventInventoryProductAdded:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/NewProductAddedPayload'

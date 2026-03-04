@@ -6,7 +6,9 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
+import jakarta.ws.rs.container.ResourceInfo;
 import jakarta.ws.rs.ext.Provider;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
@@ -21,10 +23,12 @@ public class JWTFilter implements ContainerRequestFilter {
     @Inject
     Authenticator authenticator;
 
+    @Context
+    ResourceInfo resourceInfo;
+
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        // Allow all GET requests, authenticate others.
-        if ("GET".equalsIgnoreCase(requestContext.getMethod())) {
+        if (isPublicEndpoint()) {
             return;
         }
 
@@ -41,6 +45,20 @@ public class JWTFilter implements ContainerRequestFilter {
         if (!authResult) {
             abortWithUnauthorized(requestContext);
         }
+    }
+
+    private boolean isPublicEndpoint() {
+        if (resourceInfo == null) {
+            return false;
+        }
+
+        var method = resourceInfo.getResourceMethod();
+        if (method != null && method.isAnnotationPresent(PublicEndpoint.class)) {
+            return true;
+        }
+
+        var resourceClass = resourceInfo.getResourceClass();
+        return resourceClass != null && resourceClass.isAnnotationPresent(PublicEndpoint.class);
     }
 
     private void abortWithUnauthorized(ContainerRequestContext requestContext) {

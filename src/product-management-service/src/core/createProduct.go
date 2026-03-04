@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -37,11 +39,14 @@ func NewCreateProductCommandHandler(productRepository ProductRepository, outboxR
 func (handler *CreateProductCommandHandler) Handle(ctx context.Context, command CreateProductCommand) (*ProductDTO, error) {
 	span, _ := tracer.SpanFromContext(ctx)
 	span.SetTag("product.name", command.Name)
-	span.SetTag("product.price", command.Name)
+	span.SetTag("product.price", command.Price)
 
 	product, err := NewProduct(command.Name, command.Price)
 
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return nil, err
 	}
 
@@ -56,12 +61,18 @@ func (handler *CreateProductCommandHandler) Handle(ctx context.Context, command 
 	event := ProductCreatedEvent{ProductId: product.Id, Name: product.Name, Price: product.Price}
 	outboxEntry, err := createOutboxEntry(ctx, "product.productCreated", event)
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return nil, err
 	}
 
 	err = handler.productRepository.StoreProductWithOutboxEntry(ctx, *product, outboxEntry)
 
 	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return nil, err
 	}
 
@@ -84,12 +95,23 @@ func createOutboxEntry(ctx context.Context, eventType string, eventData interfac
 		return OutboxEntry{}, err
 	}
 
-	return OutboxEntry{
+	entry := OutboxEntry{
 		Id:        uuid.New().String(),
 		EventType: eventType,
 		EventData: string(eventJson),
 		TraceId:   traceId,
 		SpanId:    spanId,
 		CreatedAt: time.Now(),
-	}, nil
+	}
+
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-outbox",
+	}, "direction:out", "type:outbox", "topic:"+eventType, "manual_checkpoint:true")
+	if ok {
+		carrier := make(OutboxDsmCarrier)
+		datastreams.InjectToBase64Carrier(ctx, carrier)
+		entry.DsmContext = map[string]string(carrier)
+	}
+
+	return entry, nil
 }

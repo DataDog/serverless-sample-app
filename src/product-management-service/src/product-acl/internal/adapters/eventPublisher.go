@@ -9,11 +9,11 @@ package productacladapters
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
+	"os"
+
 	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
 	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
-	"log"
-	"os"
 
 	core "github.com/datadog/serverless-sample-product-core"
 
@@ -30,13 +30,21 @@ func NewSnsEventPublisher(client sns.Client) *SnsEventPublisher {
 	return &SnsEventPublisher{client: client}
 }
 
-func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context, evt core.StockUpdatedEvent) {
+func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context, evt core.StockUpdatedEvent) error {
 	span, _ := tracer.StartSpanFromContext(ctx, "publish product.stockUpdated")
 	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.stockUpdated", evt)
 
-	tracedMessageData, _ := json.Marshal(cloudEvent)
+	// Inject DSM context before marshaling so _datadog carrier is included in the message.
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-acl",
+	}, "direction:out", "type:sns", "topic:product.stockUpdated", "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
+	}
+
+	tracedMessageData, _ := cloudEvent.ToJSON()
 
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("STOCK_LEVEL_UPDATED_TOPIC_ARN")
@@ -50,13 +58,6 @@ func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context,
 	span.SetTag("messaging.operation.type", "publish")
 	span.SetTag("messaging.system", "aws_sns")
 
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-acl",
-	}, "direction:out", "type:sns", "topic:product.stockUpdated", "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
-	}
-
 	input := &sns.PublishInput{
 		TopicArn: &topicArn,
 		Message:  &message,
@@ -65,17 +66,31 @@ func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context,
 	_, err := publisher.client.Publish(ctx, input)
 
 	if err != nil {
-		log.Fatalf("Failure publishing, error: %s", err)
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+		fmt.Printf("Failure publishing, error: %s\n", err)
+		return fmt.Errorf("publish product.stockUpdated: %w", err)
 	}
+
+	return nil
 }
 
-func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Context, evt core.PriceCalculatedEvent) {
+func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Context, evt core.PriceCalculatedEvent) error {
 	span, _ := tracer.StartSpanFromContext(ctx, "publish product.pricingChanged")
 	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.pricingChanged", evt)
 
-	tracedMessageData, _ := json.Marshal(cloudEvent)
+	// Inject DSM context before marshaling so _datadog carrier is included in the message.
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-acl",
+	}, "direction:out", "type:sns", "topic:product.pricingChanged", "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
+	}
+
+	tracedMessageData, _ := cloudEvent.ToJSON()
 
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRICE_CALCULATED_TOPIC_ARN")
@@ -89,13 +104,6 @@ func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Contex
 	span.SetTag("messaging.operation.type", "publish")
 	span.SetTag("messaging.system", "aws_sns")
 
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-acl",
-	}, "direction:out", "type:sns", "topic:product.pricingChanged", "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
-	}
-
 	input := &sns.PublishInput{
 		TopicArn: &topicArn,
 		Message:  &message,
@@ -104,6 +112,12 @@ func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Contex
 	_, err := publisher.client.Publish(ctx, input)
 
 	if err != nil {
-		log.Fatalf("Failure publishing, error: %s", err)
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+		fmt.Printf("Failure publishing, error: %s\n", err)
+		return fmt.Errorf("publish product.pricingChanged: %w", err)
 	}
+
+	return nil
 }

@@ -5,9 +5,7 @@
 using System.Text;
 using System.Text.Json;
 using Amazon.Lambda.SQSEvents;
-using AWS.Lambda.Powertools.Logging;
 using Datadog.Trace;
-using NJsonSchema;
 using Orders.BackgroundWorkers.ExternalEvents;
 
 namespace Orders.BackgroundWorkers;
@@ -46,12 +44,8 @@ public static class TelemetryExtensions
     
     public static void AddToTelemetry(this SQSEvent.SQSMessage record)
     {
-        var schema = JsonSchema.FromSampleJson(record.Body);
-        Logger.LogInformation(schema.ToJson());
-        
         var processingSpan = Tracer.Instance.ActiveScope?.Span;
         processingSpan?.SetTag("messaging.message.body.size",
             Encoding.UTF8.GetByteCount(record.Body));
-        processingSpan?.SetTag("messaging.message.schema", schema.ToJson());
     }
 }

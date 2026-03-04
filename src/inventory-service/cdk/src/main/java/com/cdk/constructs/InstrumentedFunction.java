@@ -45,6 +45,7 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.put("spring_cloud_function_definition", props.routingExpression());
         lambdaEnvironment.put("QUARKUS_LAMBDA_HANDLER", props.routingExpression());
         lambdaEnvironment.put("JAVA_TOOL_OPTIONS", " -XX:+TieredCompilation -XX:TieredStopAtLevel=1");
+        lambdaEnvironment.put("DD_TRACE_OTEL_ENABLED", "true");
 
         // Add custom environment variables to the default set.
         lambdaEnvironment.putAll(props.environmentVariables());
@@ -60,7 +61,7 @@ public class InstrumentedFunction extends Construct {
         
         var builder = Function.Builder.create(this, props.routingExpression())
                 .functionName(String.format("%s-%s-%s", props.packageName().replace(".", ""), props.routingExpression(), props.sharedProps().env()))
-                .runtime(Runtime.JAVA_25)
+                .runtime(Runtime.JAVA_21)
                 .memorySize(2048)
                 .environment(lambdaEnvironment)
                 .timeout(Duration.seconds(30))

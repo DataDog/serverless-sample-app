@@ -190,14 +190,6 @@ func NewDSqlProductRepository(clusterEndpoint string) (*DSqlProductRepository, e
 		connectionFactory: connectionFactory,
 	}
 
-	// Apply migrations using per-operation connection
-	ctx := context.Background()
-	err := repository.ApplyMigrations(ctx)
-	if err != nil {
-		log.Println("Failed to apply migrations: ", err)
-		return nil, err
-	}
-
 	return repository, nil
 }
 
@@ -495,10 +487,16 @@ func (repo *DSqlProductRepository) ApplyMigrations(ctx context.Context) error {
 				event_data TEXT NOT NULL,
 				trace_id VARCHAR(255) NOT NULL,
 				span_id VARCHAR(255) NOT NULL,
+				dsm_context TEXT NULL,
 				created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 				processed_at TIMESTAMP NULL
 			);
 		`)
+		if err != nil {
+			return err
+		}
+
+		_, err = conn.ExecContext(ctx, `ALTER TABLE outbox ADD COLUMN IF NOT EXISTS dsm_context TEXT NULL`)
 		if err != nil {
 			return err
 		}
@@ -509,10 +507,11 @@ func (repo *DSqlProductRepository) ApplyMigrations(ctx context.Context) error {
 
 func (repo *DSqlProductRepository) StoreOutboxEntry(ctx context.Context, entry core.OutboxEntry) error {
 	return repo.executeWithRetry(ctx, func(conn *sqlx.DB) error {
+		dsmCtxJSON, _ := json.Marshal(entry.DsmContext)
 		_, err := conn.ExecContext(ctx, `
-			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6)
-		`, entry.Id, entry.EventType, entry.EventData, entry.TraceId, entry.SpanId, entry.CreatedAt)
+			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, dsm_context, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`, entry.Id, entry.EventType, entry.EventData, entry.TraceId, entry.SpanId, string(dsmCtxJSON), entry.CreatedAt)
 		return err
 	})
 }
@@ -523,7 +522,7 @@ func (repo *DSqlProductRepository) GetUnprocessedEntries(ctx context.Context) ([
 
 	err := repo.executeWithRetry(ctx, func(conn *sqlx.DB) error {
 		rows, err := conn.QueryContext(ctx, `
-			SELECT id, event_type, event_data, trace_id, span_id, created_at, processed_at
+			SELECT id, event_type, event_data, trace_id, span_id, dsm_context, created_at, processed_at
 			FROM outbox
 			WHERE processed_at IS NULL
 			ORDER BY created_at ASC
@@ -537,9 +536,13 @@ func (repo *DSqlProductRepository) GetUnprocessedEntries(ctx context.Context) ([
 		var entries []core.OutboxEntry
 		for rows.Next() {
 			var entry core.OutboxEntry
-			if err := rows.Scan(&entry.Id, &entry.EventType, &entry.EventData, &entry.TraceId, &entry.SpanId, &entry.CreatedAt, &entry.ProcessedAt); err != nil {
+			var dsmCtxJSON sql.NullString
+			if err := rows.Scan(&entry.Id, &entry.EventType, &entry.EventData, &entry.TraceId, &entry.SpanId, &dsmCtxJSON, &entry.CreatedAt, &entry.ProcessedAt); err != nil {
 				resultErr = err
 				return err
+			}
+			if dsmCtxJSON.Valid && dsmCtxJSON.String != "" {
+				json.Unmarshal([]byte(dsmCtxJSON.String), &entry.DsmContext) //nolint:errcheck
 			}
 			entries = append(entries, entry)
 		}
@@ -585,10 +588,11 @@ func (repo *DSqlProductRepository) StoreProductWithOutboxEntry(ctx context.Conte
 			}
 		}
 
+		dsmCtxJSON, _ := json.Marshal(outboxEntry.DsmContext)
 		_, err = tx.ExecContext(ctx, `
-			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6)
-		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, outboxEntry.CreatedAt)
+			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, dsm_context, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, string(dsmCtxJSON), outboxEntry.CreatedAt)
 		if err != nil {
 			return err
 		}
@@ -622,10 +626,11 @@ func (repo *DSqlProductRepository) UpdateProductWithOutboxEntry(ctx context.Cont
 			}
 		}
 
+		dsmCtxJSON2, _ := json.Marshal(outboxEntry.DsmContext)
 		_, err = tx.ExecContext(ctx, `
-			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6)
-		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, outboxEntry.CreatedAt)
+			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, dsm_context, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, string(dsmCtxJSON2), outboxEntry.CreatedAt)
 		if err != nil {
 			return err
 		}
@@ -645,10 +650,11 @@ func (repo *DSqlProductRepository) DeleteProductWithOutboxEntry(ctx context.Cont
 			return err
 		}
 
+		dsmCtxJSON, _ := json.Marshal(outboxEntry.DsmContext)
 		_, err = tx.ExecContext(ctx, `
-			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6)
-		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, outboxEntry.CreatedAt)
+			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, dsm_context, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, string(dsmCtxJSON), outboxEntry.CreatedAt)
 		if err != nil {
 			return err
 		}

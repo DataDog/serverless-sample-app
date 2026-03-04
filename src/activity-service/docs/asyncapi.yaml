@@ -1,0 +1,608 @@
+asyncapi: 2.6.0
+
+info:
+  title: Activity Service – Event Subscriptions
+  version: 1.0.0
+  description: >
+    The Activity Service is a pure event consumer. It subscribes to domain
+    events published by the Product, User, Order, and Inventory services via
+    AWS EventBridge and records activity entries against the relevant entities
+    in DynamoDB.
+
+    All inbound events follow the CloudEvents 1.0 specification and are
+    delivered through an SQS queue (`ActivityService-activity-queue-{env}`)
+    that acts as the target for the EventBridge rules defined on the
+    `ActivityService-events-{env}` custom event bus.
+
+    In integrated environments (`dev` / `prod`) events are also forwarded from
+    the shared event bus by additional EventBridge rules.
+
+    This service does NOT publish any events.
+
+  tags:
+    - name: analytics
+    - name: activity-tracking
+
+defaultContentType: application/json
+
+servers:
+  aws-eventbridge:
+    url: "arn:aws:events:{region}:{accountId}:event-bus/ActivityService-events-{env}"
+    protocol: eventbridge
+    description: >
+      Activity Service custom EventBridge bus. EventBridge rules on this bus
+      forward matching events to the `ActivityService-activity-queue-{env}`
+      SQS queue.
+    variables:
+      region:
+        description: AWS region
+        default: us-east-1
+      accountId:
+        description: AWS account ID
+        default: "000000000000"
+      env:
+        description: Deployment environment
+        default: dev
+
+channels:
+  # ── Product domain events ──────────────────────────────────────────────────
+
+  product.productCreated.v1:
+    description: >
+      Received when a new product is created in the Product service.
+      The Activity Service records a `product.productCreated.v1` activity
+      against the product entity identified by `productId`.
+    subscribe:
+      operationId: handleProductCreated
+      summary: Handle product creation event
+      tags:
+        - name: product
+      message:
+        $ref: "#/components/messages/ProductCreatedEvent"
+
+  product.productUpdated.v1:
+    description: >
+      Received when an existing product is updated in the Product service.
+      The Activity Service records a `product.productUpdated.v1` activity
+      against the product entity identified by `productId`.
+    subscribe:
+      operationId: handleProductUpdated
+      summary: Handle product update event
+      tags:
+        - name: product
+      message:
+        $ref: "#/components/messages/ProductUpdatedEvent"
+
+  product.productDeleted.v1:
+    description: >
+      Received when a product is deleted in the Product service.
+      The Activity Service records a `product.productDeleted.v1` activity
+      against the product entity identified by `productId`.
+    subscribe:
+      operationId: handleProductDeleted
+      summary: Handle product deletion event
+      tags:
+        - name: product
+      message:
+        $ref: "#/components/messages/ProductDeletedEvent"
+
+  # ── User domain events ─────────────────────────────────────────────────────
+
+  users.userCreated.v1:
+    description: >
+      Received when a new user registers in the User service.
+      The Activity Service records a `users.userCreated.v1` activity against
+      the user entity identified by `userId`.
+    subscribe:
+      operationId: handleUserCreated
+      summary: Handle user registration event
+      tags:
+        - name: users
+      message:
+        $ref: "#/components/messages/UserCreatedEvent"
+
+  # ── Order domain events ────────────────────────────────────────────────────
+
+  orders.orderCreated.v1:
+    description: >
+      Received when a new order is placed in the Order service.
+      The Activity Service records a `orders.orderCreated.v1` activity against
+      both the order entity (keyed by `orderNumber`) and the user entity
+      (keyed by `userId`), if `userId` is present in the event payload.
+    subscribe:
+      operationId: handleOrderCreated
+      summary: Handle order creation event
+      tags:
+        - name: orders
+      message:
+        $ref: "#/components/messages/OrderCreatedEvent"
+
+  orders.orderConfirmed.v1:
+    description: >
+      Received when an order is confirmed in the Order service.
+      The Activity Service records a `orders.orderConfirmed.v1` activity
+      against both the order entity (keyed by `orderNumber`) and the user
+      entity (keyed by `userId`), if `userId` is present.
+    subscribe:
+      operationId: handleOrderConfirmed
+      summary: Handle order confirmation event
+      tags:
+        - name: orders
+      message:
+        $ref: "#/components/messages/OrderConfirmedEvent"
+
+  orders.orderCompleted.v1:
+    description: >
+      Received when an order is completed (fulfilled) in the Order service.
+      The Activity Service records a `orders.orderCompleted.v1` activity
+      against both the order entity (keyed by `orderNumber`) and the user
+      entity (keyed by `userId`), if `userId` is present.
+    subscribe:
+      operationId: handleOrderCompleted
+      summary: Handle order completion event
+      tags:
+        - name: orders
+      message:
+        $ref: "#/components/messages/OrderCompletedEvent"
+
+  # ── Inventory domain events ────────────────────────────────────────────────
+
+  inventory.stockUpdated.v1:
+    description: >
+      Received when inventory stock levels are updated in the Inventory
+      service. The Activity Service records an `inventory.stockUpdated.v1`
+      activity against the product entity identified by `productId`.
+    subscribe:
+      operationId: handleStockUpdated
+      summary: Handle stock update event
+      tags:
+        - name: inventory
+      message:
+        $ref: "#/components/messages/StockUpdatedEvent"
+
+  inventory.stockReserved.v1:
+    description: >
+      Received when inventory stock is successfully reserved for an order.
+      The Activity Service records an `inventory.stockReserved.v1` activity
+      against the order entity identified by `orderNumber`.
+    subscribe:
+      operationId: handleStockReserved
+      summary: Handle stock reservation event
+      tags:
+        - name: inventory
+      message:
+        $ref: "#/components/messages/StockReservedEvent"
+
+  inventory.stockReservationFailed.v1:
+    description: >
+      Received when an inventory stock reservation attempt fails.
+      The Activity Service records an `inventory.stockReservationFailed.v1`
+      activity against the order entity identified by `orderNumber`.
+    subscribe:
+      operationId: handleStockReservationFailed
+      summary: Handle stock reservation failure event
+      tags:
+        - name: inventory
+      message:
+        $ref: "#/components/messages/StockReservationFailedEvent"
+
+components:
+  messages:
+    # ── Product messages ───────────────────────────────────────────────────
+
+    ProductCreatedEvent:
+      name: product.productCreated.v1
+      title: Product Created
+      summary: A new product has been created.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/ProductEventPayload"
+      examples:
+        - name: product-created-example
+          payload:
+            specversion: "1.0"
+            type: "product.productCreated.v1"
+            source: "dev.product"
+            id: "1700000001234567890"
+            time: "2024-11-14T12:00:00Z"
+            datacontenttype: "application/json"
+            traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+            data:
+              productId: "prod-12345"
+
+    ProductUpdatedEvent:
+      name: product.productUpdated.v1
+      title: Product Updated
+      summary: An existing product has been updated.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/ProductEventPayload"
+      examples:
+        - name: product-updated-example
+          payload:
+            specversion: "1.0"
+            type: "product.productUpdated.v1"
+            source: "dev.product"
+            id: "1700000001234567891"
+            time: "2024-11-14T13:00:00Z"
+            datacontenttype: "application/json"
+            traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+            data:
+              productId: "prod-12345"
+
+    ProductDeletedEvent:
+      name: product.productDeleted.v1
+      title: Product Deleted
+      summary: A product has been deleted.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/ProductEventPayload"
+      examples:
+        - name: product-deleted-example
+          payload:
+            specversion: "1.0"
+            type: "product.productDeleted.v1"
+            source: "dev.product"
+            id: "1700000001234567892"
+            time: "2024-11-14T14:00:00Z"
+            datacontenttype: "application/json"
+            traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+            data:
+              productId: "prod-12345"
+
+    # ── User messages ──────────────────────────────────────────────────────
+
+    UserCreatedEvent:
+      name: users.userCreated.v1
+      title: User Created
+      summary: A new user has registered.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/UserCreatedEventPayload"
+      examples:
+        - name: user-created-example
+          payload:
+            specversion: "1.0"
+            type: "users.userCreated.v1"
+            source: "dev.users"
+            id: "1700000001234567893"
+            time: "2024-11-14T10:00:00Z"
+            datacontenttype: "application/json"
+            traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+            data:
+              userId: "user-67890"
+
+    # ── Order messages ─────────────────────────────────────────────────────
+
+    OrderCreatedEvent:
+      name: orders.orderCreated.v1
+      title: Order Created
+      summary: A new order has been placed.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/OrderEventPayload"
+      examples:
+        - name: order-created-example
+          payload:
+            specversion: "1.0"
+            type: "orders.orderCreated.v1"
+            source: "dev.orders"
+            id: "1700000001234567894"
+            time: "2024-11-14T09:00:00Z"
+            datacontenttype: "application/json"
+            traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+            data:
+              orderNumber: "ORD-001"
+              userId: "user-67890"
+
+    OrderConfirmedEvent:
+      name: orders.orderConfirmed.v1
+      title: Order Confirmed
+      summary: An order has been confirmed.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/OrderEventPayload"
+      examples:
+        - name: order-confirmed-example
+          payload:
+            specversion: "1.0"
+            type: "orders.orderConfirmed.v1"
+            source: "dev.orders"
+            id: "1700000001234567895"
+            time: "2024-11-14T09:30:00Z"
+            datacontenttype: "application/json"
+            traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+            data:
+              orderNumber: "ORD-001"
+              userId: "user-67890"
+
+    OrderCompletedEvent:
+      name: orders.orderCompleted.v1
+      title: Order Completed
+      summary: An order has been completed (fulfilled).
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/OrderEventPayload"
+      examples:
+        - name: order-completed-example
+          payload:
+            specversion: "1.0"
+            type: "orders.orderCompleted.v1"
+            source: "dev.orders"
+            id: "1700000001234567896"
+            time: "2024-11-14T11:00:00Z"
+            datacontenttype: "application/json"
+            traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+            data:
+              orderNumber: "ORD-001"
+              userId: "user-67890"
+
+    # ── Inventory messages ─────────────────────────────────────────────────
+
+    StockUpdatedEvent:
+      name: inventory.stockUpdated.v1
+      title: Stock Updated
+      summary: Inventory stock levels for a product have been updated.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/StockProductEventPayload"
+      examples:
+        - name: stock-updated-example
+          payload:
+            specversion: "1.0"
+            type: "inventory.stockUpdated.v1"
+            source: "dev.inventory"
+            id: "1700000001234567897"
+            time: "2024-11-14T08:00:00Z"
+            datacontenttype: "application/json"
+            traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+            data:
+              productId: "prod-12345"
+
+    StockReservedEvent:
+      name: inventory.stockReserved.v1
+      title: Stock Reserved
+      summary: Inventory stock has been successfully reserved for an order.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/StockOrderEventPayload"
+      examples:
+        - name: stock-reserved-example
+          payload:
+            specversion: "1.0"
+            type: "inventory.stockReserved.v1"
+            source: "dev.inventory"
+            id: "1700000001234567898"
+            time: "2024-11-14T09:05:00Z"
+            datacontenttype: "application/json"
+            traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+            data:
+              orderNumber: "ORD-001"
+
+    StockReservationFailedEvent:
+      name: inventory.stockReservationFailed.v1
+      title: Stock Reservation Failed
+      summary: An attempt to reserve inventory stock for an order has failed.
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/StockOrderEventPayload"
+      examples:
+        - name: stock-reservation-failed-example
+          payload:
+            specversion: "1.0"
+            type: "inventory.stockReservationFailed.v1"
+            source: "dev.inventory"
+            id: "1700000001234567899"
+            time: "2024-11-14T09:06:00Z"
+            datacontenttype: "application/json"
+            traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+            data:
+              orderNumber: "ORD-001"
+
+  schemas:
+    # ── Shared CloudEvents envelope ────────────────────────────────────────
+
+    CloudEventsEnvelope:
+      type: object
+      description: >
+        Common CloudEvents 1.0 envelope fields present on every event consumed
+        by the Activity Service. The `data` field carries event-specific
+        payload and is defined separately per event type.
+      required:
+        - specversion
+        - type
+        - source
+        - id
+        - time
+        - datacontenttype
+      properties:
+        specversion:
+          type: string
+          description: The CloudEvents specification version.
+          const: "1.0"
+          example: "1.0"
+        type:
+          type: string
+          description: >
+            The event type string. Corresponds to the EventBridge `detail-type`
+            and determines which handler processes the event.
+          minLength: 1
+          example: "product.productCreated.v1"
+        source:
+          type: string
+          description: >
+            Identifies the originating context of the event, in the format
+            `{env}.{domain}`, e.g. `dev.product`.
+          minLength: 1
+          example: "dev.product"
+        id:
+          type: string
+          description: >
+            Unique identifier for this specific event instance. Generated by
+            the publishing service.
+          minLength: 1
+          example: "1700000001234567890"
+        time:
+          type: string
+          format: date-time
+          description: >
+            ISO 8601 timestamp representing when the event was generated.
+            The Activity Service converts this to a millisecond epoch value
+            stored as `activity_time`.
+          example: "2024-11-14T12:00:00Z"
+        datacontenttype:
+          type: string
+          description: The media type of the `data` payload.
+          example: "application/json"
+        traceparent:
+          type: string
+          description: >
+            W3C Trace Context `traceparent` header value, used by the Activity
+            Service to link the processing span back to the originating trace.
+            Optional; when absent, no span link is created.
+          example: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+
+    # ── Product event payloads ─────────────────────────────────────────────
+
+    ProductEventPayload:
+      allOf:
+        - $ref: "#/components/schemas/CloudEventsEnvelope"
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: "#/components/schemas/ProductData"
+
+    ProductData:
+      type: object
+      description: >
+        Data payload carried by product domain events
+        (`productCreated`, `productUpdated`, `productDeleted`).
+      required:
+        - productId
+      properties:
+        productId:
+          type: string
+          description: >
+            The unique identifier of the product. Used as the `entity_id` when
+            recording the activity entry.
+          minLength: 1
+          example: "prod-12345"
+
+    # ── User event payloads ────────────────────────────────────────────────
+
+    UserCreatedEventPayload:
+      allOf:
+        - $ref: "#/components/schemas/CloudEventsEnvelope"
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: "#/components/schemas/UserData"
+
+    UserData:
+      type: object
+      description: >
+        Data payload carried by user registration events (`userCreated`).
+      required:
+        - userId
+      properties:
+        userId:
+          type: string
+          description: >
+            The unique identifier of the registered user. Used as the
+            `entity_id` when recording the activity entry.
+          minLength: 1
+          example: "user-67890"
+
+    # ── Order event payloads ───────────────────────────────────────────────
+
+    OrderEventPayload:
+      allOf:
+        - $ref: "#/components/schemas/CloudEventsEnvelope"
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: "#/components/schemas/OrderData"
+
+    OrderData:
+      type: object
+      description: >
+        Data payload carried by order lifecycle events
+        (`orderCreated`, `orderConfirmed`, `orderCompleted`).
+        When `userId` is present the Activity Service records an activity
+        entry for both the order entity and the user entity.
+      required:
+        - orderNumber
+      properties:
+        orderNumber:
+          type: string
+          description: >
+            The unique order number. Used as the `entity_id` for the order
+            activity entry.
+          minLength: 1
+          example: "ORD-001"
+        userId:
+          type: string
+          description: >
+            The identifier of the user who placed the order. When present, a
+            separate activity entry is also recorded against the user entity.
+            When absent a warning is logged and no user activity is written.
+          example: "user-67890"
+
+    # ── Inventory event payloads ───────────────────────────────────────────
+
+    StockProductEventPayload:
+      allOf:
+        - $ref: "#/components/schemas/CloudEventsEnvelope"
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: "#/components/schemas/StockProductData"
+
+    StockProductData:
+      type: object
+      description: >
+        Data payload carried by `inventory.stockUpdated.v1` events.
+      required:
+        - productId
+      properties:
+        productId:
+          type: string
+          description: >
+            The unique identifier of the product whose stock was updated. Used
+            as the `entity_id` for the activity entry.
+          minLength: 1
+          example: "prod-12345"
+
+    StockOrderEventPayload:
+      allOf:
+        - $ref: "#/components/schemas/CloudEventsEnvelope"
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: "#/components/schemas/StockOrderData"
+
+    StockOrderData:
+      type: object
+      description: >
+        Data payload carried by `inventory.stockReserved.v1` and
+        `inventory.stockReservationFailed.v1` events.
+      required:
+        - orderNumber
+      properties:
+        orderNumber:
+          type: string
+          description: >
+            The order number for which stock was reserved or failed to be
+            reserved. Used as the `entity_id` for the activity entry.
+          minLength: 1
+          example: "ORD-001"

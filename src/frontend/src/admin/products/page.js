@@ -166,6 +166,7 @@ function viewProduct(productId, btnElement) {
       productModal.setAttribute("open", "true");
 
       loadStockLevel(productId);
+      loadProductActivity(productId);
     },
     error: function (xhr, status, error) {
       alert("Failure loading product: " + error);
@@ -191,9 +192,6 @@ function loadStockLevel(productId) {
     },
     error: function (xhr, status, error) {
       console.log("Failure loading stock: " + error);
-    },
-    beforeSend: function (xhr) {
-      xhr.setRequestHeader("Authorization", `Bearer ${jwt}`);
     },
   });
 }
@@ -289,11 +287,44 @@ function refreshData() {
   });
 }
 
+function loadProductActivity(productId) {
+  $.ajax({
+    url: `${config.ACTIVITY_API_ENDPOINT}/api/activity/product/${productId}`,
+    method: "GET",
+    contentType: "application/json",
+    success: function (response) {
+      const container = document.getElementById("productActivityList");
+      if (!container) return;
+
+      const activities = response.activities ?? [];
+      if (activities.length === 0) {
+        container.innerHTML = "<li>No recent activity.</li>";
+        return;
+      }
+
+      container.innerHTML = "";
+      activities.forEach((activity) => {
+        const tsValue = activity.activity_time ?? activity.timestamp;
+        const ts = new Date(tsValue).toLocaleString();
+        const eventName = activity.type ?? activity.event_name ?? "unknown";
+        const li = document.createElement("li");
+        li.innerText = `${eventName} — ${ts}`;
+        container.appendChild(li);
+      });
+    },
+    error: function () {
+      // Activity is non-critical; silently fail
+    },
+  });
+}
+
 function closeModal() {
   activeProduct = "";
   let tableBodyElement = document.getElementById("pricingTableBody");
   tableBodyElement.innerHTML = "";
   let productModal = document.getElementById("productModal");
+  let activityList = document.getElementById("productActivityList");
+  if (activityList) activityList.innerHTML = "";
 
   let updateNameElement = document.getElementById("updateProductName");
   updateNameElement.value = "";

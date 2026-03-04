@@ -23,9 +23,10 @@ import java.time.Duration;
 @ApplicationScoped
 public class DynamoDbClientProducer {
     private static final Logger LOGGER = Logger.getLogger("Listener");
-    private static final DynamoDbClient CLIENT;
-    
-    static {
+
+    @Produces
+    @ApplicationScoped
+    public DynamoDbClient createDynamoDbClient() {
         LOGGER.info("Creating DynamoDB client");
         String environment = System.getenv("ENV");
 
@@ -38,19 +39,18 @@ public class DynamoDbClientProducer {
         if ("local".equalsIgnoreCase(environment) || environment == null) {
             LOGGER.info("Overriding endpoint for local environment");
             builder.endpointOverride(URI.create("http://localhost:4566"))
-                    .region(Region.US_EAST_1); // Local region for DynamoDB Local
+                    .region(Region.US_EAST_1);
         } else {
             LOGGER.info(String.format("Setting region to %s", System.getenv("AWS_REGION")));
-            builder.region(Region.of(System.getenv("AWS_REGION"))); // AWS region for production
+            builder.region(Region.of(System.getenv("AWS_REGION")));
         }
 
-        CLIENT = builder.build();
+        DynamoDbClient client = builder.build();
 
         if ("local".equalsIgnoreCase(environment) || environment == null) {
             try {
                 LOGGER.info("Creating table for local environment");
-
-                CLIENT.createTable(CreateTableRequest.builder()
+                client.createTable(CreateTableRequest.builder()
                         .tableName(System.getenv("TABLE_NAME"))
                         .keySchema(KeySchemaElement.builder()
                                 .attributeName("PK")
@@ -63,18 +63,12 @@ public class DynamoDbClientProducer {
                         .billingMode(BillingMode.PAY_PER_REQUEST)
                         .tableClass(TableClass.STANDARD)
                         .build());
-            }
-            catch (Exception e){
+            } catch (Exception e) {
                 LOGGER.warn(e.getMessage());
             }
         }
 
         LOGGER.info("Returning client");
-    }
-
-    @Produces
-    @ApplicationScoped
-    public DynamoDbClient createDynamoDbClient() {
-        return CLIENT;
+        return client;
     }
 }

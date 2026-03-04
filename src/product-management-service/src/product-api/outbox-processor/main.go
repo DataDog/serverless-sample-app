@@ -26,6 +26,8 @@ import (
 	"product-api/internal/adapters"
 
 	core "github.com/datadog/serverless-sample-product-core"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
@@ -36,11 +38,19 @@ var (
 		awstrace.AppendMiddleware(&awsCfg)
 		return awsCfg
 	}()
-	productRepository, _ = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
-	eventPublisher       = adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg))
+	productRepository, repositoryInitErr = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
+	eventPublisher                       = adapters.NewSnsEventPublisher(*sns.NewFromConfig(awsCfg))
 )
 
 func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddtrace.SpanContext) error {
+	// Restore DSM pathway from the outbox entry and emit the consume checkpoint.
+	if len(entry.DsmContext) > 0 {
+		ctx = datastreams.ExtractFromBase64Carrier(ctx, core.OutboxDsmCarrier(entry.DsmContext))
+	}
+	tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-outbox",
+	}, "direction:in", "type:outbox", "topic:"+entry.EventType, "manual_checkpoint:true")
+
 	// Create span links to connect to the original trace
 	spanLinks := []ddtrace.SpanLink{}
 
@@ -82,39 +92,65 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 	case "product.productCreated":
 		var event core.ProductCreatedEvent
 		if err := json.Unmarshal([]byte(entry.EventData), &event); err != nil {
+			span.SetTag("error", true)
+			span.SetTag("error.message", err.Error())
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
 			return fmt.Errorf("failed to unmarshal ProductCreatedEvent: %w", err)
 		}
 		span.SetTag("product.id", event.ProductId)
-		eventPublisher.PublishProductCreated(ctx, event)
+		if err := eventPublisher.PublishProductCreated(ctx, event); err != nil {
+			span.SetTag("error", true)
+			span.SetTag("error.message", err.Error())
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
+			return err
+		}
 
 	case "product.productUpdated":
 		var event core.ProductUpdatedEvent
 		if err := json.Unmarshal([]byte(entry.EventData), &event); err != nil {
+			span.SetTag("error", true)
+			span.SetTag("error.message", err.Error())
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
 			return fmt.Errorf("failed to unmarshal ProductUpdatedEvent: %w", err)
 		}
 		span.SetTag("product.id", event.ProductId)
-		eventPublisher.PublishProductUpdated(ctx, event)
+		if err := eventPublisher.PublishProductUpdated(ctx, event); err != nil {
+			span.SetTag("error", true)
+			span.SetTag("error.message", err.Error())
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
+			return err
+		}
 
 	case "product.productDeleted":
 		var event core.ProductDeletedEvent
 		if err := json.Unmarshal([]byte(entry.EventData), &event); err != nil {
+			span.SetTag("error", true)
+			span.SetTag("error.message", err.Error())
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
 			return fmt.Errorf("failed to unmarshal ProductDeletedEvent: %w", err)
 		}
 		span.SetTag("product.id", event.ProductId)
-		eventPublisher.PublishProductDeleted(ctx, event)
+		if err := eventPublisher.PublishProductDeleted(ctx, event); err != nil {
+			span.SetTag("error", true)
+			span.SetTag("error.message", err.Error())
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
+			return err
+		}
 
 	default:
 		log.Printf("Unknown event type: %s", entry.EventType)
 		span.SetTag("event.event_type", entry.EventType)
-		span.SetTag("error", "true")
-		span.SetTag("error.message", "Unknown event type")
+		span.SetTag("error", true)
+		span.SetTag("error.message", fmt.Sprintf("unknown event type: %s", entry.EventType))
+		span.SetTag("error.type", "*errors.errorString")
 		return fmt.Errorf("unknown event type: %s", entry.EventType)
 	}
 
 	// Mark as processed
 	if err := productRepository.MarkAsProcessed(ctx, entry.Id); err != nil {
-		span.SetTag("error", "true")
-		span.SetTag("error.message", "failed to mark entry as processed")
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return fmt.Errorf("failed to mark entry as processed: %w", err)
 	}
 
@@ -127,28 +163,44 @@ type OutboxEvent struct {
 }
 
 func functionHandler(ctx context.Context, event OutboxEvent) error {
+	// Get the span injected by ddlambda.WrapFunction — do NOT call span.Finish()
+	// as ddlambda owns its lifecycle.
 	span, _ := tracer.SpanFromContext(ctx)
-	defer span.Finish()
 
 	entries, err := productRepository.GetUnprocessedEntries(ctx)
 	if err != nil {
-		span.SetTag("error", "true")
-		span.SetTag("error.message", "failed to get unprocessed entries")
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return fmt.Errorf("failed to get unprocessed entries: %w", err)
 	}
 
 	span.SetTag("outbox.entries", len(entries))
 
+	var hadFailures bool
 	for _, entry := range entries {
 		if err := processEntry(ctx, entry, span.Context()); err != nil {
 			log.Printf("Failed to process entry %s: %v", entry.Id, err)
-			continue
+			hadFailures = true
 		}
+	}
+
+	if hadFailures {
+		span.SetTag("outbox.had_failures", true)
+		return fmt.Errorf("one or more outbox entries failed to process")
 	}
 
 	return nil
 }
 
 func main() {
+	if repositoryInitErr != nil {
+		panic(repositoryInitErr)
+	}
+
+	if err := productRepository.ApplyMigrations(context.Background()); err != nil {
+		panic(err)
+	}
+
 	lambda.Start(ddlambda.WrapFunction(functionHandler, nil))
 }

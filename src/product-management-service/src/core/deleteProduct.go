@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
+	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -33,16 +35,26 @@ func NewDeleteProductCommandHandler(productRepository ProductRepository, outboxR
 	}
 }
 
-func (handler *DeleteProductCommandHandler) Handle(ctx context.Context, command DeleteProductCommand) {
+func (handler *DeleteProductCommandHandler) Handle(ctx context.Context, command DeleteProductCommand) error {
 	span, _ := tracer.SpanFromContext(ctx)
 	span.SetTag("product.id", command.ProductId)
 	event := ProductDeletedEvent{ProductId: command.ProductId}
 	outboxEntry, err := createOutboxEntryForDelete(ctx, "product.productDeleted", event)
 	if err != nil {
-		return
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+		return err
 	}
 
-	handler.productRepository.DeleteProductWithOutboxEntry(ctx, command.ProductId, outboxEntry)
+	if err := handler.productRepository.DeleteProductWithOutboxEntry(ctx, command.ProductId, outboxEntry); err != nil {
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+		return err
+	}
+
+	return nil
 }
 
 func createOutboxEntryForDelete(ctx context.Context, eventType string, eventData interface{}) (OutboxEntry, error) {
@@ -61,12 +73,23 @@ func createOutboxEntryForDelete(ctx context.Context, eventType string, eventData
 		return OutboxEntry{}, err
 	}
 
-	return OutboxEntry{
+	entry := OutboxEntry{
 		Id:        uuid.New().String(),
 		EventType: eventType,
 		EventData: string(eventJson),
 		TraceId:   traceId,
 		SpanId:    spanId,
 		CreatedAt: time.Now(),
-	}, nil
+	}
+
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-outbox",
+	}, "direction:out", "type:outbox", "topic:"+eventType, "manual_checkpoint:true")
+	if ok {
+		carrier := make(OutboxDsmCarrier)
+		datastreams.InjectToBase64Carrier(ctx, carrier)
+		entry.DsmContext = map[string]string(carrier)
+	}
+
+	return entry, nil
 }
