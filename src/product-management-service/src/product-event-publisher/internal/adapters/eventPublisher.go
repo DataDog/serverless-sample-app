@@ -9,9 +9,7 @@ package adapters
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"product-event-publisher/internal/core"
 
@@ -34,12 +32,19 @@ func NewEventBridgeEventPublisher(client eventbridge.Client) *EventBridgeEventPu
 	return &EventBridgeEventPublisher{client: client}
 }
 
-func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Context, evt core.PublicProductCreatedEventV1) {
+func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Context, evt core.PublicProductCreatedEventV1) error {
 	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productCreated.v1")
 	defer span.Finish()
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated.v1", evt)
 
-	evtData, _ := json.Marshal(cloudEvent)
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-publiceventpublisher",
+	}, "direction:out", "type:eventbridge", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
+	}
+
+	evtData, _ := cloudEvent.ToJSON()
 	message := string(evtData)
 	detailType := cloudEvent.Type
 	busName := os.Getenv("EVENT_BUS_NAME")
@@ -52,7 +57,7 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 	span.SetTag("messaging.message.envelope.size", len(message))
 	span.SetTag("messaging.operation.name", "publish")
 	span.SetTag("messaging.operation.type", "publish")
-	span.SetTag("messaging.system", "aws_sns")
+	span.SetTag("messaging.system", "aws_eventbridge")
 
 	entiries := []types.PutEventsRequestEntry{
 		{
@@ -67,26 +72,32 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 		Entries: entiries,
 	}
 
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
-	}
-
 	_, err := publisher.client.PutEvents(ctx, input)
 
 	if err != nil {
-		log.Fatalf("Failure publishing, error: %s", err)
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+		fmt.Printf("Failure publishing, error: %s\n", err)
+		return fmt.Errorf("publish product.productCreated.v1: %w", err)
 	}
+
+	return nil
 }
 
-func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Context, evt core.PublicProductUpdatedEventV1) {
+func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Context, evt core.PublicProductUpdatedEventV1) error {
 	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productUpdated.v1")
 	defer span.Finish()
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productUpdated.v1", evt)
 
-	evtData, _ := json.Marshal(cloudEvent)
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-publiceventpublisher",
+	}, "direction:out", "type:eventbridge", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
+	}
+
+	evtData, _ := cloudEvent.ToJSON()
 	message := string(evtData)
 	detailType := cloudEvent.Type
 	busName := os.Getenv("EVENT_BUS_NAME")
@@ -99,7 +110,7 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 	span.SetTag("messaging.message.envelope.size", len(message))
 	span.SetTag("messaging.operation.name", "publish")
 	span.SetTag("messaging.operation.type", "publish")
-	span.SetTag("messaging.system", "aws_sns")
+	span.SetTag("messaging.system", "aws_eventbridge")
 
 	entiries := []types.PutEventsRequestEntry{
 		{
@@ -114,27 +125,33 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 		Entries: entiries,
 	}
 
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", "type:sns", fmt.Sprintf("topic:%s", cloudEvent.Type))
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
-	}
-
 	_, err := publisher.client.PutEvents(ctx, input)
 
 	if err != nil {
-		log.Fatalf("Failure publishing, error: %s", err)
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+		fmt.Printf("Failure publishing, error: %s\n", err)
+		return fmt.Errorf("publish product.productUpdated.v1: %w", err)
 	}
+
+	return nil
 }
 
-func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Context, evt core.PublicProductDeletedEventV1) {
+func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Context, evt core.PublicProductDeletedEventV1) error {
 	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productDeleted.v1")
 	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productDeleted.v1", evt)
 
-	evtData, _ := json.Marshal(cloudEvent)
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-publiceventpublisher",
+	}, "direction:out", "type:eventbridge", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
+	}
+
+	evtData, _ := cloudEvent.ToJSON()
 	message := string(evtData)
 	detailType := cloudEvent.Type
 	busName := os.Getenv("EVENT_BUS_NAME")
@@ -147,7 +164,7 @@ func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Con
 	span.SetTag("messaging.message.envelope.size", len(message))
 	span.SetTag("messaging.operation.name", "publish")
 	span.SetTag("messaging.operation.type", "publish")
-	span.SetTag("messaging.system", "aws_sns")
+	span.SetTag("messaging.system", "aws_eventbridge")
 
 	entiries := []types.PutEventsRequestEntry{
 		{
@@ -158,13 +175,6 @@ func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Con
 		},
 	}
 
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", "type:sns", fmt.Sprintf("topic:%s", cloudEvent.Type))
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
-	}
-
 	input := &eventbridge.PutEventsInput{
 		Entries: entiries,
 	}
@@ -172,6 +182,12 @@ func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Con
 	_, err := publisher.client.PutEvents(ctx, input)
 
 	if err != nil {
-		log.Fatalf("Failure publishing, error: %s", err)
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+		fmt.Printf("Failure publishing, error: %s\n", err)
+		return fmt.Errorf("publish product.productDeleted.v1: %w", err)
 	}
+
+	return nil
 }

@@ -20,19 +20,25 @@ func NewProductEventTranslator(eventPublisher PublicEventPublisher) *ProductEven
 }
 
 func (handler *ProductEventTranslator) HandleCreated(ctx context.Context, evt ProductCreatedEvent) (string, error) {
-	handler.eventPublisher.PublishProductCreated(ctx, FromProductCreatedEvent(evt))
+	if err := handler.eventPublisher.PublishProductCreated(ctx, FromProductCreatedEvent(evt)); err != nil {
+		return "", err
+	}
 
 	return "OK", nil
 }
 
 func (handler *ProductEventTranslator) HandleUpdated(ctx context.Context, evt ProductUpdatedEvent) (string, error) {
-	handler.eventPublisher.PublishProductUpdated(ctx, FromProductUpdatedEvent(evt))
+	if err := handler.eventPublisher.PublishProductUpdated(ctx, FromProductUpdatedEvent(evt)); err != nil {
+		return "", err
+	}
 
 	return "OK", nil
 }
 
 func (handler *ProductEventTranslator) HandleDeleted(ctx context.Context, evt ProductDeletedEvent) (string, error) {
-	handler.eventPublisher.PublishProductDeleted(ctx, FromProductDeletedEvent(evt))
+	if err := handler.eventPublisher.PublishProductDeleted(ctx, FromProductDeletedEvent(evt)); err != nil {
+		return "", err
+	}
 
 	return "OK", nil
 }

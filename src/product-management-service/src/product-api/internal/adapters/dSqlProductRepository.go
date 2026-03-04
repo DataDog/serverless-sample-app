@@ -190,14 +190,6 @@ func NewDSqlProductRepository(clusterEndpoint string) (*DSqlProductRepository, e
 		connectionFactory: connectionFactory,
 	}
 
-	// Apply migrations using per-operation connection
-	ctx := context.Background()
-	err := repository.ApplyMigrations(ctx)
-	if err != nil {
-		log.Println("Failed to apply migrations: ", err)
-		return nil, err
-	}
-
 	return repository, nil
 }
 

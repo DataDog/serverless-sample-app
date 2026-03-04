@@ -10,9 +10,10 @@ import (
 func TestDeleteProductCommandHandler_Handle(t *testing.T) {
 	// Test cases
 	tests := []struct {
-		name       string
-		command    DeleteProductCommand
-		setupMocks func(*MockProductRepository, *MockOutboxRepository)
+		name          string
+		command       DeleteProductCommand
+		setupMocks    func(*MockProductRepository, *MockOutboxRepository)
+		expectedError error
 	}{
 		{
 			name: "Delete existing product",
@@ -23,6 +24,7 @@ func TestDeleteProductCommandHandler_Handle(t *testing.T) {
 				// Delete product with outbox entry
 				repo.On("DeleteProductWithOutboxEntry", mock.Anything, "TESTPRODUCT", mock.AnythingOfType("OutboxEntry")).Return(nil)
 			},
+			expectedError: nil,
 		},
 		{
 			name: "Delete non-existent product",
@@ -30,9 +32,10 @@ func TestDeleteProductCommandHandler_Handle(t *testing.T) {
 				ProductId: "NONEXISTENT",
 			},
 			setupMocks: func(repo *MockProductRepository, outbox *MockOutboxRepository) {
-				// Delete is still called even if product doesn't exist
-				repo.On("DeleteProductWithOutboxEntry", mock.Anything, "NONEXISTENT", mock.AnythingOfType("OutboxEntry")).Return(nil)
+				// Delete returns not found error
+				repo.On("DeleteProductWithOutboxEntry", mock.Anything, "NONEXISTENT", mock.AnythingOfType("OutboxEntry")).Return(&ProductNotFoundError{ProductId: "NONEXISTENT"})
 			},
+			expectedError: &ProductNotFoundError{ProductId: "NONEXISTENT"},
 		},
 	}
 
@@ -50,7 +53,18 @@ func TestDeleteProductCommandHandler_Handle(t *testing.T) {
 			handler := NewDeleteProductCommandHandler(repo, outbox)
 
 			// Execute
-			handler.Handle(context.Background(), tt.command)
+			err := handler.Handle(context.Background(), tt.command)
+
+			// Verify error expectations
+			if tt.expectedError != nil {
+				if err == nil {
+					t.Errorf("expected error %v, got nil", tt.expectedError)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, got %v", err)
+				}
+			}
 
 			// Verify mock expectations
 			repo.AssertExpectations(t)

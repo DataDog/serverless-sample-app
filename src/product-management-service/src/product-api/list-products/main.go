@@ -17,10 +17,18 @@ import (
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awscfg "github.com/aws/aws-sdk-go-v2/config"
+	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
 )
 
 var (
-	dSqlProductRepository, _ = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
+	awsCfg = func() aws.Config {
+		awsCfg, _ := awscfg.LoadDefaultConfig(context.TODO())
+		awstrace.AppendMiddleware(&awsCfg)
+		return awsCfg
+	}()
+	dSqlProductRepository, repositoryInitErr = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
 	createProductHandler     = core.NewCreateProductCommandHandler(
 		dSqlProductRepository,
 		dSqlProductRepository)
@@ -38,13 +46,22 @@ func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest)
 }
 
 func main() {
+	if repositoryInitErr != nil {
+		panic(repositoryInitErr)
+	}
 
-	// Seed database on first call
-	_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Flat White", Price: 3.5})
-	_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Espresso", Price: 2.99})
-	_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Latte", Price: 4.99})
-	_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Long Black", Price: 3.50})
-	_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Cappuccino", Price: 4.99})
+	if err := dSqlProductRepository.ApplyMigrations(context.Background()); err != nil {
+		panic(err)
+	}
+
+	// Seed database only when explicitly enabled via environment variable
+	if os.Getenv("SEED_PRODUCTS") == "true" {
+		_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Flat White", Price: 3.5})
+		_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Espresso", Price: 2.99})
+		_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Latte", Price: 4.99})
+		_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Long Black", Price: 3.50})
+		_, _ = createProductHandler.Handle(context.Background(), core.CreateProductCommand{Name: "Cappuccino", Price: 4.99})
+	}
 
 	lambda.Start(ddlambda.WrapFunction(functionHandler, nil))
 }

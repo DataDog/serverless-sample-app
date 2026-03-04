@@ -10,9 +10,9 @@ package core
 import "context"
 
 type ProductEventPublisher interface {
-	PublishProductCreated(ctx context.Context, evt ProductCreatedEvent)
-	PublishProductUpdated(ctx context.Context, evt ProductUpdatedEvent)
-	PublishProductDeleted(ctx context.Context, evt ProductDeletedEvent)
+	PublishProductCreated(ctx context.Context, evt ProductCreatedEvent) error
+	PublishProductUpdated(ctx context.Context, evt ProductUpdatedEvent) error
+	PublishProductDeleted(ctx context.Context, evt ProductDeletedEvent) error
 }
 
 type ProductCreatedEvent struct {

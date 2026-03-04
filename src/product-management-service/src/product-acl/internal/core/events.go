@@ -29,8 +29,8 @@ type PriceBrackets struct {
 }
 
 type PrivateEventPublisher interface {
-	PublishStockUpdatedEvent(ctx context.Context, evt core.StockUpdatedEvent)
-	PublishPricingChangedEvent(ctx context.Context, evt core.PriceCalculatedEvent)
+	PublishStockUpdatedEvent(ctx context.Context, evt core.StockUpdatedEvent) error
+	PublishPricingChangedEvent(ctx context.Context, evt core.PriceCalculatedEvent) error
 }
 
 func FromPublicInventoryStockUpdatedEvent(evt PublicInventoryStockUpdatedEventV1) core.StockUpdatedEvent {
