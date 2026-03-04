@@ -82,39 +82,65 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 	case "product.productCreated":
 		var event core.ProductCreatedEvent
 		if err := json.Unmarshal([]byte(entry.EventData), &event); err != nil {
+			span.SetTag("error", true)
+			span.SetTag("error.message", err.Error())
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
 			return fmt.Errorf("failed to unmarshal ProductCreatedEvent: %w", err)
 		}
 		span.SetTag("product.id", event.ProductId)
-		eventPublisher.PublishProductCreated(ctx, event)
+		if err := eventPublisher.PublishProductCreated(ctx, event); err != nil {
+			span.SetTag("error", true)
+			span.SetTag("error.message", err.Error())
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
+			return err
+		}
 
 	case "product.productUpdated":
 		var event core.ProductUpdatedEvent
 		if err := json.Unmarshal([]byte(entry.EventData), &event); err != nil {
+			span.SetTag("error", true)
+			span.SetTag("error.message", err.Error())
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
 			return fmt.Errorf("failed to unmarshal ProductUpdatedEvent: %w", err)
 		}
 		span.SetTag("product.id", event.ProductId)
-		eventPublisher.PublishProductUpdated(ctx, event)
+		if err := eventPublisher.PublishProductUpdated(ctx, event); err != nil {
+			span.SetTag("error", true)
+			span.SetTag("error.message", err.Error())
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
+			return err
+		}
 
 	case "product.productDeleted":
 		var event core.ProductDeletedEvent
 		if err := json.Unmarshal([]byte(entry.EventData), &event); err != nil {
+			span.SetTag("error", true)
+			span.SetTag("error.message", err.Error())
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
 			return fmt.Errorf("failed to unmarshal ProductDeletedEvent: %w", err)
 		}
 		span.SetTag("product.id", event.ProductId)
-		eventPublisher.PublishProductDeleted(ctx, event)
+		if err := eventPublisher.PublishProductDeleted(ctx, event); err != nil {
+			span.SetTag("error", true)
+			span.SetTag("error.message", err.Error())
+			span.SetTag("error.type", fmt.Sprintf("%T", err))
+			return err
+		}
 
 	default:
 		log.Printf("Unknown event type: %s", entry.EventType)
 		span.SetTag("event.event_type", entry.EventType)
-		span.SetTag("error", "true")
-		span.SetTag("error.message", "Unknown event type")
+		span.SetTag("error", true)
+		span.SetTag("error.message", fmt.Sprintf("unknown event type: %s", entry.EventType))
+		span.SetTag("error.type", "*errors.errorString")
 		return fmt.Errorf("unknown event type: %s", entry.EventType)
 	}
 
 	// Mark as processed
 	if err := productRepository.MarkAsProcessed(ctx, entry.Id); err != nil {
-		span.SetTag("error", "true")
-		span.SetTag("error.message", "failed to mark entry as processed")
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return fmt.Errorf("failed to mark entry as processed: %w", err)
 	}
 
@@ -127,23 +153,30 @@ type OutboxEvent struct {
 }
 
 func functionHandler(ctx context.Context, event OutboxEvent) error {
+	// Get the span injected by ddlambda.WrapFunction — do NOT call span.Finish()
+	// as ddlambda owns its lifecycle.
 	span, _ := tracer.SpanFromContext(ctx)
-	defer span.Finish()
 
 	entries, err := productRepository.GetUnprocessedEntries(ctx)
 	if err != nil {
-		span.SetTag("error", "true")
-		span.SetTag("error.message", "failed to get unprocessed entries")
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
 		return fmt.Errorf("failed to get unprocessed entries: %w", err)
 	}
 
 	span.SetTag("outbox.entries", len(entries))
 
+	var hadFailures bool
 	for _, entry := range entries {
 		if err := processEntry(ctx, entry, span.Context()); err != nil {
 			log.Printf("Failed to process entry %s: %v", entry.Id, err)
-			continue
+			hadFailures = true
 		}
+	}
+
+	if hadFailures {
+		span.SetTag("outbox.had_failures", true)
 	}
 
 	return nil

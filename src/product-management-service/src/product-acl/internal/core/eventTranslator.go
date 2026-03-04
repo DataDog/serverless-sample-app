@@ -22,13 +22,17 @@ func NewProductEventTranslator(eventPublisher PrivateEventPublisher) *ProductEve
 }
 
 func (handler *ProductEventTranslator) HandleStockUpdated(ctx context.Context, evt PublicInventoryStockUpdatedEventV1) (string, error) {
-	handler.eventPublisher.PublishStockUpdatedEvent(ctx, FromPublicInventoryStockUpdatedEvent(evt))
+	if err := handler.eventPublisher.PublishStockUpdatedEvent(ctx, FromPublicInventoryStockUpdatedEvent(evt)); err != nil {
+		return "", err
+	}
 
 	return "OK", nil
 }
 
 func (handler *ProductEventTranslator) HandleProductPricingChanged(ctx context.Context, evt PublicPricingUpdatedEventV1) (string, error) {
-	handler.eventPublisher.PublishPricingChangedEvent(ctx, FromPublicPricingUpdatedEvent(evt))
+	if err := handler.eventPublisher.PublishPricingChangedEvent(ctx, FromPublicPricingUpdatedEvent(evt)); err != nil {
+		return "", err
+	}
 
 	return "OK", nil
 }

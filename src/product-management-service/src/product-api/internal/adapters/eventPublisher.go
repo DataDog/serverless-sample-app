@@ -9,11 +9,9 @@ package adapters
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
 	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
-	"log"
 	"os"
 
 	core "github.com/datadog/serverless-sample-product-core"
@@ -32,15 +30,20 @@ func NewSnsEventPublisher(client sns.Client) *SnsEventPublisher {
 	return &SnsEventPublisher{client: client}
 }
 
-func (publisher SnsEventPublisher) PublishProductCreated(ctx context.Context, evt core.ProductCreatedEvent) {
+func (publisher SnsEventPublisher) PublishProductCreated(ctx context.Context, evt core.ProductCreatedEvent) error {
 	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productCreated")
 	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated", evt)
 
-	fmt.Println(cloudEvent.TraceParent)
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-outbox",
+	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
+	}
 
-	tracedMessageData, _ := json.Marshal(cloudEvent)
+	tracedMessageData, _ := cloudEvent.ToJSON()
 
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRODUCT_CREATED_TOPIC_ARN")
@@ -59,28 +62,33 @@ func (publisher SnsEventPublisher) PublishProductCreated(ctx context.Context, ev
 		Message:  &message,
 	}
 
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-outbox",
-	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
-	}
-
 	_, err := publisher.client.Publish(ctx, input)
 
 	if err != nil {
-		log.Fatalf("Failure publishing, error: %s", err)
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+		fmt.Printf("Failure publishing, error: %s\n", err)
+		return fmt.Errorf("publish product.productCreated: %w", err)
 	}
 
+	return nil
 }
 
-func (publisher SnsEventPublisher) PublishProductUpdated(ctx context.Context, evt core.ProductUpdatedEvent) {
+func (publisher SnsEventPublisher) PublishProductUpdated(ctx context.Context, evt core.ProductUpdatedEvent) error {
 	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productUpdated")
 	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productUpdated", evt)
 
-	tracedMessageData, _ := json.Marshal(cloudEvent)
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-outbox",
+	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
+	}
+
+	tracedMessageData, _ := cloudEvent.ToJSON()
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRODUCT_UPDATED_TOPIC_ARN")
 
@@ -98,27 +106,33 @@ func (publisher SnsEventPublisher) PublishProductUpdated(ctx context.Context, ev
 		Message:  &message,
 	}
 
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-outbox",
-	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
-	}
-
 	_, err := publisher.client.Publish(ctx, input)
 
 	if err != nil {
-		log.Fatalf("Failure publishing, error: %s", err)
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+		fmt.Printf("Failure publishing, error: %s\n", err)
+		return fmt.Errorf("publish product.productUpdated: %w", err)
 	}
+
+	return nil
 }
 
-func (publisher SnsEventPublisher) PublishProductDeleted(ctx context.Context, evt core.ProductDeletedEvent) {
+func (publisher SnsEventPublisher) PublishProductDeleted(ctx context.Context, evt core.ProductDeletedEvent) error {
 	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productDeleted")
 	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productDeleted", evt)
 
-	tracedMessageData, _ := json.Marshal(cloudEvent)
+	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+		ServiceOverride: "productservice-outbox",
+	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	if ok {
+		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
+	}
+
+	tracedMessageData, _ := cloudEvent.ToJSON()
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRODUCT_DELETED_TOPIC_ARN")
 
@@ -136,16 +150,15 @@ func (publisher SnsEventPublisher) PublishProductDeleted(ctx context.Context, ev
 		Message:  &message,
 	}
 
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-outbox",
-	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, cloudEvent)
-	}
-
 	_, err := publisher.client.Publish(ctx, input)
 
 	if err != nil {
-		log.Fatalf("Failure publishing, error: %s", err)
+		span.SetTag("error", true)
+		span.SetTag("error.message", err.Error())
+		span.SetTag("error.type", fmt.Sprintf("%T", err))
+		fmt.Printf("Failure publishing, error: %s\n", err)
+		return fmt.Errorf("publish product.productDeleted: %w", err)
 	}
+
+	return nil
 }

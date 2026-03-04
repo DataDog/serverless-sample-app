@@ -64,16 +64,19 @@ type MockEventPublisher struct {
 	mock.Mock
 }
 
-func (m *MockEventPublisher) PublishProductCreated(ctx context.Context, evt ProductCreatedEvent) {
+func (m *MockEventPublisher) PublishProductCreated(ctx context.Context, evt ProductCreatedEvent) error {
 	m.Called(ctx, evt)
+	return nil
 }
 
-func (m *MockEventPublisher) PublishProductUpdated(ctx context.Context, evt ProductUpdatedEvent) {
+func (m *MockEventPublisher) PublishProductUpdated(ctx context.Context, evt ProductUpdatedEvent) error {
 	m.Called(ctx, evt)
+	return nil
 }
 
-func (m *MockEventPublisher) PublishProductDeleted(ctx context.Context, evt ProductDeletedEvent) {
+func (m *MockEventPublisher) PublishProductDeleted(ctx context.Context, evt ProductDeletedEvent) error {
 	m.Called(ctx, evt)
+	return nil
 }
 
 type MockOutboxRepository struct {

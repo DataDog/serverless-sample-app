@@ -10,9 +10,9 @@ package core
 import "context"
 
 type PublicEventPublisher interface {
-	PublishProductCreated(ctx context.Context, evt PublicProductCreatedEventV1)
-	PublishProductUpdated(ctx context.Context, evt PublicProductUpdatedEventV1)
-	PublishProductDeleted(ctx context.Context, evt PublicProductDeletedEventV1)
+	PublishProductCreated(ctx context.Context, evt PublicProductCreatedEventV1) error
+	PublishProductUpdated(ctx context.Context, evt PublicProductUpdatedEventV1) error
+	PublishProductDeleted(ctx context.Context, evt PublicProductDeletedEventV1) error
 }
 
 func FromProductCreatedEvent(evt ProductCreatedEvent) PublicProductCreatedEventV1 {
