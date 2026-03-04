@@ -57,6 +57,7 @@ Globals:
         DD_CAPTURE_LAMBDA_PAYLOAD: true
         DD_COLD_START_TRACING: true
         DD_TRACE_ENABLED: true
+        DD_DATA_STREAMS_ENABLED: true
 
 Resources:
   # DynamoDB Tables
