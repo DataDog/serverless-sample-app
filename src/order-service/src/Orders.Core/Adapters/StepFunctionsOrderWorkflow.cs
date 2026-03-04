@@ -3,6 +3,7 @@
 // Copyright 2025 Datadog, Inc.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Amazon.StepFunctions;
 using Amazon.StepFunctions.Model;
 using Datadog.Trace;
@@ -36,14 +37,29 @@ public class StepFunctionsOrderWorkflow : IOrderWorkflow
     
     public async Task StartWorkflowFor(Order order)
     {
+        var inputNode = JsonSerializer.SerializeToNode(order, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        }) ?? new JsonObject();
+
+        inputNode["_datadog"] = new JsonObject();
+
+        var activeContext = Tracer.Instance.ActiveScope?.Span.Context;
+        if (activeContext != null)
+        {
+            new SpanContextInjector().InjectIncludingDsm(
+                inputNode,
+                SetHeader,
+                activeContext,
+                "stepfunctions",
+                "orders.orderCreated.v1");
+        }
+
         var startExecutionRequest = new StartExecutionRequest()
         {
             StateMachineArn = _configuration["ORDER_WORKFLOW_ARN"],
-            Name = $"{order.OrderNumber}_{Guid.NewGuid().ToString()}",
-            Input = JsonSerializer.Serialize(order, new JsonSerializerOptions()
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            })
+            Name = $"{order.OrderNumber}_{Guid.NewGuid()}",
+            Input = inputNode.ToJsonString()
         };
         startExecutionRequest.AddToTelemetry();
         
@@ -58,7 +74,6 @@ public class StepFunctionsOrderWorkflow : IOrderWorkflow
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start workflow for order {OrderNumber}", order.OrderNumber);
-            // Consider implementing a fallback strategy here
             throw;
         }
     }
@@ -83,6 +98,13 @@ public class StepFunctionsOrderWorkflow : IOrderWorkflow
             _logger.LogError(ex, "Failed to send task success for conversation {ConversationId}", correlationId);
             throw;
         }
+    }
+
+    private static void SetHeader(JsonNode carrier, string key, string value)
+    {
+        if (carrier["_datadog"] == null) carrier["_datadog"] = new JsonObject();
+
+        carrier["_datadog"]![key] = value;
     }
 
     public async Task StockReservationFailed(string correlationId)

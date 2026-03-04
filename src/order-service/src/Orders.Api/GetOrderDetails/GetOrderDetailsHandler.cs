@@ -52,7 +52,7 @@ public class GetOrderDetailsHandler
             
             if (existingOrder is null)
             {
-                logger.LogWarning("Order {OrderId} not found for user {UserId}", orderId, user.UserId);
+                logger.LogWarning("Order {OrderId} not found", orderId);
                 
                 return Results.Problem(
                     detail: $"Order with ID '{orderId}' not found",
@@ -65,7 +65,7 @@ public class GetOrderDetailsHandler
                     });
             }
 
-            logger.LogDebug("Order {OrderId} retrieved successfully for user {UserId}", orderId, user.UserId);
+            logger.LogDebug("Order {OrderId} retrieved successfully", orderId);
             return Results.Ok(new OrderDTO(existingOrder));
         }
         catch (ArgumentException ex)
@@ -81,8 +81,8 @@ public class GetOrderDetailsHandler
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error retrieving order {OrderId} for user {UserId}", 
-                orderId, context.User.Claims.ExtractUserId().UserId);
+            logger.LogError(ex, "Unexpected error retrieving order {OrderId}",
+                orderId);
             
             return Results.Problem(
                 detail: "An unexpected error occurred while retrieving the order",

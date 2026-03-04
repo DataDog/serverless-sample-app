@@ -20,6 +20,7 @@ public class Startup
 
         services.AddSingleton<IConfiguration>(configuration);
         services.AddCore(configuration);;
+        services.AddSingleton<ITracingProvider, DatadogTracingProvider>();
         services.AddLogging();
     }
 }

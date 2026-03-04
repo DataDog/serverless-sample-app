@@ -236,7 +236,7 @@ public class OrdersApi : Construct
                             { "Host", $"http-intake.logs.{props.SharedProps.DDSite}" },
                             { "TLS", "on" },
                             { "dd_service", props.SharedProps.ServiceName },
-                            { "dd_source", "expressjs" },
+                            { "dd_source", "dotnet" },
                             { "dd_message_key", "log" },
                             { "provider", "ecs" },
                             { "apikey", props.SharedProps.DDApiKeySecret.SecretValue.UnsafeUnwrap() }
@@ -289,7 +289,7 @@ public class OrdersApi : Construct
         application.TargetGroup.ConfigureHealthCheck(new HealthCheck
         {
             Port = "8080",
-            Path = "/health",
+            Path = "/health/live",
             HealthyHttpCodes = "200-499",
             Timeout = Duration.Seconds(30),
             Interval = Duration.Seconds(60),

@@ -1,8 +1,7 @@
-﻿// Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
+// Unless explicitly stated otherwise all files in this repository are licensed under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2024 Datadog, Inc.
 
-using System.Diagnostics;
 using System.Text.Json;
 using Amazon.Lambda.Annotations;
 using Amazon.Lambda.SQSEvents;
@@ -13,7 +12,6 @@ using Orders.Core;
 using Orders.Core.Adapters;
 using Polly;
 using Polly.Retry;
-using Serilog;
 
 namespace Orders.BackgroundWorkers;
 
@@ -21,17 +19,18 @@ public class Functions
 {
     private readonly IOrderWorkflow _orderWorkflow;
     private readonly ILogger<Functions> _logger;
+    private readonly ITracingProvider _tracingProvider;
     private readonly ResiliencePipeline _workflowResiliencePipeline;
-    private const int MAX_PROCESSING_TIME_MS = 10000; // 10 seconds max processing time per message
+    private const int MAX_PROCESSING_TIME_MS = 10000;
 
-    public Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger)
+    public Functions(IOrderWorkflow orderWorkflow, ILogger<Functions> logger, ITracingProvider tracingProvider)
     {
         _orderWorkflow = orderWorkflow;
         _logger = logger;
+        _tracingProvider = tracingProvider;
 
         var maxRetryAttempts = 2;
 
-        // Create resilience pipeline for workflow operations
         _workflowResiliencePipeline = new ResiliencePipelineBuilder()
             .AddRetry(new RetryStrategyOptions
             {
@@ -56,7 +55,6 @@ public class Functions
     [LambdaFunction]
     public async Task<SQSBatchResponse> HandleStockReserved(SQSEvent evt)
     {
-        var activeSpan = Tracer.Instance.ActiveScope?.Span;
         evt.AddToTelemetry();
 
         var batchItemFailures = new List<SQSBatchResponse.BatchItemFailure>();
@@ -64,11 +62,10 @@ public class Functions
 
         foreach (var record in evt.Records)
         {
-            var task = ProcessStockReservedMessageAsync(record, activeSpan);
+            var task = ProcessStockReservedMessageAsync(record);
             processingTasks.Add(task);
         }
 
-        // Process all messages with a timeout
         var timeoutTask = Task.Delay(MAX_PROCESSING_TIME_MS);
         var completedTask = await Task.WhenAny(Task.WhenAll(processingTasks), timeoutTask);
 
@@ -76,7 +73,6 @@ public class Functions
         {
             _logger.LogError("Batch processing timed out after {Timeout}ms", MAX_PROCESSING_TIME_MS);
 
-            // Add all records that haven't completed as failures
             for (var i = 0; i < processingTasks.Count; i++)
                 if (!processingTasks[i].IsCompleted)
                     batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure
@@ -86,7 +82,6 @@ public class Functions
         }
         else
         {
-            // Add failures for any task that returned false
             for (var i = 0; i < processingTasks.Count; i++)
                 if (!processingTasks[i].Result)
                     batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure
@@ -101,7 +96,7 @@ public class Functions
         };
     }
 
-    private async Task<bool> ProcessStockReservedMessageAsync(SQSEvent.SQSMessage record, ISpan? parentSpan)
+    private async Task<bool> ProcessStockReservedMessageAsync(SQSEvent.SQSMessage record)
     {
         IScope? processingSpan = null;
 
@@ -112,20 +107,17 @@ public class Functions
 
             if (evtData?.Detail?.Data is null)
             {
-                _logger.LogWarning("Deserialized event data is null from message body {MessageBody}", record.Body);
+                _logger.LogWarning("Deserialized event data is null for message {MessageId}", record.MessageId);
                 return false;
             }
 
-            var parentContext = new SpanContextExtractor().ExtractIncludingDsm(
+            var parentContext = _tracingProvider.ExtractContextIncludingDsm(
                 JsonDocument.Parse(record.Body),
                 GetHeader,
                 "sns",
                 evtData.Detail.Type);
 
-            processingSpan = Tracer.Instance.StartActive($"process {evtData.Detail.Type}", new SpanCreationSettings
-            {
-                Parent = parentSpan?.Context
-            });
+            processingSpan = _tracingProvider.StartActiveSpan($"process {evtData.Detail.Type}", parentContext);
 
             record.AddToTelemetry();
             evtData.Detail?.AddToTelemetry();
@@ -156,7 +148,6 @@ public class Functions
     [LambdaFunction]
     public async Task<SQSBatchResponse> HandleReservationFailed(SQSEvent evt)
     {
-        var activeSpan = Tracer.Instance.ActiveScope?.Span;
         evt.AddToTelemetry();
 
         var batchItemFailures = new List<SQSBatchResponse.BatchItemFailure>();
@@ -164,11 +155,10 @@ public class Functions
 
         foreach (var record in evt.Records)
         {
-            var task = ProcessReservationFailedMessageAsync(record, activeSpan);
+            var task = ProcessReservationFailedMessageAsync(record);
             processingTasks.Add(task);
         }
 
-        // Process all messages with a timeout
         var timeoutTask = Task.Delay(MAX_PROCESSING_TIME_MS);
         var completedTask = await Task.WhenAny(Task.WhenAll(processingTasks), timeoutTask);
 
@@ -176,7 +166,6 @@ public class Functions
         {
             _logger.LogError("Batch processing timed out after {Timeout}ms", MAX_PROCESSING_TIME_MS);
 
-            // Add all records that haven't completed as failures
             for (var i = 0; i < processingTasks.Count; i++)
                 if (!processingTasks[i].IsCompleted)
                     batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure
@@ -186,7 +175,6 @@ public class Functions
         }
         else
         {
-            // Add failures for any task that returned false
             for (var i = 0; i < processingTasks.Count; i++)
                 if (!processingTasks[i].Result)
                     batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure
@@ -201,7 +189,7 @@ public class Functions
         };
     }
 
-    private async Task<bool> ProcessReservationFailedMessageAsync(SQSEvent.SQSMessage record, ISpan? parentSpan)
+    private async Task<bool> ProcessReservationFailedMessageAsync(SQSEvent.SQSMessage record)
     {
         IScope? processingSpan = null;
 
@@ -213,20 +201,17 @@ public class Functions
 
             if (evtData?.Detail?.Data is null)
             {
-                _logger.LogWarning("Deserialized event data is null from message body {MessageBody}", record.Body);
+                _logger.LogWarning("Deserialized event data is null for message {MessageId}", record.MessageId);
                 return false;
             }
 
-            var parentContext = new SpanContextExtractor().ExtractIncludingDsm(
-                JsonSerializer.SerializeToDocument(evtData.Detail),
+            var parentContext = _tracingProvider.ExtractContextIncludingDsm(
+                JsonDocument.Parse(record.Body),
                 GetHeader,
                 "sns",
                 evtData.Detail.Type);
 
-            processingSpan = Tracer.Instance.StartActive($"process {evtData.Detail.Type}", new SpanCreationSettings
-            {
-                Parent = parentSpan?.Context
-            });
+            processingSpan = _tracingProvider.StartActiveSpan($"process {evtData.Detail.Type}", parentContext);
 
             record.AddToTelemetry();
             evtData.Detail?.AddToTelemetry();
@@ -246,7 +231,7 @@ public class Functions
         catch (Exception e)
         {
             _logger.LogError(e, "Error processing reservation failed message: {ErrorMessage}", e.Message);
-            processingSpan?.Span?.SetTag("error.type", e.GetType().Name);
+            processingSpan?.Span.SetException(e);
             return false;
         }
         finally
