@@ -30,7 +30,7 @@ function deploy {
     cd ../../
   done
 }
-npm i
+npm ci
 deploy
 
 
