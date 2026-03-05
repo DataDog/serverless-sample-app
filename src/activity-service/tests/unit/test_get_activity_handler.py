@@ -190,7 +190,7 @@ class TestGetActivityHandlerCORS:
 
         result = _invoke_lambda('product', 'product-123', mock_dal)
 
-        assert 'Access-Control-Allow-Origin' in result['headers']
+        assert 'Access-Control-Allow-Origin' in result['multiValueHeaders']
 
     def test_error_response_includes_cors_allow_origin_header(self) -> None:
         """Should include Access-Control-Allow-Origin header even when an error occurs."""
@@ -199,4 +199,4 @@ class TestGetActivityHandlerCORS:
 
         result = _invoke_lambda('product', 'product-123', mock_dal)
 
-        assert 'Access-Control-Allow-Origin' in result['headers']
+        assert 'Access-Control-Allow-Origin' in result['multiValueHeaders']
