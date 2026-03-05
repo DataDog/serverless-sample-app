@@ -38,7 +38,7 @@ export function startProcessSpanWithSemanticConventions(
     datadogHeaders && typeof datadogHeaders === "object"
       ? { ...datadogHeaders }
       : {};
-  tracer.dataStreamsCheckpointer.setConsumeCheckpoint("sqs", evt.type, dsmCarrier);
+  tracer.dataStreamsCheckpointer.setConsumeCheckpoint("eventbridge", evt.type, dsmCarrier);
 
   try {
     messageProcessingSpan.addTags({
@@ -87,7 +87,7 @@ export function startProcessSpanWithSemanticConventions(
  *
  * The carrier will contain:
  *   - "dd-pathway-ctx-base64": DSM pathway context (readable by all dd-trace versions)
- *   - "traceparent": W3C trace context (for Java consumers that read from _datadog)
+ *   - "traceparent": W3C trace context (for consumers that read from _datadog)
  */
 export function startPublishSpanWithSemanticConventions(
   evt: CloudEvent<any>,
@@ -99,13 +99,12 @@ export function startPublishSpanWithSemanticConventions(
   });
 
   try {
-    tracer.dataStreamsCheckpointer.setProduceCheckpoint(
-      conventions.messagingSystem,
+    tracer.dataStreamsCheckpointer.setProduceCheckpoint("eventbridge",
       evt.type,
       carrier
     );
 
-    // Embed traceparent in the carrier so Java consumers find it in _datadog
+    // Embed traceparent in the carrier so consumers find it in _datadog
     const traceparent = conventions.parentSpan?.context().toTraceparent();
     if (traceparent) {
       carrier["traceparent"] = traceparent;
