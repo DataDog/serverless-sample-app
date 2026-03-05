@@ -297,7 +297,7 @@ class TestDataStreamsCheckpoints:
         mock_consume.assert_called_once()
 
     def test_consume_checkpoint_uses_sqs_type(self) -> None:
-        """Should call set_consume_checkpoint with 'sqs' as the checkpoint type."""
+        """Should call set_consume_checkpoint with 'eventbridge' as the checkpoint type."""
         import activity_service.handlers.create_activity as handler_module
 
         mock_dal = MagicMock()
@@ -322,7 +322,7 @@ class TestDataStreamsCheckpoints:
             handler_module.lambda_handler(event, _make_lambda_context())
 
         call_args = mock_consume.call_args
-        assert call_args[0][0] == 'sqs'
+        assert call_args[0][0] == 'eventbridge'
 
     def test_dd_pathway_ctx_extracted_from_datadog_envelope(self) -> None:
         """Should extract dd-pathway-ctx from _datadog envelope and pass it as carrier to consume checkpoint."""

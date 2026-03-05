@@ -114,7 +114,7 @@ public class Functions
             var parentContext = _tracingProvider.ExtractContextIncludingDsm(
                 JsonDocument.Parse(record.Body),
                 GetHeader,
-                "sns",
+                "eventbridge",
                 evtData.Detail.Type);
 
             processingSpan = _tracingProvider.StartActiveSpan($"process {evtData.Detail.Type}", parentContext);
@@ -208,7 +208,7 @@ public class Functions
             var parentContext = _tracingProvider.ExtractContextIncludingDsm(
                 JsonDocument.Parse(record.Body),
                 GetHeader,
-                "sns",
+                "eventbridge",
                 evtData.Detail.Type);
 
             processingSpan = _tracingProvider.StartActiveSpan($"process {evtData.Detail.Type}", parentContext);

@@ -38,7 +38,7 @@ var (
 		return awsCfg
 	}()
 	dSqlProductRepository, repositoryInitErr = adapters.NewDSqlProductRepository(os.Getenv("DSQL_CLUSTER_ENDPOINT"))
-	handler                  = core.NewProductStockUpdatedEventHandler(
+	handler                                  = core.NewProductStockUpdatedEventHandler(
 		dSqlProductRepository)
 )
 
@@ -79,7 +79,7 @@ func processMessage(ctx context.Context, record events.SNSEventRecord) error {
 	// the current trace, not an orphaned background context.
 	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
 		ServiceOverride: "productservice",
-	}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
+	}, "direction:in", core.InternalPubSubName, "topic:"+evt.Type, "manual_checkpoint:true")
 
 	span.SetTag("product.id", evt.Data.ProductId)
 	span.SetTag("product.newStockLevel", evt.Data.StockLevel)

@@ -66,7 +66,7 @@ def process_message(record: SQSRecord, lambda_context: LambdaContext) -> None:
         time = convert_date_time_string_to_epoch(message_body.get('time'))
         cloud_event_wrapper = message_body.get('detail', {})
 
-        _set_data_streams_consume_checkpoint(cloud_event_wrapper, record.event_source_arn or 'sqs')
+        _set_data_streams_consume_checkpoint(cloud_event_wrapper)
 
         process_cloud_event(cloud_event_wrapper, time, lambda_context)
 
@@ -75,10 +75,10 @@ def process_message(record: SQSRecord, lambda_context: LambdaContext) -> None:
         raise
 
 
-def _set_data_streams_consume_checkpoint(cloud_event_wrapper: dict[str, Any], queue_name: str) -> None:
+def _set_data_streams_consume_checkpoint(cloud_event_wrapper: dict[str, Any]) -> None:
     """Set a Data Streams consume checkpoint extracting pathway context from the _datadog envelope."""
     carrier_get = extract_data_streams_carrier(cloud_event_wrapper)
-    set_consume_checkpoint('sqs', queue_name, carrier_get)
+    set_consume_checkpoint('eventbridge', cloud_event_wrapper.get('type'), carrier_get)
 
 
 def extract_data_streams_carrier(cloud_event_wrapper: dict[str, Any]) -> Callable[[str], str | None]:

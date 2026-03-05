@@ -13,6 +13,8 @@ import (
 	"os"
 	"product-event-publisher/internal/core"
 
+	productcore "github.com/datadog/serverless-sample-product-core"
+
 	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
 	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -40,7 +42,7 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 	// Inject DSM context before marshaling so _datadog carrier is included in the message.
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", "type:eventbridge", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	}, "direction:out", productcore.ExternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
 	}
@@ -94,7 +96,7 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 	// Inject DSM context before marshaling so _datadog carrier is included in the message.
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", "type:eventbridge", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	}, "direction:out", productcore.ExternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
 	}
@@ -149,7 +151,7 @@ func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Con
 	// Inject DSM context before marshaling so _datadog carrier is included in the message.
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", "type:eventbridge", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	}, "direction:out", productcore.ExternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
 	}

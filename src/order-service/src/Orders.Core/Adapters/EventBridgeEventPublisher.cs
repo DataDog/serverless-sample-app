@@ -59,7 +59,7 @@ public class EventBridgeEventPublisher(
             detailNode,
             SetHeader,
             scope.Span.Context,
-            "sns",
+            "eventbridge",
             evt.DetailType);
 
         evt.Detail = detailNode.ToJsonString();

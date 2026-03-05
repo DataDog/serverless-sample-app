@@ -74,7 +74,7 @@ public class InventoryApiContainer extends Construct {
         environmentVariables.put("JWT_SECRET_PARAM_NAME", props.serviceProps().getJwtAccessKeyParameter().getParameterName());
         environmentVariables.put("QUARKUS_HTTP_CORS_HEADERS", "Accept,Authorization,Content-Type");
         environmentVariables.put("QUARKUS_HTTP_CORS_METHODS", "GET,POST,OPTIONS,PUT,DELETE");
-        environmentVariables.put("QUARKUS_HTTP_CORS_ORIGINS", "*");
+        environmentVariables.put("QUARKUS_HTTP_CORS_ORIGINS", "/.*/");
         environmentVariables.put("DD_DATA_STREAMS_ENABLED", "true");
 
 

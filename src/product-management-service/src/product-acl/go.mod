@@ -4,6 +4,8 @@ go 1.23.1
 
 require github.com/datadog/serverless-sample-observability v0.0.0
 
+require github.com/datadog/serverless-sample-product-core v0.0.0
+
 replace github.com/datadog/serverless-sample-observability v0.0.0 => ../observability
 
 replace github.com/datadog/serverless-sample-product-core v0.0.0 => ../core
@@ -18,7 +20,6 @@ require (
 	github.com/DataDog/datadog-lambda-go v1.22.0
 	github.com/aws/aws-lambda-go v1.47.0
 	github.com/aws/aws-sdk-go-v2/config v1.29.12
-	github.com/datadog/serverless-sample-product-core v0.0.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.73.1
 )
 

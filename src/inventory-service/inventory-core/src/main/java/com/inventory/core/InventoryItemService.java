@@ -58,8 +58,8 @@ public class InventoryItemService {
         InventoryItem existingProduct = this.repository.withProductId(productId);
 
         if (existingProduct == null) {
-            this.logger.warn("Inventory item not found with productID: {}", productId);
-            return new HandlerResponse<>(null, List.of("Product not found"), false);
+            this.logger.info("No inventory record found for productId {}, returning zero stock", productId);
+            return new HandlerResponse<>(new InventoryItemDTO(InventoryItem.Create(productId, 0.0)), List.of("OK"), true);
         }
 
         return new HandlerResponse<>(new InventoryItemDTO(existingProduct), List.of("OK"), true);
@@ -175,9 +175,24 @@ public class InventoryItemService {
 
                 logger.info("Successfully reserved stock for order {}", orderNumber);
 
-                // Update all reserved items with optimistic locking retry
-                for (InventoryItem inventoryItem : result.stockAddedFor()) {
-                    reserveStockWithRetry(inventoryItem.getProductId(), orderNumber);
+                // Update all reserved items with optimistic locking retry.
+                // Track successes so we can roll back if a later write fails.
+                List<String> successfullyReserved = new ArrayList<>();
+                try {
+                    for (InventoryItem inventoryItem : result.stockAddedFor()) {
+                        reserveStockWithRetry(inventoryItem.getProductId(), orderNumber);
+                        successfullyReserved.add(inventoryItem.getProductId());
+                    }
+                } catch (Exception reservationEx) {
+                    logger.error("Partial reservation failure after {} successful writes, rolling back", successfullyReserved.size(), reservationEx);
+                    for (String productId : successfullyReserved) {
+                        try {
+                            releaseStockWithRetry(productId, orderNumber);
+                        } catch (Exception rollbackEx) {
+                            logger.error("Failed to rollback reservation for product {}", productId, rollbackEx);
+                        }
+                    }
+                    throw reservationEx;
                 }
                 this.eventPublisher.publishStockReservedEvent(
                         new StockReservedEventV1(orderNumber, conversationId));
@@ -225,7 +240,7 @@ public class InventoryItemService {
                 logger.info("Found existing product with id {}", existingProduct.getProductId());
             }
             catch (InventoryItemNotFoundException e) {
-                logger.info("Didn't find existing product with id", product.getProductId());
+                logger.info("Didn't find existing product with id {}", product.getProductId());
                 this.eventPublisher.publishNewProductAddedEvent(new NewProductAddedEvent(product.getProductId()));
             }
         }
@@ -294,6 +309,28 @@ public class InventoryItemService {
         }
     }
 
+    private void releaseStockWithRetry(String productId, String orderNumber) {
+        for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            var inventoryItem = this.repository.withProductId(productId);
+
+            if (!inventoryItem.getReservedStockOrders().contains(orderNumber)) {
+                return; // already released or was never reserved
+            }
+
+            inventoryItem.releaseStockFor(orderNumber);
+            try {
+                this.repository.update(inventoryItem);
+                return;
+            } catch (StaleItemException e) {
+                if (attempt == MAX_RETRIES) {
+                    logger.error("Failed to rollback reservation for product {} after {} retries", productId, MAX_RETRIES);
+                    throw e;
+                }
+                backoff(attempt);
+            }
+        }
+    }
+
     private void backoff(int attempt) {
         try {
             long delayMs = BASE_BACKOFF_MS * (1L << attempt);
@@ -315,12 +352,6 @@ public class InventoryItemService {
             stockCheckSpan.setTag("product.id", productId);
             
             var inventoryItem = this.repository.withProductId(productId);
-            if (inventoryItem == null) {
-                stockCheckSpan.setTag("product.notFound", "true");
-                isFailure.set(true);
-                logger.warn("Product not found for reservation: {}", productId);
-                return;
-            }
 
             if (inventoryItem.getAvailableStockLevel() <= 0) {
                 stockCheckSpan.setTag("product.outOfStock", "true");
@@ -378,12 +409,6 @@ public class InventoryItemService {
 
                     for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
                         var inventoryItem = this.repository.withProductId(productId);
-
-                        if (inventoryItem == null) {
-                            stockCheckSpan.setTag("product.notFound", "true");
-                            logger.warn("Product not found for dispatch: {}", productId);
-                            break;
-                        }
 
                         previousStockLevel = inventoryItem.getCurrentStockLevel();
                         stockCheckSpan.setTag("product.previousStockLevel", previousStockLevel);
