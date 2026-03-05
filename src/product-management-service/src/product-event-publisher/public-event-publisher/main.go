@@ -18,6 +18,8 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
 	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 
+	productcore "github.com/datadog/serverless-sample-product-core"
+
 	observability "github.com/datadog/serverless-sample-observability"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
@@ -126,7 +128,7 @@ func processCreatedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 	// the current trace, not an orphaned background context.
 	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
+	}, "direction:in", productcore.InternalPubSubName, "topic:"+evt.Type, "manual_checkpoint:true")
 
 	span.SetTag("product.id", evt.Data.ProductId)
 	span.SetTag("messaging.message.id", evt.Id)
@@ -162,7 +164,7 @@ func processUpdatedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 	// the current trace, not an orphaned background context.
 	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
+	}, "direction:in", productcore.InternalPubSubName, "topic:"+evt.Type, "manual_checkpoint:true")
 
 	span.SetTag("product.id", evt.Data.ProductId)
 	span.SetTag("messaging.message.id", evt.Id)
@@ -198,7 +200,7 @@ func processDeletedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 	// the current trace, not an orphaned background context.
 	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:in", "type:sns", "topic:"+evt.Type, "manual_checkpoint:true")
+	}, "direction:in", productcore.InternalPubSubName, "topic:"+evt.Type, "manual_checkpoint:true")
 
 	span.SetTag("product.id", evt.Data.ProductId)
 	span.SetTag("messaging.message.id", evt.Id)

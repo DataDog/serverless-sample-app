@@ -49,7 +49,7 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 	}
 	tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-outbox",
-	}, "direction:in", "type:outbox", "topic:"+entry.EventType, "manual_checkpoint:true")
+	}, "direction:in", core.InternalOutboxName, "topic:"+entry.EventType, "manual_checkpoint:true")
 
 	// Create span links to connect to the original trace
 	spanLinks := []ddtrace.SpanLink{}

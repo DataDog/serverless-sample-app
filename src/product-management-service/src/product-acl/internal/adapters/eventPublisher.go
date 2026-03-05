@@ -39,7 +39,7 @@ func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context,
 	// Inject DSM context before marshaling so _datadog carrier is included in the message.
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-acl",
-	}, "direction:out", "type:sns", "topic:product.stockUpdated", "manual_checkpoint:true")
+	}, "direction:out", core.InternalPubSubName, "topic:product.stockUpdated", "manual_checkpoint:true")
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
 	}
@@ -85,7 +85,7 @@ func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Contex
 	// Inject DSM context before marshaling so _datadog carrier is included in the message.
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-acl",
-	}, "direction:out", "type:sns", "topic:product.pricingChanged", "manual_checkpoint:true")
+	}, "direction:out", core.InternalPubSubName, "topic:product.pricingChanged", "manual_checkpoint:true")
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
 	}

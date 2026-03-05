@@ -111,7 +111,7 @@ func createOutboxEntryForUpdate(ctx context.Context, eventType string, eventData
 
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice",
-	}, "direction:out", "type:outbox", "topic:"+eventType, "manual_checkpoint:true")
+	}, "direction:out", InternalOutboxName, "topic:"+eventType, "manual_checkpoint:true")
 	if ok {
 		carrier := make(OutboxDsmCarrier)
 		datastreams.InjectToBase64Carrier(ctx, carrier)

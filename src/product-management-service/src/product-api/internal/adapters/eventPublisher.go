@@ -10,9 +10,10 @@ package adapters
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
 	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
-	"os"
 
 	core "github.com/datadog/serverless-sample-product-core"
 
@@ -38,7 +39,7 @@ func (publisher SnsEventPublisher) PublishProductCreated(ctx context.Context, ev
 
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-outbox",
-	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	}, "direction:out", core.InternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
 	}
@@ -83,7 +84,7 @@ func (publisher SnsEventPublisher) PublishProductUpdated(ctx context.Context, ev
 
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-outbox",
-	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	}, "direction:out", core.InternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
 	}
@@ -127,7 +128,7 @@ func (publisher SnsEventPublisher) PublishProductDeleted(ctx context.Context, ev
 
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-outbox",
-	}, "direction:out", "type:sns", "topic:"+cloudEvent.Type, "manual_checkpoint:true")
+	}, "direction:out", core.InternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
 		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
 	}

@@ -4,7 +4,11 @@ go 1.23.1
 
 require github.com/datadog/serverless-sample-observability v0.0.0
 
+require github.com/datadog/serverless-sample-product-core v0.0.0
+
 replace github.com/datadog/serverless-sample-observability v0.0.0 => ../observability
+
+replace github.com/datadog/serverless-sample-product-core v0.0.0 => ../core
 
 require (
 	github.com/DataDog/datadog-lambda-go v1.22.0
@@ -16,7 +20,7 @@ require (
 )
 
 require (
-	github.com/DataDog/appsec-internal-go v1.9.0 // indirect
+	github.com/DataDog/appsec-internal-go v1.10.0 // indirect
 	github.com/DataDog/datadog-agent/comp/core/tagger/origindetection v0.64.0-rc.1 // indirect
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.64.0-rc.1 // indirect
 	github.com/DataDog/datadog-agent/pkg/proto v0.64.0-rc.1 // indirect
@@ -70,9 +74,9 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.7 // indirect
+	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.9 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
-	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
+	github.com/hashicorp/go-sockaddr v1.0.7 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/lufia/plan9stats v0.0.0-20240226150601-1dcf7310316a // indirect
@@ -111,8 +115,8 @@ require (
 	golang.org/x/net v0.37.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
-	golang.org/x/time v0.9.0 // indirect
-	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
+	golang.org/x/time v0.10.0 // indirect
+	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250219182151-9fdb1cabc7b2 // indirect
 	google.golang.org/grpc v1.70.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
