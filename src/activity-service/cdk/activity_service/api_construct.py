@@ -96,6 +96,11 @@ class ApiConstruct(Construct):
             description='This service handles /api/activity requests',
             deploy_options=aws_apigateway.StageOptions(throttling_rate_limit=2, throttling_burst_limit=10),
             cloud_watch_role=False,
+            default_cors_preflight_options=aws_apigateway.CorsOptions(
+                allow_origins=aws_apigateway.Cors.ALL_ORIGINS,
+                allow_methods=aws_apigateway.Cors.ALL_METHODS,
+                allow_headers=['Content-Type', 'Authorization'],
+            ),
         )
 
         StringParameter(
