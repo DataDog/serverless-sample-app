@@ -18,6 +18,21 @@ permissions:
   contents: read
 
 jobs:
+  verify-workshop-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+      - name: Verify workshop stubs compile
+        shell: bash
+        run: |
+          cd src/pricing-service
+          make workshop-build
+
   deploy-tf:
     runs-on: ubuntu-latest
     concurrency:

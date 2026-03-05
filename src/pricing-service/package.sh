@@ -3,7 +3,14 @@ function deploy {
   rm -r ./out/
   TIMESTAMP=$(date +%Y%m%d%H%M%S)
 
-  for filename in ./src/*/adapters/build*.js; do
+  if [ "${WORKSHOP_BUILD}" = "true" ]; then
+    echo "Building workshop (broken) version..."
+    BUILD_GLOB="./src/*/workshop/build*.js"
+  else
+    BUILD_GLOB="./src/*/adapters/build*.js"
+  fi
+
+  for filename in $BUILD_GLOB; do
     echo $filename
     node $filename
   done
@@ -23,6 +30,7 @@ function deploy {
     cd ../../
   done
 }
-npm i 
+npm i
 deploy
+
 

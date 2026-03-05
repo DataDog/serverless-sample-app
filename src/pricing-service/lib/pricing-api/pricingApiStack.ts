@@ -8,10 +8,14 @@
 import * as cdk from "aws-cdk-lib";
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
+import { DatadogLambda } from "datadog-cdk-constructs-v2";
 import { SharedProps } from "../constructs/sharedFunctionProps";
 import { Api } from "./api";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { PricingServiceProps } from "./pricingServiceProps";
+import { PricingEventHandlers } from "./pricingEventHandlers";
+
+const isWorkshopBuild = process.env.WORKSHOP_BUILD === "true";
 
 // no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class PricingApiStack extends cdk.Stack {
@@ -26,14 +30,28 @@ export class PricingApiStack extends cdk.Stack {
       secretStringValue: new cdk.SecretValue(process.env.DD_API_KEY!),
     });
 
-    // Paste Datadog configuration code here, replacing the SharedProps construct as well
+    const datadogConfiguration = isWorkshopBuild
+      ? undefined
+      : new DatadogLambda(this, "Datadog", {
+          nodeLayerVersion: 130,
+          extensionLayerVersion: 90,
+          site: process.env.DD_SITE ?? "datadoghq.com",
+          apiKeySecret: ddApiKey,
+          service,
+          version,
+          env,
+          enableColdStartTracing: true,
+          enableDatadogTracing: true,
+          captureLambdaPayload: true,
+        });
+
     const sharedProps: SharedProps = {
       team: "pricing",
       domain: "pricing",
       environment: env,
       serviceName: service,
       version,
-      datadogConfiguration: undefined,
+      datadogConfiguration,
     };
 
     const pricingServiceProps = new PricingServiceProps(this, sharedProps);
@@ -44,14 +62,19 @@ export class PricingApiStack extends cdk.Stack {
       jwtSecret: pricingServiceProps.getJwtSecret(),
     });
 
-    // Paste event handlers configuration here
+    if (!isWorkshopBuild) {
+      new PricingEventHandlers(this, "PricingEventHandlers", {
+        serviceProps: pricingServiceProps,
+        ddApiKeySecret: ddApiKey,
+      });
+    }
 
-    const apiEndpoint = new StringParameter(this, "PricingAPIEndpoint", {
+    new StringParameter(this, "PricingAPIEndpoint", {
       parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/api-endpoint`,
       stringValue: api.api.url,
     });
 
-    const output = new cdk.CfnOutput(this, `PricingServiceApiEndpoint-${env}`, {
+    new cdk.CfnOutput(this, `PricingServiceApiEndpoint-${env}`, {
       exportName: `PricingServiceApiEndpoint-${env}`,
       value: `${api.api.url}pricing`,
     });

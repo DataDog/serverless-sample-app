@@ -27,3 +27,9 @@ integration-test:
 
 build:
 	./package.sh
+
+workshop-build:
+	WORKSHOP_BUILD=true ./package.sh
+
+workshop-cdk-deploy: workshop-build
+	WORKSHOP_BUILD=true cdk deploy --all --require-approval never --concurrency 3 --region ${AWS_REGION} --tags DD_PRESERVE_STACK=true

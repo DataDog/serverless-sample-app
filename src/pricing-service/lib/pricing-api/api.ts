@@ -51,8 +51,10 @@ export class Api extends Construct {
 
   buildCalculatePricingFunction(props: ApiProps): LambdaIntegration {
     // The function uses ESBuild, this path is to a custom command that runs the build
-    const pathToBuildFile =
-      "./src/pricing-api/adapters/buildCalculatePricingFunction.js";
+    const isWorkshopBuild = process.env.WORKSHOP_BUILD === "true";
+    const pathToBuildFile = isWorkshopBuild
+      ? "./src/pricing-api/workshop/buildCalculatePricingFunction.js"
+      : "./src/pricing-api/adapters/buildCalculatePricingFunction.js";
     const pathToOutputFile = "./out/calculatePricingFunction";
 
     const code = Code.fromCustomCommand(pathToOutputFile, [

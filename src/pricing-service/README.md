@@ -19,19 +19,13 @@ npm run test -- product-service
 
 ## AWS CDK
 
-The [Datadog CDK Construct](https://docs.datadoghq.com/serverless/libraries_integrations/cdk/) simplifies the setup when instrumenting with Datadog. To get started:
-
-```sh
-npm i --save-dev datadog-cdk-constructs-v2
-```
-
-Once installed, you can use the Construct to configure all of your Datadog settings. And then use the `addLambdaFunctions` function to instrument your Lambda functions.
+The [Datadog CDK Construct](https://docs.datadoghq.com/serverless/libraries_integrations/cdk/) simplifies Datadog instrumentation. It is configured in [`lib/pricing-api/pricingApiStack.ts`](./lib/pricing-api/pricingApiStack.ts) and passed down to individual Lambda functions via `SharedProps`:
 
 ```typescript
-const datadogConfiguration = new Datadog(this, "Datadog", {
+const datadogConfiguration = new DatadogLambda(this, "Datadog", {
   nodeLayerVersion: 130,
-  extensionLayerVersion: '90',
-  site: process.env.DD_SITE,
+  extensionLayerVersion: 90,
+  site: process.env.DD_SITE ?? "datadoghq.com",
   apiKeySecret: ddApiKey,
   service,
   version,
@@ -42,58 +36,27 @@ const datadogConfiguration = new Datadog(this, "Datadog", {
 });
 ```
 
-This CDK implementation uses a [custom `InstrumentedFunction` L3 construct](./lib/constructs/lambdaFunction.ts) to ensure all Lambda functions are instrumented correctly and consistently.
+Each Lambda function is then registered with the construct using `addLambdaFunctions`, which attaches the Datadog Lambda layer and extension, and injects the required environment variables automatically.
+
+The stack also stores its API endpoint in SSM Parameter Store so that integration tests and other services can discover it at runtime:
+
+```typescript
+new StringParameter(this, "PricingAPIEndpoint", {
+  parameterName: `/${env}/PricingService/api-endpoint`,
+  stringValue: api.api.url,
+});
+```
 
 ### Deploy
 
-To simplify deployment, all of the different microservices are managed in the same CDK project. This **is not recommended** in real applications, but simplifies the deployment for demonstration purposes.
-
-Each microservice is implemented as a seperate CloudFormation Stack, and there are no direct dependencies between stacks. Each stack stores relevant resource ARN's (SNS Topic ARN etc) in SSM Parameter Store, and the other stacks dynamically load the ARN's:
-
-```typescript
-const productCreatedTopicArn = StringParameter.fromStringParameterName(
-  this,
-  "ProductCreatedTopicArn",
-  "/node/product/product-created-topic"
-);
-const productCreatedTopic = Topic.fromTopicArn(
-  this,
-  "ProductCreatedTopic",
-  productCreatedTopicArn.stringValue
-);
-```
-
-The Datadog extension retrieves your Datadog API key from a Secrets Manager secret. For this to work, ensure you create a secret in your account containing your API key and set the `DD_API_KEY_SECRET_ARN` environment variable before deployment.
-
-To deploy all stacks and resources, run:
-
 ```sh
-export DD_API_KEY_SECRET_ARN=<YOUR SECRET ARN>
-export DD_SITE=<YOUR PREFERRED DATADOG SITE>
-cdk deploy --all --require-approval never
-```
-
-If you wish to deploy individual stacks, you can do that by running the respective command below:
-
-```sh
-cdk deploy NodeSharedStack --require-approval never
-cdk deploy NodeProductApiStack --require-approval never
-cdk deploy NodeProductPublicEventPublisherStack --require-approval never
-cdk deploy NodeProductPricingServiceStack --require-approval never
-```
-
-Post deployment, run the below command to execute an integration test and populate the system with the full end to end flow.
-
-```sh
-npm run test -- product-service
+make cdk-deploy
 ```
 
 ### Cleanup
 
-To cleanup resources run
-
 ```sh
-cdk destroy --all
+make cdk-destroy
 ```
 
 ## AWS SAM
@@ -333,3 +296,102 @@ npm run test -- product-service
 To remove a dev stack (your personal stack you ran locally), run `npm run remove:sst:personal`.
 
 To remove a dev stack, run `npm run remove:sst`.
+
+---
+
+## Workshop Mode
+
+This service ships in two distinct modes controlled by a single environment variable: `WORKSHOP_BUILD=true`. The variable is evaluated at both **build time** (which Lambda code gets bundled) and **CDK synthesis time** (which infrastructure gets created). CI/CD never sets it, so the working instrumented service is always the default.
+
+### What changes between modes
+
+| | CI/CD (default) | Workshop (`WORKSHOP_BUILD=true`) |
+|---|---|---|
+| Lambda code source | `src/pricing-api/adapters/` | `src/pricing-api/workshop/` |
+| HTTP handler | Calls `PricingService`, returns pricing brackets | Returns hardcoded `"OK"` |
+| SQS event handlers | Full processing with dd-trace spans | Acknowledge messages, do nothing |
+| Datadog Lambda layer | Attached via CDK construct | Not attached |
+| Datadog env vars | `DD_DATA_STREAMS_ENABLED`, trace propagation settings, etc. | Not set |
+| `PricingEventHandlers` CDK construct | Deployed (SQS queues, EventBridge rules, Lambda functions) | Not deployed |
+
+### Application layer
+
+The working Lambda handler implementations live in `src/pricing-api/adapters/`. The workshop stubs live in `src/pricing-api/workshop/` and mirror the same file names:
+
+| File | Working (`adapters/`) | Workshop stub (`workshop/`) |
+|---|---|---|
+| `calculatePricingFunction.ts` | Parses request, calls `PricingService`, returns tiered pricing | Returns `"OK"` — no logic, no instrumentation |
+| `productCreatedPricingHandler.ts` | Processes events with dd-trace spans and semantic conventions | Acknowledges all messages silently |
+| `productUpdatedPricingHandler.ts` | Same as above | Same stub pattern |
+
+`package.sh` selects which directory to bundle based on `WORKSHOP_BUILD`:
+
+```sh
+# CI/CD — builds working instrumented handlers
+make build
+
+# Workshop — builds broken uninstrumented stubs
+make workshop-build
+```
+
+### CDK infrastructure layer
+
+The same `WORKSHOP_BUILD` variable controls what `pricingApiStack.ts` synthesises at CDK deploy time.
+
+**Working (CI/CD) stack:**
+- Creates a `DatadogLambda` construct and passes it to all Lambda functions via `SharedProps`
+- Deploys the `PricingEventHandlers` construct, which creates the SQS queues, EventBridge subscription rules, and the two event handler Lambda functions
+- Sets Datadog-specific env vars on each function (`DD_DATA_STREAMS_ENABLED`, `DD_TRACE_PROPAGATION_STYLE_EXTRACT`, etc.)
+
+**Workshop stack:**
+- `datadogConfiguration` is `undefined` — no Datadog Lambda layer or extension attached
+- `PricingEventHandlers` is not instantiated — no SQS queues, no EventBridge rules, no event handler Lambdas
+- Datadog env vars are not set on any function
+
+```sh
+# Deploy the working instrumented stack (CI/CD default)
+make cdk-deploy
+
+# Deploy the broken workshop stack
+make workshop-cdk-deploy
+```
+
+The `workshop-cdk-deploy` target runs `workshop-build` first (to produce the stub ZIPs) and then synthesises and deploys the CDK stack with `WORKSHOP_BUILD=true`.
+
+> [!NOTE]
+> The working implementations in `adapters/` serve as the reference answer. Because both directories use the same file names, participants can compare them directly to understand what instrumentation was added.
+
+---
+
+## Observability
+
+### Datadog Instrumentation
+
+The working service uses [dd-trace](https://github.com/DataDog/dd-trace-js) for distributed tracing. The Datadog Lambda extension is attached at deploy time via the CDK construct, SAM macro, or Terraform module depending on which IaC tool is used.
+
+### Semantic Conventions
+
+Both SQS event handlers follow the [OpenTelemetry Semantic Conventions for Messaging Spans](https://opentelemetry.io/docs/specs/semconv/messaging/messaging-spans/). Each inbound message creates a dedicated processing span populated with the standard attributes:
+
+- `messaging.system` — the messaging infrastructure (EventBridge via SQS)
+- `messaging.operation.type` — `process`
+- `messaging.message.type` — the CloudEvent type (e.g. `product.productCreated.v1`)
+- `messaging.message.id`, `messaging.message.age`, `messaging.message.envelope.size`
+
+See the shared helper in [`src/observability/observability.ts`](./src/observability/observability.ts).
+
+### Span Links
+
+When events cross service boundaries via EventBridge and SQS, the handlers extract the `traceparent` from the CloudEvent envelope and attach it as a [Span Link](https://docs.datadoghq.com/tracing/trace_collection/span_links/) rather than a parent-child relationship. This avoids creating a single trace that spans the entire system, while still preserving the causal relationship between the upstream publisher and this consumer.
+
+### Issue Simulator
+
+`PricingService` contains a built-in `issueSimulator` that produces observable failure scenarios useful for Datadog demonstrations:
+
+| Price range | Behaviour |
+|---|---|
+| `90 – 95` | Throws an error — pricing cannot be calculated |
+| `95 – 100` | Adds an 8-second delay — simulates slow processing |
+| `50 – 60` | Adds a 40-second delay — exceeds the Lambda timeout |
+
+These ranges are intentional. When the workshop service is uninstrumented, the failures are invisible. Once instrumented with Datadog, participants can observe the errors and latency spikes in traces and metrics — demonstrating the value of the instrumentation exercise.

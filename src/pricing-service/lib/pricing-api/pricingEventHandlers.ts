@@ -22,6 +22,8 @@ export interface PricingEventHandlerProps {
   ddApiKeySecret: ISecret;
 }
 
+const isWorkshopBuild = process.env.WORKSHOP_BUILD === "true";
+
 export class PricingEventHandlers extends Construct {
   productUpdatedQueue: IQueue;
   productCreatedQueue: IQueue;
@@ -38,9 +40,9 @@ export class PricingEventHandlers extends Construct {
       sharedProps: props.serviceProps.getSharedProps(),
       queueName: `ProductCreated`,
     }).queue;
-
-    const pathToBuildFile =
-      "./src/pricing-api/adapters/buildProductCreatedPricingHandler.js";
+    const pathToBuildFile = isWorkshopBuild
+      ? "./src/pricing-api/workshop/buildProductCreatedPricingHandler.js"
+      : "./src/pricing-api/adapters/buildProductCreatedPricingHandler.js";
     const pathToOutputFile = "./out/productCreatedPricingHandler";
 
     const code = Code.fromCustomCommand(pathToOutputFile, [
@@ -73,10 +75,14 @@ export class PricingEventHandlers extends Construct {
           TEAM: props.serviceProps.getSharedProps().team,
           DOMAIN: props.serviceProps.getSharedProps().domain,
           EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
-          DD_DATA_STREAMS_ENABLED: "true",
-          DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true",
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none",
-          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore",
+          ...(isWorkshopBuild
+            ? {}
+            : {
+                DD_DATA_STREAMS_ENABLED: "true",
+                DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true",
+                DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none",
+                DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore",
+              }),
         },
         bundling: {
           platform: "node",
@@ -119,8 +125,9 @@ export class PricingEventHandlers extends Construct {
       queueName: `ProductUpdated`,
     }).queue;
 
-    const pathToBuildFile =
-      "./src/pricing-api/adapters/buildProductUpdatedPricingHandler.js";
+    const pathToBuildFile = isWorkshopBuild
+      ? "./src/pricing-api/workshop/buildProductUpdatedPricingHandler.js"
+      : "./src/pricing-api/adapters/buildProductUpdatedPricingHandler.js";
     const pathToOutputFile = "./out/productUpdatedPricingHandler";
 
     const code = Code.fromCustomCommand(pathToOutputFile, [
@@ -153,10 +160,14 @@ export class PricingEventHandlers extends Construct {
           TEAM: props.serviceProps.getSharedProps().team,
           DOMAIN: props.serviceProps.getSharedProps().domain,
           EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
-          DD_DATA_STREAMS_ENABLED: "true",
-          DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true",
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none",
-          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore",
+          ...(isWorkshopBuild
+            ? {}
+            : {
+                DD_DATA_STREAMS_ENABLED: "true",
+                DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true",
+                DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none",
+                DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore",
+              }),
         },
         bundling: {
           platform: "node",
