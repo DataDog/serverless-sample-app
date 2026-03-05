@@ -65,7 +65,7 @@ public class handleOrderCompletedLambda implements RequestHandler<SQSEvent, SQSB
 
                 DatadogTelemetry datadog = evtWrapper.getDetail().getDatadog() != null
                         ? evtWrapper.getDetail().getDatadog() : new DatadogTelemetry();
-                DataStreamsCheckpointer.get().setConsumeCheckpoint("sns", evtWrapper.getDetailType(), new Carrier(datadog));
+                DataStreamsCheckpointer.get().setConsumeCheckpoint("eventbridge", evtWrapper.getDetailType(), new Carrier(datadog));
                 processSpan.setAttribute("messaging.id", message.getMessageId());
                 processSpan.setAttribute("messaging.operation.type", "process");
                 processSpan.setAttribute("messaging.system", "aws_sqs");
