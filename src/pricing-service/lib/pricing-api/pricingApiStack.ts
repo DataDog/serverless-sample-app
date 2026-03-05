@@ -33,10 +33,7 @@ export class PricingApiStack extends cdk.Stack {
     const datadogConfiguration = isWorkshopBuild
       ? undefined
       : new DatadogLambda(this, "Datadog", {
-          // dd-trace is bundled via esbuild so the Lambda tracing layer is not
-          // needed and would create a second tracer instance if added. The
-          // extension layer (below) is still used to forward traces and metrics
-          // from the bundled dd-trace to Datadog.
+          nodeLayerVersion: 130,
           extensionLayerVersion: 90,
           site: process.env.DD_SITE ?? "datadoghq.com",
           apiKeySecret: ddApiKey,
@@ -44,7 +41,7 @@ export class PricingApiStack extends cdk.Stack {
           version,
           env,
           enableColdStartTracing: true,
-          enableDatadogTracing: false,
+          enableDatadogTracing: true,
           captureLambdaPayload: true,
         });
 
@@ -66,18 +63,18 @@ export class PricingApiStack extends cdk.Stack {
     });
 
     if (!isWorkshopBuild) {
-      new PricingEventHandlers(this, "PricingEventHandlers", {
+      const _ = new PricingEventHandlers(this, "PricingEventHandlers", {
         serviceProps: pricingServiceProps,
         ddApiKeySecret: ddApiKey,
       });
     }
 
-    new StringParameter(this, "PricingAPIEndpoint", {
+    const _param = new StringParameter(this, "PricingAPIEndpoint", {
       parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/api-endpoint`,
       stringValue: api.api.url,
     });
 
-    new cdk.CfnOutput(this, `PricingServiceApiEndpoint-${env}`, {
+    const _output = new cdk.CfnOutput(this, `PricingServiceApiEndpoint-${env}`, {
       exportName: `PricingServiceApiEndpoint-${env}`,
       value: `${api.api.url}pricing`,
     });

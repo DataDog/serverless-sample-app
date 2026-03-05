@@ -54,7 +54,7 @@ export class Api extends Construct {
     const isWorkshopBuild = process.env.WORKSHOP_BUILD === "true";
     const pathToBuildFile = isWorkshopBuild
       ? "./src/pricing-api/workshop/buildCalculatePricingFunction.js"
-      : "./src/pricing-api/adapters/buildCalculatePricingFunction.js";
+      : "./src/pricing-api/cdk/buildCalculatePricingFunction.js";
     const pathToOutputFile = "./out/calculatePricingFunction";
 
     const code = Code.fromCustomCommand(pathToOutputFile, [

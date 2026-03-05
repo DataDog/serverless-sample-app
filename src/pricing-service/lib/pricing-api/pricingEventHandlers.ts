@@ -42,7 +42,7 @@ export class PricingEventHandlers extends Construct {
     }).queue;
     const pathToBuildFile = isWorkshopBuild
       ? "./src/pricing-api/workshop/buildProductCreatedPricingHandler.js"
-      : "./src/pricing-api/adapters/buildProductCreatedPricingHandler.js";
+      : "./src/pricing-api/cdk/buildProductCreatedPricingHandler.js";
     const pathToOutputFile = "./out/productCreatedPricingHandler";
 
     const code = Code.fromCustomCommand(pathToOutputFile, [
@@ -127,7 +127,7 @@ export class PricingEventHandlers extends Construct {
 
     const pathToBuildFile = isWorkshopBuild
       ? "./src/pricing-api/workshop/buildProductUpdatedPricingHandler.js"
-      : "./src/pricing-api/adapters/buildProductUpdatedPricingHandler.js";
+      : "./src/pricing-api/cdk/buildProductUpdatedPricingHandler.js";
     const pathToOutputFile = "./out/productUpdatedPricingHandler";
 
     const code = Code.fromCustomCommand(pathToOutputFile, [
