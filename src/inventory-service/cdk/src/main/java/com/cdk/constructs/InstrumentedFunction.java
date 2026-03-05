@@ -36,6 +36,8 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.put("DD_ENV", props.sharedProps().env());
         lambdaEnvironment.put("ENV", props.sharedProps().env());
         lambdaEnvironment.put("DD_VERSION", props.sharedProps().version());
+        lambdaEnvironment.put("DD_JMXFETCH_ENABLED", "false");
+        lambdaEnvironment.put("DD_TRACE_ENABLED", "true");
         lambdaEnvironment.put("DD_API_KEY_SECRET_ARN", props.sharedProps().ddApiKeySecret().getSecretArn());
         lambdaEnvironment.put("DD_CAPTURE_LAMBDA_PAYLOAD", "true");
         lambdaEnvironment.put("DD_LOGS_INJECTION", "true");
@@ -44,15 +46,15 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.put("DOMAIN", "inventory");
         lambdaEnvironment.put("spring_cloud_function_definition", props.routingExpression());
         lambdaEnvironment.put("QUARKUS_LAMBDA_HANDLER", props.routingExpression());
-        lambdaEnvironment.put("JAVA_TOOL_OPTIONS", " -XX:+TieredCompilation -XX:TieredStopAtLevel=1");
+        lambdaEnvironment.put("JAVA_TOOL_OPTIONS", "-javaagent:\"/opt/java/lib/dd-java-agent.jar\" -XX:+TieredCompilation -XX:TieredStopAtLevel=1");
         lambdaEnvironment.put("DD_TRACE_OTEL_ENABLED", "true");
 
         // Add custom environment variables to the default set.
         lambdaEnvironment.putAll(props.environmentVariables());
 
         List<ILayerVersion> layers = new ArrayList<>(2);
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:24",System.getenv("AWS_REGION"))));
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:90", System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:25",System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:93", System.getenv("AWS_REGION"))));
 
 
         Asset fileAsset = Asset.Builder.create(this, String.format("%sS3Asset", props.routingExpression()))

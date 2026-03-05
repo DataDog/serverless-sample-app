@@ -120,13 +120,16 @@ module "aws_lambda_function" {
     "DD_LOGS_INJECTION" : "true"
     "DD_DATA_STREAMS_ENABLED" = "true"
     "DD_TRACE_OTEL_ENABLED" = "true"
+    "DD_TRACE_ENABLED" = "true"
+    "DD_JMXFETCH_ENABLED": "false"
+    "JAVA_TOOL_OPTIONS": "-javaagent:\"/opt/java/lib/dd-java-agent.jar\" -XX:+TieredCompilation -XX:TieredStopAtLevel=1"
     "spring_cloud_function_definition" : var.routing_expression
     "QUARKUS_LAMBDA_HANDLER": var.routing_expression}),
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 90
-  datadog_java_layer_version      = 24
+  datadog_extension_layer_version = 93
+  datadog_java_layer_version      = 25
 }
 
 resource "aws_lambda_alias" "SnapStartAlias" {
