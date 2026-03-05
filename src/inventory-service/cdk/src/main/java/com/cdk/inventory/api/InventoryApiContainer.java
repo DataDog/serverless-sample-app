@@ -211,7 +211,7 @@ public class InventoryApiContainer extends Construct {
                         .viewerProtocolPolicy(ViewerProtocolPolicy.REDIRECT_TO_HTTPS)
                         .cachePolicy(CachePolicy.CACHING_DISABLED)
                         .allowedMethods(AllowedMethods.ALLOW_ALL)
-                        .responseHeadersPolicy(ResponseHeadersPolicy.CORS_ALLOW_ALL_ORIGINS)
+                        .responseHeadersPolicy(ResponseHeadersPolicy.CORS_ALLOW_ALL_ORIGINS_WITH_PREFLIGHT)
                         .build())
                 .minimumProtocolVersion(SecurityPolicyProtocol.TLS_V1_2_2021)
                 .build());

@@ -28,6 +28,10 @@ public class JWTFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
+        if ("OPTIONS".equalsIgnoreCase(requestContext.getMethod())) {
+            return;
+        }
+
         if (isPublicEndpoint()) {
             return;
         }
