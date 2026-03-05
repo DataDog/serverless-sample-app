@@ -6,6 +6,7 @@ import com.inventory.core.InventoryItemNotFoundException;
 import com.inventory.core.InventoryItemRepository;
 import com.inventory.core.StaleItemException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -21,7 +22,11 @@ public class MockInventoryItemRepository implements InventoryItemRepository {
         if (item == null) {
             throw new InventoryItemNotFoundException(productId);
         }
-        return item;
+        // Return a copy to simulate DB behaviour: in-memory mutations don't affect
+        // stored state until update() is called, matching a real database read.
+        return new InventoryItem(item.getProductId(), item.getCurrentStockLevel(),
+                item.getReservedStockLevel(), new ArrayList<>((ArrayList<String>) item.getReservedStockOrders()),
+                item.getVersion());
     }
 
     @Override
