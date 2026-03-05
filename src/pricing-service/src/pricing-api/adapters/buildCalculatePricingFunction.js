@@ -13,6 +13,7 @@ esbuild
     entryPoints: ["./src/pricing-api/adapters/calculatePricingFunction.ts"],
     bundle: true,
     minify: true,
+    keepNames: true,
     outfile: "out/calculatePricingFunction/index.js",
     plugins: [ddPlugin],
     platform: "node", // allows built-in modules to be required
@@ -35,6 +36,7 @@ esbuild
       "graphql/utilities",
       "@aws-sdk/client-eventbridge",
       "@aws-sdk/client-ssm",
+      "@openfeature/server-sdk",
     ],
   })
   .catch((err) => {

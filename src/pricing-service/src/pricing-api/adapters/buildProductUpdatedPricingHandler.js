@@ -33,6 +33,7 @@ esbuild
       "graphql/language/printer",
       "graphql/utilities",
       "@aws-sdk/client-sqs",
+      "@openfeature/server-sdk",
     ],
   })
   .catch((err) => {
