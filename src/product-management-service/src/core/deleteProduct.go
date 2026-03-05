@@ -83,7 +83,7 @@ func createOutboxEntryForDelete(ctx context.Context, eventType string, eventData
 	}
 
 	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-outbox",
+		ServiceOverride: "productservice",
 	}, "direction:out", "type:outbox", "topic:"+eventType, "manual_checkpoint:true")
 	if ok {
 		carrier := make(OutboxDsmCarrier)
