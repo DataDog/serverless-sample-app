@@ -72,7 +72,7 @@ describe("ProductCreatedEventHandler", () => {
       // Assert
       expect(mockActiveSpan.addTags).toHaveBeenCalledWith({
         "product.id": "PROD123",
-        "pricing.newPrice": 29.99
+        "pricing.price": 29.99
       });
 
       expect(mockPricingService.calculate).toHaveBeenCalledWith({
