@@ -17,7 +17,7 @@ def _make_api_gw_event(entity_type: str, entity_id: str) -> dict[str, Any]:
         'resource': f'/api/activity/{entity_type}/{entity_id}',
         'path': f'/api/activity/{entity_type}/{entity_id}',
         'httpMethod': 'GET',
-        'headers': {'Content-Type': 'application/json'},
+        'headers': {'Content-Type': 'application/json', 'Origin': 'http://localhost:8081'},
         'multiValueHeaders': {},
         'queryStringParameters': None,
         'multiValueQueryStringParameters': None,
