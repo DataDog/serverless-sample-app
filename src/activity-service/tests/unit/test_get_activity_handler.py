@@ -180,3 +180,23 @@ class TestGetActivityHandlerErrorHandling:
         result = _invoke_lambda('product', 'product-123', mock_dal)
 
         assert result['statusCode'] != HTTPStatus.OK
+
+
+class TestGetActivityHandlerCORS:
+    def test_successful_response_includes_cors_allow_origin_header(self) -> None:
+        """Should include Access-Control-Allow-Origin header so browsers can read the response."""
+        mock_dal = MagicMock()
+        mock_dal.get_activity.return_value = _make_activity()
+
+        result = _invoke_lambda('product', 'product-123', mock_dal)
+
+        assert 'Access-Control-Allow-Origin' in result['headers']
+
+    def test_error_response_includes_cors_allow_origin_header(self) -> None:
+        """Should include Access-Control-Allow-Origin header even when an error occurs."""
+        mock_dal = MagicMock()
+        mock_dal.get_activity.side_effect = RuntimeError('DynamoDB connection failed')
+
+        result = _invoke_lambda('product', 'product-123', mock_dal)
+
+        assert 'Access-Control-Allow-Origin' in result['headers']

@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from aws_lambda_powertools.event_handler import APIGatewayRestResolver, Response, content_types
+from aws_lambda_powertools.event_handler import APIGatewayRestResolver, CORSConfig, Response, content_types
 
 from activity_service.handlers.utils.observability import logger
 from activity_service.models.exceptions import InternalServerException
@@ -8,7 +8,7 @@ from activity_service.models.output import InternalServerErrorOutput
 
 ACTIVITY_PATH = '/api/activity/<entity_type>/<entity_id>'
 
-app = APIGatewayRestResolver(enable_validation=False)
+app = APIGatewayRestResolver(enable_validation=False, cors=CORSConfig(allow_origin='*'))
 
 @app.exception_handler(InternalServerException)
 def handle_internal_server_error(ex: InternalServerException):  # receives exception raised
