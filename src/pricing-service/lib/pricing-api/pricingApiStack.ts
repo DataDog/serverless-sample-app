@@ -33,7 +33,10 @@ export class PricingApiStack extends cdk.Stack {
     const datadogConfiguration = isWorkshopBuild
       ? undefined
       : new DatadogLambda(this, "Datadog", {
-          nodeLayerVersion: 130,
+          // dd-trace is bundled via esbuild so the Lambda tracing layer is not
+          // needed and would create a second tracer instance if added. The
+          // extension layer (below) is still used to forward traces and metrics
+          // from the bundled dd-trace to Datadog.
           extensionLayerVersion: 90,
           site: process.env.DD_SITE ?? "datadoghq.com",
           apiKeySecret: ddApiKey,
@@ -41,7 +44,7 @@ export class PricingApiStack extends cdk.Stack {
           version,
           env,
           enableColdStartTracing: true,
-          enableDatadogTracing: true,
+          enableDatadogTracing: false,
           captureLambdaPayload: true,
         });
 
