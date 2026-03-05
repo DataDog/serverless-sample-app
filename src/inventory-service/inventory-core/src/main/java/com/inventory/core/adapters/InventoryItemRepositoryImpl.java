@@ -83,8 +83,13 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
             }
 
             if (span.getSpanContext().isValid()) {
-                span.setAttribute("db.wcu", result.consumedCapacity().writeCapacityUnits());
-                span.setAttribute("db.rcu", result.consumedCapacity().readCapacityUnits());
+                var consumedCapacity = result.consumedCapacity();
+                if (consumedCapacity != null) {
+                    Double wcu = consumedCapacity.writeCapacityUnits();
+                    Double rcu = consumedCapacity.readCapacityUnits();
+                    span.setAttribute("db.wcu", wcu != null ? wcu : 0.0);
+                    span.setAttribute("db.rcu", rcu != null ? rcu : 0.0);
+                }
                 span.setAttribute("product.found", true);
             }
 
@@ -150,8 +155,13 @@ public class InventoryItemRepositoryImpl implements InventoryItemRepository {
             var response = this.dynamoDB.putItem(putItemRequest);
 
             if (span.getSpanContext().isValid()) {
-                span.setAttribute("db.wcu", response.consumedCapacity().writeCapacityUnits());
-                span.setAttribute("db.rcu", response.consumedCapacity().readCapacityUnits());
+                var consumedCapacity = response.consumedCapacity();
+                if (consumedCapacity != null) {
+                    Double wcu = consumedCapacity.writeCapacityUnits();
+                    Double rcu = consumedCapacity.readCapacityUnits();
+                    span.setAttribute("db.wcu", wcu != null ? wcu : 0.0);
+                    span.setAttribute("db.rcu", rcu != null ? rcu : 0.0);
+                }
                 span.setAttribute("product.found", true);
             }
             logger.info("Updated inventory item in DynamoDB: {} (version {} -> {})",

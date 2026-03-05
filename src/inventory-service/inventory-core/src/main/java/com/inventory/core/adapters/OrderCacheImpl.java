@@ -117,7 +117,10 @@ public class OrderCacheImpl implements OrderCache {
             logger.info("Stored order in DynamoDB: {}", orderId);
             
             if (span != null && response.consumedCapacity() != null) {
-                span.setTag("db.wcu", response.consumedCapacity().writeCapacityUnits());
+                Double wcu = response.consumedCapacity().writeCapacityUnits();
+                if (wcu != null) {
+                    span.setTag("db.wcu", wcu);
+                }
             }
         } catch (Exception e) {
             logger.error("Error storing order in DynamoDB", e);

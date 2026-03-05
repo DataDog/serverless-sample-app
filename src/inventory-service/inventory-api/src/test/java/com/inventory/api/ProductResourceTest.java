@@ -119,6 +119,30 @@ class ProductResourceTest {
         assertTrue(result.isSuccess()); // method returns true but publishes failure event
     }
 
+    @Test
+    void reserve_stock_rolls_back_on_partial_write_failure() {
+        var productId1 = UUID.randomUUID().toString();
+        var productId2 = UUID.randomUUID().toString();
+        var productId3 = UUID.randomUUID().toString();
+        var orderNumber = UUID.randomUUID().toString();
+
+        var orders = new ArrayList<String>();
+        orders.add("");
+        repository.addInventoryItem(new InventoryItem(productId1, 10.0, 0.0, orders));
+        repository.addInventoryItem(new InventoryItem(productId2, 10.0, 0.0, new ArrayList<>(orders)));
+        repository.addInventoryItem(new InventoryItem(productId3, 10.0, 0.0, new ArrayList<>(orders)));
+
+        // Make product3 always fail to write, simulating an unresolvable lock conflict
+        repository.failUpdateForProduct(productId3);
+
+        service.reserveStockForOrder(orderNumber, List.of(productId1, productId2, productId3), "conv-1");
+
+        // After rollback, no product should have a reservation for this order
+        assertEquals(0.0, repository.withProductId(productId1).getReservedStockLevel());
+        assertEquals(0.0, repository.withProductId(productId2).getReservedStockLevel());
+        assertEquals(0.0, repository.withProductId(productId3).getReservedStockLevel());
+    }
+
     /**
      * Simple in-memory order cache for offline tests.
      */

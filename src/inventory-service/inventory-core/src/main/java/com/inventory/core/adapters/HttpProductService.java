@@ -20,13 +20,15 @@ import org.slf4j.LoggerFactory;
 @ApplicationScoped
 public class HttpProductService implements ProductService {
     private final SsmClient ssmClient;
-    private String productApiEndpoint = "";
+    private volatile String productApiEndpoint = "";
+    private volatile long endpointCacheExpiry = 0;
     private static final Logger logger = LoggerFactory.getLogger(HttpProductService.class);
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
 
     private static final int MAX_RETRIES = 3;
     private static final long INITIAL_BACKOFF_MS = 200;
+    private static final long ENDPOINT_CACHE_TTL_MS = 5 * 60 * 1000L; // 5 minutes
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
@@ -100,6 +102,11 @@ public class HttpProductService implements ProductService {
     }
 
     private void refreshApiEndpoint(SsmClient ssmClient) {
+        long now = System.currentTimeMillis();
+        if (!productApiEndpoint.isEmpty() && now < endpointCacheExpiry) {
+            return; // cached value is still valid
+        }
+
         // Retrieve the product API endpoint from SSM Parameter Store
         try {
             var productApiEndpointSsmParameterName = System.getenv("PRODUCT_API_ENDPOINT_PARAMETER");
@@ -112,7 +119,8 @@ public class HttpProductService implements ProductService {
                 productApiBase = productApiBase.substring(0, productApiBase.length() - 1);
             }
             this.productApiEndpoint = String.format("%s/product", productApiBase);
-            logger.info("Product API endpoint set to: " + this.productApiEndpoint);
+            this.endpointCacheExpiry = now + ENDPOINT_CACHE_TTL_MS;
+            logger.info("Product API endpoint refreshed from SSM: " + this.productApiEndpoint);
         } catch (Exception e) {
             logger.error("Failed to retrieve product API endpoint: " + e.getMessage());
         }
