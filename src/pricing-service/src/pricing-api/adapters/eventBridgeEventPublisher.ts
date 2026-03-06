@@ -32,7 +32,8 @@ export class EventBridgeEventPublisher implements EventPublisher {
   }
 
   async publishPriceCalculatedEvent(
-    evt: PriceCalculatedEventV1
+    evt: PriceCalculatedEventV1,
+    linkedTraceparent?: string
   ): Promise<boolean> {
     const parentSpan = tracer.scope().active();
 
@@ -54,6 +55,7 @@ export class EventBridgeEventPublisher implements EventPublisher {
           messagingSystem: "eventbridge",
           destinationName: process.env.EVENT_BUS_NAME ?? "",
           parentSpan: parentSpan,
+          linkedTraceparent,
         }
       );
 

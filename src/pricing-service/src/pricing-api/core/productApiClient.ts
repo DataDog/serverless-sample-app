@@ -5,8 +5,6 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-import { PriceCalculatedEventV1 } from "../events/priceCalculatedEventV1";
-
-export interface EventPublisher {
-  publishPriceCalculatedEvent(evt: PriceCalculatedEventV1, linkedTraceparent?: string): Promise<boolean>;
+export interface ProductApiClient {
+  getProductPrice(productId: string): Promise<number>;
 }

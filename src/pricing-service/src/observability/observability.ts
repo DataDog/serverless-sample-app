@@ -18,6 +18,7 @@ export interface SemanticConventions {
   destinationName: string;
   parentSpan: Span | undefined | null;
   conversationId?: string | undefined;
+  linkedTraceparent?: string | undefined;
 }
 
 export function startProcessSpanWithSemanticConventions(
@@ -61,7 +62,7 @@ export function startProcessSpanWithSemanticConventions(
     if (evt.traceparent !== undefined) {
       const manualContext = new ManualContext(evt.traceparent!.toString());
 
-      messageProcessingSpan.addLink(manualContext);
+      messageProcessingSpan.addLink({ context: manualContext });
     }
   } catch (e) {
     logger.error(JSON.stringify(e));
@@ -106,6 +107,11 @@ export function startPublishSpanWithSemanticConventions(
       "messaging.operation.name": "send",
       "messaging.message.conversation_id": conventions.conversationId ?? "",
     });
+
+    if (conventions.linkedTraceparent !== undefined) {
+      const manualContext = new ManualContext(conventions.linkedTraceparent);
+      messagingSpan.addLink({ context: manualContext });
+    }
   } catch (e) {
     logger.error(JSON.stringify(e));
   }

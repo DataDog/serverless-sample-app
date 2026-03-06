@@ -68,6 +68,7 @@
 #   lambda_handler = "index.handler"
 #   environment_variables = {
 #     "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.pricing_service_bus.name
+#     "PRODUCT_API_ENDPOINT_PARAMETER" : "/${var.env}/ProductService/api-endpoint"
 #     "DD_TRACE_PROPAGATION_STYLE_EXTRACT": "none"
 #     "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": "ignore"
 #     "DD_DATA_STREAMS_ENABLED": "true"
@@ -78,7 +79,8 @@
 #   env                   = var.env
 #   additional_policy_attachments = [
 #     aws_iam_policy.sqs_receive_policy.arn,
-#     aws_iam_policy.eb_publish.arn
+#     aws_iam_policy.eb_publish.arn,
+#     aws_iam_policy.get_product_api_endpoint_ssm_parameter.arn
 #   ]
 # }
 
@@ -132,6 +134,7 @@
 #   lambda_handler = "index.handler"
 #   environment_variables = {
 #     "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.pricing_service_bus.name
+#     "PRODUCT_API_ENDPOINT_PARAMETER" : "/${var.env}/ProductService/api-endpoint"
 #     "DD_TRACE_PROPAGATION_STYLE_EXTRACT": "none"
 #     "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": "ignore"
 #     "DD_DATA_STREAMS_ENABLED": "true"
@@ -142,7 +145,8 @@
 #   env                   = var.env
 #   additional_policy_attachments = [
 #     aws_iam_policy.sqs_receive_policy.arn,
-#     aws_iam_policy.eb_publish.arn
+#     aws_iam_policy.eb_publish.arn,
+#     aws_iam_policy.get_product_api_endpoint_ssm_parameter.arn
 #   ]
 # }
 

@@ -20,6 +20,13 @@ data "aws_iam_policy_document" "allow_jwt_secret_key_ssm_read" {
   }
 }
 
+data "aws_iam_policy_document" "allow_product_api_endpoint_ssm_read" {
+  statement {
+    actions   = ["ssm:GetParameter"]
+    resources = ["arn:aws:ssm:*:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/ProductService/api-endpoint"]
+  }
+}
+
 data "aws_iam_policy_document" "eb_publish" {
   statement {
     actions = ["events:PutEvents", "events:DescribeEventBus"]

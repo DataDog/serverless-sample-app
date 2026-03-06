@@ -6,79 +6,65 @@
 //
 
 import { SQSEvent, SQSRecord } from "aws-lambda";
-import {
-  ProductCreatedEvent,
-  ProductCreatedEventHandler,
-} from "../../src/pricing-api/core/productCreatedEventHandler";
+import { ProductCreatedEvent } from "../../src/pricing-api/core/productCreatedEventHandler";
 import { handler } from "../../src/pricing-api/adapters/productCreatedPricingHandler";
-import { PricingService } from "../../src/pricing-api/core/pricingService";
-import { Logger } from "@aws-lambda-powertools/logger";
 
 // Mock dependencies
-jest.mock("@aws-sdk/client-eventbridge", () => {
-  return {
-    EventBridgeClient: jest.fn().mockImplementation(() => {
-      return {};
-    }),
-  };
-});
+jest.mock("@aws-sdk/client-eventbridge", () => ({
+  EventBridgeClient: jest.fn().mockImplementation(() => ({})),
+}));
 
-jest.mock("dd-trace", () => {
-  return {
-    tracer: {
-      scope: jest.fn().mockReturnValue({
-        active: jest.fn().mockReturnValue({
-          addTags: jest.fn(),
-          addLink: jest.fn(),
-        }),
-      }),
-      startSpan: jest.fn().mockReturnValue({
+jest.mock("@aws-sdk/client-ssm", () => ({
+  SSMClient: jest.fn().mockImplementation(() => ({})),
+  GetParameterCommand: jest.fn(),
+}));
+
+jest.mock("../../src/pricing-api/adapters/ssmProductApiClient", () => ({
+  SsmProductApiClient: jest.fn().mockImplementation(() => ({
+    getProductPrice: jest.fn().mockResolvedValue(29.99),
+  })),
+}));
+
+jest.mock("dd-trace", () => ({
+  tracer: {
+    scope: jest.fn().mockReturnValue({
+      active: jest.fn().mockReturnValue({
         addTags: jest.fn(),
         addLink: jest.fn(),
-        finish: jest.fn(),
       }),
-      dataStreamsCheckpointer: {
-        setConsumeCheckpoint: jest.fn(),
-        setProduceCheckpoint: jest.fn(),
-      },
+    }),
+    startSpan: jest.fn().mockReturnValue({
+      addTags: jest.fn(),
+      addLink: jest.fn(),
+      finish: jest.fn(),
+    }),
+    dataStreamsCheckpointer: {
+      setConsumeCheckpoint: jest.fn(),
+      setProduceCheckpoint: jest.fn(),
     },
-    Span: jest.fn().mockImplementation(() => {
-      return {
-        finish: jest.fn(),
-        logEvent: jest.fn(),
-      };
-    }),
-  };
-});
+  },
+  Span: jest.fn().mockImplementation(() => ({
+    finish: jest.fn(),
+    logEvent: jest.fn(),
+  })),
+}));
 
-jest.mock("../../src/pricing-api/adapters/eventBridgeEventPublisher", () => {
-  return {
-    EventBridgeEventPublisher: jest.fn().mockImplementation(() => {
-      return {
-        publishPriceCalculatedEvent: jest.fn(),
-      };
-    }),
-  };
-});
+jest.mock("../../src/pricing-api/adapters/eventBridgeEventPublisher", () => ({
+  EventBridgeEventPublisher: jest.fn().mockImplementation(() => ({
+    publishPriceCalculatedEvent: jest.fn(),
+  })),
+}));
 
 describe("productCreatedPricingHandler", () => {
   let mockSQSEvent: SQSEvent;
-  let mockProductCreatedEvent: ProductCreatedEvent;
-  let mockCloudEvent: any; // Using any to avoid CloudEvent type issues
+  let mockCloudEvent: any;
   let mockEventBridgeEvent: any;
-  let productCreatedHandler: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Setup mock product event
-    mockProductCreatedEvent = {
-      productId: "PROD123",
-      name: "Test Product",
-      price: 29.99,
-    };
+    const mockProductCreatedEvent: ProductCreatedEvent = { productId: "PROD123" };
 
-    // Setup mock CloudEvent (using simpler structure to avoid typing issues)
     mockCloudEvent = {
       id: "event-id",
       source: "test-source",
@@ -89,7 +75,6 @@ describe("productCreatedPricingHandler", () => {
       datacontenttype: "application/json",
     };
 
-    // Setup mock EventBridge event
     mockEventBridgeEvent = {
       version: "0",
       id: "event-id",
@@ -101,7 +86,6 @@ describe("productCreatedPricingHandler", () => {
       detail: mockCloudEvent,
     };
 
-    // Setup mock SQS record
     const mockSQSRecord: SQSRecord = {
       messageId: "message-id",
       receiptHandle: "receipt-handle",
@@ -119,113 +103,42 @@ describe("productCreatedPricingHandler", () => {
       awsRegion: "eu-west-1",
     };
 
-    // Setup mock SQS event
-    mockSQSEvent = {
-      Records: [mockSQSRecord],
-    };
-
-    // Get reference to mock handler
-    const mockEventPublisher =
-      require("../../src/pricing-api/adapters/eventBridgeEventPublisher").EventBridgeEventPublisher();
-    productCreatedHandler = new ProductCreatedEventHandler(
-      new PricingService(),
-      mockEventPublisher
-    );
+    mockSQSEvent = { Records: [mockSQSRecord] };
   });
 
   it("should process a valid SQS event with a ProductCreated event", async () => {
-    // Act
     const result = await handler(mockSQSEvent);
-
     expect(result.batchItemFailures).toEqual([]);
   });
 
   it("should handle multiple records in a batch", async () => {
-    // Arrange
-    const secondEvent = { ...mockEventBridgeEvent };
     const secondRecord = {
       ...mockSQSEvent.Records[0],
       messageId: "message-id-2",
-      body: JSON.stringify(secondEvent),
+      body: JSON.stringify(mockEventBridgeEvent),
     };
     mockSQSEvent.Records.push(secondRecord);
 
-    // Act
     const result = await handler(mockSQSEvent);
-
-    // Assert
     expect(result.batchItemFailures).toEqual([]);
   });
 
-
   it("should handle malformed JSON in the SQS message body", async () => {
-    // Arrange
     mockSQSEvent.Records[0].body = "{ invalid json";
-    // Make the handler throw an error in this case to match the expected behavior
 
-    // Act
     const result = await handler(mockSQSEvent);
-
-    // Assert
-    // In the actual implementation, errors are properly caught and reported as batch failures
-    expect(result.batchItemFailures).toEqual([
-      { itemIdentifier: "message-id" },
-    ]);
+    expect(result.batchItemFailures).toEqual([{ itemIdentifier: "message-id" }]);
   });
 
   it("should handle missing data in the CloudEvent", async () => {
-    // Arrange
     mockCloudEvent.data = undefined;
     mockSQSEvent.Records[0].body = JSON.stringify(mockEventBridgeEvent);
-    // Make the handler throw an error in this case to match the expected behavior
 
-    // Act
     const result = await handler(mockSQSEvent);
-
-    // Assert
-    // In the actual implementation, errors are properly caught and reported as batch failures
-    expect(result.batchItemFailures).toEqual([
-      { itemIdentifier: "message-id" },
-    ]);
-  });
-
-  it("should handle missing productId in the ProductCreatedEvent", async () => {
-    // Arrange
-    mockProductCreatedEvent = {
-      name: "Test Product",
-      price: 29.99,
-    } as ProductCreatedEvent;
-    mockCloudEvent.data = mockProductCreatedEvent;
-    mockSQSEvent.Records[0].body = JSON.stringify(mockEventBridgeEvent);
-
-    // Act
-    const result = await handler(mockSQSEvent);
-
-    // Assert
-    // Validation for missing fields is intentionally disabled in this demo service.
-    // The handler processes events without strict field validation.
-    expect(result.batchItemFailures).toEqual([]);
-  });
-
-  it("should handle missing price in the ProductCreatedEvent", async () => {
-    // Arrange
-    mockProductCreatedEvent = {
-      productId: "PROD123",
-      name: "Test Product",
-    } as ProductCreatedEvent;
-    mockCloudEvent.data = mockProductCreatedEvent;
-    mockSQSEvent.Records[0].body = JSON.stringify(mockEventBridgeEvent);
-
-    // Act
-    const result = await handler(mockSQSEvent);
-
-    // Assert
-    // Validation for missing fields is intentionally disabled in this demo service.
-    expect(result.batchItemFailures).toEqual([]);
+    expect(result.batchItemFailures).toEqual([{ itemIdentifier: "message-id" }]);
   });
 
   it("should handle unexpected event structure", async () => {
-    // Arrange
     mockSQSEvent.Records[0].body = JSON.stringify({
       version: "0",
       id: "event-id",
@@ -233,26 +146,15 @@ describe("productCreatedPricingHandler", () => {
       source: "product-service",
       detail: { some: "unexpected data" },
     });
-    // Make the handler throw an error in this case to match the expected behavior
 
-    // Act
     const result = await handler(mockSQSEvent);
-
-    // Assert
-    // In the actual implementation, errors are properly caught and reported as batch failures
-    expect(result.batchItemFailures).toEqual([
-      { itemIdentifier: "message-id" },
-    ]);
+    expect(result.batchItemFailures).toEqual([{ itemIdentifier: "message-id" }]);
   });
 
   it("should handle null event records gracefully", async () => {
-    // Arrange
     mockSQSEvent.Records = [];
 
-    // Act
     const result = await handler(mockSQSEvent);
-
-    // Assert
     expect(result.batchItemFailures).toEqual([]);
   });
 });

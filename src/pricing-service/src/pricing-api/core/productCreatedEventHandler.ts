@@ -8,42 +8,33 @@
 import { tracer } from "dd-trace";
 import { EventPublisher } from "./eventPublisher";
 import { PricingService } from "./pricingService";
+import { ProductApiClient } from "./productApiClient";
 
 export interface ProductCreatedEvent {
   productId: string;
-  name: string;
-  price: number;
 }
 
 export class ProductCreatedEventHandler {
   private pricingService: PricingService;
   private eventPublisher: EventPublisher;
+  private productApiClient: ProductApiClient;
 
-  constructor(pricingService: PricingService, eventPublisher: EventPublisher) {
+  constructor(pricingService: PricingService, eventPublisher: EventPublisher, productApiClient: ProductApiClient) {
     this.pricingService = pricingService;
     this.eventPublisher = eventPublisher;
+    this.productApiClient = productApiClient;
   }
 
-  async handle(evt: ProductCreatedEvent): Promise<void> {
-    // if (evt.productId === undefined) {
-    //   throw new Error("Product ID is undefined");
-    // }
-    // if (evt.previous === undefined || evt.previous.price === undefined) {
-    //   throw new Error("Previous is undefined");
-    // }
-    // if (evt.new === undefined || evt.new.price === undefined) {
-    //   throw new Error("New is undefined");
-    // }
-
+  async handle(evt: ProductCreatedEvent, linkedTraceparent?: string): Promise<void> {
     const mainSpan = tracer.scope().active();
-    mainSpan?.addTags({
-      "pricing.price": evt.price,
-      "product.id": evt.productId,
-    });
+    mainSpan?.addTags({ "product.id": evt.productId });
+
+    const price = await this.productApiClient.getProductPrice(evt.productId);
+    mainSpan?.addTags({ "pricing.price": price });
 
     const priceResult = await this.pricingService.calculate({
       productId: evt.productId,
-      price: evt.price,
+      price,
     });
 
     await this.eventPublisher.publishPriceCalculatedEvent({
@@ -54,6 +45,6 @@ export class ProductCreatedEventHandler {
           price: price.price,
         };
       }),
-    });
+    }, linkedTraceparent);
   }
 }

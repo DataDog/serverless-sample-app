@@ -14,7 +14,9 @@ import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { SqsQueue } from "aws-cdk-lib/aws-events-targets";
 import { PricingServiceProps } from "./pricingServiceProps";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
-import { Duration } from "aws-cdk-lib";
+import { Duration, Stack } from "aws-cdk-lib";
+import { PolicyStatement } from "aws-cdk-lib/aws-iam";
+import { StringParameter } from "aws-cdk-lib/aws-ssm";
 
 export interface PricingEventHandlerProps {
   serviceProps: PricingServiceProps;
@@ -61,31 +63,30 @@ export class PricingEventHandlers extends Construct {
           "@aws-sdk/client-sqs",
         ];
 
+    const env = props.serviceProps.getSharedProps().environment;
+    const productApiEndpointParameterName = `/${env}/ProductService/api-endpoint`;
+
     const handleProductCreatedFunction = new NodejsFunction(
       this,
       "handleProductCreatedFunction",
       {
         runtime: Runtime.NODEJS_22_X,
-        functionName: `CDK-PricingHandleProductCreated-${
-          props.serviceProps.getSharedProps().environment
-        }`,
+        functionName: `CDK-PricingHandleProductCreated-${env}`,
         entry,
         handler: "handler",
         memorySize: 512,
         timeout: Duration.seconds(29),
         environment: {
-          ENV: props.serviceProps.getSharedProps().environment,
+          ENV: env,
           POWERTOOLS_SERVICE_NAME:
             props.serviceProps.getSharedProps().serviceName,
-          POWERTOOLS_LOG_LEVEL:
-            props.serviceProps.getSharedProps().environment === "prod"
-              ? "WARN"
-              : "INFO",
+          POWERTOOLS_LOG_LEVEL: env === "prod" ? "WARN" : "INFO",
           DEPLOYED_AT: new Date().toISOString(),
           BUILD_ID: props.serviceProps.getSharedProps().version,
           TEAM: props.serviceProps.getSharedProps().team,
           DOMAIN: props.serviceProps.getSharedProps().domain,
           EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
+          PRODUCT_API_ENDPOINT_PARAMETER: productApiEndpointParameterName,
           ...(isWorkshopBuild
             ? {}
             : {
@@ -103,6 +104,15 @@ export class PricingEventHandlers extends Construct {
           externalModules,
         },
       }
+    );
+
+    handleProductCreatedFunction.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["ssm:GetParameter"],
+        resources: [
+          `arn:aws:ssm:${Stack.of(this).region}:${Stack.of(this).account}:parameter${productApiEndpointParameterName}`,
+        ],
+      })
     );
 
     props.serviceProps
@@ -157,31 +167,30 @@ export class PricingEventHandlers extends Construct {
           "@aws-sdk/client-sqs",
         ];
 
+    const env = props.serviceProps.getSharedProps().environment;
+    const productApiEndpointParameterName = `/${env}/ProductService/api-endpoint`;
+
     const handleProductUpdatedFunction = new NodejsFunction(
       this,
       "handleProductUpdatedFunction",
       {
         runtime: Runtime.NODEJS_22_X,
-        functionName: `CDK-PricingHandleProductUpdated-${
-          props.serviceProps.getSharedProps().environment
-        }`,
+        functionName: `CDK-PricingHandleProductUpdated-${env}`,
         entry,
         handler: "handler",
         memorySize: 512,
         timeout: Duration.seconds(29),
         environment: {
-          ENV: props.serviceProps.getSharedProps().environment,
+          ENV: env,
           POWERTOOLS_SERVICE_NAME:
             props.serviceProps.getSharedProps().serviceName,
-          POWERTOOLS_LOG_LEVEL:
-            props.serviceProps.getSharedProps().environment === "prod"
-              ? "WARN"
-              : "INFO",
+          POWERTOOLS_LOG_LEVEL: env === "prod" ? "WARN" : "INFO",
           DEPLOYED_AT: new Date().toISOString(),
           BUILD_ID: props.serviceProps.getSharedProps().version,
           TEAM: props.serviceProps.getSharedProps().team,
           DOMAIN: props.serviceProps.getSharedProps().domain,
           EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
+          PRODUCT_API_ENDPOINT_PARAMETER: productApiEndpointParameterName,
           ...(isWorkshopBuild
             ? {}
             : {
@@ -199,6 +208,15 @@ export class PricingEventHandlers extends Construct {
           externalModules,
         },
       }
+    );
+
+    handleProductUpdatedFunction.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["ssm:GetParameter"],
+        resources: [
+          `arn:aws:ssm:${Stack.of(this).region}:${Stack.of(this).account}:parameter${productApiEndpointParameterName}`,
+        ],
+      })
     );
 
     props.serviceProps

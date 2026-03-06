@@ -19,19 +19,23 @@ import {
 import { Logger } from "@aws-lambda-powertools/logger";
 import { EventBridgeEventPublisher } from "./eventBridgeEventPublisher";
 import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
+import { SSMClient } from "@aws-sdk/client-ssm";
 import { CloudEvent } from "cloudevents";
 import { Span, tracer } from "dd-trace";
 import {
   MessagingType,
   startProcessSpanWithSemanticConventions,
 } from "../../observability/observability";
+import { SsmProductApiClient } from "./ssmProductApiClient";
 
 const logger = new Logger({ serviceName: process.env.DD_SERVICE });
 const eventBridgeClient = new EventBridgeClient();
+const ssmClient = new SSMClient();
 
 const updateProductHandler = new ProductUpdatedEventHandler(
   new PricingService(),
-  new EventBridgeEventPublisher(eventBridgeClient)
+  new EventBridgeEventPublisher(eventBridgeClient),
+  new SsmProductApiClient(ssmClient)
 );
 
 export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
@@ -58,7 +62,7 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
         }
       );
 
-      await updateProductHandler.handle(evtWrapper.detail.data!);
+      await updateProductHandler.handle(evtWrapper.detail.data!, evtWrapper.detail.traceparent?.toString());
     } catch (error: unknown) {
       if (error instanceof Error) {
         const e = error as Error;

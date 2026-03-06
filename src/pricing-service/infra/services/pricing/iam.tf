@@ -17,3 +17,9 @@ resource "aws_iam_policy" "get_jwt_ssm_parameter" {
   path   = "/"
   policy = data.aws_iam_policy_document.allow_jwt_secret_key_ssm_read.json
 }
+
+resource "aws_iam_policy" "get_product_api_endpoint_ssm_parameter" {
+  name   = "tf-pricing-get-product-api-endpoint-${var.env}"
+  path   = "/"
+  policy = data.aws_iam_policy_document.allow_product_api_endpoint_ssm_read.json
+}

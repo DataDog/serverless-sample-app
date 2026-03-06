@@ -8,60 +8,33 @@
 import { tracer } from "dd-trace";
 import { EventPublisher } from "./eventPublisher";
 import { PricingService } from "./pricingService";
-import { Logger } from "@aws-lambda-powertools/logger";
-
-const logger = new Logger({ serviceName: process.env.DD_SERVICE });
+import { ProductApiClient } from "./productApiClient";
 
 export interface ProductUpdatedEvent {
   productId: string;
-  previous: {
-    name: string;
-    price: number;
-  };
-  new: {
-    name: string;
-    price: number;
-  };
 }
 
 export class ProductUpdatedEventHandler {
   private pricingService: PricingService;
   private eventPublisher: EventPublisher;
+  private productApiClient: ProductApiClient;
 
-  constructor(pricingService: PricingService, eventPublisher: EventPublisher) {
+  constructor(pricingService: PricingService, eventPublisher: EventPublisher, productApiClient: ProductApiClient) {
     this.pricingService = pricingService;
     this.eventPublisher = eventPublisher;
+    this.productApiClient = productApiClient;
   }
 
-  async handle(evt: ProductUpdatedEvent): Promise<void> {
-    // if (evt.productId === undefined) {
-    //   throw new Error("Product ID is undefined");
-    // }
-    // if (evt.previous === undefined || evt.previous.price === undefined) {
-    //   throw new Error("Previous is undefined");
-    // }
-    // if (evt.new === undefined || evt.new.price === undefined) {
-    //   throw new Error("New is undefined");
-    // }
-    
+  async handle(evt: ProductUpdatedEvent, linkedTraceparent?: string): Promise<void> {
     const mainSpan = tracer.scope().active();
-    mainSpan?.addTags({
-      "pricing.previousPrice": evt.previous.price,
-      "pricing.newPrice": evt.new.price,
-      "product.id": evt.productId,
-    });
+    mainSpan?.addTags({ "product.id": evt.productId });
 
-    if (evt.previous.price === evt.new.price) {
-      logger.info(
-        `No pricing change. Previous: ${evt.previous.price}. New: ${evt.new.price}`
-      );
-      mainSpan?.addTags({ "pricing.noChange": true });
-      return;
-    }
+    const price = await this.productApiClient.getProductPrice(evt.productId);
+    mainSpan?.addTags({ "pricing.price": price });
 
     const priceResult = await this.pricingService.calculate({
       productId: evt.productId,
-      price: evt.previous.price,
+      price,
     });
 
     await this.eventPublisher.publishPriceCalculatedEvent({
@@ -72,6 +45,6 @@ export class ProductUpdatedEventHandler {
           price: price.price,
         };
       }),
-    });
+    }, linkedTraceparent);
   }
 }

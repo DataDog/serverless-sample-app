@@ -1,4 +1,4 @@
-// 
+//
 // Unless explicitly stated otherwise all files in this repository are licensed
 // under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
@@ -6,81 +6,65 @@
 //
 
 import { SQSEvent, SQSRecord } from "aws-lambda";
-import { ProductUpdatedEvent, ProductUpdatedEventHandler } from "../../src/pricing-api/core/productUpdatedEventHandler";
+import { ProductUpdatedEvent } from "../../src/pricing-api/core/productUpdatedEventHandler";
 import { handler } from "../../src/pricing-api/adapters/productUpdatedPricingHandler";
-import { PricingService } from "../../src/pricing-api/core/pricingService";
 
 // Mock dependencies
-jest.mock("@aws-sdk/client-eventbridge", () => {
-  return {
-    EventBridgeClient: jest.fn().mockImplementation(() => {
-      return {};
-    }),
-  };
-});
+jest.mock("@aws-sdk/client-eventbridge", () => ({
+  EventBridgeClient: jest.fn().mockImplementation(() => ({})),
+}));
 
-jest.mock("dd-trace", () => {
-  return {
-    tracer: {
-      scope: jest.fn().mockReturnValue({
-        active: jest.fn().mockReturnValue({
-          addTags: jest.fn(),
-          addLink: jest.fn(),
-        }),
-      }),
-      startSpan: jest.fn().mockReturnValue({
+jest.mock("@aws-sdk/client-ssm", () => ({
+  SSMClient: jest.fn().mockImplementation(() => ({})),
+  GetParameterCommand: jest.fn(),
+}));
+
+jest.mock("../../src/pricing-api/adapters/ssmProductApiClient", () => ({
+  SsmProductApiClient: jest.fn().mockImplementation(() => ({
+    getProductPrice: jest.fn().mockResolvedValue(39.99),
+  })),
+}));
+
+jest.mock("dd-trace", () => ({
+  tracer: {
+    scope: jest.fn().mockReturnValue({
+      active: jest.fn().mockReturnValue({
         addTags: jest.fn(),
         addLink: jest.fn(),
-        finish: jest.fn(),
       }),
-      dataStreamsCheckpointer: {
-        setConsumeCheckpoint: jest.fn(),
-        setProduceCheckpoint: jest.fn(),
-      },
+    }),
+    startSpan: jest.fn().mockReturnValue({
+      addTags: jest.fn(),
+      addLink: jest.fn(),
+      finish: jest.fn(),
+    }),
+    dataStreamsCheckpointer: {
+      setConsumeCheckpoint: jest.fn(),
+      setProduceCheckpoint: jest.fn(),
     },
-    Span: jest.fn().mockImplementation(() => {
-      return {
-        finish: jest.fn(),
-        logEvent: jest.fn(),
-      };
-    }),
-  };
-});
+  },
+  Span: jest.fn().mockImplementation(() => ({
+    finish: jest.fn(),
+    logEvent: jest.fn(),
+  })),
+}));
 
-jest.mock("../../src/pricing-api/adapters/eventBridgeEventPublisher", () => {
-  return {
-    EventBridgeEventPublisher: jest.fn().mockImplementation(() => {
-      return {
-        publishPriceCalculatedEvent: jest.fn(),
-      };
-    }),
-  };
-});
+jest.mock("../../src/pricing-api/adapters/eventBridgeEventPublisher", () => ({
+  EventBridgeEventPublisher: jest.fn().mockImplementation(() => ({
+    publishPriceCalculatedEvent: jest.fn(),
+  })),
+}));
 
 describe("productUpdatedPricingHandler", () => {
   let mockSQSEvent: SQSEvent;
-  let mockProductUpdatedEvent: ProductUpdatedEvent;
   let mockCloudEvent: any;
   let mockEventBridgeEvent: any;
-  let productUpdatedHandler: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Setup mock product event
-    mockProductUpdatedEvent = {
-      productId: "PROD123",
-      previous: {
-        name: "Old Product Name",
-        price: 29.99
-      },
-      new: {
-        name: "New Product Name",
-        price: 39.99
-      }
-    };
+    const mockProductUpdatedEvent: ProductUpdatedEvent = { productId: "PROD123" };
 
-    // Setup mock CloudEvent
     mockCloudEvent = {
       id: "event-id",
       source: "test-source",
@@ -88,10 +72,9 @@ describe("productUpdatedPricingHandler", () => {
       data: mockProductUpdatedEvent,
       specversion: "1.0",
       time: new Date().toISOString(),
-      datacontenttype: "application/json"
+      datacontenttype: "application/json",
     };
 
-    // Setup mock EventBridge event
     mockEventBridgeEvent = {
       version: "0",
       id: "event-id",
@@ -100,10 +83,9 @@ describe("productUpdatedPricingHandler", () => {
       account: "123456789012",
       time: new Date().toISOString(),
       region: "eu-west-1",
-      detail: mockCloudEvent
+      detail: mockCloudEvent,
     };
 
-    // Setup mock SQS record
     const mockSQSRecord: SQSRecord = {
       messageId: "message-id",
       receiptHandle: "receipt-handle",
@@ -112,213 +94,67 @@ describe("productUpdatedPricingHandler", () => {
         ApproximateReceiveCount: "1",
         SentTimestamp: "1234567890",
         SenderId: "sender-id",
-        ApproximateFirstReceiveTimestamp: "1234567890"
+        ApproximateFirstReceiveTimestamp: "1234567890",
       },
       messageAttributes: {},
       md5OfBody: "md5-of-body",
       eventSource: "aws:sqs",
       eventSourceARN: "arn:aws:sqs:eu-west-1:123456789012:test-queue",
-      awsRegion: "eu-west-1"
+      awsRegion: "eu-west-1",
     };
 
-    // Setup mock SQS event
-    mockSQSEvent = {
-      Records: [mockSQSRecord]
-    };
-
-    // Get reference to mock handler
-    const mockEventPublisher = require("../../src/pricing-api/adapters/eventBridgeEventPublisher").EventBridgeEventPublisher();
-    productUpdatedHandler = new ProductUpdatedEventHandler(
-      new PricingService(),
-      mockEventPublisher
-    );
+    mockSQSEvent = { Records: [mockSQSRecord] };
   });
 
   it("should process a valid SQS event with a ProductUpdated event", async () => {
-    // Act
     const result = await handler(mockSQSEvent);
-
-    // Assert
     expect(result.batchItemFailures).toEqual([]);
   });
 
   it("should handle multiple records in a batch", async () => {
-    // Arrange
-    const secondEvent = { ...mockEventBridgeEvent };
-    const secondRecord = { ...mockSQSEvent.Records[0], messageId: "message-id-2", body: JSON.stringify(secondEvent) };
+    const secondRecord = {
+      ...mockSQSEvent.Records[0],
+      messageId: "message-id-2",
+      body: JSON.stringify(mockEventBridgeEvent),
+    };
     mockSQSEvent.Records.push(secondRecord);
 
-    // Act
     const result = await handler(mockSQSEvent);
-
-    // Assert
     expect(result.batchItemFailures).toEqual([]);
   });
 
   it("should handle malformed JSON in the SQS message body", async () => {
-    // Arrange
     mockSQSEvent.Records[0].body = "{ invalid json";
 
-    // Act
     const result = await handler(mockSQSEvent);
-
-    // Assert
-    // In the actual implementation, errors are properly caught and reported as batch failures
-    expect(result.batchItemFailures).toEqual([
-      { itemIdentifier: "message-id" }
-    ]);
+    expect(result.batchItemFailures).toEqual([{ itemIdentifier: "message-id" }]);
   });
 
   it("should handle missing data in the CloudEvent", async () => {
-    // Arrange
     mockCloudEvent.data = undefined;
     mockSQSEvent.Records[0].body = JSON.stringify(mockEventBridgeEvent);
 
-    // Act
     const result = await handler(mockSQSEvent);
-
-    // Assert
-    // In the actual implementation, errors are properly caught and reported as batch failures
-    expect(result.batchItemFailures).toEqual([
-      { itemIdentifier: "message-id" }
-    ]);
-  });
-
-  it("should handle missing productId in the ProductUpdatedEvent", async () => {
-    // Arrange
-    mockProductUpdatedEvent = {
-      previous: {
-        name: "Old Product Name",
-        price: 29.99
-      },
-      new: {
-        name: "New Product Name",
-        price: 39.99
-      }
-    } as ProductUpdatedEvent;
-    mockCloudEvent.data = mockProductUpdatedEvent;
-    mockSQSEvent.Records[0].body = JSON.stringify(mockEventBridgeEvent);
-
-    // Act
-    const result = await handler(mockSQSEvent);
-
-    // Assert
-    // Validation for missing fields is intentionally disabled in this demo service.
-    expect(result.batchItemFailures).toEqual([]);
-  });
-
-  it("should handle missing previous price in the ProductUpdatedEvent", async () => {
-    // Arrange
-    mockProductUpdatedEvent = {
-      productId: "PROD123",
-      previous: {
-        name: "Old Product Name"
-      } as any,
-      new: {
-        name: "New Product Name",
-        price: 39.99
-      }
-    };
-    mockCloudEvent.data = mockProductUpdatedEvent;
-    mockSQSEvent.Records[0].body = JSON.stringify(mockEventBridgeEvent);
-
-    // Act
-    const result = await handler(mockSQSEvent);
-
-    // Assert
-    // Validation for missing fields is intentionally disabled in this demo service.
-    expect(result.batchItemFailures).toEqual([]);
-  });
-
-  it("should handle missing new price in the ProductUpdatedEvent", async () => {
-    // Arrange
-    mockProductUpdatedEvent = {
-      productId: "PROD123",
-      previous: {
-        name: "Old Product Name",
-        price: 29.99
-      },
-      new: {
-        name: "New Product Name"
-      } as any
-    };
-    mockCloudEvent.data = mockProductUpdatedEvent;
-    mockSQSEvent.Records[0].body = JSON.stringify(mockEventBridgeEvent);
-
-    // Act
-    const result = await handler(mockSQSEvent);
-
-    // Assert
-    // Validation for missing fields is intentionally disabled in this demo service.
-    expect(result.batchItemFailures).toEqual([]);
-  });
-
-  it("should handle completely missing previous field in the ProductUpdatedEvent", async () => {
-    // Arrange
-    mockProductUpdatedEvent = {
-      productId: "PROD123",
-      new: {
-        name: "New Product Name",
-        price: 39.99
-      }
-    } as ProductUpdatedEvent;
-    mockCloudEvent.data = mockProductUpdatedEvent;
-    mockSQSEvent.Records[0].body = JSON.stringify(mockEventBridgeEvent);
-
-    // Act
-    const result = await handler(mockSQSEvent);
-
-    // Assert
-    expect(result.batchItemFailures.length).toEqual(1);
-  });
-
-  it("should handle completely missing new field in the ProductUpdatedEvent", async () => {
-    // Arrange
-    mockProductUpdatedEvent = {
-      productId: "PROD123",
-      previous: {
-        name: "Old Product Name",
-        price: 29.99
-      }
-    } as ProductUpdatedEvent;
-    mockCloudEvent.data = mockProductUpdatedEvent;
-    mockSQSEvent.Records[0].body = JSON.stringify(mockEventBridgeEvent);
-
-    // Act
-    const result = await handler(mockSQSEvent);
-
-    // Assert
-    expect(result.batchItemFailures.length).toEqual(1);
+    expect(result.batchItemFailures).toEqual([{ itemIdentifier: "message-id" }]);
   });
 
   it("should handle unexpected event structure", async () => {
-    // Arrange
-    mockSQSEvent.Records[0].body = JSON.stringify({ 
+    mockSQSEvent.Records[0].body = JSON.stringify({
       version: "0",
       id: "event-id",
       "detail-type": "some.other.event",
       source: "product-service",
-      detail: { some: "unexpected data" }
+      detail: { some: "unexpected data" },
     });
 
-    // Act
     const result = await handler(mockSQSEvent);
-
-    // Assert
-    // In the actual implementation, errors are properly caught and reported as batch failures
-    expect(result.batchItemFailures).toEqual([
-      { itemIdentifier: "message-id" }
-    ]);
+    expect(result.batchItemFailures).toEqual([{ itemIdentifier: "message-id" }]);
   });
 
   it("should handle null event records gracefully", async () => {
-    // Arrange
     mockSQSEvent.Records = [];
 
-    // Act
     const result = await handler(mockSQSEvent);
-
-    // Assert
     expect(result.batchItemFailures).toEqual([]);
   });
-}); 
+});

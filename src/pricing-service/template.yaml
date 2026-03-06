@@ -124,6 +124,7 @@ Resources:
 #             - IsIntegratedEnvironment
 #             - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
 #             - !Ref PricingServiceEventBus
+#           PRODUCT_API_ENDPOINT_PARAMETER: !Sub "/${Env}/ProductService/api-endpoint"
 #           DD_DATA_STREAMS_ENABLED: "true"
 #           DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
 #           DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
@@ -138,6 +139,8 @@ Resources:
 #               - IsIntegratedEnvironment
 #               - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
 #               - !Ref PricingServiceEventBus
+#         - SSMParameterReadPolicy:
+#             ParameterName: !Sub "${Env}/ProductService/api-endpoint"
 
 #   ProductCreatedDLQ:
 #     Type: AWS::SQS::Queue
@@ -197,6 +200,7 @@ Resources:
 #             - IsIntegratedEnvironment
 #             - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
 #             - !Ref PricingServiceEventBus
+#           PRODUCT_API_ENDPOINT_PARAMETER: !Sub "/${Env}/ProductService/api-endpoint"
 #           DD_DATA_STREAMS_ENABLED: "true"
 #           DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
 #           DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
@@ -211,6 +215,8 @@ Resources:
 #               - IsIntegratedEnvironment
 #               - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
 #               - !Ref PricingServiceEventBus
+#         - SSMParameterReadPolicy:
+#             ParameterName: !Sub "${Env}/ProductService/api-endpoint"
 #     Metadata:
 #       BuildMethod: esbuild
 #       BuildProperties:
