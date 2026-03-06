@@ -267,10 +267,10 @@ class ProductSearchStack(Stack):
                     statements=[
                         iam.PolicyStatement(
                             actions=[
-                                "s3vectors:PutObject",
-                                "s3vectors:GetObject",
-                                "s3vectors:DeleteObject",
-                                "s3vectors:ListObjects",
+                                "s3vectors:PutVectors",
+                                "s3vectors:GetVectors",
+                                "s3vectors:DeleteVectors",
+                                "s3vectors:ListVectors",
                             ],
                             resources=["*"],
                             effect=iam.Effect.ALLOW,
@@ -316,9 +316,9 @@ class ProductSearchStack(Stack):
                     statements=[
                         iam.PolicyStatement(
                             actions=[
-                                "s3vectors:QueryObjects",
-                                "s3vectors:GetObject",
-                                "s3vectors:ListObjects",
+                                "s3vectors:QueryVectors",
+                                "s3vectors:GetVectors",
+                                "s3vectors:ListVectors",
                             ],
                             resources=["*"],
                             effect=iam.Effect.ALLOW,
