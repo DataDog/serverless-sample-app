@@ -69,13 +69,42 @@ class ProductSearchStack(Stack):
         # ---------------------------------------------------------------------------
         # S3 Vectors — vector bucket + index (no native CloudFormation support yet;
         # AwsCustomResource calls the s3vectors SDK directly during deploy/destroy).
+        #
+        # A single shared role is created explicitly so all required s3vectors
+        # permissions are guaranteed to be present before either custom resource runs.
         # ---------------------------------------------------------------------------
         vector_bucket_name = f"serverless-sample-app-vector-{environment}"
         vector_index_name = "products"
 
+        vector_cr_role = iam.Role(
+            self,
+            "VectorCustomResourceRole",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
+            managed_policies=[
+                iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"),
+            ],
+            inline_policies={
+                "s3vectors": iam.PolicyDocument(
+                    statements=[
+                        iam.PolicyStatement(
+                            actions=[
+                                "s3vectors:CreateVectorBucket",
+                                "s3vectors:DeleteVectorBucket",
+                                "s3vectors:CreateIndex",
+                                "s3vectors:DeleteIndex",
+                            ],
+                            resources=["*"],
+                            effect=iam.Effect.ALLOW,
+                        )
+                    ]
+                )
+            },
+        )
+
         vector_bucket_cr = cr.AwsCustomResource(
             self,
             "VectorBucket",
+            role=vector_cr_role,
             install_latest_aws_sdk=True,
             on_create=cr.AwsSdkCall(
                 service="S3Vectors",
@@ -88,19 +117,15 @@ class ProductSearchStack(Stack):
                 service="S3Vectors",
                 action="deleteVectorBucket",
                 parameters={"vectorBucketName": vector_bucket_name},
+                ignore_error_codes_matching=".*NotFound.*|.*NoSuchBucket.*",
             ),
-            policy=cr.AwsCustomResourcePolicy.from_statements([
-                iam.PolicyStatement(
-                    actions=["s3vectors:CreateVectorBucket", "s3vectors:DeleteVectorBucket"],
-                    resources=["*"],
-                    effect=iam.Effect.ALLOW,
-                )
-            ]),
+            policy=cr.AwsCustomResourcePolicy.from_statements([]),
         )
 
         vector_index_cr = cr.AwsCustomResource(
             self,
             "VectorIndex",
+            role=vector_cr_role,
             install_latest_aws_sdk=True,
             on_create=cr.AwsSdkCall(
                 service="S3Vectors",
@@ -122,14 +147,9 @@ class ProductSearchStack(Stack):
                     "vectorBucketName": vector_bucket_name,
                     "indexName": vector_index_name,
                 },
+                ignore_error_codes_matching=".*NotFound.*|.*NoSuchIndex.*",
             ),
-            policy=cr.AwsCustomResourcePolicy.from_statements([
-                iam.PolicyStatement(
-                    actions=["s3vectors:CreateIndex", "s3vectors:DeleteIndex"],
-                    resources=["*"],
-                    effect=iam.Effect.ALLOW,
-                )
-            ]),
+            policy=cr.AwsCustomResourcePolicy.from_statements([]),
         )
         # Index must be created after the bucket
         vector_index_cr.node.add_dependency(vector_bucket_cr)
