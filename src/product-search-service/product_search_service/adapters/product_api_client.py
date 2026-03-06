@@ -52,7 +52,8 @@ class ProductApiClient:
                 logger.info("Product not found in upstream API", product_id=product_id)
                 return None  # Permanent — do not retry
             response.raise_for_status()  # Raises for 4xx/5xx — caller retries via SQS
-            data = response.json()
+            # The Product Management Service wraps responses in {"data": {...}, "message": "OK"}
+            data = response.json().get("data", response.json())
             return ProductMetadata(
                 product_id=data["productId"],
                 name=data["name"],
