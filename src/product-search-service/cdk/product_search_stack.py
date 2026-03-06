@@ -32,7 +32,7 @@ class ProductSearchStack(Stack):
         dd_api_key = os.environ.get("DD_API_KEY", "")
         dd_site = os.environ.get("DD_SITE", "datadoghq.com")
         embedding_model_id = os.environ.get("EMBEDDING_MODEL_ID", "amazon.titan-embed-text-v2:0")
-        generation_model_id = os.environ.get("GENERATION_MODEL_ID", "anthropic.claude-3-5-haiku-20241022-v1:0")
+        generation_model_id = os.environ.get("GENERATION_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
 
         Tags.of(self).add("service", SERVICE_NAME)
 

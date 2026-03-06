@@ -27,7 +27,7 @@ def get_generator() -> BedrockGenerator:
     """Return the shared BedrockGenerator, initialising on first call."""
     global _generator
     if _generator is None:
-        _generator = BedrockGenerator(model_id=os.environ.get("GENERATION_MODEL_ID", "anthropic.claude-3-5-haiku-20241022-v1:0"))
+        _generator = BedrockGenerator(model_id=os.environ.get("GENERATION_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0"))
     return _generator
 
 
