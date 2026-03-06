@@ -8,8 +8,8 @@ from aws_cdk import aws_dynamodb as dynamodb
 from aws_cdk import aws_events as events
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_lambda as _lambda
-from aws_cdk import aws_s3 as s3
 from aws_cdk import aws_ssm as ssm
+from aws_cdk import custom_resources as cr
 from aws_cdk.aws_events_targets import SqsQueue
 from aws_cdk.aws_lambda_event_sources import SqsEventSource
 from aws_cdk.aws_logs import RetentionDays
@@ -67,18 +67,72 @@ class ProductSearchStack(Stack):
         )
 
         # ---------------------------------------------------------------------------
-        # S3 placeholder bucket for vector storage
-        # TODO: Replace with S3 Vector Bucket when CloudFormation support is available.
-        # For now, vector operations use boto3 s3vectors client directly against a
-        # pre-created vector bucket.
+        # S3 Vectors — vector bucket + index (no native CloudFormation support yet;
+        # AwsCustomResource calls the s3vectors SDK directly during deploy/destroy).
         # ---------------------------------------------------------------------------
-        vector_bucket = s3.Bucket(
+        vector_bucket_name = f"serverless-sample-app-vector-{environment}"
+        vector_index_name = "products"
+
+        vector_bucket_cr = cr.AwsCustomResource(
             self,
             "VectorBucket",
-            bucket_name=f"serverless-sample-app-vector-{environment}",
-            removal_policy=cdk.RemovalPolicy.DESTROY,
-            auto_delete_objects=True,
+            install_latest_aws_sdk=True,
+            on_create=cr.AwsSdkCall(
+                service="S3Vectors",
+                action="createVectorBucket",
+                parameters={"vectorBucketName": vector_bucket_name},
+                physical_resource_id=cr.PhysicalResourceId.of(vector_bucket_name),
+                ignore_error_codes_matching=".*AlreadyExists.*",
+            ),
+            on_delete=cr.AwsSdkCall(
+                service="S3Vectors",
+                action="deleteVectorBucket",
+                parameters={"vectorBucketName": vector_bucket_name},
+            ),
+            policy=cr.AwsCustomResourcePolicy.from_statements([
+                iam.PolicyStatement(
+                    actions=["s3vectors:CreateVectorBucket", "s3vectors:DeleteVectorBucket"],
+                    resources=["*"],
+                    effect=iam.Effect.ALLOW,
+                )
+            ]),
         )
+
+        vector_index_cr = cr.AwsCustomResource(
+            self,
+            "VectorIndex",
+            install_latest_aws_sdk=True,
+            on_create=cr.AwsSdkCall(
+                service="S3Vectors",
+                action="createIndex",
+                parameters={
+                    "vectorBucketName": vector_bucket_name,
+                    "indexName": vector_index_name,
+                    "dataType": "float32",
+                    "dimension": 1024,
+                    "distanceMetric": "cosine",
+                },
+                physical_resource_id=cr.PhysicalResourceId.of(f"{vector_bucket_name}/{vector_index_name}"),
+                ignore_error_codes_matching=".*AlreadyExists.*",
+            ),
+            on_delete=cr.AwsSdkCall(
+                service="S3Vectors",
+                action="deleteIndex",
+                parameters={
+                    "vectorBucketName": vector_bucket_name,
+                    "indexName": vector_index_name,
+                },
+            ),
+            policy=cr.AwsCustomResourcePolicy.from_statements([
+                iam.PolicyStatement(
+                    actions=["s3vectors:CreateIndex", "s3vectors:DeleteIndex"],
+                    resources=["*"],
+                    effect=iam.Effect.ALLOW,
+                )
+            ]),
+        )
+        # Index must be created after the bucket
+        vector_index_cr.node.add_dependency(vector_bucket_cr)
 
         # ---------------------------------------------------------------------------
         # SQS — catalog sync queue + DLQ
@@ -382,4 +436,5 @@ class ProductSearchStack(Stack):
         # ---------------------------------------------------------------------------
         cdk.CfnOutput(self, "ApiEndpoint", value=http_api.url or "")
         cdk.CfnOutput(self, "MetadataTableName", value=metadata_table.table_name)
-        cdk.CfnOutput(self, "VectorBucketName", value=vector_bucket.bucket_name)
+        cdk.CfnOutput(self, "VectorBucketName", value=vector_bucket_name)
+        cdk.CfnOutput(self, "VectorIndexName", value=vector_index_name)
