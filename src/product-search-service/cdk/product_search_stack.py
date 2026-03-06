@@ -119,7 +119,7 @@ class ProductSearchStack(Stack):
                 parameters={"vectorBucketName": vector_bucket_name},
                 ignore_error_codes_matching=".*NotFound.*|.*NoSuchBucket.*",
             ),
-            policy=cr.AwsCustomResourcePolicy.from_statements([]),
+            policy=cr.AwsCustomResourcePolicy.from_sdk_calls(resources=cr.AwsCustomResourcePolicy.ANY_RESOURCE),
         )
 
         vector_index_cr = cr.AwsCustomResource(
@@ -149,7 +149,7 @@ class ProductSearchStack(Stack):
                 },
                 ignore_error_codes_matching=".*NotFound.*|.*NoSuchIndex.*",
             ),
-            policy=cr.AwsCustomResourcePolicy.from_statements([]),
+            policy=cr.AwsCustomResourcePolicy.from_sdk_calls(resources=cr.AwsCustomResourcePolicy.ANY_RESOURCE),
         )
         # Index must be created after the bucket
         vector_index_cr.node.add_dependency(vector_bucket_cr)
