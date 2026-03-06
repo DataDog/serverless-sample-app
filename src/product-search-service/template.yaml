@@ -207,7 +207,7 @@ Resources:
           DD_LLMOBS_ML_APP: !Ref DDServiceName
           VECTOR_BUCKET_NAME: !Sub "serverless-sample-app-vector-${Env}"
           METADATA_TABLE_NAME: !Ref ProductMetadataTable
-          PRODUCT_API_ENDPOINT_PARAMETER: !Sub "/${Env}/ProductManagementService/api-endpoint"
+          PRODUCT_API_ENDPOINT_PARAMETER: !Sub "/${Env}/ProductService/api-endpoint"
           EMBEDDING_MODEL_ID: amazon.titan-embed-text-v2:0
           ENV: !Ref Env
       Policies:
@@ -223,7 +223,7 @@ Resources:
             - Effect: Allow
               Action:
                 - ssm:GetParameter
-              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Env}/ProductManagementService/api-endpoint"
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Env}/ProductService/api-endpoint"
             - Effect: Allow
               Action:
                 - bedrock:InvokeModel

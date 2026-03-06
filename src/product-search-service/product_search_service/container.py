@@ -52,6 +52,6 @@ def get_product_api() -> ProductApiClient:
     global _product_api
     if _product_api is None:
         _product_api = ProductApiClient(
-            endpoint_parameter=os.environ.get("PRODUCT_API_ENDPOINT_PARAMETER", "/dev/ProductManagementService/api-endpoint")
+            endpoint_parameter=os.environ.get("PRODUCT_API_ENDPOINT_PARAMETER", "/dev/ProductService/api-endpoint")
         )
     return _product_api

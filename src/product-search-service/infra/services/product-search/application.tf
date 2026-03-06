@@ -30,7 +30,7 @@ module "catalog_sync_lambda" {
     "DD_LLMOBS_ML_APP"                           = "product-search-service"
     "VECTOR_BUCKET_NAME"                         = "serverless-sample-app-vector-${var.env}"
     "METADATA_TABLE_NAME"                        = aws_dynamodb_table.product_search_metadata_table.name
-    "PRODUCT_API_ENDPOINT_PARAMETER"             = "/${var.env}/ProductManagementService/api-endpoint"
+    "PRODUCT_API_ENDPOINT_PARAMETER"             = "/${var.env}/ProductService/api-endpoint"
     "EMBEDDING_MODEL_ID"                         = "amazon.titan-embed-text-v2:0"
     "ENV"                                        = var.env
   }

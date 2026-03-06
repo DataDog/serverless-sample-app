@@ -161,7 +161,7 @@ def initialize_driver() -> ProductSearchApiDriver:
     )["Parameter"]["Value"]
 
     product_endpoint = ssm.get_parameter(
-        Name=f"/{env}/ProductManagementService/api-endpoint"
+        Name=f"/{env}/ProductService/api-endpoint"
     )["Parameter"]["Value"]
 
     event_bus_name = ssm.get_parameter(

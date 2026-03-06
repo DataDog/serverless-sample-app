@@ -181,7 +181,7 @@ class ProductSearchStack(Stack):
                         iam.PolicyStatement(
                             actions=["ssm:GetParameter"],
                             resources=[
-                                f"arn:aws:ssm:{self.region}:{self.account}:parameter/{environment}/ProductManagementService/api-endpoint"
+                                f"arn:aws:ssm:{self.region}:{self.account}:parameter/{environment}/ProductService/api-endpoint"
                             ],
                             effect=iam.Effect.ALLOW,
                         )
@@ -278,7 +278,7 @@ class ProductSearchStack(Stack):
                 "DD_LLMOBS_ML_APP": SERVICE_NAME,
                 "VECTOR_BUCKET_NAME": f"serverless-sample-app-vector-{environment}",
                 "METADATA_TABLE_NAME": metadata_table.table_name,
-                "PRODUCT_API_ENDPOINT_PARAMETER": f"/{environment}/ProductManagementService/api-endpoint",
+                "PRODUCT_API_ENDPOINT_PARAMETER": f"/{environment}/ProductService/api-endpoint",
                 "EMBEDDING_MODEL_ID": embedding_model_id,
                 "ENV": environment,
             },

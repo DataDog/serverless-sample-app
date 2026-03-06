@@ -75,7 +75,7 @@ resource "aws_iam_policy" "catalog_sync_ssm_policy" {
         Action = [
           "ssm:GetParameter"
         ]
-        Resource = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/ProductManagementService/api-endpoint"
+        Resource = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/ProductService/api-endpoint"
       }
     ]
   })
