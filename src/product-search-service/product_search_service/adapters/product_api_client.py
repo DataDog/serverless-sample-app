@@ -58,12 +58,12 @@ class ProductApiClient:
                 product_id=data["productId"],
                 name=data["name"],
                 price=float(data["price"]),
-                stock_level=float(data.get("stockLevel", 0)),
+                stock_level=float(data.get("stockLevel") or 0),
                 pricing_tiers=[
-                    PricingTier(quantity=t["quantity"], price=float(t["price"]))
-                    for t in data.get("pricingBrackets", [])
+                    PricingTier(quantity=int(t["quantity"]), price=float(t["price"]))
+                    for t in (data.get("pricingBrackets") or [])
                 ],
-                last_updated_at=data.get("lastUpdatedAt", ""),
+                last_updated_at=data.get("lastUpdatedAt") or "",
             )
         except requests.HTTPError as e:
             logger.exception("Product API returned an error", product_id=product_id, status_code=e.response.status_code if e.response else None)
