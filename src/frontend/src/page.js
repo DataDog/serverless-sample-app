@@ -29,9 +29,9 @@ function viewProduct(productId, btnElement) {
 
         var rowElement = document.createElement("tr");
         var priceCellElement = document.createElement("td");
-        priceCellElement.innerText = price;
+        priceCellElement.textContent = price;
         var quantityCellElement = document.createElement("td");
-        quantityCellElement.innerText = quantity;
+        quantityCellElement.textContent = quantity;
 
         rowElement.appendChild(priceCellElement);
         rowElement.appendChild(quantityCellElement);
@@ -45,19 +45,21 @@ function viewProduct(productId, btnElement) {
       productModal.setAttribute("open", "true");
 
       loadProductActivity(productId);
+
+      btnElement.ariaBusy = "false";
+      btnElement.ariaLabel = "View";
+      btnElement.innerText = "View";
     },
     error: function (xhr, status, error) {
+      btnElement.ariaBusy = "false";
+      btnElement.ariaLabel = "View";
+      btnElement.innerText = "View";
       alert("Failure loading product: " + error);
     },
   });
-
-  btnElement.ariaBusy = "false";
-  btnElement.ariaLabel = "View";
-  btnElement.innerText = "View";
 }
 
 function createOrder() {
-  console.log(`Bearer ${jwt}`);
   var xhr = new XMLHttpRequest();
   xhr.open("POST", `${config.ORDER_API_ENDPOINT}/orders`, true);
   xhr.setRequestHeader("Content-Type", "application/json");
@@ -93,30 +95,29 @@ function updateOrderDisplay() {
   const totalItems = document.getElementById("totalItems");
   const checkoutBtn = document.getElementById("checkoutBtn");
 
-  // Clear the current list
   orderList.innerHTML = "";
 
   if (orderItems.length > 0) {
-    // Hide empty message and enable checkout button
     emptyMessage.style.display = "none";
     checkoutBtn.disabled = false;
 
-    // Add each item to the order list
     orderItems.forEach((item, index) => {
       const listItem = document.createElement("li");
-      listItem.innerHTML = `
-        ${item.name}
-        <button class="outline" onclick="removeFromOrder(${index})">Remove</button>
-      `;
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = item.name;
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "outline";
+      removeBtn.textContent = "Remove";
+      removeBtn.onclick = () => removeFromOrder(index);
+      listItem.appendChild(nameSpan);
+      listItem.appendChild(removeBtn);
       orderList.appendChild(listItem);
     });
   } else {
-    // Show empty message and disable checkout button
     emptyMessage.style.display = "block";
     checkoutBtn.disabled = true;
   }
 
-  // Update total items count
   totalItems.textContent = orderItems.length;
 }
 
@@ -124,6 +125,45 @@ function removeFromOrder(index) {
   orderItems.splice(index, 1);
   orderItemsIDS.splice(index, 1);
   updateOrderDisplay();
+}
+
+function buildProductCard(productId, productName, productPrice, productStock) {
+  const header = document.createElement("header");
+  const h3 = document.createElement("h3");
+  h3.textContent = productName;
+  header.appendChild(h3);
+
+  const priceEl = document.createElement("p");
+  priceEl.className = "price";
+  priceEl.textContent = `$${productPrice}`;
+
+  const stockEl = document.createElement("p");
+  stockEl.className = "stock";
+  stockEl.textContent = `${productStock} in stock`;
+
+  const footer = document.createElement("footer");
+
+  const viewBtn = document.createElement("button");
+  viewBtn.className = "view-details";
+  viewBtn.textContent = "View Details";
+  viewBtn.onclick = () => viewProduct(productId, viewBtn);
+  footer.appendChild(viewBtn);
+
+  if (productStock > 0) {
+    const addBtn = document.createElement("button");
+    addBtn.className = "add-to-cart";
+    addBtn.textContent = "Add to Order";
+    addBtn.onclick = () => addToOrder(productName, productId);
+    footer.appendChild(addBtn);
+  }
+
+  const card = document.createElement("article");
+  card.className = "product-card";
+  card.appendChild(header);
+  card.appendChild(priceEl);
+  card.appendChild(stockEl);
+  card.appendChild(footer);
+  return card;
 }
 
 function refreshData() {
@@ -139,52 +179,19 @@ function refreshData() {
     success: function (response) {
       loadingSpinner.ariaBusy = false;
       response.data.forEach((product) => {
-        const productCard = document.createElement("article");
-        productCard.className = "product-card";
-
         if (product.stockLevel <= 0) {
           loadStockLevel(
             product,
             (productId, productName, productPrice, productStock) => {
-              productCard.innerHTML = `
-          <header>
-            <h3>${productName}</h3>
-          </header>
-          <p class="price">$${productPrice}</p>
-          <p class="stock">${productStock} in stock</p>
-          <footer>
-            <button class="view-details" onclick="viewProductDetails('${productId}', this)">View Details</button>
-            ${
-              productStock > 0
-                ? `<button class="add-to-cart" onclick="addToOrder('${productName}', '${productId}')">Add to Order</button>`
-                : ""
-            }
-          </footer>
-        `;
-
-              productCardsElement.appendChild(productCard);
+              productCardsElement.appendChild(
+                buildProductCard(productId, productName, productPrice, productStock)
+              );
             }
           );
         } else {
-          productCard.innerHTML = `
-          <header>
-            <h3>${product.name}</h3>
-          </header>
-          <p class="price">$${product.price}</p>
-          <p class="stock">${product.stockLevel} in stock</p>
-          <footer>
-            <button class="view-details" onclick="viewProductDetails('${
-              product.productId
-            }', this)">View Details</button>
-            ${
-              product.stockLevel > 0
-                ? `<button class="add-to-cart" onclick="addToOrder('${product.name}', '${product.productId}')">Add to Order</button>`
-                : ""
-            }
-          </footer>
-        `;
-
-          productCardsElement.appendChild(productCard);
+          productCardsElement.appendChild(
+            buildProductCard(product.productId, product.name, product.price, product.stockLevel)
+          );
         }
       });
     },
@@ -201,15 +208,10 @@ function loadStockLevel(product, callback) {
     method: "GET",
     contentType: "application/json",
     success: function (response) {
-      console.log(`Loading stock for ${product.productId}`);
-      console.log(response);
-
       if (response.data === null) {
         callback(product.productId, product.name, product.price, 0);
-        return 0;
+        return;
       }
-
-      console.log(response.data.currentStockLevel);
 
       callback(
         product.productId,
@@ -217,23 +219,11 @@ function loadStockLevel(product, callback) {
         product.price,
         response.data.currentStockLevel
       );
-
-      return response.data.currentStockLevel;
     },
-    error: function (xhr, status, error) {
-      callback(
-        product.productId,
-        product.name,
-        product.price,
-        0
-      );
-      return 0;
+    error: function () {
+      callback(product.productId, product.name, product.price, 0);
     },
   });
-}
-
-function viewProductDetails(productId, btnElement) {
-  viewProduct(productId, btnElement);
 }
 
 function loadProductActivity(productId) {
@@ -257,7 +247,7 @@ function loadProductActivity(productId) {
         const ts = new Date(tsValue).toLocaleString();
         const eventName = activity.type ?? activity.event_name ?? "unknown";
         const li = document.createElement("li");
-        li.innerText = `${eventName} — ${ts}`;
+        li.textContent = `${eventName} — ${ts}`;
         container.appendChild(li);
       });
     },
@@ -275,11 +265,11 @@ function closeModal() {
   let activityList = document.getElementById("productActivityList");
   if (activityList) activityList.innerHTML = "";
 
-  productModal.setAttribute("open", "false");
+  productModal.removeAttribute("open");
 }
 
-window.closeModal = closeModal;
+window.closeProductModal = closeModal;
 window.addToOrder = addToOrder;
 window.createOrder = createOrder;
 window.removeFromOrder = removeFromOrder;
-window.viewProductDetails = viewProductDetails;
+window.viewProduct = viewProduct;

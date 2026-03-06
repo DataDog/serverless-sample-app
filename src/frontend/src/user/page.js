@@ -3,6 +3,10 @@ import config from "../config.js";
 let jwt = "";
 $(document).ready(function () {
   jwt = localStorage.getItem("jwt");
+  if (!jwt) {
+    window.location.href = "/login";
+    return;
+  }
   refreshData();
 });
 
@@ -19,12 +23,16 @@ function refreshData() {
     success: function (response) {
       let contentsElement = document.getElementById("contents");
 
-      contentsElement.innerHTML = `
-          <header>
-            <h3>${response.data.firstName} ${response.data.lastName}</h3>
-          </header>
-          <p class="price">Order Count: ${response.data.orderCount}</p>
-        `;
+      contentsElement.innerHTML = '';
+      const header = document.createElement('header');
+      const h3 = document.createElement('h3');
+      h3.textContent = `${response.data.firstName} ${response.data.lastName}`;
+      header.appendChild(h3);
+      const orderCountP = document.createElement('p');
+      orderCountP.className = 'price';
+      orderCountP.textContent = `Order Count: ${response.data.orderCount}`;
+      contentsElement.appendChild(header);
+      contentsElement.appendChild(orderCountP);
 
       loadingSpinner.ariaBusy = false;
 
@@ -45,7 +53,6 @@ function refreshData() {
     contentType: "application/json",
     success: function (response) {
       loadingSpinner.ariaBusy = false;
-      console.log(response);
 
       let pointsElement = document.getElementById("points");
       pointsElement.innerText = `Points: ${response.data.currentPoints}`;
@@ -70,7 +77,6 @@ function refreshData() {
     contentType: "application/json",
     success: function (response) {
       loadingSpinner.ariaBusy = false;
-      console.log(response);
       response.items.forEach((order) => {
         const orderCard = document.createElement("article");
         orderCard.className = "product-card";
@@ -78,22 +84,45 @@ function refreshData() {
         const activityContainerId = `activity-${order.orderId}`;
         const detailContainerId = `detail-${order.orderId}`;
 
-        orderCard.innerHTML = `
-          <header>
-            <h3>${order.orderId}</h3>
-          </header>
-          <p class="price">Status: ${order.orderStatus}</p>
-          <p class="stock">Items: ${order.products.length}</p>
-          <footer>
-            <button class="outline" onclick="viewOrderDetail('${order.orderId}', this)">View Details</button>
-          </footer>
-          <div id="${detailContainerId}" style="display:none;"></div>
-          <div id="${activityContainerId}"></div>
-        `;
+        const cardHeader = document.createElement('header');
+        const cardTitle = document.createElement('h3');
+        cardTitle.textContent = order.orderId;
+        cardHeader.appendChild(cardTitle);
+
+        const statusP = document.createElement('p');
+        statusP.className = 'price';
+        statusP.textContent = `Status: ${order.orderStatus ?? order.status ?? order.order_status ?? '—'}`;
+
+        const itemsP = document.createElement('p');
+        itemsP.className = 'stock';
+        itemsP.textContent = `Items: ${(order.products ?? []).length}`;
+
+        const detailDiv = document.createElement('div');
+        detailDiv.id = detailContainerId;
+        detailDiv.style.display = 'none';
+        detailDiv.style.padding = '0 1.25rem 0.75rem';
+
+        const activityDiv = document.createElement('div');
+        activityDiv.id = activityContainerId;
+
+        const cardFooter = document.createElement('footer');
+        const viewBtn = document.createElement('button');
+        viewBtn.className = 'view-details';
+        viewBtn.textContent = 'View Details';
+        viewBtn.addEventListener('click', function() {
+          viewOrderDetail(order.orderId, viewBtn);
+        });
+        cardFooter.appendChild(viewBtn);
+
+        orderCard.appendChild(cardHeader);
+        orderCard.appendChild(statusP);
+        orderCard.appendChild(itemsP);
+        orderCard.appendChild(detailDiv);
+        orderCard.appendChild(activityDiv);
+        orderCard.appendChild(cardFooter);
 
         orderCardsElement.appendChild(orderCard);
-
-        loadOrderActivity(order.orderId, activityContainerId);
+        // Activity is loaded on demand in viewOrderDetail, not eagerly here
       });
     },
     error: function (xhr, status, error) {
@@ -110,20 +139,27 @@ function renderSpendPointsForm(currentPoints) {
   let spendPointsElement = document.getElementById("spendPoints");
   if (!spendPointsElement) return;
 
-  spendPointsElement.innerHTML = `
-    <fieldset role="group">
-      <input
-        id="pointsToSpend"
-        type="number"
-        min="1"
-        max="${currentPoints}"
-        placeholder="Points to spend"
-        aria-label="Points to spend"
-      />
-      <button onclick="spendPoints()">Spend Points</button>
-    </fieldset>
-    <p id="spendPointsError" style="color:var(--del-color);display:none;"></p>
-  `;
+  spendPointsElement.innerHTML = '';
+  const fieldset = document.createElement('fieldset');
+  fieldset.setAttribute('role', 'group');
+  const input = document.createElement('input');
+  input.id = 'pointsToSpend';
+  input.type = 'number';
+  input.min = '1';
+  input.max = String(currentPoints);
+  input.placeholder = 'Points to spend';
+  input.setAttribute('aria-label', 'Points to spend');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = 'Spend Points';
+  btn.onclick = () => spendPoints();
+  fieldset.appendChild(input);
+  fieldset.appendChild(btn);
+  const errorP = document.createElement('p');
+  errorP.id = 'spendPointsError';
+  errorP.style.cssText = 'color:var(--del-color);display:none;';
+  spendPointsElement.appendChild(fieldset);
+  spendPointsElement.appendChild(errorP);
 }
 
 function spendPoints() {
@@ -167,47 +203,76 @@ function spendPoints() {
 function viewOrderDetail(orderId, btnElement) {
   const detailContainerId = `detail-${orderId}`;
   const detailContainer = document.getElementById(detailContainerId);
+  const activityContainerId = `activity-${orderId}`;
 
-  if (detailContainer.style.display !== "none") {
-    detailContainer.style.display = "none";
-    btnElement.innerText = "View Details";
+  // Toggle: if already visible, hide it
+  if (detailContainer.style.display !== 'none') {
+    detailContainer.style.display = 'none';
+    btnElement.textContent = 'View Details';
     return;
   }
 
-  btnElement.ariaBusy = "true";
-  btnElement.innerText = "Loading...";
+  // Cache: if already loaded, just show it
+  if (detailContainer.children.length > 0) {
+    detailContainer.style.display = 'block';
+    btnElement.textContent = 'Hide Details';
+    return;
+  }
+
+  btnElement.ariaBusy = 'true';
+  btnElement.textContent = 'Loading...';
 
   $.ajax({
     url: `${config.ORDER_API_ENDPOINT}/orders/${orderId}`,
-    method: "GET",
-    contentType: "application/json",
-    success: function (response) {
+    method: 'GET',
+    contentType: 'application/json',
+    success: function(response) {
       const order = response;
-      const orderDate = new Date(order.orderDate).toLocaleDateString();
+      const orderDate = new Date(order.orderDate ?? order.date ?? order.created_at).toLocaleDateString();
 
-      detailContainer.innerHTML = `
-        <hr />
-        <h4>Order Details</h4>
-        <p><strong>Order ID:</strong> ${order.orderId}</p>
-        <p><strong>Date:</strong> ${orderDate}</p>
-        <p><strong>Type:</strong> ${order.orderType}</p>
-        <p><strong>Status:</strong> ${order.orderStatus}</p>
-        <p><strong>Total Price:</strong> $${order.totalPrice}</p>
-        <p><strong>Products:</strong> ${order.products.join(", ")}</p>
-      `;
+      detailContainer.innerHTML = '';
+      const hr = document.createElement('hr');
+      const h4 = document.createElement('h4');
+      h4.textContent = 'Order Details';
+      detailContainer.appendChild(hr);
+      detailContainer.appendChild(h4);
 
-      detailContainer.style.display = "block";
-      btnElement.ariaBusy = "false";
-      btnElement.innerText = "Hide Details";
+      const fields = [
+        ['Order ID', order.orderId],
+        ['Date', orderDate],
+        ['Type', order.orderType ?? order.type ?? order.order_type ?? '—'],
+        ['Status', order.orderStatus ?? order.status ?? order.order_status ?? '—'],
+        ['Total Price', `$${order.totalPrice ?? order.total_price ?? '—'}`],
+        ['Products', (order.products ?? []).join(', ')],
+      ];
+      fields.forEach(([label, value]) => {
+        const p = document.createElement('p');
+        const strong = document.createElement('strong');
+        strong.textContent = `${label}: `;
+        p.appendChild(strong);
+        p.appendChild(document.createTextNode(String(value)));
+        detailContainer.appendChild(p);
+      });
+
+      detailContainer.style.display = 'block';
+      btnElement.ariaBusy = 'false';
+      btnElement.textContent = 'Hide Details';
+
+      // Load activity on first open
+      loadOrderActivity(orderId, activityContainerId);
     },
-    error: function (xhr, status, error) {
-      detailContainer.innerHTML = `<p style="color:var(--del-color);">Failed to load order details: ${error}</p>`;
-      detailContainer.style.display = "block";
-      btnElement.ariaBusy = "false";
-      btnElement.innerText = "View Details";
+    error: function(xhr, status, error) {
+      detailContainer.style.display = 'block';
+      const errP = document.createElement('p');
+      errP.style.color = 'var(--del-color)';
+      errP.textContent = 'Failed to load order details. Please try again.';
+      detailContainer.innerHTML = '';
+      detailContainer.appendChild(errP);
+      btnElement.ariaBusy = 'false';
+      btnElement.textContent = 'View Details';
     },
-    beforeSend: function (xhr) {
-      xhr.setRequestHeader("Authorization", `Bearer ${jwt}`);
+    beforeSend: function(xhr) {
+      xhr.setRequestHeader('Authorization', `Bearer ${jwt}`);
     },
   });
 }
@@ -215,27 +280,34 @@ function viewOrderDetail(orderId, btnElement) {
 function loadOrderActivity(orderId, containerId) {
   $.ajax({
     url: `${config.ACTIVITY_API_ENDPOINT}/api/activity/order/${orderId}`,
-    method: "GET",
-    contentType: "application/json",
-    success: function (response) {
+    method: 'GET',
+    contentType: 'application/json',
+    success: function(response) {
       const container = document.getElementById(containerId);
       if (!container) return;
 
       const activities = response.activities ?? [];
       if (activities.length === 0) return;
 
-      let activityHtml = `<details><summary>Activity (${activities.length})</summary><ul>`;
+      const details = document.createElement('details');
+      details.className = 'activity-collapsible';
+      const summary = document.createElement('summary');
+      summary.textContent = `Activity (${activities.length})`;
+      const ul = document.createElement('ul');
       activities.forEach((activity) => {
         const tsValue = activity.activity_time ?? activity.timestamp;
         const ts = new Date(tsValue).toLocaleString();
-        const eventName = activity.type ?? activity.event_name ?? "unknown";
-        activityHtml += `<li>${eventName} &mdash; ${ts}</li>`;
+        const eventName = activity.type ?? activity.event_name ?? 'unknown';
+        const li = document.createElement('li');
+        li.textContent = `${eventName} — ${ts}`;
+        ul.appendChild(li);
       });
-      activityHtml += `</ul></details>`;
-
-      container.innerHTML = activityHtml;
+      details.appendChild(summary);
+      details.appendChild(ul);
+      container.innerHTML = '';
+      container.appendChild(details);
     },
-    error: function () {
+    error: function() {
       // Activity is non-critical; silently fail
     },
   });
@@ -244,30 +316,41 @@ function loadOrderActivity(orderId, containerId) {
 function loadUserActivity(userId) {
   $.ajax({
     url: `${config.ACTIVITY_API_ENDPOINT}/api/activity/user/${userId}`,
-    method: "GET",
-    contentType: "application/json",
-    success: function (response) {
-      const container = document.getElementById("userActivity");
+    method: 'GET',
+    contentType: 'application/json',
+    success: function(response) {
+      const container = document.getElementById('userActivity');
       if (!container) return;
 
       const activities = response.activities ?? [];
       if (activities.length === 0) {
-        container.innerHTML = `<p>No recent activity.</p>`;
+        const p = document.createElement('p');
+        p.style.cssText = 'font-size:0.875rem;color:var(--color-muted);font-style:italic;';
+        p.textContent = 'No recent activity.';
+        container.innerHTML = '';
+        container.appendChild(p);
         return;
       }
 
-      let activityHtml = `<ul>`;
+      const details = document.createElement('details');
+      details.className = 'activity-collapsible';
+      const summary = document.createElement('summary');
+      summary.textContent = `Your Activity (${activities.length})`;
+      const ul = document.createElement('ul');
       activities.forEach((activity) => {
         const tsValue = activity.activity_time ?? activity.timestamp;
         const ts = new Date(tsValue).toLocaleString();
-        const eventName = activity.type ?? activity.event_name ?? "unknown";
-        activityHtml += `<li>${eventName} &mdash; ${ts}</li>`;
+        const eventName = activity.type ?? activity.event_name ?? 'unknown';
+        const li = document.createElement('li');
+        li.textContent = `${eventName} — ${ts}`;
+        ul.appendChild(li);
       });
-      activityHtml += `</ul>`;
-
-      container.innerHTML = activityHtml;
+      details.appendChild(summary);
+      details.appendChild(ul);
+      container.innerHTML = '';
+      container.appendChild(details);
     },
-    error: function () {
+    error: function() {
       // Activity is non-critical; silently fail
     },
   });

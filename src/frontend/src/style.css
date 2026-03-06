@@ -1,55 +1,431 @@
+/* =========================================
+   DESIGN TOKENS
+   ========================================= */
+:root {
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-ui:      'Figtree', system-ui, sans-serif;
+
+  --color-primary:       #C94822;
+  --color-primary-hover: #A8391C;
+  --color-primary-glow:  rgba(201, 72, 34, 0.15);
+  --color-gold:          #C49A3C;
+  --color-dark:          #1C1410;
+  --color-warm-white:    #FAF9F6;
+  --color-surface:       #FFFFFF;
+  --color-border:        #E5DFD7;
+  --color-border-subtle: #EDE8E1;
+  --color-muted:         #8A7A6A;
+  --color-muted-dark:    #5C5048;
+
+  /* PicoCSS overrides */
+  --pico-font-family:                   var(--font-ui);
+  --pico-background-color:              var(--color-warm-white);
+  --pico-color:                         var(--color-dark);
+
+  --pico-primary:                       var(--color-primary);
+  --pico-primary-background:            var(--color-primary);
+  --pico-primary-border:                var(--color-primary);
+  --pico-primary-hover:                 var(--color-primary-hover);
+  --pico-primary-hover-background:      var(--color-primary-hover);
+  --pico-primary-hover-border:          var(--color-primary-hover);
+  --pico-primary-focus:                 var(--color-primary-glow);
+  --pico-primary-inverse:               #FAF9F6;
+
+  --pico-card-background-color:         var(--color-surface);
+  --pico-card-border-color:             var(--color-border);
+  --pico-card-box-shadow:               0 1px 3px rgba(28, 20, 16, 0.05);
+  --pico-border-radius:                 8px;
+  --pico-border-color:                  var(--color-border);
+
+  --pico-form-element-background-color: var(--color-surface);
+  --pico-form-element-border-color:     #D4CCC3;
+  --pico-form-element-focus-color:      var(--color-primary);
+
+  --pico-font-size:   16px;
+  --pico-line-height: 1.6;
+
+  --nav-height:      64px;
+  --sidebar-width:   296px;
+  --content-radius:  10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-warm-white:    #110F0C;
+    --color-surface:       #1B1815;
+    --color-border:        #2C2520;
+    --color-border-subtle: #231F1C;
+    --color-muted:         #7A6A5A;
+
+    --pico-background-color:              #110F0C;
+    --pico-color:                         #F0EBE3;
+    --pico-card-background-color:         #1B1815;
+    --pico-card-border-color:             #2C2520;
+    --pico-card-box-shadow:               0 1px 4px rgba(0, 0, 0, 0.35);
+    --pico-form-element-background-color: #1B1815;
+    --pico-form-element-border-color:     #3C3028;
+    --pico-border-color:                  #2C2520;
+  }
+}
+
+/* =========================================
+   BASE
+   ========================================= */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-ui);
+  background-color: var(--color-warm-white);
+  /* Subtle dot texture — adds depth to the background */
+  background-image: radial-gradient(circle, rgba(28, 20, 16, 0.045) 1px, transparent 1px);
+  background-size: 20px 20px;
+  color: var(--pico-color);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  flex: 1;
+  padding-top: 2.5rem;
+  padding-bottom: 5rem;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+h2 { font-size: clamp(1.5rem, 3vw, 2rem); }
+h3 { font-size: clamp(1rem, 2vw, 1.25rem); }
+
+/* =========================================
+   HEADER / NAV
+   ========================================= */
+header.container {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background-color: var(--color-dark);
+  color: #F0EBE3;
+  border-bottom: 2px solid var(--color-primary);
+  padding-top: 0;
+  padding-bottom: 0;
+  /* Lift nav above the body texture */
+  background-image: none;
+}
+
+header.container nav {
+  min-height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+}
+
+header.container nav ul li a {
+  color: #B8A898;
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.375rem 0.625rem;
+  border-radius: 4px;
+  display: inline-block;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+header.container nav ul li a:hover {
+  color: #F4C4A8;
+  background-color: rgba(201, 72, 34, 0.18);
+}
+
+header.container nav ul li a:active {
+  background-color: rgba(201, 72, 34, 0.28);
+}
+
+/* Brand / logo */
+header.container nav ul:first-child li a {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #F0EBE3;
+  padding: 0;
+}
+
+header.container nav ul:first-child li a h1 {
+  font-size: 1.375rem;
+  color: inherit;
+  margin: 0;
+  display: inline;
+}
+
+header.container nav ul:first-child li a:hover {
+  color: var(--color-primary);
+  background: transparent;
+}
+
+/* =========================================
+   FOOTER
+   ========================================= */
+footer.container {
+  background-color: var(--color-dark);
+  background-image: none;
+  color: var(--color-muted-dark);
+  padding: 1.5rem 0;
+  border-top: 1px solid #2A2018;
+  font-size: 0.8125rem;
+  text-align: center;
+  margin-top: auto;
+}
+
+footer.container p { margin: 0; }
+
+footer.container a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+footer.container a:hover { color: #F4A07A; }
+
+/* =========================================
+   SHOP INTRO
+   ========================================= */
+.shop-intro {
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.shop-intro h2 {
+  margin: 0 0 0.25rem;
+  padding: 0;
+  border: none;
+}
+
+/* Suppress the default h2 underline on the intro heading */
+.shop-intro h2::after { display: none; }
+
+.shop-tagline {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+/* =========================================
+   PRODUCT GRID
+   ========================================= */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem;
   margin-bottom: 2rem;
 }
 
+/* =========================================
+   PRODUCT CARD
+   ========================================= */
 .product-card {
   display: flex;
   flex-direction: column;
   height: 100%;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--content-radius);
+  overflow: hidden;
+  position: relative;
+  transition:
+    transform  0.24s cubic-bezier(0.34, 1.4, 0.64, 1),
+    box-shadow 0.24s ease,
+    border-color 0.15s ease;
+  animation: cardReveal 0.35s ease both;
+}
+
+/* Top accent bar — primary → warm peach, clearly legible contrast */
+.product-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary) 0%, #F4A07A 100%);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 .product-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 16px 40px rgba(28, 20, 16, 0.11),
+    0 4px 8px  rgba(28, 20, 16, 0.06);
+  border-color: rgba(201, 72, 34, 0.28);
 }
 
+.product-card:hover::before { transform: scaleX(1); }
+
 .product-card header {
-  padding-bottom: 0.5rem;
+  padding: 1.25rem 1.25rem 0.5rem;
+  border-bottom: none;
+}
+
+.product-card header h3 {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.45;
 }
 
 .product-card .price {
-  font-size: 1.4rem;
-  font-weight: bold;
-  color: var(--primary);
-  margin-bottom: 1rem;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 0.25rem 1.25rem 0.125rem;
+  padding: 0;
+  line-height: 1.15;
+}
+
+.product-card .stock {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  margin: 0 1.25rem 0.75rem;
+  padding: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .product-card footer {
   margin-top: auto;
   display: flex;
   gap: 0.5rem;
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+  /* Visible tonal shift, not invisible */
+  background: rgba(28, 20, 16, 0.03);
+}
+
+.product-card footer button {
+  flex: 1;
+  margin: 0;
+  padding: 0.5rem 0.625rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.product-card footer button:active {
+  transform: scale(0.97);
 }
 
 .product-card .view-details {
-  background-color: var(--secondary);
+  background: transparent;
+  border: 1.5px solid var(--color-border);
+  color: var(--pico-color);
+}
+
+.product-card .view-details:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(201, 72, 34, 0.05);
+}
+
+.product-card .add-to-cart {
+  background: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  color: #FAF9F6;
+}
+
+.product-card .add-to-cart:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+/* Staggered entrance */
+@keyframes cardReveal {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.product-card:nth-child(1)   { animation-delay: 0.04s; }
+.product-card:nth-child(2)   { animation-delay: 0.08s; }
+.product-card:nth-child(3)   { animation-delay: 0.12s; }
+.product-card:nth-child(4)   { animation-delay: 0.16s; }
+.product-card:nth-child(5)   { animation-delay: 0.20s; }
+.product-card:nth-child(6)   { animation-delay: 0.24s; }
+.product-card:nth-child(7)   { animation-delay: 0.28s; }
+.product-card:nth-child(8)   { animation-delay: 0.32s; }
+.product-card:nth-child(n+9) { animation-delay: 0.36s; }
+
+/* =========================================
+   ORDER SUMMARY SIDEBAR
+   Fixed width — not a fraction. A decision.
+   ========================================= */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr var(--sidebar-width);
+  gap: 2rem;
+  align-items: start;
 }
 
 .order-summary {
   position: sticky;
-  top: 20px;
+  top: calc(var(--nav-height) + 1.5rem);
+  width: var(--sidebar-width);
 }
 
-.order-summary article {
-  padding: 1rem;
+.order-summary > article {
+  border: 1px solid var(--color-border);
+  border-radius: var(--content-radius);
+  overflow: hidden;
+  padding: 0;
+}
+
+.order-summary > article > header {
+  background: var(--color-dark);
+  padding: 0.875rem 1.25rem;
+  border-bottom: none;
+}
+
+.order-summary > article > header h3 {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #6A5A4A;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+#orderItems {
+  padding: 0.75rem 1.25rem;
+  min-height: 2.5rem;
+}
+
+#emptyOrderMessage {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  text-align: center;
+  padding: 1rem 0;
+  margin: 0;
+  font-style: italic;
 }
 
 .order-summary ul {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
 .order-summary li {
@@ -57,26 +433,662 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0;
-  border-bottom: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 0.875rem;
+  gap: 0.5rem;
+}
+
+.order-summary li:last-child { border-bottom: none; }
+
+.order-summary li span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .order-summary li button {
-  font-size: 0.8rem;
-  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.45rem;
+  margin: 0;
+  background: transparent;
+  color: var(--color-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  transition: all 0.12s ease;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: 3fr 1fr;
-  gap: 2rem;
+.order-summary li button:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: rgba(201, 72, 34, 0.05);
+}
+
+.order-summary > article > footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+  background: rgba(28, 20, 16, 0.025);
+}
+
+.order-summary > article > footer > p {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  margin-bottom: 0.75rem;
+}
+
+.order-summary > article > footer > p #totalItems {
+  color: var(--pico-color);
+  font-weight: 700;
+}
+
+/* Checkout — the primary action. Sized to match its importance. */
+#checkoutBtn {
+  width: 100%;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+}
+
+#checkoutBtn::after {
+  content: ' →';
+}
+
+#checkoutBtn:hover:not([disabled]) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+#checkoutBtn:active:not([disabled]) {
+  transform: scale(0.98);
+}
+
+#checkoutBtn[disabled] {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   FORMS
+   ========================================= */
+label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--color-muted);
+  margin-bottom: 0.35rem;
+  display: block;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"] {
+  border-radius: 6px;
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px var(--color-primary-glow) !important;
+  outline: none;
+}
+
+button {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+/* =========================================
+   LOGIN PAGE
+   ========================================= */
+main.container > form {
+  max-width: 400px;
+  margin: 3rem auto;
+  padding: 2.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(28, 20, 16, 0.07);
+}
+
+main.container > form::before {
+  content: 'Welcome back';
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--pico-color);
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Inputs inside the login card — override PicoCSS form scoping */
+main.container > form input {
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-warm-white);
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+  color: var(--pico-color);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+main.container > form input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  outline: none;
+}
+
+/* Login — primary action */
+#loginBtn {
+  display: block;
+  width: 100%;
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  color: #FAF9F6;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+#loginBtn:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+#loginBtn:active {
+  transform: scale(0.98);
+}
+
+/* Register — secondary action */
+#registerBtn {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.7rem 1rem;
+  background: transparent;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+#registerBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(201, 72, 34, 0.04);
+}
+
+/* =========================================
+   MODAL / DIALOG
+   ========================================= */
+dialog {
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  padding: 0;
+  overflow: hidden;
+  box-shadow:
+    0 20px 60px rgba(28, 20, 16, 0.22),
+    0 4px 12px  rgba(28, 20, 16, 0.1);
+}
+
+dialog::backdrop {
+  background: rgba(28, 20, 16, 0.65);
+  backdrop-filter: blur(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog::backdrop {
+    backdrop-filter: none;
+  }
+  .product-card {
+    transition: none;
+    animation: none;
+  }
+  .product-card::before {
+    transition: none;
+  }
+}
+
+dialog > article {
+  border-radius: 0;
+  border: none;
+  padding: 0;
+}
+
+dialog article > header {
+  background: var(--color-dark);
+  color: #F0EBE3;
+  padding: 1rem 1.25rem;
+  border-bottom: 2px solid var(--color-primary);
+}
+
+dialog article > header button[rel="prev"] {
+  color: #5C5048;
+  transition: color 0.15s ease;
+}
+
+dialog article > header button[rel="prev"]:hover { color: #F0EBE3; }
+
+/* Dialog body content gets its own padding */
+.dialog-body {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+/* Inputs inside dialog body — full width, consistent styling */
+.dialog-body input {
+  display: block;
+  width: 100%;
+  margin-bottom: 0.75rem;
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-warm-white);
+  color: var(--pico-color);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dialog-body input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  outline: none;
+}
+
+/* Action buttons inside dialog body */
+.dialog-body > button {
+  display: block;
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  color: #FAF9F6;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.dialog-body > button:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.dialog-body > button:active {
+  transform: scale(0.98);
+}
+
+dialog h3 {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-muted);
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* =========================================
+   ADMIN TABLES
+   ========================================= */
+table {
+  border-radius: var(--content-radius);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+thead tr { background: var(--color-dark); }
+
+thead th {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: #6A5A4A !important;
+  padding: 0.875rem 1rem;
+  border: none;
+}
+
+tbody tr { transition: background-color 0.12s ease; }
+tbody tr:hover { background-color: rgba(201, 72, 34, 0.04); }
+
+tbody td {
+  font-size: 0.9rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+tbody tr:last-child td { border-bottom: none; }
+
+/* =========================================
+   SECTION HEADINGS
+   Full-width border + short primary accent.
+   No absolute positioning.
+   ========================================= */
+main h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.625rem;
+  /* Full-width subtle rule */
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+}
+
+/* Short primary accent overlaid on the rule */
+main h2::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 3rem;
+  height: 2px;
+  background: var(--color-primary);
+  border-radius: 1px;
+}
+
+/* =========================================
+   FIELDSET GROUPS (admin inline forms)
+   ========================================= */
+fieldset[role="group"] {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  border: none;
+  padding: 0;
+  margin-bottom: 1.5rem;
+}
+
+fieldset[role="group"] input  { flex: 1; margin-bottom: 0; }
+fieldset[role="group"] button { white-space: nowrap; flex-shrink: 0; margin: 0; }
+
+/* =========================================
+   PROFILE PAGE
+   ========================================= */
+.points {
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--color-gold);
+  margin: 0.25rem 0 1rem;
+}
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+@media (max-width: 1024px) {
+  :root { --sidebar-width: 260px; }
 }
 
 @media (max-width: 992px) {
   .grid {
     grid-template-columns: 1fr;
   }
-  
+
   .order-summary {
     position: static;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  main.container > form {
+    margin: 1.5rem auto;
+    padding: 1.75rem 1.5rem;
+  }
+
+  fieldset[role="group"] {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* =========================================
+   TABLE ACTION BUTTONS
+   ========================================= */
+tbody td button {
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-family: var(--font-ui);
+  padding: 0.375rem 0.875rem;
+  margin: 0;
+  border-radius: 5px;
+  letter-spacing: 0.03em;
+  background: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  color: #FAF9F6;
+  transition: all 0.15s ease;
+}
+
+tbody td button:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+tbody td button:active {
+  transform: scale(0.97);
+}
+
+tbody td button.btn-danger,
+tbody td button[data-action="delete"] {
+  background: transparent;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-muted);
+}
+tbody td button.btn-danger:hover,
+tbody td button[data-action="delete"]:hover {
+  border-color: #b91c1c;
+  color: #b91c1c;
+  background: rgba(185, 28, 28, 0.05);
+}
+
+/* =========================================
+   INPUT STYLING REINFORCEMENT
+   ========================================= */
+/* Ensure consistent input appearance site-wide */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+fieldset[role="group"] input {
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+  border-color: var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--pico-color);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* =========================================
+   DETAILS/SUMMARY — COLLAPSIBLE ACTIVITY
+   ========================================= */
+details.activity-collapsible {
+  margin-top: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+details.activity-collapsible summary {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
+  padding: 0.625rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(28, 20, 16, 0.02);
+  transition: background 0.12s ease;
+}
+
+details.activity-collapsible summary::-webkit-details-marker { display: none; }
+
+details.activity-collapsible summary::before {
+  content: '▶';
+  font-size: 0.5rem;
+  transition: transform 0.15s ease;
+  color: var(--color-primary);
+}
+
+details.activity-collapsible[open] summary::before {
+  transform: rotate(90deg);
+}
+
+details.activity-collapsible summary:hover {
+  background: rgba(201, 72, 34, 0.04);
+  color: var(--color-primary);
+}
+
+details.activity-collapsible ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+details.activity-collapsible ul li {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+details.activity-collapsible ul li:last-child {
+  border-bottom: none;
+}
+
+/* =========================================
+   PROFILE PAGE — SPEND POINTS SECTION
+   ========================================= */
+/* Action buttons inside fieldset groups (spend points, create product, update product, update stock) */
+fieldset[role="group"] button {
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  color: #FAF9F6;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+fieldset[role="group"] button:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+fieldset[role="group"] button:active {
+  transform: scale(0.97);
+}
+
+#spendPoints {
+  margin-bottom: 1.5rem;
+}
+#spendPoints fieldset[role="group"] {
+  margin-bottom: 0.5rem;
+}
+
+/* =========================================
+   DARK MODE ADJUSTMENTS
+   ========================================= */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-image: radial-gradient(
+      circle,
+      rgba(240, 235, 227, 0.04) 1px,
+      transparent 1px
+    );
+    background-size: 20px 20px;
+  }
+
+  .product-card footer {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .product-card .view-details {
+    color: #B8A898;
+    border-color: #3C3028;
+  }
+
+  .product-card .view-details:hover {
+    color: #F4C4A8;
+    border-color: rgba(201, 72, 34, 0.45);
+    background: rgba(201, 72, 34, 0.08);
+  }
+
+  label { color: #6A5A4A; }
+
+  .order-summary > article > footer {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  main.container > form {
+    box-shadow: none;
+  }
+
+  main.container > form::before {
+    color: #F0EBE3;
+  }
+
+  main h2 {
+    border-bottom-color: var(--color-border);
+  }
+
+  details.activity-collapsible {
+    background: transparent;
+  }
+  details.activity-collapsible summary {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  details.activity-collapsible summary:hover {
+    background: rgba(201, 72, 34, 0.08);
   }
 }

@@ -97,7 +97,7 @@ export function closeModal() {
 window.login = login;
 window.registerUser = registerUser;
 window.openRegisterModal = openRegisterModal;
-window.closeModal = closeModal;
+window.closeRegisterModal = closeModal;
 
 function parseJwt(token) {
   try {

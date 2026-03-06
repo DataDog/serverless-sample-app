@@ -4,6 +4,11 @@ let jwt = "";
 
 $(document).ready(function () {
   jwt = localStorage.getItem("jwt");
+  const userType = localStorage.getItem("userType");
+  if (userType !== "ADMIN") {
+    window.location.href = "/";
+    return;
+  }
   refreshData();
 });
 
@@ -55,8 +60,6 @@ function refreshData() {
 
       loadingSpinner.ariaBusy = false;
       items.forEach((message) => {
-        console.log(message);
-
         var rowElement = document.createElement("tr");
         var orderNumberTableElement = document.createElement("td");
         orderNumberTableElement.innerText = message.orderId;
@@ -77,7 +80,7 @@ function refreshData() {
     },
     error: function (xhr, status, error) {
       loadingSpinner.ariaBusy = false;
-      alert("Login failed: " + error);
+      alert("Failed to load orders: " + error);
     },
     beforeSend: function (xhr) {
       xhr.setRequestHeader("Authorization", `Bearer ${jwt}`);
@@ -85,19 +88,4 @@ function refreshData() {
   });
 }
 
-function closeModal() {
-  activeProduct = "";
-  let tableBodyElement = document.getElementById("pricingTableBody");
-  tableBodyElement.innerHTML = "";
-  let productModal = document.getElementById("productModal");
-
-  let updateNameElement = document.getElementById("updateProductName");
-  updateNameElement.value = "";
-  let updatePriceElement = document.getElementById("updateProductPrice");
-  updatePriceElement.value = "";
-
-  productModal.setAttribute("open", "false");
-}
-
-window.closeModal = closeModal;
 window.completeOrder = completeOrder;

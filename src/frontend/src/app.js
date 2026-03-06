@@ -8,7 +8,7 @@ window.DD_RUM &&
     // see https://docs.datadoghq.com/getting_started/site/
     site: config.DD_SITE,
     service: "product-management-frontend",
-    env: "dev",
+    env: "dev", // TODO: inject from build-time environment variable
     // Specify a version number to identify the deployed version of your application in Datadog
     // version: '1.0.0',
     sessionSampleRate: 100,
@@ -18,7 +18,6 @@ window.DD_RUM &&
     trackLongTasks: true,
     defaultPrivacyLevel: "mask-user-input",
     allowedTracingUrls: [(url) => url.startsWith("https://")],
-    sessionSampleRate: 100,
     enablePrivacyForActionName: true,
   });
 

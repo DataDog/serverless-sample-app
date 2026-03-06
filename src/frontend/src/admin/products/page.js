@@ -5,6 +5,11 @@ let jwt = "";
 
 $(document).ready(function () {
   jwt = localStorage.getItem("jwt");
+  const userType = localStorage.getItem("userType");
+  if (userType !== "ADMIN") {
+    window.location.href = "/";
+    return;
+  }
   refreshData();
 });
 
@@ -29,7 +34,6 @@ export function createProduct() {
 
   var xhr = new XMLHttpRequest();
 
-  console.log(`Bearer ${jwt}`);
   xhr.open("POST", `${config.PRODUCT_API_ENDPOINT}/product`, true);
   xhr.setRequestHeader("Content-Type", "application/json");
   xhr.setRequestHeader("Authorization", `Bearer ${jwt}`);
@@ -96,7 +100,7 @@ export function updateProduct() {
 
     createBtn.ariaBusy = "false";
     createBtn.ariaLabel = "";
-    createBtn.innerText = "Create";
+    createBtn.innerText = "Update";
   };
 }
 
@@ -167,26 +171,25 @@ function viewProduct(productId, btnElement) {
 
       loadStockLevel(productId);
       loadProductActivity(productId);
+      btnElement.ariaBusy = "false";
+      btnElement.ariaLabel = "View";
+      btnElement.innerText = "View";
     },
     error: function (xhr, status, error) {
       alert("Failure loading product: " + error);
+      btnElement.ariaBusy = "false";
+      btnElement.ariaLabel = "View";
+      btnElement.innerText = "View";
     },
   });
-
-  btnElement.ariaBusy = "false";
-  btnElement.ariaLabel = "View";
-  btnElement.innerText = "View";
 }
 
 function loadStockLevel(productId) {
-  console.log(`${config.INVENTORY_API_ENDPOINT}/inventory/${productId}`);
   $.ajax({
     url: `${config.INVENTORY_API_ENDPOINT}/inventory/${productId}`,
     method: "GET",
     contentType: "application/json",
     success: function (response) {
-      console.log(response);
-
       let updateStockLevelElement = document.getElementById("updateStockLevel");
       updateStockLevelElement.value = response.data.currentStockLevel;
     },
@@ -200,7 +203,7 @@ function updateStock() {
   const newStockLevel = document.getElementById("updateStockLevel").value;
 
   if (newStockLevel.length <= 0) {
-    alert("Name must not be empty");
+    alert("Stock level must not be empty");
     return;
   }
 
@@ -331,10 +334,10 @@ function closeModal() {
   let updatePriceElement = document.getElementById("updateProductPrice");
   updatePriceElement.value = "";
 
-  productModal.setAttribute("open", "false");
+  productModal.removeAttribute("open");
 }
 
 window.updateProduct = updateProduct;
 window.createProduct = createProduct;
-window.closeModal = closeModal;
+window.closeProductEditModal = closeModal;
 window.updateStock = updateStock;
