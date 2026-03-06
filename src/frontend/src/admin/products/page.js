@@ -158,8 +158,8 @@ function viewProduct(productId, btnElement) {
         var quantityCellElement = document.createElement("td");
         quantityCellElement.innerText = quantity;
 
-        rowElement.appendChild(priceCellElement);
         rowElement.appendChild(quantityCellElement);
+        rowElement.appendChild(priceCellElement);
 
         tableBodyElement.appendChild(rowElement);
       });
