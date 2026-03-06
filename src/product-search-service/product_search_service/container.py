@@ -35,7 +35,10 @@ def get_vector_repo() -> VectorRepository:
     """Return the shared VectorRepository, initialising on first call."""
     global _vector_repo
     if _vector_repo is None:
-        _vector_repo = VectorRepository(bucket_name=os.environ.get("VECTOR_BUCKET_NAME", "serverless-sample-app-vector-dev"))
+        _vector_repo = VectorRepository(
+            bucket_name=os.environ.get("VECTOR_BUCKET_NAME", "serverless-sample-app-vector-dev"),
+            index_name=os.environ.get("VECTOR_INDEX_NAME", "products"),
+        )
     return _vector_repo
 
 

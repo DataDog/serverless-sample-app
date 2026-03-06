@@ -1,38 +1,50 @@
 from __future__ import annotations
 
-# NOTE: S3 Vectors boto3 API is in preview. Verify method signatures against current AWS documentation.
-
 import boto3
 from ddtrace import tracer
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from mypy_boto3_s3vectors import S3VectorsClient  # type: ignore[import]
 
 
 class VectorRepository:
-    """Manages product embedding vectors in the S3 Vector Object Store."""
+    """Manages product embedding vectors in an S3 Vectors index.
 
-    def __init__(self, bucket_name: str) -> None:
+    S3 Vectors uses a two-level hierarchy:
+      - Vector Bucket  (VECTOR_BUCKET_NAME env var)
+      - Vector Index   (VECTOR_INDEX_NAME env var, default "products")
+
+    The vector bucket and index must be pre-created before deployment.
+    Create them via the AWS CLI:
+      aws s3vectors create-vector-bucket --vector-bucket-name <name>
+      aws s3vectors create-index --vector-bucket-name <name> \\
+          --index-name products --data-type float32 --dimension 1024 \\
+          --distance-metric cosine
+    """
+
+    def __init__(self, bucket_name: str, index_name: str = "products") -> None:
         self._bucket_name = bucket_name
+        self._index_name = index_name
         self._client = boto3.client("s3vectors")  # type: ignore[attr-defined]
 
     @tracer.wrap(resource="vector_repository.upsert")
     def upsert(
         self, product_id: str, embedding: list[float], metadata: dict[str, str]
     ) -> None:
-        """Store or replace a product embedding in the vector bucket.
+        """Store or replace a product embedding in the vector index.
 
         Args:
-            product_id: The unique product identifier used as the object key.
-            embedding: The embedding vector to store.
+            product_id: The unique product identifier used as the vector key.
+            embedding: The float32 embedding vector to store.
             metadata: Arbitrary string key-value metadata to associate with the vector.
         """
-        self._client.put_object(  # type: ignore[attr-defined]
-            VectorBucketName=self._bucket_name,
-            Key=product_id,
-            Vector=embedding,
-            Metadata=metadata,
+        self._client.put_vectors(  # type: ignore[attr-defined]
+            vectorBucketName=self._bucket_name,
+            indexName=self._index_name,
+            vectors=[
+                {
+                    "key": product_id,
+                    "data": {"float32": embedding},
+                    "metadata": metadata,
+                }
+            ],
         )
 
     @tracer.wrap(resource="vector_repository.query")
@@ -44,18 +56,19 @@ class VectorRepository:
             top_k: The maximum number of results to return.
 
         Returns:
-            A list of ``(product_id, similarity_score)`` tuples, ordered by
-            descending similarity.
+            A list of ``(product_id, similarity_score)`` tuples ordered by similarity.
         """
-        response = self._client.query_objects(  # type: ignore[attr-defined]
-            VectorBucketName=self._bucket_name,
-            QueryVector=embedding,
-            TopK=top_k,
-            ReturnMetadata=False,
+        response = self._client.query_vectors(  # type: ignore[attr-defined]
+            vectorBucketName=self._bucket_name,
+            indexName=self._index_name,
+            queryVector={"float32": embedding},
+            topK=top_k,
+            returnMetadata=False,
+            returnDistance=True,
         )
         results: list[tuple[str, float]] = [
-            (match["Key"], match.get("Score", 0.0))
-            for match in response.get("Matches", [])
+            (v["key"], v.get("distance", 0.0))
+            for v in response.get("vectors", [])
         ]
         span = tracer.current_span()
         if span:
@@ -65,12 +78,13 @@ class VectorRepository:
 
     @tracer.wrap(resource="vector_repository.delete")
     def delete(self, product_id: str) -> None:
-        """Remove a product embedding from the vector bucket.
+        """Remove a product embedding from the vector index.
 
         Args:
             product_id: The unique product identifier of the vector to delete.
         """
-        self._client.delete_object(  # type: ignore[attr-defined]
-            VectorBucketName=self._bucket_name,
-            Key=product_id,
+        self._client.delete_vectors(  # type: ignore[attr-defined]
+            vectorBucketName=self._bucket_name,
+            indexName=self._index_name,
+            keys=[product_id],
         )
