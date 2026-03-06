@@ -1,0 +1,36 @@
+from __future__ import annotations
+
+from typing import Protocol
+
+from product_search_service.models.product import ProductMetadata, PricingTier
+
+
+class Embedder(Protocol):
+    """Protocol for embedding text into a vector representation."""
+
+    def embed(self, text: str) -> list[float]: ...
+
+
+class Generator(Protocol):
+    """Protocol for generating natural language answers from product context."""
+
+    def generate_answer(self, query: str, products: list[ProductMetadata]) -> str: ...
+
+
+class VectorStore(Protocol):
+    """Protocol for storing and querying product vector embeddings."""
+
+    def upsert(self, product_id: str, embedding: list[float], metadata: dict[str, str]) -> None: ...
+    def query(self, embedding: list[float], top_k: int) -> list[tuple[str, float]]: ...
+    def delete(self, product_id: str) -> None: ...
+
+
+class MetadataStore(Protocol):
+    """Protocol for storing and retrieving product metadata."""
+
+    def upsert(self, product: ProductMetadata) -> None: ...
+    def get(self, product_id: str) -> ProductMetadata | None: ...
+    def update_pricing(self, product_id: str, pricing_tiers: list[PricingTier]) -> None: ...
+    def update_stock(self, product_id: str, stock_level: float) -> None: ...
+    def delete(self, product_id: str) -> None: ...
+    def batch_get(self, product_ids: list[str]) -> list[ProductMetadata]: ...

@@ -1,0 +1,4 @@
+dd_api_key_secret_arn = "<YOUR_SECRET_ARN>"
+dd_site               = "datadoghq.com"
+env                   = "dev"
+region                = "us-east-1"

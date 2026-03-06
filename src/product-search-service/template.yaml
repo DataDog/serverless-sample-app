@@ -1,0 +1,342 @@
+#
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/).
+# Copyright 2024 Datadog, Inc.
+#
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::Serverless-2016-10-31
+  - Name: DatadogServerless
+    Parameters:
+      stackName: !Ref "AWS::StackName"
+      apiKeySecretArn: !Ref DDApiKeySecretArn
+      pythonLayerVersion: 123
+      extensionLayerVersion: 'next'
+      service: !Ref DDServiceName
+      env: !Ref Env
+      version: !Ref CommitHash
+      site: !Ref DDSite
+      captureLambdaPayload: true
+Description: Product Search Service - AI-powered product search built with AWS SAM
+
+Parameters:
+  DDApiKeySecretArn:
+    Type: String
+  DDSite:
+    Type: String
+    Default: datadoghq.com
+  Env:
+    Type: String
+    Default: dev
+  CommitHash:
+    Type: String
+    Default: latest
+  DDServiceName:
+    Type: String
+    Default: product-search-service
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 29
+    MemorySize: 512
+    Architectures:
+      - arm64
+    Environment:
+      Variables:
+        DD_API_KEY_SECRET_ARN: !Ref DDApiKeySecretArn
+        DD_SITE: !Ref DDSite
+        DD_ENV: !Ref Env
+        DD_SERVICE: !Ref DDServiceName
+        DD_VERSION: !Ref CommitHash
+        DD_EXTENSION_VERSION: "next"
+
+Resources:
+  ##################################
+  ########## DynamoDB ##############
+  ##################################
+
+  ProductMetadataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "ProductSearchMetadata-${Env}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: productId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: productId
+          KeyType: HASH
+
+  ##################################
+  ############ SQS #################
+  ##################################
+
+  CatalogSyncDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "ProductSearchService-CatalogSyncDLQ-${Env}"
+      MessageRetentionPeriod: 1209600
+
+  CatalogSyncQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "ProductSearchService-CatalogSync-${Env}"
+      VisibilityTimeout: 174
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt CatalogSyncDLQ.Arn
+        maxReceiveCount: 3
+
+  CatalogSyncQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref CatalogSyncQueue
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action:
+              - sqs:SendMessage
+            Resource: !GetAtt CatalogSyncQueue.Arn
+
+  ##################################
+  ######## EventBridge Rules #######
+  ##################################
+
+  ProductCreatedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "product-search_product_productCreated_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        source:
+          - !Sub "${Env}.products"
+        detail-type:
+          - "product.productCreated.v1"
+      Targets:
+        - Arn: !GetAtt CatalogSyncQueue.Arn
+          Id: "CatalogSyncQueueTarget"
+
+  ProductUpdatedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "product-search_product_productUpdated_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        source:
+          - !Sub "${Env}.products"
+        detail-type:
+          - "product.productUpdated.v1"
+      Targets:
+        - Arn: !GetAtt CatalogSyncQueue.Arn
+          Id: "CatalogSyncQueueTarget"
+
+  ProductDeletedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "product-search_product_productDeleted_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        source:
+          - !Sub "${Env}.products"
+        detail-type:
+          - "product.productDeleted.v1"
+      Targets:
+        - Arn: !GetAtt CatalogSyncQueue.Arn
+          Id: "CatalogSyncQueueTarget"
+
+  PricingCalculatedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "product-search_pricing_pricingCalculated_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        source:
+          - !Sub "${Env}.pricing"
+        detail-type:
+          - "pricing.pricingCalculated.v1"
+      Targets:
+        - Arn: !GetAtt CatalogSyncQueue.Arn
+          Id: "CatalogSyncQueueTarget"
+
+  StockUpdatedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "product-search_inventory_stockUpdated_v1-${Env}"
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      EventPattern:
+        source:
+          - !Sub "${Env}.inventory"
+        detail-type:
+          - "inventory.stockUpdated.v1"
+      Targets:
+        - Arn: !GetAtt CatalogSyncQueue.Arn
+          Id: "CatalogSyncQueueTarget"
+
+  ##################################
+  ######## Lambda Functions ########
+  ##################################
+
+  CatalogSyncFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "ProductSearchService-CatalogSync-${Env}"
+      CodeUri: .build/lambdas/
+      Handler: product_search_service.handlers.catalog_sync.lambda_handler
+      Events:
+        CatalogSyncSQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt CatalogSyncQueue.Arn
+            BatchSize: 10
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: !Ref DDServiceName
+          POWERTOOLS_LOG_LEVEL: INFO
+          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: ignore
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: none
+          DD_BOTOCORE_DISTRIBUTED_TRACING: "false"
+          DD_DATA_STREAMS_ENABLED: "true"
+          DD_LLMOBS_ENABLED: "1"
+          DD_LLMOBS_ML_APP: !Ref DDServiceName
+          VECTOR_BUCKET_NAME: !Sub "serverless-sample-app-vector-${Env}"
+          METADATA_TABLE_NAME: !Ref ProductMetadataTable
+          PRODUCT_API_ENDPOINT_PARAMETER: !Sub "/${Env}/ProductManagementService/api-endpoint"
+          EMBEDDING_MODEL_ID: amazon.titan-embed-text-v2:0
+          ENV: !Ref Env
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:GetItem
+              Resource: !GetAtt ProductMetadataTable.Arn
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Env}/ProductManagementService/api-endpoint"
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v2:0"
+            - Effect: Allow
+              Action:
+                # S3Vectors does not yet have a resource-level ARN format; wildcard is required
+                - s3vectors:PutVectors
+                - s3vectors:DeleteVectors
+                - s3vectors:GetVectors
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - sqs:ReceiveMessage
+                - sqs:DeleteMessage
+                - sqs:GetQueueAttributes
+              Resource: !GetAtt CatalogSyncQueue.Arn
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref DDApiKeySecretArn
+
+  ProductSearchFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "ProductSearchService-ProductSearch-${Env}"
+      CodeUri: .build/lambdas/
+      Handler: product_search_service.handlers.product_search.lambda_handler
+      Events:
+        SearchApi:
+          Type: HttpApi
+          Properties:
+            Path: /search
+            Method: POST
+            ApiId: !Ref ProductSearchHttpApi
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: !Ref DDServiceName
+          POWERTOOLS_LOG_LEVEL: INFO
+          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: ignore
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: none
+          DD_BOTOCORE_DISTRIBUTED_TRACING: "false"
+          DD_DATA_STREAMS_ENABLED: "true"
+          DD_LLMOBS_ENABLED: "1"
+          DD_LLMOBS_ML_APP: !Ref DDServiceName
+          VECTOR_BUCKET_NAME: !Sub "serverless-sample-app-vector-${Env}"
+          METADATA_TABLE_NAME: !Ref ProductMetadataTable
+          EMBEDDING_MODEL_ID: amazon.titan-embed-text-v2:0
+          GENERATION_MODEL_ID: anthropic.claude-3-5-haiku-20241022-v1:0
+          SEARCH_TOP_K: "5"
+          ENV: !Ref Env
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:BatchGetItem
+              Resource: !GetAtt ProductMetadataTable.Arn
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource:
+                - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v2:0"
+                - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-5-haiku-20241022-v1:0"
+            - Effect: Allow
+              Action:
+                # S3Vectors does not yet have a resource-level ARN format; wildcard is required
+                - s3vectors:QueryVectors
+              Resource: "*"
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref DDApiKeySecretArn
+
+  ##################################
+  ########## HTTP API ##############
+  ##################################
+
+  ProductSearchHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Name: !Sub "Product Search Service HTTP API - ${Env}"
+      StageName: Prod
+      CorsConfiguration:
+        AllowMethods:
+          - POST
+        AllowHeaders:
+          - "*"
+        AllowOrigins:
+          - "*"
+
+  ##################################
+  ######## SSM Parameters ##########
+  ##################################
+
+  ProductSearchApiEndpointParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${Env}/ProductSearchService/api-endpoint"
+      Type: String
+      Value: !Sub "https://${ProductSearchHttpApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+
+Outputs:
+  ProductSearchApiEndpoint:
+    Description: "HTTP API endpoint for the Product Search Service"
+    Value: !Sub "https://${ProductSearchHttpApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+    Export:
+      Name: !Sub "${AWS::StackName}-ProductSearchApiEndpoint"
+
+  MetadataTableName:
+    Description: "DynamoDB Product Metadata Table Name"
+    Value: !Ref ProductMetadataTable
+    Export:
+      Name: !Sub "${AWS::StackName}-MetadataTable"
+
+  CatalogSyncQueueUrl:
+    Description: "SQS Catalog Sync Queue URL"
+    Value: !Ref CatalogSyncQueue
+    Export:
+      Name: !Sub "${AWS::StackName}-CatalogSyncQueue"

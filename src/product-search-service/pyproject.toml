@@ -1,0 +1,39 @@
+[tool.poetry]
+name = "product-search-service"
+version = "0.1.0"
+description = "AI-powered product search service using Amazon Bedrock and S3 Vector Object Store"
+authors = ["Datadog <demo@datadoghq.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+aws-lambda-powertools = {extras = ["tracer"], version = "^3.0.0"}
+pydantic = "^2.0.0"
+boto3 = "^1.37.0"
+requests = "^2.32.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-mock = "^3.14.0"
+pytest-timeout = "^2.3.0"
+moto = {extras = ["dynamodb", "s3", "ssm", "bedrock"], version = "^5.0.0"}
+ruff = "^0.8.0"
+mypy = "^1.0.0"
+boto3-stubs = {extras = ["dynamodb", "s3", "bedrock-runtime", "ssm"], version = "^1.37.0"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
