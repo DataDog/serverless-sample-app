@@ -74,7 +74,7 @@ export class EventBridgeEventPublisher implements EventPublisher {
 
       messagingSpan?.finish();
     } catch (error: unknown) {
-      this.logger.error(JSON.stringify(error));
+      this.logger.error(error instanceof Error ? error.message : JSON.stringify(error));
       if (error instanceof Error) {
         const e = error as Error;
         const stack = e.stack!.split("\n").slice(1, 4).join("\n");

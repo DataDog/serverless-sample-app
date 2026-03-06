@@ -28,7 +28,7 @@ export function startProcessSpanWithSemanticConventions(
     childOf: conventions.parentSpan ?? undefined,
   });
   const headers = {};
-  tracer.dataStreamsCheckpointer.setConsumeCheckpoint("sns", evt.type, headers);
+  tracer.dataStreamsCheckpointer.setConsumeCheckpoint("eventbridge", evt.type, headers);
 
   try {
     messageProcessingSpan.addTags({
@@ -81,9 +81,9 @@ export function startPublishSpanWithSemanticConventions(
   try {
     const headers = {};
     tracer.dataStreamsCheckpointer.setProduceCheckpoint(
-      "sns",
+      "eventbridge",
       evt.type,
-      headers
+      headers,
     );
 
     messagingSpan.addTags({

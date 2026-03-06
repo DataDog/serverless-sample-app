@@ -46,7 +46,7 @@ export class ProductCreatedEventHandler {
       price: evt.price,
     });
 
-    this.eventPublisher.publishPriceCalculatedEvent({
+    await this.eventPublisher.publishPriceCalculatedEvent({
       productId: evt.productId,
       priceBrackets: priceResult.map((price) => {
         return {

@@ -7,11 +7,11 @@
 
 import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
-import { Duration, RemovalPolicy } from "aws-cdk-lib";
+import { Duration } from "aws-cdk-lib";
 import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
 import { IStringParameter } from "aws-cdk-lib/aws-ssm";
 import { PricingServiceProps } from "./pricingServiceProps";
-import { Runtime, Code } from "aws-cdk-lib/aws-lambda";
+import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Alias } from "aws-cdk-lib/aws-kms";
 import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
@@ -50,17 +50,29 @@ export class Api extends Construct {
   }
 
   buildCalculatePricingFunction(props: ApiProps): LambdaIntegration {
-    // The function uses ESBuild, this path is to a custom command that runs the build
     const isWorkshopBuild = process.env.WORKSHOP_BUILD === "true";
-    const pathToBuildFile = isWorkshopBuild
-      ? "./src/pricing-api/workshop/buildCalculatePricingFunction.js"
-      : "./src/pricing-api/cdk/buildCalculatePricingFunction.js";
-    const pathToOutputFile = "./out/calculatePricingFunction";
 
-    const code = Code.fromCustomCommand(pathToOutputFile, [
-      "node",
-      pathToBuildFile,
-    ]);
+    const entry = isWorkshopBuild
+      ? "./src/pricing-api/workshop/calculatePricingFunction.ts"
+      : "./src/pricing-api/adapters/calculatePricingFunction.ts";
+
+    // Workshop builds are uninstrumented — no dd-trace.
+    // Production builds exclude dd-trace so the Datadog Lambda layer provides it at runtime.
+    const externalModules = isWorkshopBuild
+      ? ["@aws-sdk/client-eventbridge", "@aws-sdk/client-ssm"]
+      : [
+          "dd-trace",
+          "@datadog/native-metrics",
+          "@datadog/pprof",
+          "@datadog/native-appsec",
+          "@datadog/native-iast-taint-tracking",
+          "@datadog/native-iast-rewriter",
+          "graphql/language/visitor",
+          "graphql/language/printer",
+          "graphql/utilities",
+          "@aws-sdk/client-eventbridge",
+          "@aws-sdk/client-ssm",
+        ];
 
     const calculatePricingFunction = new NodejsFunction(
       this,
@@ -70,8 +82,8 @@ export class Api extends Construct {
         functionName: `CDK-CalculatePricing-${
           props.serviceProps.getSharedProps().environment
         }`,
-        code: code,
-        handler: "index.handler",
+        entry,
+        handler: "handler",
         memorySize: 512,
         timeout: Duration.seconds(29),
         environment: {
@@ -79,10 +91,10 @@ export class Api extends Construct {
         },
         bundling: {
           platform: "node",
-          esbuildArgs: {
-            "--bundle": "true",
-          },
           target: "node22",
+          minify: true,
+          keepNames: true,
+          externalModules,
         },
       }
     );

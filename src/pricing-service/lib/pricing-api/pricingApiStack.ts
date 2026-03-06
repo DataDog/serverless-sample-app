@@ -33,8 +33,8 @@ export class PricingApiStack extends cdk.Stack {
     const datadogConfiguration = isWorkshopBuild
       ? undefined
       : new DatadogLambda(this, "Datadog", {
-          nodeLayerVersion: 130,
-          extensionLayerVersion: 90,
+          nodeLayerVersion: 135,
+          extensionLayerVersion: 93,
           site: process.env.DD_SITE ?? "datadoghq.com",
           apiKeySecret: ddApiKey,
           service,

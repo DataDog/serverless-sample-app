@@ -7,15 +7,14 @@
 
 import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
-import { Code, Runtime } from "aws-cdk-lib/aws-lambda";
+import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { IQueue } from "aws-cdk-lib/aws-sqs";
 import { ResiliantQueue } from "../constructs/resiliantQueue";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { SqsQueue } from "aws-cdk-lib/aws-events-targets";
 import { PricingServiceProps } from "./pricingServiceProps";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
-import { Duration, RemovalPolicy } from "aws-cdk-lib";
-import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
+import { Duration } from "aws-cdk-lib";
 
 export interface PricingEventHandlerProps {
   serviceProps: PricingServiceProps;
@@ -40,15 +39,27 @@ export class PricingEventHandlers extends Construct {
       sharedProps: props.serviceProps.getSharedProps(),
       queueName: `ProductCreated`,
     }).queue;
-    const pathToBuildFile = isWorkshopBuild
-      ? "./src/pricing-api/workshop/buildProductCreatedPricingHandler.js"
-      : "./src/pricing-api/cdk/buildProductCreatedPricingHandler.js";
-    const pathToOutputFile = "./out/productCreatedPricingHandler";
 
-    const code = Code.fromCustomCommand(pathToOutputFile, [
-      "node",
-      pathToBuildFile,
-    ]);
+    const entry = isWorkshopBuild
+      ? "./src/pricing-api/workshop/productCreatedPricingHandler.ts"
+      : "./src/pricing-api/adapters/productCreatedPricingHandler.ts";
+
+    // Workshop builds are uninstrumented — no dd-trace.
+    // Production builds exclude dd-trace so the Datadog Lambda layer provides it at runtime.
+    const externalModules = isWorkshopBuild
+      ? ["@aws-sdk/client-sqs"]
+      : [
+          "dd-trace",
+          "@datadog/native-metrics",
+          "@datadog/pprof",
+          "@datadog/native-appsec",
+          "@datadog/native-iast-taint-tracking",
+          "@datadog/native-iast-rewriter",
+          "graphql/language/visitor",
+          "graphql/language/printer",
+          "graphql/utilities",
+          "@aws-sdk/client-sqs",
+        ];
 
     const handleProductCreatedFunction = new NodejsFunction(
       this,
@@ -58,8 +69,8 @@ export class PricingEventHandlers extends Construct {
         functionName: `CDK-PricingHandleProductCreated-${
           props.serviceProps.getSharedProps().environment
         }`,
-        code: code,
-        handler: "index.handler",
+        entry,
+        handler: "handler",
         memorySize: 512,
         timeout: Duration.seconds(29),
         environment: {
@@ -86,10 +97,10 @@ export class PricingEventHandlers extends Construct {
         },
         bundling: {
           platform: "node",
-          esbuildArgs: {
-            "--bundle": "true",
-          },
           target: "node22",
+          minify: true,
+          keepNames: true,
+          externalModules,
         },
       }
     );
@@ -125,15 +136,26 @@ export class PricingEventHandlers extends Construct {
       queueName: `ProductUpdated`,
     }).queue;
 
-    const pathToBuildFile = isWorkshopBuild
-      ? "./src/pricing-api/workshop/buildProductUpdatedPricingHandler.js"
-      : "./src/pricing-api/cdk/buildProductUpdatedPricingHandler.js";
-    const pathToOutputFile = "./out/productUpdatedPricingHandler";
+    const entry = isWorkshopBuild
+      ? "./src/pricing-api/workshop/productUpdatedPricingHandler.ts"
+      : "./src/pricing-api/adapters/productUpdatedPricingHandler.ts";
 
-    const code = Code.fromCustomCommand(pathToOutputFile, [
-      "node",
-      pathToBuildFile,
-    ]);
+    // Workshop builds are uninstrumented — no dd-trace.
+    // Production builds exclude dd-trace so the Datadog Lambda layer provides it at runtime.
+    const externalModules = isWorkshopBuild
+      ? ["@aws-sdk/client-sqs"]
+      : [
+          "dd-trace",
+          "@datadog/native-metrics",
+          "@datadog/pprof",
+          "@datadog/native-appsec",
+          "@datadog/native-iast-taint-tracking",
+          "@datadog/native-iast-rewriter",
+          "graphql/language/visitor",
+          "graphql/language/printer",
+          "graphql/utilities",
+          "@aws-sdk/client-sqs",
+        ];
 
     const handleProductUpdatedFunction = new NodejsFunction(
       this,
@@ -143,8 +165,8 @@ export class PricingEventHandlers extends Construct {
         functionName: `CDK-PricingHandleProductUpdated-${
           props.serviceProps.getSharedProps().environment
         }`,
-        code: code,
-        handler: "index.handler",
+        entry,
+        handler: "handler",
         memorySize: 512,
         timeout: Duration.seconds(29),
         environment: {
@@ -171,10 +193,10 @@ export class PricingEventHandlers extends Construct {
         },
         bundling: {
           platform: "node",
-          esbuildArgs: {
-            "--bundle": "true",
-          },
           target: "node22",
+          minify: true,
+          keepNames: true,
+          externalModules,
         },
       }
     );
