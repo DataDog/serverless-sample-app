@@ -109,12 +109,11 @@ class BedrockGenerator:
                 LLMObs.annotate(
                     input_data=messages,
                     output_data=[{"role": "assistant", "content": answer}],
-                    metadata={
-                        "usage": {
-                            "input_tokens": usage.get("input_tokens", 0),
-                            "output_tokens": usage.get("output_tokens", 0),
-                        },
-                        "system": SYSTEM_PROMPT,
+                    metadata={"max_tokens": MAX_TOKENS},
+                    metrics={
+                        "input_tokens": usage.get("input_tokens", 0),
+                        "output_tokens": usage.get("output_tokens", 0),
+                        "total_tokens": usage.get("input_tokens", 0) + usage.get("output_tokens", 0),
                     },
                 )
                 return answer

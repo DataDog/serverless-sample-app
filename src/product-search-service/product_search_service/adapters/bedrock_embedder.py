@@ -69,9 +69,9 @@ class BedrockEmbedder:
                     span.set_tag("gen_ai.embeddings.dimension.count", len(embedding_vector))
 
                 LLMObs.annotate(
-                    input_data=[{"text": text}],
-                    output_data=[{"embedding": embedding_vector}],
-                    metadata={"usage": {"input_tokens": token_count}},
+                    input_data={"text": text},
+                    output_data=embedding_vector,
+                    metrics={"input_tokens": token_count},
                 )
                 return embedding_vector
 
