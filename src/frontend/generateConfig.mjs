@@ -39,6 +39,11 @@ async function updateConfig() {
       `/${env}/ActivityService/api-endpoint`
     );
 
+    const productSearchEndpoint = await getParameterValue(
+      client,
+      `/${env}/ProductSearchService/api-endpoint`
+    );
+
     // Create config object
     const config = {
       PRODUCT_API_ENDPOINT: productApiEndpoint,
@@ -47,6 +52,7 @@ async function updateConfig() {
       ORDER_API_ENDPOINT: orderApiEndpoint,
       LOYALTY_API_ENDPOINT: loyaltyApiEndpoint,
       ACTIVITY_API_ENDPOINT: activityApiEndpoint,
+      PRODUCT_SEARCH_ENDPOINT: productSearchEndpoint,
       PRICING_API_ENDPOINT: "",
       DD_CLIENT_TOKEN: "",
       DD_APPLICATION_ID: "",
