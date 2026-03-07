@@ -11,6 +11,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -233,12 +234,12 @@ func (repo *DSqlProductRepository) executeWithRetry(ctx context.Context, operati
 			return nil // Success
 		}
 
-		// Check if it's an authentication error that might be resolved with a new connection
-		if isAuthError(err) && attempt < maxRetries {
-			log.Printf("Authentication error on attempt %d, will retry: %v", attempt+1, err)
-			continue
+		// Only retry authentication errors — all other errors are non-transient
+		if !isAuthError(err) {
+			return err
 		}
 
+		log.Printf("Authentication error on attempt %d, will retry: %v", attempt+1, err)
 		if attempt == maxRetries {
 			return fmt.Errorf("operation failed after %d attempts: %w", maxRetries+1, err)
 		}
@@ -330,6 +331,9 @@ func (repo *DSqlProductRepository) Get(ctx context.Context, productId string) (*
 		var p core.Product
 		err := row.Scan(&p.Id, &p.Name, &p.Price, &p.StockLevel)
 		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return &core.ProductNotFoundError{ProductId: productId}
+			}
 			resultErr = err
 			return err
 		}
