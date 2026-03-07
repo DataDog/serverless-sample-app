@@ -251,7 +251,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.PRODUCTION_AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "eu-west-2"
+          aws-region: "eu-north-1"
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -263,7 +263,7 @@ jobs:
           ENV: "prod"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
           DD_SITE: "datadoghq.eu"
-          AWS_REGION: "eu-west-2"
+          AWS_REGION: "eu-north-1"
         run: |
           cd src/pricing-service
           make build
@@ -281,7 +281,7 @@ jobs:
         shell: bash
         env:
           ENV: "prod"
-          AWS_REGION: "eu-west-2"
+          AWS_REGION: "eu-north-1"
         run: |
           cd src/pricing-service
           make integration-test

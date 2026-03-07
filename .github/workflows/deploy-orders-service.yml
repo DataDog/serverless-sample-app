@@ -295,7 +295,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.PRODUCTION_AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "eu-west-2"
+          aws-region: "eu-north-1"
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
