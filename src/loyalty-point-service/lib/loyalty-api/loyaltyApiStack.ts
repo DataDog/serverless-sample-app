@@ -14,6 +14,7 @@ import { Api } from "./api";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { LoyaltyACL } from "./loyaltyAcl";
 import { LoyaltyServiceProps } from "./loyaltyServiceProps";
+import { LoyaltyTierWorkflow } from "../loyalty-tier-workflow/loyaltyTierWorkflow";
 
 // no-dd-sa:typescript-best-practices/no-unnecessary-class
 export class LoyaltyApiStack extends cdk.Stack {
@@ -58,6 +59,11 @@ export class LoyaltyApiStack extends cdk.Stack {
       jwtSecret: loyaltyServiceProps.getJwtSecret(),
     });
     new LoyaltyACL(this, "LoyaltyACL", {
+      serviceProps: loyaltyServiceProps,
+      ddApiKeySecret: ddApiKey,
+      loyaltyTable: api.table,
+    });
+    new LoyaltyTierWorkflow(this, "LoyaltyTierWorkflow", {
       serviceProps: loyaltyServiceProps,
       ddApiKeySecret: ddApiKey,
       loyaltyTable: api.table,

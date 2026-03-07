@@ -181,7 +181,6 @@ export class Api extends Construct {
     );
 
     this.table.grantReadWriteData(loyaltyPointsUpdatedFunction.function);
-    props.jwtSecret.grantRead(loyaltyPointsUpdatedFunction.function);
     props.serviceProps
       .getPublisherBus()
       .grantPutEventsTo(loyaltyPointsUpdatedFunction.function);

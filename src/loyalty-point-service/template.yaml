@@ -472,3 +472,321 @@ Resources:
       Name: !Sub /${Env}/${ServiceName}/api-endpoint
       Type: String
       Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+
+################################################
+######### Durable Tier Upgrade Workflow ########
+################################################
+
+  TierUpgradeTriggerDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-TierUpgradeTriggerDLQ-${Env}"
+
+  TierUpgradeTriggerQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-TierUpgradeTrigger-${Env}"
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - "TierUpgradeTriggerDLQ"
+            - "Arn"
+        maxReceiveCount: 3
+
+  EBToTierUpgradeTriggerQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref TierUpgradeTriggerQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: allow-eb-send-message
+            Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Resource: !GetAtt TierUpgradeTriggerQueue.Arn
+            Action: SQS:SendMessage
+
+  TierUpgradeTriggerEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref LoyaltyServiceEventBus
+      Name: loyalty-tier-upgrade-trigger
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.loyalty"
+        detail-type:
+          - "loyalty.pointsAdded.v2"
+      Targets:
+        - Id: TierUpgradeTriggerQueue
+          Arn: !GetAtt TierUpgradeTriggerQueue.Arn
+
+  SharedTierUpgradeTriggerEventRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: shared-loyalty-tier-upgrade-trigger
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.loyalty"
+        detail-type:
+          - "loyalty.pointsAdded.v2"
+      Targets:
+        - Id: LoyaltyServiceEventBus
+          Arn: !GetAtt LoyaltyServiceEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToLoyaltyServiceEventBusRole.Arn
+
+  TierUpgradeTriggerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/tierUpgradeTrigger/tierUpgradeTrigger.zip
+      Handler: index.handler
+      FunctionName: !Sub TierUpgradeTrigger-${Env}
+      Environment:
+        Variables:
+          ORCHESTRATOR_FUNCTION_NAME: !Ref TierUpgradeOrchestratorFunction
+      Events:
+        TierUpgradeTriggerQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt TierUpgradeTriggerQueue.Arn
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: !GetAtt TierUpgradeOrchestratorFunction.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+
+  FetchOrderHistoryActivityFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/fetchOrderHistoryActivity/fetchOrderHistoryActivity.zip
+      Handler: index.handler
+      FunctionName: !Sub FetchOrderHistoryActivity-${Env}
+      Environment:
+        Variables:
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
+          ORDER_SERVICE_ENDPOINT_PARAM: !Sub /${Env}/OrderService/api-endpoint
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource:
+                - !If
+                  - IsIntegratedEnvironment
+                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/OrderService/api-endpoint"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+
+  TierUpgradeOrchestratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/tierUpgradeOrchestrator/tierUpgradeOrchestrator.zip
+      Handler: index.handler
+      FunctionName: !Sub TierUpgradeOrchestrator-${Env}
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref LoyaltyAccountTable
+          EVENT_BUS_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+            - !Ref LoyaltyServiceEventBus
+          FETCH_ORDER_HISTORY_ACTIVITY_ARN: !Sub "${FetchOrderHistoryActivityFunction.Arn}:$LATEST"
+          PRODUCT_SERVICE_ENDPOINT_PARAM: !Sub /${Env}/ProductService/api-endpoint
+          PRODUCT_SEARCH_ENDPOINT_PARAM: !Sub /${Env}/ProductSearchService/api-endpoint
+          JWT_SECRET_PARAM_NAME: !If
+            - IsIntegratedEnvironment
+            - !Sub /${Env}/shared/secret-access-key
+            - !Sub /${Env}/${ServiceName}/secret-access-key
+          ORDER_SERVICE_ENDPOINT_PARAM: !Sub /${Env}/OrderService/api-endpoint
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref LoyaltyAccountTable
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:CheckpointDurableExecution
+                - lambda:GetDurableExecutionState
+              Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:TierUpgradeOrchestrator-${Env}:*"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource:
+                - !GetAtt FetchOrderHistoryActivityFunction.Arn
+                - !Sub "${FetchOrderHistoryActivityFunction.Arn}:*"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:DescribeParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParameterHistory"
+                - "ssm:GetParameters"
+              Resource:
+                - !If
+                  - IsIntegratedEnvironment
+                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/shared/secret-access-key"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/${ServiceName}/secret-access-key"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/OrderService/api-endpoint"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/ProductService/api-endpoint"
+                - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Env}/ProductSearchService/api-endpoint"
+        - EventBridgePutEventsPolicy:
+            EventBusName: !If
+              - IsIntegratedEnvironment
+              - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+              - !Ref LoyaltyServiceEventBus
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+
+  NotificationAcknowledgerDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-NotificationAcknowledgerDLQ-${Env}"
+
+  NotificationAcknowledgerQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-NotificationAcknowledger-${Env}"
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+            - "NotificationAcknowledgerDLQ"
+            - "Arn"
+        maxReceiveCount: 3
+
+  EBToNotificationAcknowledgerQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref NotificationAcknowledgerQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: allow-eb-send-message
+            Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Resource: !GetAtt NotificationAcknowledgerQueue.Arn
+            Action: SQS:SendMessage
+
+  NotificationAcknowledgerEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !Ref LoyaltyServiceEventBus
+      Name: loyalty-notification-acknowledger
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.loyalty"
+        detail-type:
+          - "loyalty.tierUpgraded.v1"
+      Targets:
+        - Id: NotificationAcknowledgerQueue
+          Arn: !GetAtt NotificationAcknowledgerQueue.Arn
+
+  SharedNotificationAcknowledgerEventRule:
+    Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
+    Properties:
+      EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
+      Name: shared-loyalty-notification-acknowledger
+      State: ENABLED
+      EventPattern:
+        source:
+          - !Sub "${Env}.loyalty"
+        detail-type:
+          - "loyalty.tierUpgraded.v1"
+      Targets:
+        - Id: LoyaltyServiceEventBus
+          Arn: !GetAtt LoyaltyServiceEventBus.Arn
+          RoleArn: !GetAtt SharedEventBusToLoyaltyServiceEventBusRole.Arn
+
+  NotificationAcknowledgerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./out/notificationAcknowledger/notificationAcknowledger.zip
+      Handler: index.handler
+      FunctionName: !Sub NotificationAcknowledger-${Env}
+      Events:
+        NotificationAcknowledgerQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt NotificationAcknowledgerQueue.Arn
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:SendDurableExecutionCallbackSuccess
+                - lambda:SendDurableExecutionCallbackFailure
+              Resource: !GetAtt TierUpgradeOrchestratorFunction.Arn
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DDApiKeySecret
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Deny
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*

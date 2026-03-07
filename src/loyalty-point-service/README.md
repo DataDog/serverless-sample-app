@@ -2,7 +2,7 @@
 
 **Runtime:** Node.js 22 (TypeScript)
 
-**AWS Services:** API Gateway, Lambda, SQS, DynamoDB (with Streams), EventBridge
+**AWS Services:** API Gateway, Lambda (with Durable Execution), SQS, DynamoDB (with Streams), EventBridge
 
 ## What This Service Does
 
@@ -12,7 +12,8 @@ The loyalty point service manages user loyalty accounts and points. It reacts to
 
 1. **API** -- REST endpoints for retrieving a user's loyalty account (`GET /loyalty`) and spending points (`POST /loyalty`). Both endpoints require a JWT bearer token whose `sub` claim identifies the user.
 2. **ACL (Anti-Corruption Layer)** -- Consumes `users.userCreated.v1` and `orders.orderCompleted.v1`/`v2` events from EventBridge via SQS queues, translates them into internal operations (create account with 100 points, add 50 points per completed order).
-3. **Stream Handler** -- Listens to DynamoDB Streams on the loyalty table and publishes `loyalty.loyaltyPointsUpdated` events to EventBridge.
+3. **Stream Handler** -- Listens to DynamoDB Streams on the loyalty table and publishes `loyalty.pointsAdded.v2` events to EventBridge whenever a user's point total changes.
+4. **Tier Upgrade Workflow** -- A durable multi-step workflow (using AWS Lambda Durable Execution) that evaluates whether a user has crossed a loyalty tier threshold and, if so, gathers context, saves the new tier, publishes a notification event, and waits for external acknowledgement before completing.
 
 ### Architecture
 
@@ -22,9 +23,114 @@ EventBridge ──> SQS ──> HandleOrderCompleted Lambda ──> DynamoDB
                                                           │
                                                     DynamoDB Stream
                                                           │
-                                                  HandleLoyaltyPointsUpdated Lambda ──> EventBridge
+                                            HandleLoyaltyPointsUpdated Lambda ──> EventBridge (loyalty.pointsAdded.v2)
+                                                                                        │
+                                                          ┌─────────────────────────────┘
+                                                          ▼
+                                             SQS ──> TierUpgradeTrigger Lambda
+                                                          │ (async invoke)
+                                                          ▼
+                                             TierUpgradeOrchestrator Lambda (Durable)
+                                              │   │   │   │
+                                              │   │   │   └── wait for callback ──> EventBridge (loyalty.tierUpgraded.v1)
+                                              │   │   │                                    │
+                                              │   │   │                        SQS ──> NotificationAcknowledger Lambda
+                                              │   │   │                                    │ (SendDurableExecutionCallbackSuccess)
+                                              │   │   │                                    └──────────────────────────────────────┐
+                                              │   │   └── context.invoke ──> FetchOrderHistoryActivity Lambda                    │
+                                              │   └── context.step ──> Product Service (HTTP)                                    │
+                                              └── context.step ──> DynamoDB (read/write tier)  <──────────────────────────────────┘
+
 API Gateway ──> GetLoyaltyPoints Lambda ──> DynamoDB
 API Gateway ──> SpendLoyaltyPoints Lambda ──> DynamoDB
+```
+
+## Loyalty Tier Upgrade Workflow
+
+This is the most complex component of the service. It uses [AWS Lambda Durable Execution](https://docs.aws.amazon.com/lambda/latest/dg/durable-execution.html) via the `@aws/durable-execution-sdk-js` package to run a stateful, multi-step workflow entirely within Lambda — no Step Functions required.
+
+### What it does
+
+When a user's loyalty points are updated, the workflow evaluates whether they have crossed a tier threshold and, if so, runs the following steps in order:
+
+| Step | Description |
+|---|---|
+| `read-account` | Reads the user's current tier and version from DynamoDB |
+| `evaluate-tier` | Computes the new tier based on current points (Bronze → Silver → Gold → Platinum) |
+| `gather-context` (parallel) | Fetches product recommendations from the Product Service and Product Search Service simultaneously |
+| `fetch-order-history` | Invokes the `FetchOrderHistoryActivity` Lambda (pinned to a specific version) to retrieve the user's order history from the Order Service |
+| `upgrade-tier` | Writes the new tier to DynamoDB with optimistic locking (conditional write on `TierVersion`) |
+| `await-notification-ack` | Publishes a `loyalty.tierUpgraded.v1` event to EventBridge and suspends execution, waiting up to 5 minutes for an acknowledgement callback |
+| `record-completion` | Marks the tier record as notified in DynamoDB |
+
+If the user has not yet reached the next tier threshold, the workflow exits early after `evaluate-tier` with no writes or events.
+
+### Tier thresholds
+
+| Tier | Points required |
+|---|---|
+| Bronze | 0 (default) |
+| Silver | 500 |
+| Gold | 1500 |
+| Platinum | 3000 |
+
+Tiers only upgrade — a decrease in points (hypothetically) will not trigger a downgrade.
+
+### Idempotency
+
+Optimistic locking on `TierVersion` in DynamoDB prevents duplicate upgrades. If a `ConditionalCheckFailedException` is thrown at the `upgrade-tier` step (e.g., because multiple `loyalty.pointsAdded.v2` events fired concurrently), the write is rejected and the workflow stops. Durable execution's built-in replay semantics ensure completed steps are never re-executed.
+
+### How the callback works
+
+After publishing the `loyalty.tierUpgraded.v1` event, the orchestrator suspends using `context.waitForCallback`. The event payload includes a `callbackId`. A separate `NotificationAcknowledger` Lambda subscribes to `loyalty.tierUpgraded.v1` via SQS and calls the Lambda `SendDurableExecutionCallbackSuccess` API with that `callbackId`, which resumes the suspended orchestrator.
+
+### Lambda functions
+
+| Function | CDK construct ID | Purpose |
+|---|---|---|
+| `TierUpgradeTrigger` | `LoyaltyTierWorkflow/TierUpgradeTrigger` | SQS consumer that receives `loyalty.pointsAdded.v2` and asynchronously invokes the orchestrator |
+| `TierUpgradeOrchestrator` | `LoyaltyTierWorkflow/TierUpgradeOrchestrator` | Durable workflow function; orchestrates all steps |
+| `FetchOrderHistoryActivity` | `LoyaltyTierWorkflow/FetchOrderHistoryActivity` | Activity Lambda invoked by the orchestrator to call the Order Service |
+| `NotificationAcknowledger` | `LoyaltyTierWorkflow/NotificationAcknowledger` | SQS consumer that receives `loyalty.tierUpgraded.v1` and sends the durable callback |
+
+### Configuration
+
+The following SSM Parameter Store values must exist before deploying (they are read at runtime, not synthesis):
+
+| SSM Parameter | Consumer function | Description |
+|---|---|---|
+| `/<ENV>/shared/secret-access-key` | `FetchOrderHistoryActivity` | JWT signing secret shared with the Order Service |
+| `/<ENV>/OrderService/api-endpoint` | `FetchOrderHistoryActivity` | Base URL of the Order Service API |
+| `/<ENV>/ProductService/api-endpoint` | `TierUpgradeOrchestrator` | Base URL of the Product Service API |
+| `/<ENV>/ProductSearchService/api-endpoint` | `TierUpgradeOrchestrator` | Base URL of the Product Search Service API |
+
+The orchestrator function also requires these IAM actions (granted automatically by the CDK construct):
+
+- `lambda:CheckpointDurableExecution` — to save and replay workflow state
+- `lambda:GetDurableExecutionState` — to read current workflow state on replay
+- `lambda:SendDurableExecutionCallbackSuccess` / `lambda:SendDurableExecutionCallbackFailure` — granted to the `NotificationAcknowledger` to resume the suspended orchestrator
+
+### SDK version requirement
+
+`SendDurableExecutionCallbackSuccessCommand` requires `@aws-sdk/client-lambda >= 3.1004.0`. This is declared as a `devDependency` in `package.json` and is included in the bundled Lambda deployment packages via esbuild.
+
+### Source layout
+
+```
+src/loyalty-tier-workflow/
+├── trigger/                    # TierUpgradeTrigger handler + esbuild config
+├── orchestrator/               # TierUpgradeOrchestrator handler + esbuild config
+├── activities/                 # FetchOrderHistoryActivity handler + esbuild config
+├── acknowledger/               # NotificationAcknowledger handler + esbuild config
+└── core/
+    ├── tier.ts                 # Tier enum, thresholds, and evaluateTierChange logic
+    ├── tierRepository.ts       # TierRepository interface
+    └── adapters/
+        ├── dynamoDbTierRepository.ts   # DynamoDB read/write with optimistic locking
+        ├── eventBridgeTierPublisher.ts # Publishes loyalty.tierUpgraded.v1
+        ├── orderServiceClient.ts       # HTTP client for Order Service
+        ├── productServiceClient.ts     # HTTP client for Product Service
+        └── productSearchClient.ts      # HTTP client for Product Search Service
 ```
 
 ## Prerequisites
@@ -251,14 +357,21 @@ Message processing and publishing spans follow the [OTel Semantic Conventions fo
 ├── bin/                        # CDK app entry point
 ├── lib/
 │   ├── constructs/             # Reusable CDK constructs (InstrumentedFunction, ResilientQueue)
-│   └── loyalty-api/            # CDK stack definitions (API, ACL, props)
+│   ├── loyalty-api/            # CDK stack definitions (API, ACL, props)
+│   └── loyalty-tier-workflow/  # CDK construct for the durable tier upgrade workflow
 ├── src/
 │   ├── loyalty-api/
 │   │   ├── adapters/           # Lambda handler entry points and infrastructure adapters
 │   │   └── core/               # Domain logic, DTOs, event definitions
+│   ├── loyalty-tier-workflow/
+│   │   ├── trigger/            # TierUpgradeTrigger handler + esbuild config
+│   │   ├── orchestrator/       # TierUpgradeOrchestrator (durable) handler + esbuild config
+│   │   ├── activities/         # FetchOrderHistoryActivity handler + esbuild config
+│   │   ├── acknowledger/       # NotificationAcknowledger handler + esbuild config
+│   │   └── core/               # Tier domain logic, repository interface, and adapters
 │   └── observability/          # Shared tracing and DSM helpers
 ├── tests/
-│   └── loyalty-service-tests/  # Integration tests
+│   └── loyalty-service-tests/  # Integration tests (including tier upgrade workflow tests)
 ├── infra/                      # Terraform configuration
 ├── template.yaml               # SAM template
 ├── serverless.yml              # Serverless Framework config

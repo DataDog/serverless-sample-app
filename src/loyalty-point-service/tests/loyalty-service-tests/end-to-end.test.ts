@@ -16,19 +16,23 @@ let asyncDelay = 5000;
 
 describe("integration-tests", () => {
   beforeAll(async () => {
+    const env = process.env.ENV ?? "dev";
+    const serviceName = "LoyaltyService";
+
     if (
       process.env.API_ENDPOINT !== undefined &&
       process.env.EVENT_BUS_NAME !== undefined
     ) {
+      const tableName =
+        process.env.TABLE_NAME ?? `${serviceName}-Points-${env}`;
       apiDriver = new ApiDriver(
         process.env.API_ENDPOINT,
-        process.env.EVENT_BUS_NAME!
+        process.env.EVENT_BUS_NAME!,
+        tableName
       );
       return;
     }
 
-    const env = process.env.ENV ?? "dev";
-    const serviceName = "LoyaltyService";
     const sharedServiceName =
       env === "dev" || env === "prod" ? "shared" : serviceName;
 
@@ -61,7 +65,23 @@ describe("integration-tests", () => {
     // no-dd-sa:typescript-best-practices/no-console
     console.log(`API endpoint under test is: ${apiEndpoint}`);
 
-    apiDriver = new ApiDriver(apiEndpoint, eventBusNameParam.Parameter?.Value!);
+    let tableName = `${serviceName}-Points-${env}`;
+    try {
+      const tableNameParam = await ssmCLient.send(
+        new GetParameterCommand({
+          Name: `/${env}/${serviceName}/table-name`,
+        })
+      );
+      tableName = tableNameParam.Parameter?.Value ?? tableName;
+    } catch {
+      // SSM parameter may not exist in all deployments; fall back to default
+    }
+
+    apiDriver = new ApiDriver(
+      apiEndpoint,
+      eventBusNameParam.Parameter?.Value!,
+      tableName
+    );
   });
 
   it("when user created, should be able to retrieve loyalty account", async () => {
@@ -139,6 +159,154 @@ describe("integration-tests", () => {
 
     return token;
   }
+});
+
+describe("tier-upgrade-workflow", () => {
+  beforeAll(async () => {
+    if (
+      process.env.API_ENDPOINT !== undefined &&
+      process.env.EVENT_BUS_NAME !== undefined
+    ) {
+      const env = process.env.ENV ?? "dev";
+      const serviceName = "LoyaltyService";
+      const tableName =
+        process.env.TABLE_NAME ?? `${serviceName}-Points-${env}`;
+      apiDriver = new ApiDriver(
+        process.env.API_ENDPOINT,
+        process.env.EVENT_BUS_NAME!,
+        tableName
+      );
+      return;
+    }
+
+    const env = process.env.ENV ?? "dev";
+    const serviceName = "LoyaltyService";
+    const sharedServiceName =
+      env === "dev" || env === "prod" ? "shared" : serviceName;
+
+    const ssmCLient = new SSMClient();
+
+    const apiEndpointParameter = await ssmCLient.send(
+      new GetParameterCommand({
+        Name: `/${env}/${serviceName}/api-endpoint`,
+      })
+    );
+
+    const jwtSecretParameter = await ssmCLient.send(
+      new GetParameterCommand({
+        Name: `/${env}/${sharedServiceName}/secret-access-key`,
+      })
+    );
+    jwtSecretValue = jwtSecretParameter.Parameter!.Value!;
+
+    const eventBusNameParam = await ssmCLient.send(
+      new GetParameterCommand({
+        Name: `/${env}/${sharedServiceName}/event-bus-name`,
+      })
+    );
+
+    let apiEndpoint = apiEndpointParameter.Parameter!.Value!;
+    if (apiEndpoint.endsWith("/")) {
+      apiEndpoint = apiEndpoint.slice(0, -1);
+    }
+
+    let tableName = `${serviceName}-Points-${env}`;
+    try {
+      const tableNameParam = await ssmCLient.send(
+        new GetParameterCommand({
+          Name: `/${env}/${serviceName}/table-name`,
+        })
+      );
+      tableName = tableNameParam.Parameter?.Value ?? tableName;
+    } catch {
+      // SSM parameter may not exist in all deployments; fall back to default
+    }
+
+    apiDriver = new ApiDriver(
+      apiEndpoint,
+      eventBusNameParam.Parameter?.Value!,
+      tableName
+    );
+  });
+
+  it(
+    "when user accumulates enough points for Silver tier, tier should be upgraded",
+    async () => {
+      // Create user (100 points)
+      const testUserId = randomUUID().toString();
+      await apiDriver.injectUserCreatedEvent(testUserId);
+      await delay(asyncDelay);
+
+      // Inject 8 orders to reach exactly 500 points → Silver tier
+      const orderIds = Array.from({ length: 8 }, () =>
+        randomUUID().toString()
+      );
+      for (const orderId of orderIds) {
+        await apiDriver.injectOrderCompletedEvent(testUserId, orderId);
+      }
+
+      // Wait for the full durable workflow to complete
+      // (trigger → orchestrator → parallel product/order fetch → upgrade → waitForCallback → ack → complete)
+      await delay(20000);
+
+      const tier = await apiDriver.getTierForUser(testUserId);
+
+      expect(tier).not.toBeNull();
+      expect(tier!.tier).toBe("Silver");
+      expect(tier!.pointsAtUpgrade).toBe(500);
+    },
+    60000
+  );
+
+  it(
+    "when user accumulates Silver-tier points, multiple pointsAdded events should only upgrade tier once",
+    async () => {
+      const testUserId = randomUUID().toString();
+      await apiDriver.injectUserCreatedEvent(testUserId);
+      await delay(asyncDelay);
+
+      // Inject enough orders to cross Silver threshold
+      const orderIds = Array.from({ length: 8 }, () =>
+        randomUUID().toString()
+      );
+      for (const orderId of orderIds) {
+        await apiDriver.injectOrderCompletedEvent(testUserId, orderId);
+      }
+
+      await delay(20000);
+
+      const tier = await apiDriver.getTierForUser(testUserId);
+      expect(tier).not.toBeNull();
+      expect(tier!.tier).toBe("Silver");
+      // TierVersion should be 1 — only one upgrade despite multiple pointsAdded events
+      expect(tier!.tierVersion).toBe(1);
+    },
+    60000
+  );
+
+  it(
+    "when user has fewer than 500 points, no tier item should exist",
+    async () => {
+      const testUserId = randomUUID().toString();
+      await apiDriver.injectUserCreatedEvent(testUserId);
+      await delay(asyncDelay);
+
+      // Only 3 orders → 100 + 150 = 250 points, below Silver threshold
+      const orderIds = Array.from({ length: 3 }, () =>
+        randomUUID().toString()
+      );
+      for (const orderId of orderIds) {
+        await apiDriver.injectOrderCompletedEvent(testUserId, orderId);
+      }
+
+      await delay(10000);
+
+      const tier = await apiDriver.getTierForUser(testUserId);
+      // No tier upgrade should have occurred
+      expect(tier).toBeNull();
+    },
+    30000
+  );
 });
 
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
