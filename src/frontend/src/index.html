@@ -38,21 +38,19 @@
       </div>
 
       <div class="search-section">
-        <form id="searchForm" onsubmit="return false;">
-          <div class="search-bar">
-            <input
-              type="search"
-              id="searchInput"
-              placeholder='Ask AI — e.g. "gifts for outdoor enthusiasts"'
-              aria-label="Search products with AI"
-            />
-            <button type="submit" id="searchBtn" onclick="runSearch()">Search</button>
-          </div>
-        </form>
+        <fieldset role="group">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder='Ask AI — e.g. "gifts for outdoor enthusiasts"'
+            aria-label="Search products with AI"
+          />
+          <button id="searchBtn" onclick="runSearch()">Search</button>
+        </fieldset>
         <div id="searchResults" style="display:none;">
           <article class="search-answer" id="searchAnswer"></article>
           <div class="search-product-cards" id="searchProductCards"></div>
-          <button class="outline" onclick="clearSearch()">Clear search — show all products</button>
+          <button class="search-clear-btn" onclick="clearSearch()">Clear search — show all products</button>
         </div>
       </div>
 

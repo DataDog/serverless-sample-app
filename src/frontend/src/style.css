@@ -220,6 +220,54 @@ footer.container a:hover { color: #F4A07A; }
 }
 
 /* =========================================
+   AI SEARCH
+   ========================================= */
+.search-section {
+  margin-bottom: 2rem;
+}
+
+.search-section fieldset[role="group"] {
+  margin-bottom: 0;
+}
+
+.search-answer {
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  background: rgba(201, 72, 34, 0.06);
+  border: 1px solid rgba(201, 72, 34, 0.2);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--content-radius);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--pico-color);
+}
+
+.search-product-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.search-clear-btn {
+  background: transparent;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  margin: 0;
+}
+
+.search-clear-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(201, 72, 34, 0.04);
+}
+
+/* =========================================
    PRODUCT GRID
    ========================================= */
 .product-grid {
