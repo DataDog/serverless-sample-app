@@ -7,7 +7,7 @@
 
 import { Construct } from "constructs";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
-import { Code, IDestination, Runtime } from "aws-cdk-lib/aws-lambda";
+import { Code, DurableConfig, IDestination, Runtime } from "aws-cdk-lib/aws-lambda";
 import { Duration, Tags } from "aws-cdk-lib";
 import { Alias } from "aws-cdk-lib/aws-kms";
 import { SharedProps } from "./sharedFunctionProps";
@@ -24,6 +24,7 @@ export class InstrumentedLambdaFunctionProps {
   memorySize?: number;
   logLevel?: string;
   onFailure: IDestination | undefined;
+  durableConfig?: DurableConfig;
 }
 
 export class InstrumentedLambdaFunction extends Construct {
@@ -52,6 +53,7 @@ export class InstrumentedLambdaFunction extends Construct {
       memorySize: props.memorySize ?? 512,
       timeout: props.timeout ?? Duration.seconds(29),
       onFailure: props.onFailure,
+      durableConfig: props.durableConfig,
       environment: {
         POWERTOOLS_SERVICE_NAME: props.sharedProps.serviceName,
         POWERTOOLS_LOG_LEVEL:

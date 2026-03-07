@@ -43,7 +43,12 @@ esbuild
       "@aws-sdk/client-dynamodb",
       "@aws-sdk/client-eventbridge",
       "@aws-sdk/client-ssm",
-      "@aws-sdk/client-lambda",
+
+      // NOTE: @aws-sdk/client-lambda is intentionally NOT external here.
+      // @aws/durable-execution-sdk-js uses clientLambda.OperationStatus.SUCCEEDED
+      // internally. The Lambda runtime ships an older Lambda SDK that does not
+      // export OperationStatus, causing a runtime TypeError. Bundling the SDK
+      // ensures the correct version (>=3.1004.0) is used.
 
       // @aws/durable-execution-sdk-js is bundled (NOT external) so the
       // orchestrator replay determinism is preserved within the bundle.

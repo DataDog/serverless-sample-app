@@ -43,7 +43,11 @@ esbuild
       "@aws-sdk/client-dynamodb",
       "@aws-sdk/client-eventbridge",
       "@aws-sdk/client-ssm",
-      "@aws-sdk/client-lambda",
+
+      // NOTE: @aws-sdk/client-lambda is intentionally NOT external here.
+      // SendDurableExecutionCallbackSuccessCommand requires >=3.1004.0 but
+      // the Lambda runtime ships an older version. Bundling ensures the
+      // correct version is used.
     ],
   })
   .catch((err) => {
