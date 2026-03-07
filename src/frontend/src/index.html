@@ -37,6 +37,25 @@
         <p class="shop-tagline">Select items and add them to your order.</p>
       </div>
 
+      <div class="search-section">
+        <form id="searchForm" onsubmit="return false;">
+          <div class="search-bar">
+            <input
+              type="search"
+              id="searchInput"
+              placeholder='Ask AI — e.g. "gifts for outdoor enthusiasts"'
+              aria-label="Search products with AI"
+            />
+            <button type="submit" id="searchBtn" onclick="runSearch()">Search</button>
+          </div>
+        </form>
+        <div id="searchResults" style="display:none;">
+          <article class="search-answer" id="searchAnswer"></article>
+          <div class="search-product-cards" id="searchProductCards"></div>
+          <button class="outline" onclick="clearSearch()">Clear search — show all products</button>
+        </div>
+      </div>
+
       <div class="grid">
         <div class="product-grid" id="productCards">
           <!-- Product cards will be dynamically inserted here -->

@@ -8,6 +8,10 @@ let jwt = "";
 $(document).ready(function () {
   jwt = localStorage.getItem("jwt");
   refreshData();
+
+  document.getElementById("searchInput")?.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); runSearch(); }
+  });
 });
 
 function viewProduct(productId, btnElement) {
@@ -268,8 +272,62 @@ function closeModal() {
   productModal.removeAttribute("open");
 }
 
+function runSearch() {
+  const query = document.getElementById("searchInput").value.trim();
+  if (!query) return;
+
+  const searchBtn = document.getElementById("searchBtn");
+  searchBtn.ariaBusy = "true";
+  searchBtn.textContent = "Searching...";
+
+  $.ajax({
+    url: `${config.PRODUCT_SEARCH_ENDPOINT}/search`,
+    method: "POST",
+    contentType: "application/json",
+    data: JSON.stringify({ query }),
+    success: function (response) {
+      searchBtn.ariaBusy = "false";
+      searchBtn.textContent = "Search";
+      displaySearchResults(response);
+    },
+    error: function (xhr) {
+      searchBtn.ariaBusy = "false";
+      searchBtn.textContent = "Search";
+      const msg = xhr.responseJSON?.error ?? "Search failed. Please try again.";
+      alert(msg);
+    },
+  });
+}
+
+function displaySearchResults(response) {
+  const answerEl = document.getElementById("searchAnswer");
+  answerEl.textContent = response.answer;
+
+  const searchCards = document.getElementById("searchProductCards");
+  while (searchCards.firstChild) { searchCards.removeChild(searchCards.firstChild); }
+  (response.products ?? []).forEach((product) => {
+    searchCards.appendChild(
+      buildProductCard(product.productId, product.name, product.price, product.stockLevel)
+    );
+  });
+
+  document.getElementById("productCards").style.display = "none";
+  document.getElementById("searchResults").style.display = "block";
+}
+
+function clearSearch() {
+  document.getElementById("searchInput").value = "";
+  document.getElementById("searchResults").style.display = "none";
+  document.getElementById("searchAnswer").textContent = "";
+  const searchCards = document.getElementById("searchProductCards");
+  while (searchCards.firstChild) { searchCards.removeChild(searchCards.firstChild); }
+  document.getElementById("productCards").style.display = "";
+}
+
 window.closeProductModal = closeModal;
 window.addToOrder = addToOrder;
 window.createOrder = createOrder;
 window.removeFromOrder = removeFromOrder;
 window.viewProduct = viewProduct;
+window.runSearch = runSearch;
+window.clearSearch = clearSearch;

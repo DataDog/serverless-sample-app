@@ -34,6 +34,10 @@ async function updateConfig() {
       client,
       `/${env}/InventoryService/api-endpoint`
     );
+    const productSearchEndpoint = await getParameterValue(
+      client,
+      `/${env}/ProductSearchService/api-endpoint`
+    );
 
     const envVars = [
       `export PRODUCT_API_ENDPOINT="${productApiEndpoint}"`,
@@ -41,6 +45,7 @@ async function updateConfig() {
       `export INVENTORY_API_ENDPOINT="${inventoryApiEndpoint}"`,
       `export ORDER_API_ENDPOINT="${orderApiEndpoint}"`,
       `export LOYALTY_API_ENDPOINT="${loyaltyApiEndpoint}"`,
+      `export PRODUCT_SEARCH_ENDPOINT="${productSearchEndpoint}"`,
     ].join("\n");
 
     console.log(envVars);

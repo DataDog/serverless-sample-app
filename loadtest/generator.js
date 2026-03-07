@@ -63,4 +63,21 @@ module.exports = {
 
     return done();
   },
+  generateSearchQuery: function (context, events, done) {
+    const queries = [
+      "products suitable for outdoor activities",
+      "items for a relaxing afternoon",
+      "gifts for someone who loves cooking",
+      "affordable products under ten dollars",
+      "premium items for special occasions",
+      "products great for beginners",
+      "items perfect for the office",
+      "something unique and handmade",
+      "popular products in stock",
+      "products for a cozy evening at home",
+    ];
+    const idx = Math.floor(Math.random() * queries.length);
+    context.vars.SearchQuery = queries[idx];
+    return done();
+  },
 };
