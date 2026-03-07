@@ -144,3 +144,12 @@ scenarios:
           json:
             name: "{{ProductName}}"
             price: "{{Price}}"
+  - name: "Product search"
+    flow:
+      - function: "generateSearchQuery"
+      - post:
+          url: "{{ $processEnvironment.PRODUCT_SEARCH_ENDPOINT }}/search"
+          headers:
+            Content-Type: "application/json"
+          json:
+            query: "{{ SearchQuery }}"
