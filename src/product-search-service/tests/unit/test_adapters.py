@@ -201,6 +201,7 @@ class TestAddMessagingSpanTags:
         mock_context_cls.assert_called_once_with(
             trace_id=int("4bf92f3577b34da6a3ce929d0e0e4736", 16),
             span_id=int("00f067aa0ba902b7", 16),
+            is_remote=True,
         )
         mock_span.link_span.assert_called_once()
 

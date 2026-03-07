@@ -31,7 +31,7 @@ def add_messaging_span_tags(
     span.set_tag("messaging.operation.type", "process")
     span.set_tag("messaging.operation.name", "process")
     span.set_tag("messaging.batch.message_count", 1)
-    span.set_tag("messaging.system", "eventbridge")
+    span.set_tag("messaging.system", "aws_sqs")
 
     if not trace_parent:
         return
@@ -46,11 +46,14 @@ def add_messaging_span_tags(
     span.set_tag("traceparent.span_id", parts[2])
     span.set_tag("traceparent.flags", parts[3])
 
-    linked_context = Context(
-        trace_id=int(parts[1], 16),
-        span_id=int(parts[2], 16),
-        is_remote=True,  # Required for correct span link rendering in Datadog UI
-    )
+    try:
+        linked_context = Context(
+            trace_id=int(parts[1], 16),
+            span_id=int(parts[2], 16),
+            is_remote=True,  # Required for correct span link rendering in Datadog UI
+        )
+    except ValueError:
+        return
     span.link_span(linked_context)
 
 

@@ -110,10 +110,6 @@ def _run_rag_pipeline(query: str) -> SearchResponse:
 
     if not products:
         logger.info("No matching products found for query", query_length=len(query))
-        return SearchResponse(
-            answer="I couldn't find any products matching your query. Please try a different search.",
-            products=[],
-        )
 
     answer = _get_generator().generate_answer(query, products)
 

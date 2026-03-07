@@ -275,8 +275,8 @@ class TestPricingCalculatedEvent:
         embedder.embed.assert_called_once()
         vector_repo.upsert.assert_called_once()
 
-    def test_pricing_calculated_retries_when_product_missing(self) -> None:
-        """When the metadata cache has no entry, pricing update should raise ValueError for SQS retry."""
+    def test_pricing_calculated_drops_gracefully_when_product_missing_everywhere(self) -> None:
+        """When neither the metadata cache nor the Product API has the product, the event is dropped gracefully."""
         event = make_sqs_event(
             PRICING_CALCULATED,
             {"productId": "ghost-prod", "priceBrackets": [{"quantity": 1, "price": 5.0}]},
@@ -286,19 +286,21 @@ class TestPricingCalculatedEvent:
         vector_repo = MagicMock()
         metadata_repo = MagicMock()
         metadata_repo.get.return_value = None
+        product_api = MagicMock()
+        product_api.get_product.return_value = None
 
         with (
             patch(_PATCH_EMBEDDER, return_value=embedder),
             patch(_PATCH_VECTOR, return_value=vector_repo),
             patch(_PATCH_METADATA, return_value=metadata_repo),
-            patch(_PATCH_PRODUCT_API, return_value=MagicMock()),
+            patch(_PATCH_PRODUCT_API, return_value=product_api),
             patch(_PATCH_DSM),
             patch(_PATCH_SPAN_TAGS),
         ):
             result = lambda_handler(event, _LAMBDA_CONTEXT)
 
-        assert result["batchItemFailures"], (
-            "Expected the record to be reported as a failure so SQS retries it"
+        assert result["batchItemFailures"] == [], (
+            "Event should be dropped gracefully when product is not found anywhere"
         )
         embedder.embed.assert_not_called()
         vector_repo.upsert.assert_not_called()
@@ -334,8 +336,8 @@ class TestStockUpdatedEvent:
         embedder.embed.assert_called_once()
         vector_repo.upsert.assert_called_once()
 
-    def test_stock_updated_retries_when_product_missing(self) -> None:
-        """When the metadata cache has no entry, stock update should raise ValueError for SQS retry."""
+    def test_stock_updated_drops_gracefully_when_product_missing_everywhere(self) -> None:
+        """When neither the metadata cache nor the Product API has the product, the event is dropped gracefully."""
         event = make_sqs_event(
             STOCK_UPDATED,
             {"productId": "ghost-prod", "stockLevel": 10.0},
@@ -345,19 +347,21 @@ class TestStockUpdatedEvent:
         vector_repo = MagicMock()
         metadata_repo = MagicMock()
         metadata_repo.get.return_value = None
+        product_api = MagicMock()
+        product_api.get_product.return_value = None
 
         with (
             patch(_PATCH_EMBEDDER, return_value=embedder),
             patch(_PATCH_VECTOR, return_value=vector_repo),
             patch(_PATCH_METADATA, return_value=metadata_repo),
-            patch(_PATCH_PRODUCT_API, return_value=MagicMock()),
+            patch(_PATCH_PRODUCT_API, return_value=product_api),
             patch(_PATCH_DSM),
             patch(_PATCH_SPAN_TAGS),
         ):
             result = lambda_handler(event, _LAMBDA_CONTEXT)
 
-        assert result["batchItemFailures"], (
-            "Expected the record to be reported as a failure so SQS retries it"
+        assert result["batchItemFailures"] == [], (
+            "Event should be dropped gracefully when product is not found anywhere"
         )
         embedder.embed.assert_not_called()
         vector_repo.upsert.assert_not_called()

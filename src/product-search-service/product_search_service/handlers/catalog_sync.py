@@ -31,7 +31,7 @@ STOCK_UPDATED = "inventory.stockUpdated.v1"
 
 logger = Logger()
 tracer.set_tags({"domain": "product-search", "team": "product-search"})
-processor = BatchProcessor(event_type=EventType.SQS)
+processor = BatchProcessor(event_type=EventType.SQS, raise_on_entire_batch_failure=False)
 
 _embedder: BedrockEmbedder | None = None
 _vector_repo: VectorRepository | None = None
