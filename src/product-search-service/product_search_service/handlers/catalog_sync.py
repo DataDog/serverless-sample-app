@@ -361,7 +361,9 @@ def handle_stock_updated(
         logger.info("Product not in cache, indexing proactively before stock update", product_id=product_id)
         existing = _get_product_api().get_product(product_id)
         if existing is None:
-            logger.warning("Product not found in Product API, dropping stock event", product_id=product_id)
+            logger.warning("Product not found in Product API, removing from search index", product_id=product_id)
+            _get_metadata_repo().delete(product_id)
+            _get_vector_repo().delete(product_id)
             return
         initial_embedding = _get_embedder().embed(existing.to_embedding_text())
         _get_metadata_repo().upsert(existing)
