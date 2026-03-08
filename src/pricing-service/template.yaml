@@ -50,6 +50,8 @@ Globals:
     Architectures:
       - x86_64
   Api:
+    Auth:
+      DefaultAuthorizer: NONE
     Cors:
       AllowMethods: "'POST, GET, PUT, DELETE'"
       AllowHeaders: "'*'"

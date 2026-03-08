@@ -62,6 +62,7 @@ export async function search(query: string): Promise<SearchResult> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query }),
+      signal: AbortSignal.timeout(5000),
     });
 
     span.addTags({ "http.status_code": response.status });

@@ -59,6 +59,7 @@ export async function getUserOrders(
       headers: {
         Authorization: `Bearer ${jwtToken}`,
       },
+      signal: AbortSignal.timeout(5000),
     });
 
     span.addTags({ "http.status_code": response.status });

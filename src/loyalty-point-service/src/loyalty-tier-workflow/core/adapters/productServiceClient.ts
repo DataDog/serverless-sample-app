@@ -51,7 +51,9 @@ export async function listProducts(): Promise<ProductRecord[]> {
       "peer.service": "ProductService",
     });
 
-    const response = await fetch(`${baseUrl}/product`);
+    const response = await fetch(`${baseUrl}/product`, {
+      signal: AbortSignal.timeout(5000),
+    });
 
     span.addTags({ "http.status_code": response.status });
 

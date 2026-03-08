@@ -75,6 +75,13 @@ export class Api extends Construct {
         bisectBatchOnError: true,
         onFailure: new SqsDlq(loyaltyPointsUpdatedFailureDlq),
         retryAttempts: 2,
+        filters: [
+          {
+            pattern: JSON.stringify({
+              dynamodb: { NewImage: { Type: { S: ["LoyaltyAccount"] } } },
+            }),
+          },
+        ],
       })
     );
     this.table.grantStreamRead(loyaltyPointsUpdatedFunction.function);

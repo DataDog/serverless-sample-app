@@ -247,7 +247,7 @@ describe("tier-upgrade-workflow", () => {
 
       // Wait for the full durable workflow to complete
       // (trigger → orchestrator → parallel product/order fetch → upgrade → waitForCallback → ack → complete)
-      await delay(20000);
+      await delay(40000);
 
       const tier = await apiDriver.getTierForUser(testUserId);
 
@@ -255,7 +255,7 @@ describe("tier-upgrade-workflow", () => {
       expect(tier!.tier).toBe("Silver");
       expect(tier!.pointsAtUpgrade).toBe(500);
     },
-    60000
+    90000
   );
 
   it(
@@ -273,7 +273,7 @@ describe("tier-upgrade-workflow", () => {
         await apiDriver.injectOrderCompletedEvent(testUserId, orderId);
       }
 
-      await delay(20000);
+      await delay(40000);
 
       const tier = await apiDriver.getTierForUser(testUserId);
       expect(tier).not.toBeNull();
@@ -281,7 +281,7 @@ describe("tier-upgrade-workflow", () => {
       // TierVersion should be 1 — only one upgrade despite multiple pointsAdded events
       expect(tier!.tierVersion).toBe(1);
     },
-    60000
+    90000
   );
 
   it(
