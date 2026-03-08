@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import os
 import time
 import uuid
 
 import pytest
 
-from .api_driver import ProductSearchApiDriver, initialize_driver
+from .api_driver import INTEGRATED_ENVIRONMENTS, ProductSearchApiDriver, initialize_driver
 
 # How long to wait for the async catalog sync pipeline to complete:
 #   EventBridge → SQS → Lambda cold start → Bedrock embed → S3 Vectors write
@@ -75,8 +76,13 @@ class TestSearchEndpointSmoke:
 # Pipeline tests — verify the full write→read pipeline end to end.
 # These create real products, wait for async processing, then search.
 # Requires: Product Management Service deployed, Bedrock access, S3 Vectors bucket.
+# Skipped in ephemeral (commit-hash) environments: no shared event bus or product service.
 # ---------------------------------------------------------------------------
 
+@pytest.mark.skipif(
+    os.environ.get("ENV", "dev") not in INTEGRATED_ENVIRONMENTS,
+    reason="Pipeline tests require the shared EventBridge bus and Product Management Service (dev/prod only)",
+)
 class TestCatalogSyncPipeline:
     def test_newly_created_product_appears_in_search(self, driver: ProductSearchApiDriver) -> None:
         """A product created via the Product API is searchable after catalog sync completes."""

@@ -141,10 +141,15 @@ def _generate_id() -> str:
     return "".join(random.choices(string.ascii_lowercase + string.digits, k=12))
 
 
+INTEGRATED_ENVIRONMENTS = ["dev", "prod"]
+
+
 def initialize_driver() -> ProductSearchApiDriver:
     """Resolve service endpoints and return an initialised driver.
 
     Checks ENV vars first (for local overrides), then falls back to SSM discovery.
+    Shared parameters (event bus, product service endpoint) only exist for dev/prod;
+    ephemeral (commit-hash) environments skip those lookups.
     """
     search_endpoint = os.environ.get("SEARCH_API_ENDPOINT")
     product_endpoint = os.environ.get("PRODUCT_API_ENDPOINT")
@@ -160,12 +165,17 @@ def initialize_driver() -> ProductSearchApiDriver:
         Name=f"/{env}/ProductSearchService/api-endpoint"
     )["Parameter"]["Value"]
 
-    product_endpoint = ssm.get_parameter(
-        Name=f"/{env}/ProductService/api-endpoint"
-    )["Parameter"]["Value"]
-
-    event_bus_name = ssm.get_parameter(
-        Name=f"/{env}/shared/event-bus-name"
-    )["Parameter"]["Value"]
+    if env in INTEGRATED_ENVIRONMENTS:
+        product_endpoint = ssm.get_parameter(
+            Name=f"/{env}/ProductService/api-endpoint"
+        )["Parameter"]["Value"]
+        event_bus_name = ssm.get_parameter(
+            Name=f"/{env}/shared/event-bus-name"
+        )["Parameter"]["Value"]
+    else:
+        # Product Management Service and shared event bus are not deployed in ephemeral envs.
+        # Pipeline tests are skipped; smoke tests only need the search endpoint.
+        product_endpoint = ""
+        event_bus_name = "default"
 
     return ProductSearchApiDriver(search_endpoint, product_endpoint, event_bus_name)
