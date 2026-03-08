@@ -11,7 +11,7 @@ Transform:
   - Name: DatadogServerless
     Parameters:
       stackName: !Ref "AWS::StackName"
-      apiKeySecretArn: !Ref DDApiKeySecretArn
+      apiKey: !Ref DDApiKey
       pythonLayerVersion: 123
       extensionLayerVersion: 'next'
       service: !Ref DDServiceName
@@ -22,7 +22,7 @@ Transform:
 Description: Product Search Service - AI-powered product search built with AWS SAM
 
 Parameters:
-  DDApiKeySecretArn:
+  DDApiKey:
     Type: String
   DDSite:
     Type: String
@@ -51,7 +51,6 @@ Globals:
       - arm64
     Environment:
       Variables:
-        DD_API_KEY_SECRET_ARN: !Ref DDApiKeySecretArn
         DD_SITE: !Ref DDSite
         DD_ENV: !Ref Env
         DD_SERVICE: !Ref DDServiceName
@@ -251,8 +250,7 @@ Resources:
                 - sqs:DeleteMessage
                 - sqs:GetQueueAttributes
               Resource: !GetAtt CatalogSyncQueue.Arn
-        - AWSSecretsManagerGetSecretValuePolicy:
-            SecretArn: !Ref DDApiKeySecretArn
+
 
   ProductSearchFunction:
     Type: AWS::Serverless::Function
@@ -301,8 +299,7 @@ Resources:
                 # S3Vectors does not yet have a resource-level ARN format; wildcard is required
                 - s3vectors:QueryVectors
               Resource: "*"
-        - AWSSecretsManagerGetSecretValuePolicy:
-            SecretArn: !Ref DDApiKeySecretArn
+
 
   ##################################
   ########## HTTP API ##############

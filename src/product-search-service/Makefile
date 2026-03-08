@@ -47,7 +47,7 @@ sam: build
 	sam build
 	sam deploy --stack-name ProductSearchService-${ENV} \
 		--parameter-overrides \
-			ParameterKey=DDApiKeySecretArn,ParameterValue=${DD_API_KEY_SECRET_ARN} \
+			ParameterKey=DDApiKey,ParameterValue=${DD_API_KEY} \
 			ParameterKey=DDSite,ParameterValue=${DD_SITE} \
 			ParameterKey=Env,ParameterValue=${ENV} \
 			ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} \
