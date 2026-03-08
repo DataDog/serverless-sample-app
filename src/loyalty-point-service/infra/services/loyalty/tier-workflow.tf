@@ -108,10 +108,9 @@ resource "aws_iam_policy" "durable_execution_orchestrator" {
     Statement = [{
       Effect   = "Allow"
       Action   = ["lambda:CheckpointDurableExecution", "lambda:GetDurableExecutionState"]
-      Resource = "${module.tier_upgrade_orchestrator_lambda.function_arn}:*"
+      Resource = "arn:aws:lambda:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:function:tf-node-TierUpgradeOrchestrator-${var.env}:*"
     }]
   })
-  depends_on = [module.tier_upgrade_orchestrator_lambda]
 }
 
 resource "aws_iam_policy" "invoke_orchestrator" {

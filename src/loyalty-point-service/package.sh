@@ -7,7 +7,7 @@ function deploy {
   fi
   mkdir -p ./out
 
-  for filename in ./src/*/adapters/build*.js; do
+  for filename in ./src/*/*/build*.js; do
     echo "$filename"
     node "$filename"
   done

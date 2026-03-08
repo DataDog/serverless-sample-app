@@ -124,8 +124,19 @@ export class LoyaltyTierWorkflow extends Construct {
       })
     );
 
-    // Orchestrator invokes the activity via context.invoke() using its versioned ARN
-    activityConstruct.function.grantInvoke(this.tierUpgradeOrchestratorFunction);
+    // Orchestrator invokes the activity via context.invoke() using its versioned ARN.
+    // grantInvoke() only covers the unversioned ARN; we must also allow invocation of
+    // all qualified versions (functionArn:*) because context.invoke() uses currentVersion.
+    this.tierUpgradeOrchestratorFunction.addToRolePolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ["lambda:InvokeFunction"],
+        resources: [
+          activityConstruct.function.functionArn,
+          `${activityConstruct.function.functionArn}:*`,
+        ],
+      })
+    );
 
     // SSM reads for product + order service endpoints and JWT secret
     this.tierUpgradeOrchestratorFunction.addToRolePolicy(
