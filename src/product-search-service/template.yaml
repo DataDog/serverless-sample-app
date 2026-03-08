@@ -37,6 +37,11 @@ Parameters:
     Type: String
     Default: product-search-service
 
+Conditions:
+  IsIntegratedEnvironment: !Or
+    - !Equals ["dev", !Ref Env]
+    - !Equals ["prod", !Ref Env]
+
 Globals:
   Function:
     Runtime: python3.13
@@ -109,6 +114,7 @@ Resources:
 
   ProductCreatedRule:
     Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
     Properties:
       Name: !Sub "product-search_product_productCreated_v1-${Env}"
       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
@@ -123,6 +129,7 @@ Resources:
 
   ProductUpdatedRule:
     Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
     Properties:
       Name: !Sub "product-search_product_productUpdated_v1-${Env}"
       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
@@ -137,6 +144,7 @@ Resources:
 
   ProductDeletedRule:
     Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
     Properties:
       Name: !Sub "product-search_product_productDeleted_v1-${Env}"
       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
@@ -151,6 +159,7 @@ Resources:
 
   PricingCalculatedRule:
     Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
     Properties:
       Name: !Sub "product-search_pricing_pricingCalculated_v1-${Env}"
       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
@@ -165,6 +174,7 @@ Resources:
 
   StockUpdatedRule:
     Type: AWS::Events::Rule
+    Condition: IsIntegratedEnvironment
     Properties:
       Name: !Sub "product-search_inventory_stockUpdated_v1-${Env}"
       EventBusName: !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"

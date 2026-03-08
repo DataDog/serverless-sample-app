@@ -177,41 +177,46 @@ class ProductSearchStack(Stack):
 
         # ---------------------------------------------------------------------------
         # EventBridge — read shared bus from SSM, subscribe to relevant events
+        # Shared parameters only exist for dev and prod; ephemeral (commit-hash)
+        # environments skip the shared bus subscription entirely.
         # ---------------------------------------------------------------------------
-        shared_event_bus_name_param = ssm.StringParameter.from_string_parameter_name(
-            self,
-            "SharedEventBusNameParameter",
-            f"/{environment}/shared/event-bus-name",
-        )
+        integrated_environments = ["dev", "prod"]
 
-        shared_event_bus = events.EventBus.from_event_bus_name(
-            self,
-            "SharedEventBus",
-            shared_event_bus_name_param.string_value,
-        )
-
-        subscribed_events = [
-            ("product.productCreated.v1", f"{environment}.products"),
-            ("product.productUpdated.v1", f"{environment}.products"),
-            ("product.productDeleted.v1", f"{environment}.products"),
-            ("pricing.pricingCalculated.v1", f"{environment}.pricing"),
-            ("inventory.stockUpdated.v1", f"{environment}.inventory"),
-        ]
-
-        for detail_type, source in subscribed_events:
-            rule_id = detail_type.replace(".", "_")
-            rule = events.Rule(
+        if environment in integrated_environments:
+            shared_event_bus_name_param = ssm.StringParameter.from_string_parameter_name(
                 self,
-                f"CatalogSync_{rule_id}",
-                rule_name=f"{SERVICE_NAME}-{rule_id}-{environment}",
-                description=f"{SERVICE_NAME} subscribing to {detail_type} in the '{environment}' environment",
-                event_bus=shared_event_bus,
-                event_pattern=events.EventPattern(
-                    detail_type=[detail_type],
-                    source=[source],
-                ),
+                "SharedEventBusNameParameter",
+                f"/{environment}/shared/event-bus-name",
             )
-            rule.add_target(SqsQueue(catalog_sync_queue))
+
+            shared_event_bus = events.EventBus.from_event_bus_name(
+                self,
+                "SharedEventBus",
+                shared_event_bus_name_param.string_value,
+            )
+
+            subscribed_events = [
+                ("product.productCreated.v1", f"{environment}.products"),
+                ("product.productUpdated.v1", f"{environment}.products"),
+                ("product.productDeleted.v1", f"{environment}.products"),
+                ("pricing.pricingCalculated.v1", f"{environment}.pricing"),
+                ("inventory.stockUpdated.v1", f"{environment}.inventory"),
+            ]
+
+            for detail_type, source in subscribed_events:
+                rule_id = detail_type.replace(".", "_")
+                rule = events.Rule(
+                    self,
+                    f"CatalogSync_{rule_id}",
+                    rule_name=f"{SERVICE_NAME}-{rule_id}-{environment}",
+                    description=f"{SERVICE_NAME} subscribing to {detail_type} in the '{environment}' environment",
+                    event_bus=shared_event_bus,
+                    event_pattern=events.EventPattern(
+                        detail_type=[detail_type],
+                        source=[source],
+                    ),
+                )
+                rule.add_target(SqsQueue(catalog_sync_queue))
 
         # ---------------------------------------------------------------------------
         # IAM roles

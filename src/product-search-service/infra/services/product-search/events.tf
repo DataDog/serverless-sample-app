@@ -5,13 +5,15 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-# Retrieve the shared EventBridge bus name from SSM
+# Retrieve the shared EventBridge bus name from SSM (only for integrated environments)
 data "aws_ssm_parameter" "shared_event_bus_name" {
-  name = "/${var.env}/shared/event-bus-name"
+  count = var.env == "dev" || var.env == "prod" ? 1 : 0
+  name  = "/${var.env}/shared/event-bus-name"
 }
 
 data "aws_ssm_parameter" "shared_event_bus_arn" {
-  name = "/${var.env}/shared/event-bus-arn"
+  count = var.env == "dev" || var.env == "prod" ? 1 : 0
+  name  = "/${var.env}/shared/event-bus-arn"
 }
 
 # SQS Dead Letter Queue for catalog sync
@@ -89,12 +91,13 @@ locals {
 }
 
 # EventBridge rules on the shared bus, routing matching events to the catalog sync SQS queue
+# Only created for integrated environments (dev/prod) where the shared bus SSM parameters exist
 resource "aws_cloudwatch_event_rule" "catalog_sync_event_rules" {
-  for_each = local.catalog_sync_event_subscriptions
+  for_each = var.env == "dev" || var.env == "prod" ? local.catalog_sync_event_subscriptions : {}
 
   name           = "product-search-${each.key}-${var.env}"
   description    = "Product Search Service subscription to ${each.value.detail_type} events"
-  event_bus_name = data.aws_ssm_parameter.shared_event_bus_name.value
+  event_bus_name = data.aws_ssm_parameter.shared_event_bus_name[0].value
 
   event_pattern = jsonencode({
     detail-type = [each.value.detail_type]
@@ -110,10 +113,10 @@ resource "aws_cloudwatch_event_rule" "catalog_sync_event_rules" {
 
 # EventBridge targets pointing each rule to the catalog sync SQS queue
 resource "aws_cloudwatch_event_target" "catalog_sync_sqs_targets" {
-  for_each = local.catalog_sync_event_subscriptions
+  for_each = var.env == "dev" || var.env == "prod" ? local.catalog_sync_event_subscriptions : {}
 
   rule           = aws_cloudwatch_event_rule.catalog_sync_event_rules[each.key].name
-  event_bus_name = data.aws_ssm_parameter.shared_event_bus_name.value
+  event_bus_name = data.aws_ssm_parameter.shared_event_bus_name[0].value
   target_id      = "CatalogSyncQueueTarget"
   arn            = aws_sqs_queue.catalog_sync_queue.arn
 }
