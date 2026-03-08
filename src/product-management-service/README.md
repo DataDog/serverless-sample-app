@@ -119,6 +119,7 @@ datadog.AddLambdaFunctions(&[]interface{}{function.Function}, nil)
 
 This CDK implementation uses a [custom `InstrumentedFunction` L3 construct](./cdk/sharedConstructs/instrumentedFunction.go) to ensure all Lambda functions are instrumented correctly and consistently. This also removes the ability for the Lambda function to send logs to CloudWatch using a custom IAM policy. Logs are shipped using the Datadog extension, and aren't required to log to CloudWatch.
 
+
 ### Deploy
 
 The Datadog extension retrieves your Datadog API key from a Secrets Manager secret, this secret is created as part of the stack deployment.
