@@ -29,7 +29,7 @@ cdk-deploy: build
 	cd cdk && pip install -r requirements.txt && cdk deploy --app "python3 app.py" --all --require-approval never
 
 cdk-destroy:
-	cd cdk && cdk destroy --app "python3 app.py" --all
+	cd cdk && cdk destroy --app "python3 app.py" --all --force
 
 lint:
 	poetry run ruff check . && poetry run mypy .
