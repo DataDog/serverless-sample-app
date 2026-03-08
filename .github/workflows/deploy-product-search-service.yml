@@ -176,16 +176,6 @@ jobs:
         run: |
           cd src/product-search-service
           make cdk-destroy
-      - name: Integration test dev
-        if: github.event_name == 'push'
-        shell: bash
-        env:
-          ENV: "dev"
-          AWS_REGION: "eu-west-1"
-          AWS_DEFAULT_REGION: "eu-west-1"
-        run: |
-          cd src/product-search-service
-          make integration-test
       - name: Deploy to dev
         if: github.event_name == 'push'
         shell: bash
@@ -198,6 +188,16 @@ jobs:
         run: |
           cd src/product-search-service
           make cdk-deploy
+      - name: Integration test dev
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          ENV: "dev"
+          AWS_REGION: "eu-west-1"
+          AWS_DEFAULT_REGION: "eu-west-1"
+        run: |
+          cd src/product-search-service
+          make integration-test
       - name: Destroy dev
         shell: bash
         if: always()
@@ -294,7 +294,7 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
-          DD_API_KEY_SECRET_ARN: ${{ secrets.DD_API_KEY_SECRET_ARN }}
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "eu-central-1"
         run: |
@@ -317,7 +317,7 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{ secrets.DD_API_KEY_SECRET_ARN }}
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "eu-central-1"
         run: |
@@ -330,7 +330,7 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
-          DD_API_KEY_SECRET_ARN: ${{ secrets.DD_API_KEY_SECRET_ARN }}
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
           DD_SITE: "datadoghq.eu"
           AWS_REGION: "eu-central-1"
         run: |
