@@ -17,6 +17,7 @@ The Java examples use the [Quarkus](https://quarkus.io/) for a high-performance,
 > [!IMPORTANT]  
 > The Datadog Lambda extension sends logs directly to Datadog without the need for CloudWatch. The examples in this repository disable Cloudwatch Logs for all Lambda functions.
 
+
 ## Deployment
 
 Ensure you have set the below environment variables before starting deployment:
