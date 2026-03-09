@@ -473,6 +473,13 @@ Resources:
       Type: String
       Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
 
+  LoyaltyTableNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /${Env}/${ServiceName}/table-name
+      Type: String
+      Value: !Ref LoyaltyAccountTable
+
 ################################################
 ######### Durable Tier Upgrade Workflow ########
 ################################################

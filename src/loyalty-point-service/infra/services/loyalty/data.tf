@@ -41,7 +41,9 @@ data "aws_iam_policy_document" "sqs_receive" {
     "sqs:GetQueueAttributes"]
     resources = [
       aws_sqs_queue.user_created_queue.arn,
-      aws_sqs_queue.order_completed_queue.arn
+      aws_sqs_queue.order_completed_queue.arn,
+      aws_sqs_queue.tier_upgrade_trigger_queue.arn,
+      aws_sqs_queue.notification_acknowledger_queue.arn,
     ]
   }
 }
