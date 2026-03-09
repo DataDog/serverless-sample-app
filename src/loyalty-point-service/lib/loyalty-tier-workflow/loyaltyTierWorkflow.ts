@@ -175,7 +175,7 @@ export class LoyaltyTierWorkflow extends Construct {
           // results in an unqualified ARN that the policy does not match.
           // currentVersion resolves to the version deployed in this synthesis.
           ORCHESTRATOR_FUNCTION_NAME:
-            this.tierUpgradeOrchestratorFunction.currentVersion.functionArn,
+            orchestratorConstruct.function.currentVersion.functionArn,
         },
         buildDef:
           "./src/loyalty-tier-workflow/trigger/buildHandleLoyaltyPointsUpdated.js",
