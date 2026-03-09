@@ -45,7 +45,7 @@ export const handler = withDurableExecution(
     }
 
     // Step 3: Gather context in parallel — product list and search recommendations
-    const [products, searchResult] = await context.parallel(
+    const gatherResult = await context.parallel(
       "gather-context",
       [
         async (ctx: DurableContext) =>
@@ -60,6 +60,10 @@ export const handler = withDurableExecution(
           ),
       ]
     );
+    const [products, searchResult] = gatherResult.getResults() as [
+      Awaited<ReturnType<typeof listProducts>>,
+      Awaited<ReturnType<typeof search>>
+    ];
 
     // Step 4: Invoke fetch-order-history activity Lambda
     await context.invoke(
