@@ -89,15 +89,31 @@ impl TokenGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::{User, UserDetails};
+    use chrono::Utc;
+
+    fn make_test_user() -> User {
+        User::Standard(UserDetails {
+            user_id: "TEST@TEST.COM".to_string(),
+            email_address: "test@test.com".to_string(),
+            first_name: "Test".to_string(),
+            last_name: "User".to_string(),
+            password_hash: "hash".to_string(),
+            created_at: Utc::now(),
+            last_active: None,
+            order_count: 0,
+        })
+    }
 
     #[test]
-    fn test_validate_token() {
-        let token_generator =
-            TokenGenerator::new("c2c45e2d-d682-4f44-88ce-e6be0e1da918".to_string(), 3600);
+    fn test_generate_and_validate_token() {
+        let secret = "c2c45e2d-d682-4f44-88ce-e6be0e1da918".to_string();
+        let token_generator = TokenGenerator::new(secret, 3600);
 
-        let res = token_generator.validate_token(
-            "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0QHRlc3QuY29tIiwidXNlcl90eXBlIjoiU1RBTkRBUkQiLCJleHAiOjE3Mzk4NzUwMjEsImlhdCI6MTczOTc4ODYyMX0.DAV-VaxuHxrTSqxW-iJmYqswOeASXVnzJa-B7PAIzMc",
-            "test@test.com");
+        let user = make_test_user();
+        let token = token_generator.generate_token(user);
+
+        let res = token_generator.validate_token(&format!("Bearer {}", token), "test@test.com");
 
         assert!(res.is_ok());
     }
