@@ -166,12 +166,20 @@ def initialize_driver() -> ProductSearchApiDriver:
     )["Parameter"]["Value"]
 
     if env in INTEGRATED_ENVIRONMENTS:
-        product_endpoint = ssm.get_parameter(
-            Name=f"/{env}/ProductService/api-endpoint"
-        )["Parameter"]["Value"]
-        event_bus_name = ssm.get_parameter(
-            Name=f"/{env}/shared/event-bus-name"
-        )["Parameter"]["Value"]
+        try:
+            product_endpoint = ssm.get_parameter(
+                Name=f"/{env}/ProductService/api-endpoint"
+            )["Parameter"]["Value"]
+        except ssm.exceptions.ParameterNotFound:
+            # Product Management Service may not be deployed in this region/account.
+            # Smoke tests don't need this; pipeline tests will fail explicitly if called.
+            product_endpoint = ""
+        try:
+            event_bus_name = ssm.get_parameter(
+                Name=f"/{env}/shared/event-bus-name"
+            )["Parameter"]["Value"]
+        except ssm.exceptions.ParameterNotFound:
+            event_bus_name = "default"
     else:
         # Product Management Service and shared event bus are not deployed in ephemeral envs.
         # Pipeline tests are skipped; smoke tests only need the search endpoint.
