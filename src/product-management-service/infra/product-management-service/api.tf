@@ -49,7 +49,7 @@ module "create_product_lambda" {
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site               = var.dd_site
   app_version           = var.app_version
   env                   = var.env
@@ -81,7 +81,7 @@ module "list_products_lambda" {
     "PRODUCT_CREATED_TOPIC_ARN" : aws_sns_topic.product_created.arn
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site               = var.dd_site
   app_version           = var.app_version
   env                   = var.env
@@ -113,7 +113,7 @@ module "get_product_lambda" {
   environment_variables = {
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site               = var.dd_site
   app_version           = var.app_version
   env                   = var.env
@@ -150,7 +150,7 @@ module "update_product_lambda" {
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site               = var.dd_site
   app_version           = var.app_version
   env                   = var.env
@@ -188,7 +188,7 @@ module "delete_product_lambda" {
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site               = var.dd_site
   app_version           = var.app_version
   env                   = var.env

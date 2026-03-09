@@ -36,7 +36,7 @@ module "product_public_event_publisher" {
     PRODUCT_DELETED_TOPIC_ARN : aws_sns_topic.product_deleted.arn
     EVENT_BUS_NAME : var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.product_service_bus.name
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site = var.dd_site
   app_version = var.app_version
   env = var.env

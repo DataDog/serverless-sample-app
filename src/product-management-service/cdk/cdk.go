@@ -3,12 +3,10 @@ package main
 import (
 	services "cdk/services"
 	sharedconstructs "cdk/sharedConstructs"
-	"fmt"
 	"os"
 
 	"github.com/DataDog/datadog-cdk-constructs-go/ddcdkconstruct"
 	"github.com/aws/aws-cdk-go/awscdk/v2"
-	"github.com/aws/aws-cdk-go/awscdk/v2/awssecretsmanager"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 )
@@ -59,12 +57,6 @@ func NewProductService(scope constructs.Construct, id string, props *ProductServ
 	}
 
 	ddApiKey := os.Getenv("DD_API_KEY")
-	secretValue := awscdk.SecretValue_UnsafePlainText(&ddApiKey)
-
-	ddApiKeySecret := awssecretsmanager.NewSecret(stack, jsii.String("Secret"), &awssecretsmanager.SecretProps{
-		SecretStringValue: secretValue,
-		SecretName:        jsii.String(fmt.Sprintf("/%s/%s/datadog-api-key", env, serviceName)),
-	})
 
 	datadog := ddcdkconstruct.NewDatadog(
 		stack,
@@ -73,7 +65,7 @@ func NewProductService(scope constructs.Construct, id string, props *ProductServ
 			ExtensionLayerVersion:  jsii.Number(90),
 			AddLayers:              jsii.Bool(true),
 			Site:                   jsii.String(os.Getenv("DD_SITE")),
-			ApiKeySecret:           ddApiKeySecret,
+			ApiKey:                 jsii.String(ddApiKey),
 			Service:                &serviceName,
 			Env:                    &env,
 			Version:                &version,

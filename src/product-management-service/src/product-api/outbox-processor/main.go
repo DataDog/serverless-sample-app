@@ -11,9 +11,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	observability "github.com/datadog/serverless-sample-observability"
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -98,6 +100,13 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 			return fmt.Errorf("failed to unmarshal ProductCreatedEvent: %w", err)
 		}
 		span.SetTag("product.id", event.ProductId)
+
+		observability.TrackTransaction(ctx, observability.TransactionEvent{
+			TransactionID:  event.ProductId,
+			Checkpoint:     "product_created",
+			TimestampNanos: strconv.FormatInt(time.Now().UnixNano(), 10),
+		})
+
 		if err := eventPublisher.PublishProductCreated(ctx, event); err != nil {
 			span.SetTag("error", true)
 			span.SetTag("error.message", err.Error())
@@ -114,6 +123,13 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 			return fmt.Errorf("failed to unmarshal ProductUpdatedEvent: %w", err)
 		}
 		span.SetTag("product.id", event.ProductId)
+
+		observability.TrackTransaction(ctx, observability.TransactionEvent{
+			TransactionID:  event.ProductId,
+			Checkpoint:     "product_updated",
+			TimestampNanos: strconv.FormatInt(time.Now().UnixNano(), 10),
+		})
+
 		if err := eventPublisher.PublishProductUpdated(ctx, event); err != nil {
 			span.SetTag("error", true)
 			span.SetTag("error.message", err.Error())
@@ -130,6 +146,13 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 			return fmt.Errorf("failed to unmarshal ProductDeletedEvent: %w", err)
 		}
 		span.SetTag("product.id", event.ProductId)
+
+		observability.TrackTransaction(ctx, observability.TransactionEvent{
+			TransactionID:  event.ProductId,
+			Checkpoint:     "product_deleted",
+			TimestampNanos: strconv.FormatInt(time.Now().UnixNano(), 10),
+		})
+
 		if err := eventPublisher.PublishProductDeleted(ctx, event); err != nil {
 			span.SetTag("error", true)
 			span.SetTag("error.message", err.Error())

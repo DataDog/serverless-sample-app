@@ -55,7 +55,7 @@ module "product_acl_function" {
     DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
     DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site = var.dd_site
   app_version = var.app_version
   env = var.env
@@ -121,7 +121,7 @@ module "product_pricing_updated_acl_function" {
     DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
     DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site = var.dd_site
   app_version = var.app_version
   env = var.env

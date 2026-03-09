@@ -1,10 +1,14 @@
 package observability
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -81,5 +85,80 @@ func (evt *CloudEvent[T]) ForeachKey(handler func(key string, val string) error)
 			return err
 		}
 	}
+	return nil
+}
+
+type TransactionEvent struct {
+	TransactionID  string `json:"transaction_id"`  // unique identifier for this transaction
+	Checkpoint     string `json:"checkpoint"`      // name of the pipeline stage
+	TimestampNanos string `json:"timestamp_nanos"` // wall-clock time in nanoseconds (as a string)
+}
+
+// Payload is the top-level request body sent to the pipeline_stats endpoint.
+type Payload struct {
+	Transactions []TransactionEvent `json:"transactions"`
+	Service      string             `json:"service"`     // name of the reporting service
+	Environment  string             `json:"environment"` // deployment environment (e.g. "prod", "local")
+}
+
+// getEnv returns the value of an environment variable, or a fallback if unset.
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func TrackTransaction(ctx context.Context, transactionEvent TransactionEvent) error {
+	span, _ := tracer.SpanFromContext(ctx)
+
+	ddSite := getEnv("DD_SITE", "us3.datadoghq.com")
+
+	// The pipeline_stats endpoint on the Datadog trace-agent ingestion host.
+	// Construct the URL dynamically so it targets the correct Datadog site.
+	pipelineStatsURL := fmt.Sprintf("https://trace.agent.%s/api/v0.1/pipeline_stats", ddSite)
+
+	payload := Payload{
+		Transactions: []TransactionEvent{transactionEvent},
+		Service:      getEnv("DD_SERVICE", "rms"),
+		Environment:  getEnv("DD_ENV", "local"),
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		panic(err)
+	}
+
+	// Write the JSON into a gzip stream backed by an in-memory buffer.
+	var buf bytes.Buffer
+	w := gzip.NewWriter(&buf)
+	if _, err := w.Write(jsonPayload); err != nil {
+		panic(err)
+	}
+	w.Close() // flush and write gzip footer — must be called before reading buf
+	gzipPayload := buf.Bytes()
+
+	// -----------------------------------------------------------------------
+	// Send the HTTP POST request
+	// -----------------------------------------------------------------------
+
+	req, err := http.NewRequest(http.MethodPost, pipelineStatsURL, bytes.NewReader(gzipPayload))
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Content-Type", "application/json")     // body is JSON before compression
+	req.Header.Set("Content-Encoding", "gzip")             // body is gzip-compressed
+	req.Header.Set("DD-API-KEY", getEnv("DD_API_KEY", "")) // authentication header
+	req.Header.Set("Content-Length", strconv.Itoa(len(gzipPayload)))
+
+	// A successful submission returns HTTP 202 Accepted.
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	span.SetTag("tt.status", resp.StatusCode)
+
 	return nil
 }

@@ -11,28 +11,28 @@ variable "dd_api_key" {
 }
 
 variable "dd_site" {
-  type = string
+  type        = string
   description = "The Datadog site to use"
-  default = "datadoghq.com"
+  default     = "datadoghq.com"
 }
 
 variable "env" {
-  type = string
+  type        = string
   description = "The deployment environment"
 }
 
 variable "app_version" {
-  type = string
+  type        = string
   description = "The version of the application being deployed"
-  default = "latest"
+  default     = "latest"
 }
 
 variable "region" {
-  type = string
+  type        = string
   description = "The AWS region to deploy to"
 }
 
 variable "tf_state_bucket_name" {
-  type = string
+  type    = string
   default = "The name of the S3 bucket to store state"
 }

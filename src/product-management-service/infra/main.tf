@@ -5,21 +5,11 @@
 // Copyright 2024 Datadog, Inc.
 //
 
-resource "aws_secretsmanager_secret" "dd_api_key_secret" {
-  name                    = "/${var.env}/ProductService/sls-sample-dd-api-key-secret"
-  recovery_window_in_days = 0
-}
-
-resource "aws_secretsmanager_secret_version" "dd_api_key_secret_version" {
-  secret_id     = aws_secretsmanager_secret.dd_api_key_secret.id
-  secret_string = var.dd_api_key
-}
-
 module "product-management-service" {
-  service_name          = "ProductService"
-  source                = "./product-management-service"
-  dd_api_key_secret_arn = aws_secretsmanager_secret.dd_api_key_secret.arn
-  dd_site               = var.dd_site
-  env                   = var.env
-  app_version           = var.app_version
+  service_name = "ProductService"
+  source       = "./product-management-service"
+  dd_api_key   = var.dd_api_key
+  dd_site      = var.dd_site
+  env          = var.env
+  app_version  = var.app_version
 }
