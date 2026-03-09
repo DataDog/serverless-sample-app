@@ -18,7 +18,6 @@ import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 export interface ApiProps {
   serviceProps: PricingServiceProps;
-  ddApiKeySecret: ISecret;
   jwtSecret: IStringParameter;
 }
 

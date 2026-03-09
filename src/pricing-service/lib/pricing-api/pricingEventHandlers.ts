@@ -20,7 +20,6 @@ import { StringParameter } from "aws-cdk-lib/aws-ssm";
 
 export interface PricingEventHandlerProps {
   serviceProps: PricingServiceProps;
-  ddApiKeySecret: ISecret;
 }
 
 const isWorkshopBuild = process.env.WORKSHOP_BUILD === "true";

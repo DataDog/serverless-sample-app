@@ -73,7 +73,7 @@
 #     "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": "ignore"
 #     "DD_DATA_STREAMS_ENABLED": "true"
 #   }
-#   dd_api_key_secret_arn = var.dd_api_key_secret_arn
+#   dd_api_key            = var.dd_api_key
 #   dd_site               = var.dd_site
 #   app_version           = var.app_version
 #   env                   = var.env
@@ -139,7 +139,7 @@
 #     "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": "ignore"
 #     "DD_DATA_STREAMS_ENABLED": "true"
 #   }
-#   dd_api_key_secret_arn = var.dd_api_key_secret_arn
+#   dd_api_key            = var.dd_api_key
 #   dd_site               = var.dd_site
 #   app_version           = var.app_version
 #   env                   = var.env

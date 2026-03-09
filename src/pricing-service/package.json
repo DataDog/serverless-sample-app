@@ -1,6 +1,6 @@
 {
   "name": "node-lambda-hybrid-tracing",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "type": "commonjs",
   "bin": {
     "pricing-service": "bin/pricing-service.js"

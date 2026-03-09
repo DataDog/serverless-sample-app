@@ -25,18 +25,13 @@ export class PricingApiStack extends cdk.Stack {
     const env = process.env.ENV ?? "dev";
     const version = process.env["COMMIT_HASH"] ?? "latest";
 
-    const ddApiKey = new Secret(this, "DDApiKeySecret", {
-      secretName: `/${env}/${service}/dd-api-key`,
-      secretStringValue: new cdk.SecretValue(process.env.DD_API_KEY!),
-    });
-
     const datadogConfiguration = isWorkshopBuild
       ? undefined
       : new DatadogLambda(this, "Datadog", {
           nodeLayerVersion: 135,
           extensionLayerVersion: 93,
           site: process.env.DD_SITE ?? "datadoghq.com",
-          apiKeySecret: ddApiKey,
+          apiKey: process.env.DD_API_KEY!,
           service,
           version,
           env,
@@ -58,14 +53,12 @@ export class PricingApiStack extends cdk.Stack {
 
     const api = new Api(this, "PricingApi", {
       serviceProps: pricingServiceProps,
-      ddApiKeySecret: ddApiKey,
       jwtSecret: pricingServiceProps.getJwtSecret(),
     });
 
     if (!isWorkshopBuild) {
       const _ = new PricingEventHandlers(this, "PricingEventHandlers", {
         serviceProps: pricingServiceProps,
-        ddApiKeySecret: ddApiKey,
       });
     }
 

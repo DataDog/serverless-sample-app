@@ -36,7 +36,7 @@ module "calculate_pricing_lambda" {
   environment_variables = {
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/PricingService/secret-access-key"
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site               = var.dd_site
   app_version           = var.app_version
   env                   = var.env
