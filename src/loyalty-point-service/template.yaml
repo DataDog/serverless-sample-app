@@ -555,11 +555,7 @@ Resources:
       FunctionName: !Sub TierUpgradeTrigger-${Env}
       Environment:
         Variables:
-          # Versioned ARN — durable execution requires a qualified ARN so the
-      # Lambda runtime injects DurableExecutionArn with a qualifier that
-      # matches the IAM policy (name:*). An unqualified name/!Ref produces an
-      # unqualified ARN that the policy does not cover.
-      ORCHESTRATOR_FUNCTION_NAME: !Sub "${TierUpgradeOrchestratorFunction.Arn}:$LATEST"
+          ORCHESTRATOR_FUNCTION_NAME: !Sub "${TierUpgradeOrchestratorFunction.Arn}:$LATEST"
       Events:
         TierUpgradeTriggerQueue:
           Type: SQS
