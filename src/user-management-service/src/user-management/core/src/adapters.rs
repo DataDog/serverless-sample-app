@@ -84,13 +84,14 @@ impl DynamoDbRepository {
                 AttributeValue::N(details.order_count.to_string()),
             );
 
-        let res = if details.last_active.is_some() {
-            put_item_builder.clone().item(
-                LAST_ACTIVE_KEY,
-                AttributeValue::S(details.last_active.unwrap().to_string()),
-            );
-
-            put_item_builder.send().await
+        let res = if let Some(last_active) = details.last_active {
+            put_item_builder
+                .item(
+                    LAST_ACTIVE_KEY,
+                    AttributeValue::S(last_active.to_string()),
+                )
+                .send()
+                .await
         } else {
             put_item_builder.send().await
         };
@@ -546,7 +547,7 @@ impl Repository for DynamoDbRepository {
             .delete_item()
             .table_name(&self.table_name)
             .key(PARTITION_KEY, AttributeValue::S(format!("CODE#{}", code)))
-            .key(SORT_KEY, AttributeValue::S(format!("CODE#{}", code)))
+            .key(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .send()
             .await;
 

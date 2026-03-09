@@ -37,6 +37,7 @@ export class InstrumentedLambdaFunction extends Construct {
       functionName: `CDK-${props.sharedProps.serviceName}-${id}-${props.sharedProps.environment}`,
       manifestPath: props.manifestPath,
       memorySize: 256,
+      timeout: Duration.seconds(30),
       environment: {
         DEPLOYED_AT: new Date().toISOString(),
         DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_HTTP_ENDPOINT: "localhost:4318",

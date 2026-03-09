@@ -126,7 +126,7 @@ async fn main() -> Result<(), Error> {
         }
     };
 
-    let _ = TRACER_PROVIDER.set(otel_providers.unwrap().0);
+    if let Some(providers) = otel_providers { let _ = TRACER_PROVIDER.set(providers.0); }
     let table_name = env::var("TABLE_NAME").expect("TABLE_NAME is not set");
     let config = aws_config::load_from_env().await;
     let dynamodb_client = aws_sdk_dynamodb::Client::new(&config);
