@@ -68,7 +68,11 @@ module "tier_upgrade_trigger_lambda" {
   function_name  = "TierUpgradeTrigger"
   lambda_handler = "index.handler"
   environment_variables = {
-    "ORCHESTRATOR_FUNCTION_NAME" = module.tier_upgrade_orchestrator_lambda.function_name
+    # Versioned ARN — durable execution requires a qualified ARN so the Lambda
+    # runtime injects DurableExecutionArn with a qualifier that matches the
+    # IAM policy (name:*). An unqualified name produces an unqualified ARN
+    # that the policy does not cover.
+    "ORCHESTRATOR_FUNCTION_NAME" = "${module.tier_upgrade_orchestrator_lambda.function_arn}:$LATEST"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -118,9 +122,14 @@ resource "aws_iam_policy" "invoke_orchestrator" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = ["lambda:InvokeFunction"]
-      Resource = module.tier_upgrade_orchestrator_lambda.function_arn
+      Effect = "Allow"
+      Action = ["lambda:InvokeFunction"]
+      # Include both the unversioned ARN and all qualified versions/aliases
+      # so invocations using :$LATEST or a specific version are permitted.
+      Resource = [
+        module.tier_upgrade_orchestrator_lambda.function_arn,
+        "${module.tier_upgrade_orchestrator_lambda.function_arn}:*",
+      ]
     }]
   })
   depends_on = [module.tier_upgrade_orchestrator_lambda]
@@ -169,9 +178,14 @@ resource "aws_iam_policy" "send_durable_callback" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = ["lambda:SendDurableExecutionCallbackSuccess", "lambda:SendDurableExecutionCallbackFailure"]
-      Resource = module.tier_upgrade_orchestrator_lambda.function_arn
+      Effect = "Allow"
+      Action = ["lambda:SendDurableExecutionCallbackSuccess", "lambda:SendDurableExecutionCallbackFailure"]
+      # Callback targets the specific version ARN stored in the durable execution
+      # state; cover both unversioned and all qualified versions.
+      Resource = [
+        module.tier_upgrade_orchestrator_lambda.function_arn,
+        "${module.tier_upgrade_orchestrator_lambda.function_arn}:*",
+      ]
     }]
   })
   depends_on = [module.tier_upgrade_orchestrator_lambda]

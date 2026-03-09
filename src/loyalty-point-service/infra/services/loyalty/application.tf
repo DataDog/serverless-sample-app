@@ -149,3 +149,9 @@ resource "aws_ssm_parameter" "api_endpoint" {
   type  = "String"
   value = aws_api_gateway_stage.rest_api_stage.invoke_url
 }
+
+resource "aws_ssm_parameter" "loyalty_table_name" {
+  name  = "/${var.env}/LoyaltyService/table-name"
+  type  = "String"
+  value = aws_dynamodb_table.loyalty_table.name
+}
