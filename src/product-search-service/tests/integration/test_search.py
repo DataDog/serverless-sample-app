@@ -18,6 +18,15 @@ def driver() -> ProductSearchApiDriver:
     return initialize_driver()
 
 
+@pytest.fixture(scope="module")
+def pipeline_driver(driver: ProductSearchApiDriver) -> ProductSearchApiDriver:
+    """Driver fixture that skips pipeline tests when the Product Management Service
+    endpoint is unavailable (e.g. not deployed in this region)."""
+    if not driver.product_api_endpoint:
+        pytest.skip("Product Management Service endpoint not available in this region — skipping pipeline tests")
+    return driver
+
+
 # ---------------------------------------------------------------------------
 # Smoke tests — validate the search endpoint is reachable and well-behaved.
 # These run in seconds and do not require any seeded product data.
@@ -84,7 +93,8 @@ class TestSearchEndpointSmoke:
     reason="Pipeline tests require the shared EventBridge bus and Product Management Service (dev/prod only)",
 )
 class TestCatalogSyncPipeline:
-    def test_newly_created_product_appears_in_search(self, driver: ProductSearchApiDriver) -> None:
+    def test_newly_created_product_appears_in_search(self, pipeline_driver: ProductSearchApiDriver) -> None:
+        driver = pipeline_driver
         """A product created via the Product API is searchable after catalog sync completes."""
         # Use a unique, unusual name so the search reliably returns this specific product
         unique_suffix = uuid.uuid4().hex[:8].upper()
@@ -116,7 +126,8 @@ class TestCatalogSyncPipeline:
             if product_id:
                 driver.delete_product(product_id)
 
-    def test_deleted_product_does_not_appear_in_search(self, driver: ProductSearchApiDriver) -> None:
+    def test_deleted_product_does_not_appear_in_search(self, pipeline_driver: ProductSearchApiDriver) -> None:
+        driver = pipeline_driver
         """A product that has been deleted is removed from search results after catalog sync."""
         unique_suffix = uuid.uuid4().hex[:8].upper()
         product_name = f"EphemeralTestWidget{unique_suffix}"
@@ -151,7 +162,8 @@ class TestCatalogSyncPipeline:
             if product_id:
                 driver.delete_product(product_id)
 
-    def test_pricing_event_updates_indexed_product(self, driver: ProductSearchApiDriver) -> None:
+    def test_pricing_event_updates_indexed_product(self, pipeline_driver: ProductSearchApiDriver) -> None:
+        driver = pipeline_driver
         """After a pricing event, the re-embedded product reflects updated pricing tiers."""
         unique_suffix = uuid.uuid4().hex[:8].upper()
         product_name = f"PricingTestWidget{unique_suffix}"
