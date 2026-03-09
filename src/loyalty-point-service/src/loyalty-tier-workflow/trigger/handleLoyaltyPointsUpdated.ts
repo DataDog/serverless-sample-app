@@ -55,21 +55,30 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
           messagingSystem: "eventbridge",
           destinationName: message.eventSource,
           parentSpan: mainSpan,
-        }
+        },
       );
 
       const evtData = evtWrapper.detail.data as PointsAddedEventData;
       const { userId, totalPoints } = evtData;
 
-      logger.info("Starting tier upgrade orchestrator", { userId, totalPoints });
+      logger.info("Starting tier upgrade orchestrator", {
+        userId,
+        totalPoints,
+      });
 
-      await lambdaClient.send(
+      const invokeResponse = await lambdaClient.send(
         new InvokeCommand({
           FunctionName: process.env.ORCHESTRATOR_FUNCTION_NAME!,
-          InvocationType: "Event",
+          InvocationType: "RequestResponse",
           Payload: Buffer.from(JSON.stringify({ userId, totalPoints })),
-        })
+        }),
       );
+
+      if (invokeResponse.FunctionError) {
+        throw new Error(
+          `Orchestrator function returned an error: ${invokeResponse.FunctionError}`,
+        );
+      }
     } catch (error) {
       batchItemFailures.push({
         itemIdentifier: message.messageId,
