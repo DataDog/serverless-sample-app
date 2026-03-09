@@ -33,7 +33,6 @@ Parameters:
     Type: String
   DDSite:
     Type: String
-    Type: String
 
 Globals:
   Function:
@@ -50,8 +49,6 @@ Globals:
     Architectures:
       - x86_64
   Api:
-    Auth:
-      DefaultAuthorizer: NONE
     Cors:
       AllowMethods: "'POST, GET, PUT, DELETE'"
       AllowHeaders: "'*'"
