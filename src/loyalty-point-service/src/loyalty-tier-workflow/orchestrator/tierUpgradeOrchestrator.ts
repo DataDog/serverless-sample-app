@@ -74,7 +74,8 @@ export const handler = withDurableExecution(
 
     // Suppress unused variable warning — products are gathered for context but
     // recommendations come from the search result; include products count in span.
-    logger.info("Gathered product context", { productCount: products.length });
+    // Guard against undefined in case a parallel branch failed to produce results.
+    logger.info("Gathered product context", { productCount: products?.length ?? 0 });
 
     // Step 5: Save the upgraded tier
     await context.step("upgrade-tier", async () => {
@@ -96,7 +97,7 @@ export const handler = withDurableExecution(
           newTier: tierChange.newTier,
           currentPoints: event.totalPoints,
           upgradedAt: new Date().toISOString(),
-          recommendations: searchResult.products.slice(0, 3),
+          recommendations: (searchResult?.products ?? []).slice(0, 3),
           callbackId,
         });
       },

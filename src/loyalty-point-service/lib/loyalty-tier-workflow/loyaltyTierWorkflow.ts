@@ -169,8 +169,13 @@ export class LoyaltyTierWorkflow extends Construct {
         functionName: "TierUpgradeTrigger",
         handler: "index.handler",
         environment: {
+          // Versioned ARN — durable execution requires a published version so
+          // the Lambda runtime injects DurableExecutionArn with a qualified ARN
+          // that matches the IAM policy (name:*). $LATEST or an unqualified name
+          // results in an unqualified ARN that the policy does not match.
+          // currentVersion resolves to the version deployed in this synthesis.
           ORCHESTRATOR_FUNCTION_NAME:
-            this.tierUpgradeOrchestratorFunction.functionName,
+            this.tierUpgradeOrchestratorFunction.currentVersion.functionArn,
         },
         buildDef:
           "./src/loyalty-tier-workflow/trigger/buildHandleLoyaltyPointsUpdated.js",
