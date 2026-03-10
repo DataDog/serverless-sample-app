@@ -12,14 +12,16 @@ on:
     branches:
       - "main"
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  build-docker-image:
+  unit-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,6 +31,26 @@ jobs:
           java-version: "25"
           distribution: "corretto"
           architecture: x64
+          cache: 'maven'
+      - name: Run unit tests
+        shell: bash
+        run: |
+          cd src/inventory-service
+          mvn test -pl inventory-api,inventory-core -q
+
+  build-docker-image:
+    runs-on: ubuntu-latest
+    needs: unit-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java 25 for x64
+        uses: actions/setup-java@v4
+        with:
+          java-version: "25"
+          distribution: "corretto"
+          architecture: x64
+          cache: 'maven'
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
         with:
@@ -70,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-docker-image
     concurrency:
-      group: tf-networked
+      group: tf-inventory-service
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -82,6 +104,7 @@ jobs:
           java-version: "25"
           distribution: "corretto"
           architecture: x64
+          cache: 'maven'
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
         with:
@@ -103,7 +126,7 @@ jobs:
         run: |
           cd src/inventory-service
           make build
-      - name: Deploy ephermal environment
+      - name: Deploy ephemeral environment
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -119,7 +142,7 @@ jobs:
       - name: Sleep for 60 seconds
         run: sleep 60s
         shell: bash
-      - name: Integration test ephermal environment
+      - name: Integration test ephemeral environment
         shell: bash
         env:
           ENV: ${{ env.sha_short }}
@@ -128,7 +151,7 @@ jobs:
         run: |
           cd src/inventory-service
           make integration-test
-      - name: Destroy ephermal environment
+      - name: Destroy ephemeral environment
         shell: bash
         if: always()
         env:
@@ -188,14 +211,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-docker-image
     concurrency:
-      group: cdk-networked
+      group: cdk-inventory-service
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: 'npm'
+          cache-dependency-path: src/inventory-service/package-lock.json
       - name: Install CDK
         run: |
           npm install -g aws-cdk
@@ -205,6 +230,7 @@ jobs:
           java-version: "25"
           distribution: "corretto"
           architecture: x64
+          cache: 'maven'
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
         with:
@@ -227,7 +253,7 @@ jobs:
         run: |
           cd src/inventory-service
           make build
-      - name: Deploy ephermal environment
+      - name: Deploy ephemeral environment
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -238,7 +264,7 @@ jobs:
         run: |
           cd src/inventory-service
           make cdk-deploy
-      - name: Integration test ephermal environment
+      - name: Integration test ephemeral environment
         shell: bash
         env:
           ENV: ${{ env.sha_short }}
@@ -247,7 +273,7 @@ jobs:
         run: |
           cd src/inventory-service
           make integration-test
-      - name: Destroy ephermal environment
+      - name: Destroy ephemeral environment
         shell: bash
         if: always()
         env:
@@ -296,12 +322,16 @@ jobs:
 
   deploy-cdk-prod:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     needs: [deploy-cdk]
+    concurrency:
+      group: cdk-prod-inventory-service
+      cancel-in-progress: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
       - name: Install CDK
@@ -313,6 +343,7 @@ jobs:
           java-version: "25"
           distribution: "corretto"
           architecture: x64
+          cache: 'maven'
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
         with:
@@ -360,20 +391,23 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-docker-image
     concurrency:
-      group: sam-networked
+      group: sam-inventory-service
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
+          cache-dependency-path: src/inventory-service/package-lock.json
       - name: Set up Java 25 for x64
         uses: actions/setup-java@v4
         with:
           java-version: "25"
           distribution: "corretto"
           architecture: x64
+          cache: 'maven'
       - uses: aws-actions/setup-sam@v1
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
@@ -397,7 +431,7 @@ jobs:
         run: |
           cd src/inventory-service
           make build
-      - name: Deploy to ephermal environment
+      - name: Deploy to ephemeral environment
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -409,7 +443,7 @@ jobs:
         run: |
           cd src/inventory-service
           make sam
-      - name: Integration test ephermal environment
+      - name: Integration test ephemeral environment
         shell: bash
         env:
           ENV: ${{ env.sha_short }}

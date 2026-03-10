@@ -12,14 +12,40 @@ on:
     branches:
       - "main"
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v2
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-workspaces: src/user-management-service -> target
+      - name: Install Cargo Lambda
+        run: |
+          pip install cargo-lambda
+      - name: Run tests
+        shell: bash
+        run: |
+          cd src/user-management-service
+          cargo test --workspace
+      - name: Cargo clippy
+        shell: bash
+        run: |
+          cd src/user-management-service
+          cargo clippy --workspace -- -D warnings
+
   deploy-tf:
     runs-on: ubuntu-latest
+    needs: unit-test
     concurrency:
       group: tf-user-management
     steps:
@@ -29,9 +55,11 @@ jobs:
         uses: hashicorp/setup-terraform@v2
       - uses: mlugg/setup-zig@v2
       - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-workspaces: src/user-management-service -> target
       - name: Install Cargo Lambda
         run: |
-          cargo install cargo-lambda
+          pip install cargo-lambda
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
         with:
@@ -53,7 +81,7 @@ jobs:
         run: |
           cd src/user-management-service
           make build
-      - name: Deploy to ephermal environment
+      - name: Deploy to ephemeral environment
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -65,7 +93,7 @@ jobs:
         run: |
           cd src/user-management-service
           make tf-apply
-      - name: Integration test ephermal environment
+      - name: Integration test ephemeral environment
         shell: bash
         env:
           ENV: "tf-${{ env.sha_short }}"
@@ -73,7 +101,7 @@ jobs:
         run: |
           cd src/user-management-service
           make integration-test
-      - name: Destroy ephermal environment
+      - name: Destroy ephemeral environment
         if: always()
         shell: bash
         env:
@@ -126,23 +154,28 @@ jobs:
 
   deploy-cdk:
     runs-on: ubuntu-latest
+    needs: unit-test
     concurrency:
       group: cdk-user-management
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: 'npm'
+          cache-dependency-path: src/user-management-service/package-lock.json
       - name: Install CDK
         run: |
           npm install -g aws-cdk
       - uses: mlugg/setup-zig@v2
       - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-workspaces: src/user-management-service -> target
       - name: Install Cargo Lambda
         run: |
-          cargo install cargo-lambda
+          pip install cargo-lambda
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
         with:
@@ -153,7 +186,7 @@ jobs:
         shell: bash
         run: |
           echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
-      - name: Deploy to ephermal environment
+      - name: Deploy to ephemeral environment
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -164,7 +197,7 @@ jobs:
           cd src/user-management-service
           npm i
           make cdk-deploy
-      - name: Integration test ephermal environment
+      - name: Integration test ephemeral environment
         shell: bash
         env:
           ENV: "cdk-${{ env.sha_short }}"
@@ -172,7 +205,7 @@ jobs:
         run: |
           cd src/user-management-service
           make integration-test
-      - name: Destroy ephermal environment
+      - name: Destroy ephemeral environment
         if: always()
         shell: bash
         env:
@@ -220,22 +253,27 @@ jobs:
 
   deploy-cdk-prod:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     needs: deploy-cdk
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: 'npm'
+          cache-dependency-path: src/user-management-service/package-lock.json
       - name: Install CDK
         run: |
           npm install -g aws-cdk
       - uses: mlugg/setup-zig@v2
       - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-workspaces: src/user-management-service -> target
       - name: Install Cargo Lambda
         run: |
-          cargo install cargo-lambda
+          pip install cargo-lambda
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
         with:
@@ -246,7 +284,7 @@ jobs:
         shell: bash
         run: |
           echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
-      - name: Deploy to ephermal environment
+      - name: Deploy to ephemeral environment
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -257,7 +295,7 @@ jobs:
           cd src/user-management-service
           npm i
           make cdk-deploy
-      - name: Integration test ephermal environment
+      - name: Integration test ephemeral environment
         shell: bash
         env:
           ENV: "prod"
@@ -268,6 +306,7 @@ jobs:
 
   deploy-sam:
     runs-on: ubuntu-latest
+    needs: unit-test
     concurrency:
       group: sam-user-management
     steps:
@@ -279,9 +318,11 @@ jobs:
           node-version: "22"
       - uses: mlugg/setup-zig@v2
       - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-workspaces: src/user-management-service -> target
       - name: Install Cargo Lambda
         run: |
-          cargo install cargo-lambda
+          pip install cargo-lambda
       - uses: aws-actions/setup-sam@v1
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
@@ -293,7 +334,7 @@ jobs:
         shell: bash
         run: |
           echo "sha_short=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
-      - name: Deploy to ephermal environment
+      - name: Deploy to ephemeral environment
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -304,7 +345,7 @@ jobs:
         run: |
           cd src/user-management-service
           make sam
-      - name: Integration test ephermal environment
+      - name: Integration test ephemeral environment
         shell: bash
         env:
           ENV: "sam-${{ env.sha_short }}"
@@ -312,7 +353,7 @@ jobs:
         run: |
           cd src/user-management-service
           make integration-test
-      - name: Destroy ephermal environment
+      - name: Destroy ephemeral environment
         if: always()
         shell: bash
         env:

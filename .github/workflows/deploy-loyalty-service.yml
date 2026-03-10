@@ -12,14 +12,42 @@ on:
     branches:
       - "main"
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: 'npm'
+          cache-dependency-path: src/loyalty-point-service/package-lock.json
+      - name: Install dependencies
+        run: |
+          cd src/loyalty-point-service
+          npm ci
+      - name: Type check
+        run: |
+          cd src/loyalty-point-service
+          npm run typecheck
+      - name: Run unit tests
+        run: |
+          cd src/loyalty-point-service
+          npm test
+
   deploy-tf:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: unit-test
     concurrency:
       group: tf-loyalty-service
     steps:
@@ -28,9 +56,11 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
+          cache-dependency-path: src/loyalty-point-service/package-lock.json
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
         with:
@@ -52,7 +82,7 @@ jobs:
         run: |
           cd src/loyalty-point-service
           make build
-      - name: Deploy to ephermal environment
+      - name: Deploy to ephemeral environment
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -64,7 +94,7 @@ jobs:
         run: |
           cd src/loyalty-point-service
           make tf-apply
-      - name: Integration test ephermal environment
+      - name: Integration test ephemeral environment
         shell: bash
         env:
           ENV: "tf-${{ env.sha_short }}"
@@ -72,7 +102,7 @@ jobs:
         run: |
           cd src/loyalty-point-service
           make integration-test
-      - name: Destroy ephermal environment
+      - name: Destroy ephemeral environment
         shell: bash
         if: always()
         env:
@@ -109,7 +139,7 @@ jobs:
           make integration-test
       - name: Terraform destroy
         shell: bash
-        if: always()
+        if: github.event_name == 'push'
         env:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
@@ -123,15 +153,19 @@ jobs:
 
   deploy-cdk:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: unit-test
     concurrency:
       group: cdk-loyalty-service
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
+          cache-dependency-path: src/loyalty-point-service/package-lock.json
       - name: Install CDK
         run: |
           npm install -g aws-cdk
@@ -156,7 +190,7 @@ jobs:
         run: |
           cd src/loyalty-point-service
           make build
-      - name: Deploy to ephermal environment
+      - name: Deploy to ephemeral environment
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -166,7 +200,7 @@ jobs:
         run: |
           cd src/loyalty-point-service
           make cdk-deploy
-      - name: Integration test ephermal environment
+      - name: Integration test ephemeral environment
         shell: bash
         env:
           ENV: "cdk-${{ env.sha_short }}"
@@ -174,7 +208,7 @@ jobs:
         run: |
           cd src/loyalty-point-service
           make integration-test
-      - name: Destroy ephermal environment
+      - name: Destroy ephemeral environment
         shell: bash
         if: always()
         env:
@@ -219,14 +253,18 @@ jobs:
 
   deploy-cdk-prod:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'push'
     needs: [deploy-cdk]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
+          cache-dependency-path: src/loyalty-point-service/package-lock.json
       - name: Install CDK
         run: |
           npm install -g aws-cdk
@@ -272,15 +310,19 @@ jobs:
 
   deploy-sam:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: unit-test
     concurrency:
       group: sam-loyalty-service
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
+          cache-dependency-path: src/loyalty-point-service/package-lock.json
       - uses: aws-actions/setup-sam@v1
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
@@ -303,7 +345,7 @@ jobs:
         run: |
           cd src/loyalty-point-service
           make build
-      - name: Deploy to ephermal environment
+      - name: Deploy to ephemeral environment
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -314,7 +356,7 @@ jobs:
         run: |
           cd src/loyalty-point-service
           make sam
-      - name: Integration test ephermal environment
+      - name: Integration test ephemeral environment
         shell: bash
         env:
           ENV: "sam-${{ env.sha_short }}"

@@ -13,6 +13,7 @@ on:
     branches:
       - "main"
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -64,7 +65,7 @@ jobs:
   #       run: |
   #         cd src/activity-service
   #         make build
-  #     - name: Deploy ephermal environment
+  #     - name: Deploy ephemeral environment
   #       shell: bash
   #       env:
   #         COMMIT_HASH: ${{ env.sha_short }}
@@ -80,7 +81,7 @@ jobs:
   #     - name: Sleep for 60 seconds
   #       run: sleep 60s
   #       shell: bash
-  #     - name: Integration test ephermal environment
+  #     - name: Integration test ephemeral environment
   #       shell: bash
   #       env:
   #         ENV: ${{ env.sha_short }}
@@ -90,7 +91,7 @@ jobs:
   #       run: |
   #         cd src/activity-service
   #         make integration-test
-  #     - name: Destroy ephermal environment
+  #     - name: Destroy ephemeral environment
   #       shell: bash
   #       if: always()
   #       env:
@@ -149,6 +150,9 @@ jobs:
 
   deploy-cdk:
     runs-on: ubuntu-latest
+    concurrency:
+      group: cdk-activity-service
+      cancel-in-progress: false
     steps:
       - name: Check out repository code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -163,9 +167,11 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.0.3
         with:
           node-version: "20"
+          cache: 'npm'
+          cache-dependency-path: src/activity-service/package-lock.json
       - name: Install CDK
         run: |
-          npm install -g aws-cdk
+          npm install -g aws-cdk@2.1018.1
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
         with:
@@ -180,7 +186,17 @@ jobs:
         run: |
           cd src/activity-service
           make dev
-      - name: Deploy ephermal environment
+      - name: Run unit tests
+        shell: bash
+        run: |
+          cd src/activity-service
+          make unit
+      - name: Lint and type check
+        shell: bash
+        run: |
+          cd src/activity-service
+          make lint
+      - name: Deploy ephemeral environment
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -191,7 +207,7 @@ jobs:
         run: |
           cd src/activity-service
           make cdk-deploy
-      - name: Integration test ephermal environment
+      - name: Integration test ephemeral environment
         shell: bash
         env:
           ENV: ${{ env.sha_short }}
@@ -201,7 +217,7 @@ jobs:
         run: |
           cd src/activity-service
           make integration-test
-      - name: Destroy ephermal environment
+      - name: Destroy ephemeral environment
         shell: bash
         if: always()
         env:
@@ -250,6 +266,7 @@ jobs:
 
   deploy-cdk-prod:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     needs: [deploy-cdk]
     steps:
       - name: Check out repository code
@@ -265,9 +282,11 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.0.3
         with:
           node-version: "20"
+          cache: 'npm'
+          cache-dependency-path: src/activity-service/package-lock.json
       - name: Install CDK
         run: |
-          npm install -g aws-cdk
+          npm install -g aws-cdk@2.1018.1
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
         with:
@@ -307,6 +326,9 @@ jobs:
 
   deploy-sam:
     runs-on: ubuntu-latest
+    concurrency:
+      group: sam-activity-service
+      cancel-in-progress: false
     steps:
       - name: Check out repository code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -340,6 +362,16 @@ jobs:
         run: |
           cd src/activity-service
           make dev
+      - name: Run unit tests
+        shell: bash
+        run: |
+          cd src/activity-service
+          make unit
+      - name: Lint and type check
+        shell: bash
+        run: |
+          cd src/activity-service
+          make lint
       - name: Build
         shell: bash
         env:
@@ -352,7 +384,7 @@ jobs:
         run: |
           cd src/activity-service
           make build
-      - name: Deploy to ephermal environment
+      - name: Deploy to ephemeral environment
         shell: bash
         env:
           COMMIT_HASH: ${{ env.sha_short }}
@@ -364,7 +396,7 @@ jobs:
         run: |
           cd src/activity-service
           make sam
-      - name: Integration test ephermal environment
+      - name: Integration test ephemeral environment
         shell: bash
         env:
           ENV: ${{ env.sha_short }}
