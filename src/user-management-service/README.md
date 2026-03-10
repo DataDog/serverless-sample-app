@@ -345,3 +345,4 @@ serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --par
 serverless remove --param="DD_API_KEY_SECRET_ARN=${DD_API_KEY_SECRET_ARN}" --param="DD_SITE=${DD_SITE}" --stage dev --region=${AWS_REGION} --config serverless-api.yml &&
 serverless remove --stage dev --region=${AWS_REGION} --config serverless-shared.yml
 ```
+
