@@ -50,7 +50,7 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
           AWS_REGION: "us-east-1"
         run: |
           cd src/inventory-service
@@ -98,7 +98,7 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
           AWS_REGION: "eu-west-2"
         run: |
           cd src/inventory-service
@@ -110,7 +110,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
           AWS_REGION: "eu-west-2"
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
@@ -136,7 +136,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
           AWS_REGION: "eu-west-2"
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
@@ -150,7 +150,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
           AWS_REGION: "eu-west-2"
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
@@ -177,7 +177,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
           AWS_REGION: "eu-west-2"
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
@@ -222,7 +222,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
           AWS_REGION: "eu-central-1"
         run: |
           cd src/inventory-service
@@ -234,7 +234,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
         run: |
           cd src/inventory-service
           make cdk-deploy
@@ -255,7 +255,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
         run: |
           cd src/inventory-service
           make cdk-destroy
@@ -267,7 +267,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
         run: |
           cd src/inventory-service
           make cdk-deploy
@@ -288,7 +288,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
         run: |
           cd src/inventory-service
           make cdk-destroy
@@ -330,7 +330,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "prod"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
           AWS_REGION: "eu-central-1"
         run: |
           cd src/inventory-service
@@ -342,7 +342,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: prod
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
         run: |
           cd src/inventory-service
           make cdk-deploy
@@ -392,7 +392,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
           AWS_REGION: "eu-central-1"
         run: |
           cd src/inventory-service
@@ -404,7 +404,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
           AWS_REGION: "eu-central-1"
         run: |
           cd src/inventory-service
@@ -425,7 +425,7 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
           AWS_REGION: "eu-central-1"
         run: |
           cd src/inventory-service
@@ -438,7 +438,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
           AWS_REGION: "eu-central-1"
         run: |
           cd src/inventory-service
@@ -460,7 +460,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.eu"
+          DD_SITE: "datadoghq.com"
           AWS_REGION: "eu-central-1"
         run: |
           cd src/inventory-service
