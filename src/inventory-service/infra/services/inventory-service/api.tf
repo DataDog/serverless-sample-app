@@ -48,11 +48,23 @@ module "inventory_api_web_service" {
       value = "true"
     },
     {
+      name  = "DD_API_KEY"
+      value = var.dd_api_key
+    },
+    {
+      name  = "DD_SERVICE"
+      value = "InventoryApi"
+    },
+    {
+      name  = "DD_ENV"
+      value = var.env
+    },
+    {
       name  = "JWT_SECRET_PARAM_NAME"
       value = var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/InventoryService/secret-access-key"
     }
   ]
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site               = var.dd_site
   ecs_cluster_id        = aws_ecs_cluster.main.id
   subnet_ids            = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]

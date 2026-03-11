@@ -38,7 +38,7 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.put("DD_VERSION", props.sharedProps().version());
         lambdaEnvironment.put("DD_JMXFETCH_ENABLED", "false");
         lambdaEnvironment.put("DD_TRACE_ENABLED", "true");
-        lambdaEnvironment.put("DD_API_KEY_SECRET_ARN", props.sharedProps().ddApiKeySecret().getSecretArn());
+        lambdaEnvironment.put("DD_API_KEY", props.sharedProps().ddApiKey());
         lambdaEnvironment.put("DD_CAPTURE_LAMBDA_PAYLOAD", "true");
         lambdaEnvironment.put("DD_LOGS_INJECTION", "true");
         lambdaEnvironment.put("DD_DATA_STREAMS_ENABLED", "true");
@@ -103,8 +103,6 @@ public class InstrumentedFunction extends Construct {
                     .effect(Effect.DENY)
                     .build()));
         }
-
-        props.sharedProps().ddApiKeySecret().grantRead(this.function);
     }
 
     public IFunction getFunction() {

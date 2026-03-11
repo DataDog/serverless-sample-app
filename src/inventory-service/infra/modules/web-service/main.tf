@@ -54,9 +54,7 @@ module "datadog_ecs_fargate_task" {
   version = "1.0.3"
 
   # Configure Datadog
-  dd_api_key_secret = {
-    arn = var.dd_api_key_secret_arn
-  }
+  dd_api_key = var.dd_api_key
   dd_site                          = var.dd_site
   dd_service                       = var.service_name
   dd_essential                     = true
@@ -138,12 +136,6 @@ module "datadog_ecs_fargate_task" {
         }
       ]
       environment = var.environment_variables
-      secrets = [
-        {
-          name      = "SECRET_NAME"
-          valueFrom = var.dd_api_key_secret_arn
-        }
-      ]
     },
   ])
   volumes = []

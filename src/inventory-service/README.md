@@ -215,7 +215,7 @@ module "aws_lambda_function" {
     "DD_ENV" : var.env
     "ENV" : var.env
     "DD_VERSION" : var.app_version
-    "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
+    "DD_API_KEY" : var.dd_api_key
     "DD_CAPTURE_LAMBDA_PAYLOAD" : "true"
     "DD_SERVERLESS_APPSEC_ENABLED": "true"
     "DD_IAST_ENABLED": "true"

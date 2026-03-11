@@ -58,7 +58,7 @@ variable "environment_variables" {
   type        = map(string)
 }
 
-variable "dd_api_key_secret_arn" {
+variable "dd_api_key" {
   type = string
 }
 

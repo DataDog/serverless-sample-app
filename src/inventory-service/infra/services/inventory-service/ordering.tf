@@ -16,7 +16,7 @@ module "inventory_ordering_service" {
   environment_variables = {
     ORDERING_SERVICE_WORKFLOW_ARN : aws_sfn_state_machine.inventory_ordering_state_machine.arn
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site = var.dd_site
   env = var.env
   app_version = var.app_version

@@ -55,7 +55,7 @@ module "inventory_acl_function" {
     DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
     DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site = var.dd_site
   env = var.env
   app_version = var.app_version
@@ -112,7 +112,7 @@ module "order_created_function" {
     DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
     DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site = var.dd_site
   env = var.env
   app_version = var.app_version
@@ -171,7 +171,7 @@ module "order_completed_function" {
     DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
     DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site = var.dd_site
   env = var.env
   app_version = var.app_version
@@ -211,7 +211,7 @@ module "product_cache_refresh_function" {
     TABLE_NAME : aws_dynamodb_table.inventory_api.name
     PRODUCT_API_ENDPOINT_PARAMETER: local.product_api_endpoint_parameter_name
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site = var.dd_site
   env = var.env
   app_version = var.app_version

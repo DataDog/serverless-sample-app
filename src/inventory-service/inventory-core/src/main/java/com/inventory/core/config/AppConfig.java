@@ -53,6 +53,12 @@ public class AppConfig {
     @ConfigProperty(name = "aws.sdk.retry.count", defaultValue = "3")
     int awsRetryCount;
 
+    @ConfigProperty(name = "dd.api.key", defaultValue = "")
+    String ddApiKey;
+
+    @ConfigProperty(name = "dd.site", defaultValue = "datadoghq.com")
+    String ddSite;
+
     public String getTableName() {
         return tableName;
     }
@@ -99,5 +105,13 @@ public class AppConfig {
     
     public String getSource() {
         return String.format("%s.inventory", environment);
+    }
+
+    public String getDdApiKey() {
+        return ddApiKey;
+    }
+
+    public String getDdSite() {
+        return ddSite;
     }
 } 

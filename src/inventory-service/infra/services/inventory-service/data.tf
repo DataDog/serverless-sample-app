@@ -62,13 +62,6 @@ data "aws_iam_policy_document" "allow_product_api_endpoint_ssm_read" {
   }
 }
 
-data "aws_iam_policy_document" "retrieve_api_key_secret" {
-  statement {
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = [var.dd_api_key_secret_arn]
-  }
-}
-
 data "aws_iam_policy_document" "stepfunctions_start_execution" {
   statement {
     actions   = ["states:StartExecution"]
@@ -139,8 +132,4 @@ data "aws_iam_policy_document" "sns_publish" {
     actions   = ["sns:Publish"]
     resources = ["arn:aws:sns:*:${data.aws_caller_identity.current.account_id}:${aws_sns_topic.java_inventory_new_product_added.name}"]
   }
-}
-
-data "aws_secretsmanager_secret" "api_key_secret" {
-  arn = var.dd_api_key_secret_arn
 }

@@ -34,13 +34,7 @@ public class InventoryServiceStack extends Stack {
         String env = System.getenv("ENV") == null ? "dev" : System.getenv("ENV");
         String version = System.getenv("VERSION") == null ? "latest" : System.getenv("VERSION");
 
-        ISecret ddApiKeySecret = new Secret(this, "DDApiKeySecret",
-                SecretProps.builder()
-                        .secretName(String.format("/%s/%s/dd-api-key", env, serviceName))
-                        .secretStringValue(new SecretValue(ddApiKey))
-                        .build());
-
-        SharedProps sharedProps = new SharedProps(serviceName, env, version, ddApiKeySecret, ddSite);
+        SharedProps sharedProps = new SharedProps(serviceName, env, version, ddApiKey, ddSite);
         InventoryServiceProps serviceProps = new InventoryServiceProps(this, "InventoryServiceProps", sharedProps);
 
         var api = new InventoryApiContainer(this, "InventoryApi", new InventoryApiContainerProps(serviceProps));

@@ -4,9 +4,8 @@
  * Copyright 2024 Datadog, Inc.
  */
 
-package com.cdk.constructs;
+package com.inventory.core;
 
-import software.amazon.awscdk.services.secretsmanager.ISecret;
-
-public record SharedProps(String service, String env, String version, String ddApiKey, String ddSite) {
+public interface TransactionTracker {
+    void track(String transactionId, String checkpoint);
 }

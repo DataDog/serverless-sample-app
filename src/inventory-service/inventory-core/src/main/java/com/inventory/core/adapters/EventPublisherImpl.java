@@ -39,6 +39,9 @@ public class EventPublisherImpl implements EventPublisher {
     private final Logger logger = LoggerFactory.getLogger(EventPublisherImpl.class);
 
     @Inject
+    TransactionTracker transactionTracker;
+
+    @Inject
     public EventPublisherImpl(EventBridgeClient eventBridge, SnsClient snsClient, ObjectMapper mapper, AppConfig appConfig) {
         this.eventBridge = eventBridge;
         this.snsClient = snsClient;
@@ -65,6 +68,7 @@ public class EventPublisherImpl implements EventPublisher {
 
             // Set DSM produce checkpoint before serialising so context is embedded in the body.
             DataStreamsCheckpointer.get().setProduceCheckpoint("sns", evtWrapper.getType(), new Carrier(evtWrapper.getDatadog()));
+            transactionTracker.track(evt.getProductId(), "inventory.productAdded");
 
             var evtContents = this.eventWriter.writeValueAsString(evtWrapper);
             final Span publishSpan = createPublishSpan("inventory.productAdded", evtWrapper, evtContents.length(), topicArn);
@@ -94,23 +98,27 @@ public class EventPublisherImpl implements EventPublisher {
     @Override
     public void publishInventoryStockUpdatedEvent(InventoryStockUpdatedEvent evt) {
         var evtWrapper = new CloudEventWrapper<>("inventory.stockUpdated.v1", evt);
+        transactionTracker.track(evt.getProductId(), "inventory.stockUpdated");
         this.publish(evtWrapper);
     }
 
     @Override
     public void publishStockReservedEvent(StockReservedEventV1 evt) {
+        transactionTracker.track(evt.getOrderNumber(), "inventory.stockReserved");
         var evtWrapper = new CloudEventWrapper<>("inventory.stockReserved.v1", evt);
         this.publish(evtWrapper);
     }
 
     @Override
     public void publishProductOutOfStockEvent(ProductOutOfStockEventV1 evt) {
+        transactionTracker.track(evt.getProductId(), "inventory.outOfStock");
         var evtWrapper = new CloudEventWrapper<>("inventory.outOfStock.v1", evt);
         this.publish(evtWrapper);
     }
 
     @Override
     public void publishStockReservationFailedEvent(StockReservationFailedEventV1 evt) {
+        transactionTracker.track(evt.getOrderNumber(), "inventory.stockReservationFailed");
         var evtWrapper = new CloudEventWrapper<>("inventory.stockReservationFailed.v1", evt);
         this.publish(evtWrapper);
     }

@@ -76,13 +76,6 @@ Globals:
       - x86_64
 
 Resources:
-  DDApiKeySecret:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Name: !Sub /${Env}/${ServiceName}/datadog-api-key
-      Description: The Datadog API key
-      SecretString: !Ref DDApiKey
-
   InventoryServiceEventBus:
     Type: AWS::Events::EventBus
     Properties:
@@ -130,12 +123,6 @@ Resources:
           Properties:
             Queue: !GetAtt InventoryProductCreatedEventQueue.Arn
       Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: '2012-10-17'
           Statement:
@@ -171,12 +158,6 @@ Resources:
             ScheduleExpression: 'rate(5 minutes)'
             Name: InvokeEvery5Minutes
       Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecret
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
@@ -226,12 +207,6 @@ Resources:
           Properties:
             Queue: !GetAtt InventoryOrderCreatedEventQueue.Arn
       Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: '2012-10-17'
           Statement:
@@ -281,12 +256,6 @@ Resources:
           Properties:
             Queue: !GetAtt InventoryOrderCompletedEventQueue.Arn
       Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: '2012-10-17'
           Statement:
@@ -464,12 +433,6 @@ Resources:
           Properties:
             Topic: !Ref NewProductAddedTopic
       Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecret
         - StepFunctionsExecutionPolicy:
             StateMachineName: !GetAtt InventoryOrderingService.Name
     Metadata:
@@ -740,14 +703,6 @@ Resources:
                   - logs:PutLogEvents
                   - logs:DescribeLogStreams
                 Resource: '*'
-        - PolicyName: allow-secrets-retrieve
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - secretsmanager:GetSecretValue
-                Resource: !Ref DDApiKeySecret
 
   ECSTaskRole:
     Type: AWS::IAM::Role
@@ -791,14 +746,6 @@ Resources:
                   - events:PutEvents
                   - events:ListEventBuses
                 Resource: '*'
-        - PolicyName: allow-secrets-retrieve
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - secretsmanager:GetSecretValue
-                Resource: !Ref DDApiKeySecret
         - PolicyName: allow-ssm-access-key-retrieve
           PolicyDocument:
             Version: '2012-10-17'
@@ -850,6 +797,14 @@ Resources:
               Value: inventory
             - Name: ENV
               Value: !Ref Env
+            - Name: DD_API_KEY
+              Value: !Ref DDApiKey
+            - Name: DD_ENV
+              Value: !Ref Env
+            - Name: DD_SERVICE
+              Value: !Ref ServiceName
+            - Name: DD_VERSION
+              Value: !Ref CommitHash
             - Name: DD_TRACE_AGENT_URL
               Value: "http://localhost:8126"
           PortMappings:
@@ -897,9 +852,8 @@ Resources:
               Value: !Ref CommitHash
             - Name: DD_APM_IGNORE_RESOURCES
               Value: GET /
-          Secrets:
             - Name: DD_API_KEY
-              ValueFrom: !Ref DDApiKeySecret
+              Value: !Ref DDApiKey
           PortMappings:
             - ContainerPort: 8125
               HostPort: 8125

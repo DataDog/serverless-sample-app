@@ -71,6 +71,7 @@ public class InventoryApiContainer extends Construct {
         environmentVariables.put("DD_SERVICE", props.serviceProps().getSharedProps().service());
         environmentVariables.put("DD_ENV", props.serviceProps().getSharedProps().env());
         environmentVariables.put("DD_VERSION", props.serviceProps().getSharedProps().version());
+        environmentVariables.put("DD_API_KEY", props.serviceProps().getSharedProps().ddApiKey());
         environmentVariables.put("JWT_SECRET_PARAM_NAME", props.serviceProps().getJwtAccessKeyParameter().getParameterName());
         environmentVariables.put("QUARKUS_HTTP_CORS_HEADERS", "Accept,Authorization,Content-Type");
         environmentVariables.put("QUARKUS_HTTP_CORS_METHODS", "GET,POST,OPTIONS,PUT,DELETE");
@@ -111,10 +112,8 @@ public class InventoryApiContainer extends Construct {
                                         "dd_service", props.serviceProps().getSharedProps().service(),
                                         "dd_source", "java",
                                         "dd_message_key", "log",
-                                        "provider", "ecs"
-                                ))
-                                .secretOptions(Map.of(
-                                        "apikey", Secret.fromSecretsManager(props.serviceProps().getSharedProps().ddApiKeySecret())
+                                        "provider", "ecs",
+                                        "apikey", props.serviceProps().getSharedProps().ddApiKey()
                                 ))
                                 .build()))
                         .build())
@@ -155,8 +154,6 @@ public class InventoryApiContainer extends Construct {
                 .resources(List.of("*"))
                 .actions(List.of("events:ListEventBuses"))
                 .build());
-        props.serviceProps().getSharedProps().ddApiKeySecret().grantRead(taskRole);
-        props.serviceProps().getSharedProps().ddApiKeySecret().grantRead(executionRole);
 
         application.getTargetGroup().configureHealthCheck(HealthCheck.builder()
                 .port("8080")
@@ -188,6 +185,7 @@ public class InventoryApiContainer extends Construct {
         datadogEnvironmentVariables.put("DD_VERSION", version);
         datadogEnvironmentVariables.put("DD_APM_IGNORE_RESOURCES", "(GET) /health,(GET) /,(OPTIONS) .*");
         datadogEnvironmentVariables.put("DD_DATA_STREAMS_ENABLED", "true");
+        datadogEnvironmentVariables.put("DD_API_KEY", props.serviceProps().getSharedProps().ddApiKey());
         
         application.getTaskDefinition().addContainer("Datadog", ContainerDefinitionOptions.builder()
                 .image(ContainerImage.fromRegistry("public.ecr.aws/datadog/agent:latest"))
@@ -197,9 +195,6 @@ public class InventoryApiContainer extends Construct {
                 ))
                 .containerName("datadog-agent")
                 .environment(datadogEnvironmentVariables)
-                .secrets(Map.of(
-                        "DD_API_KEY", Secret.fromSecretsManager(props.serviceProps().getSharedProps().ddApiKeySecret())
-                ))
                 .build());
 
         var cloudfrontDistribution = new Distribution(this, "InventoryApiDistribution", DistributionProps.builder()
