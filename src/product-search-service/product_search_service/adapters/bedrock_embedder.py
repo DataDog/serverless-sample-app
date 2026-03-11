@@ -8,7 +8,12 @@ from botocore.exceptions import ClientError
 from ddtrace import tracer
 from ddtrace.llmobs import LLMObs
 
-RETRIABLE_ERROR_CODES = {"ThrottlingException", "ModelTimeoutException", "ServiceUnavailableException", "RequestTimeout"}
+RETRIABLE_ERROR_CODES = {
+    "ThrottlingException",
+    "ModelTimeoutException",
+    "ServiceUnavailableException",
+    "RequestTimeout",
+}
 MAX_RETRIES = 3
 
 

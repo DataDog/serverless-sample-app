@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import time
+from datetime import UTC, datetime
 
 import boto3
 from aws_lambda_powertools import Logger
-from datetime import datetime, timezone
 from ddtrace import tracer
 
 from product_search_service.models.product import ProductMetadata, PricingTier
@@ -58,7 +58,7 @@ class MetadataRepository:
                     {"quantity": t.quantity, "price": str(t.price)}
                     for t in pricing_tiers
                 ],
-                ":ts": datetime.now(timezone.utc).isoformat(),
+                ":ts": datetime.now(UTC).isoformat(),
             },
         )
 
@@ -74,7 +74,7 @@ class MetadataRepository:
             UpdateExpression="SET stockLevel = :stock, lastUpdatedAt = :ts",
             ExpressionAttributeValues={
                 ":stock": str(stock_level),
-                ":ts": datetime.now(timezone.utc).isoformat(),
+                ":ts": datetime.now(UTC).isoformat(),
             },
         )
 

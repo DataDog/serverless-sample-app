@@ -320,7 +320,6 @@ jobs:
         with:
           dotnet-version: "9.0.x"
           cache: true
-          cache: true
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
         with:

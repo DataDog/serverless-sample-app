@@ -17,7 +17,12 @@ Do not invent products or details not in the provided list."""
 
 MAX_TOKENS = 512
 
-RETRIABLE_ERROR_CODES = {"ThrottlingException", "ModelTimeoutException", "ServiceUnavailableException", "RequestTimeout"}
+RETRIABLE_ERROR_CODES = {
+    "ThrottlingException",
+    "ModelTimeoutException",
+    "ServiceUnavailableException",
+    "RequestTimeout",
+}
 MAX_RETRIES = 3
 
 
