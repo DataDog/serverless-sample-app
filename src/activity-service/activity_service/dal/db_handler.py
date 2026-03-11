@@ -7,6 +7,8 @@ from activity_service.models.activity import Activity
 
 # data access handler / integration later adapter class
 class DalHandler(ABC):
+    table_name: str
+
     @abstractmethod
     def update_activity(self, activity: Activity) -> Activity: ...  # pragma: no cover
 

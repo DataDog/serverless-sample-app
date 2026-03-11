@@ -30,6 +30,7 @@ class SharedResources:
         )
 
         self.shared_event_bus = None
+        self.jwt_secret_access_key: ssm.IStringParameter
         if shared_props.environment not in integrated_environments:
             self.jwt_secret_access_key = ssm.StringParameter(
                 scope,
