@@ -47,7 +47,7 @@ public class FunctionsTests
         _tracingProvider.Setup(t => t.ExtractContextIncludingDsm(
                 It.IsAny<JsonDocument>(),
                 It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>(),
-                "sns",
+                "eventbridge",
                 "stock.reserved"))
             .Returns(_extractedContext.Object);
 
@@ -84,7 +84,7 @@ public class FunctionsTests
         _tracingProvider.Setup(t => t.ExtractContextIncludingDsm(
                 It.IsAny<JsonDocument>(),
                 It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>(),
-                "sns",
+                "eventbridge",
                 "stock.reservation_failed"))
             .Returns(_extractedContext.Object);
 
@@ -144,7 +144,7 @@ public class FunctionsTests
         _tracingProvider.Setup(t => t.ExtractContextIncludingDsm(
                 It.IsAny<JsonDocument>(),
                 It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>(),
-                "sns",
+                "eventbridge",
                 It.IsAny<string>()))
             .Callback<JsonDocument, Func<JsonDocument, string, IEnumerable<string?>>, string, string>(
                 (doc, _, _, _) => capturedDocument = doc)

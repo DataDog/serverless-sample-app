@@ -4,6 +4,7 @@
 
 using System.Text.Json.Serialization;
 using Orders.Core.Adapters;
+using Orders.Core.Domain.Exceptions;
 
 namespace Orders.Core;
 

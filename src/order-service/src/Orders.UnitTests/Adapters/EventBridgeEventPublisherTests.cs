@@ -4,6 +4,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Amazon;
 using Amazon.EventBridge;
 using Amazon.EventBridge.Model;
 using Microsoft.Extensions.Configuration;
@@ -23,7 +24,7 @@ public class EventBridgeEventPublisherTests
 
     public EventBridgeEventPublisherTests()
     {
-        _eventBridgeClientMock = new Mock<AmazonEventBridgeClient>();
+        _eventBridgeClientMock = new Mock<AmazonEventBridgeClient>(new AmazonEventBridgeConfig { RegionEndpoint = RegionEndpoint.USEast1 });
         _eventBridgeClientMock
             .Setup(c => c.PutEventsAsync(It.IsAny<PutEventsRequest>(), default))
             .Callback<PutEventsRequest, CancellationToken>((req, _) => _capturedRequest = req)

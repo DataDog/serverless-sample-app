@@ -4,6 +4,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Amazon;
 using Amazon.StepFunctions;
 using Amazon.StepFunctions.Model;
 using Microsoft.Extensions.Configuration;
@@ -23,7 +24,7 @@ public class StepFunctionsOrderWorkflowTests
 
     public StepFunctionsOrderWorkflowTests()
     {
-        _stepFunctionsClient = new Mock<AmazonStepFunctionsClient>();
+        _stepFunctionsClient = new Mock<AmazonStepFunctionsClient>(new AmazonStepFunctionsConfig { RegionEndpoint = RegionEndpoint.USEast1 });
         _stepFunctionsClient
             .Setup(c => c.StartExecutionAsync(It.IsAny<StartExecutionRequest>(), It.IsAny<CancellationToken>()))
             .Callback<StartExecutionRequest, CancellationToken>((req, _) => _capturedRequest = req)
