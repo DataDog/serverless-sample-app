@@ -49,8 +49,8 @@ jobs:
   #         VERSION: ${{ env.sha_short }}
   #         ENV: "dev"
   #         DD_API_KEY: ${{secrets.DD_API_KEY}}
-  #         DD_SITE: "datadoghq.com"
-  #         AWS_REGION: "eu-central-1"
+  #         DD_SITE: ${{ vars.DD_SITE }}
+  #         AWS_REGION: ${{ vars.CDK_PROD_AWS_REGION }}
   #       run: |
   #         cd src/activity-service
   #         make dev
@@ -60,7 +60,7 @@ jobs:
   #         COMMIT_HASH: ${{ env.sha_short }}
   #         VERSION: ${{ env.sha_short }}
   #         ENV: "dev"
-  #         DD_SITE: "datadoghq.com"
+  #         DD_SITE: ${{ vars.DD_SITE }}
   #         AWS_REGION: "eu-west-2"
   #       run: |
   #         cd src/activity-service
@@ -72,7 +72,7 @@ jobs:
   #         VERSION: ${{ env.sha_short }}
   #         ENV: ${{ env.sha_short }}
   #         DD_API_KEY: ${{secrets.DD_API_KEY}}
-  #         DD_SITE: "datadoghq.com"
+  #         DD_SITE: ${{ vars.DD_SITE }}
   #         AWS_REGION: "eu-west-2"
   #         TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
   #       run: |
@@ -99,7 +99,7 @@ jobs:
   #         VERSION: ${{ env.sha_short }}
   #         ENV: ${{ env.sha_short }}
   #         DD_API_KEY: ${{secrets.DD_API_KEY}}
-  #         DD_SITE: "datadoghq.com"
+  #         DD_SITE: ${{ vars.DD_SITE }}
   #         AWS_REGION: "eu-west-2"
   #         TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
   #       run: |
@@ -113,7 +113,7 @@ jobs:
   #         VERSION: ${{ env.sha_short }}
   #         ENV: "dev"
   #         DD_API_KEY: ${{secrets.DD_API_KEY}}
-  #         DD_SITE: "datadoghq.com"
+  #         DD_SITE: ${{ vars.DD_SITE }}
   #         AWS_REGION: "eu-west-2"
   #         TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
   #       run: |
@@ -141,7 +141,7 @@ jobs:
   #         VERSION: ${{ env.sha_short }}
   #         ENV: "dev"
   #         DD_API_KEY: ${{secrets.DD_API_KEY}}
-  #         DD_SITE: "datadoghq.com"
+  #         DD_SITE: ${{ vars.DD_SITE }}
   #         AWS_REGION: "eu-west-2"
   #         TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
   #       run: |
@@ -177,7 +177,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "eu-west-1"
+          aws-region: ${{ vars.CDK_AWS_REGION }}
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -203,7 +203,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
+          DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/activity-service
           make cdk-deploy
@@ -212,8 +212,8 @@ jobs:
         env:
           ENV: ${{ env.sha_short }}
           VERSION: ${{ env.sha_short }}
-          AWS_REGION: "eu-west-1"
-          AWS_DEFAULT_REGION: "eu-west-1"
+          AWS_REGION: ${{ vars.CDK_AWS_REGION }}
+          AWS_DEFAULT_REGION: ${{ vars.CDK_AWS_REGION }}
         run: |
           cd src/activity-service
           make integration-test
@@ -225,7 +225,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
+          DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/activity-service
           make cdk-destroy
@@ -237,7 +237,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
+          DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/activity-service
           make cdk-deploy
@@ -246,8 +246,8 @@ jobs:
         shell: bash
         env:
           ENV: "dev"
-          AWS_REGION: "eu-west-1"
-          AWS_DEFAULT_REGION: "eu-west-1"
+          AWS_REGION: ${{ vars.CDK_AWS_REGION }}
+          AWS_DEFAULT_REGION: ${{ vars.CDK_AWS_REGION }}
         run: |
           cd src/activity-service
           make integration-test
@@ -259,7 +259,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
+          DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/activity-service
           make cdk-destroy
@@ -292,7 +292,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.PRODUCTION_AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "eu-central-1"
+          aws-region: ${{ vars.CDK_PROD_AWS_REGION }}
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -309,7 +309,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "prod"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
+          DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/activity-service
           make cdk-deploy
@@ -318,8 +318,8 @@ jobs:
         shell: bash
         env:
           ENV: "prod"
-          AWS_REGION: "eu-central-1"
-          AWS_DEFAULT_REGION: "eu-central-1"
+          AWS_REGION: ${{ vars.CDK_PROD_AWS_REGION }}
+          AWS_DEFAULT_REGION: ${{ vars.CDK_PROD_AWS_REGION }}
         run: |
           cd src/activity-service
           make integration-test
@@ -345,7 +345,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "eu-central-1"
+          aws-region: ${{ vars.SAM_AWS_REGION }}
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -357,8 +357,8 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-central-1"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
           cd src/activity-service
           make dev
@@ -379,8 +379,8 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-central-1"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
           cd src/activity-service
           make build
@@ -391,8 +391,8 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-central-1"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
           cd src/activity-service
           make sam
@@ -401,8 +401,8 @@ jobs:
         env:
           ENV: ${{ env.sha_short }}
           VERSION: ${{ env.sha_short }}
-          AWS_REGION: "eu-central-1"
-          AWS_DEFAULT_REGION: "eu-central-1"
+          AWS_REGION: ${{ vars.SAM_AWS_REGION }}
+          AWS_DEFAULT_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
           cd src/activity-service
           make integration-test
@@ -413,8 +413,8 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-central-1"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
           cd src/activity-service
           make sam-destroy
@@ -426,8 +426,8 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-central-1"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
           cd src/activity-service
           make sam
@@ -436,8 +436,8 @@ jobs:
         shell: bash
         env:
           ENV: "dev"
-          AWS_REGION: "eu-central-1"
-          AWS_DEFAULT_REGION: "eu-central-1"
+          AWS_REGION: ${{ vars.SAM_AWS_REGION }}
+          AWS_DEFAULT_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
           cd src/activity-service
           make integration-test
@@ -449,8 +449,8 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-central-1"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
           cd src/activity-service
           make sam-destroy

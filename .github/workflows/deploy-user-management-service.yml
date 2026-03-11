@@ -65,7 +65,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "eu-west-2"
+          aws-region: ${{ vars.TF_AWS_REGION }}
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -76,8 +76,8 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-central-1"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.CDK_PROD_AWS_REGION }}
         run: |
           cd src/user-management-service
           make build
@@ -87,8 +87,8 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "tf-${{ env.sha_short }}"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-west-2"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.TF_AWS_REGION }}
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
           cd src/user-management-service
@@ -97,7 +97,7 @@ jobs:
         shell: bash
         env:
           ENV: "tf-${{ env.sha_short }}"
-          AWS_REGION: "eu-west-2"
+          AWS_REGION: ${{ vars.TF_AWS_REGION }}
         run: |
           cd src/user-management-service
           make integration-test
@@ -108,8 +108,8 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "tf-${{ env.sha_short }}"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-west-2"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.TF_AWS_REGION }}
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
           cd src/user-management-service
@@ -122,8 +122,8 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-west-2"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.TF_AWS_REGION }}
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
           cd src/user-management-service
@@ -133,7 +133,7 @@ jobs:
         shell: bash
         env:
           ENV: "dev"
-          AWS_REGION: "eu-west-2"
+          AWS_REGION: ${{ vars.TF_AWS_REGION }}
         run: |
           cd src/user-management-service
           make integration-test
@@ -144,8 +144,8 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-west-2"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.TF_AWS_REGION }}
           TF_STATE_BUCKET_NAME: ${{secrets.TF_STATE_BUCKET_NAME}}
         run: |
           cd src/user-management-service
@@ -181,7 +181,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "eu-west-1"
+          aws-region: ${{ vars.CDK_AWS_REGION }}
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -192,7 +192,7 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "cdk-${{ env.sha_short }}"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
+          DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/user-management-service
           npm i
@@ -201,7 +201,7 @@ jobs:
         shell: bash
         env:
           ENV: "cdk-${{ env.sha_short }}"
-          AWS_REGION: "eu-west-1"
+          AWS_REGION: ${{ vars.CDK_AWS_REGION }}
         run: |
           cd src/user-management-service
           make integration-test
@@ -212,7 +212,7 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "cdk-${{ env.sha_short }}"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
+          DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/user-management-service
           npm i
@@ -224,7 +224,7 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
+          DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/user-management-service
           npm i
@@ -234,7 +234,7 @@ jobs:
         shell: bash
         env:
           ENV: "dev"
-          AWS_REGION: "eu-west-1"
+          AWS_REGION: ${{ vars.CDK_AWS_REGION }}
         run: |
           cd src/user-management-service
           make integration-test
@@ -245,7 +245,7 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
+          DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/user-management-service
           npm i
@@ -279,7 +279,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.PRODUCTION_AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "eu-central-1"
+          aws-region: ${{ vars.CDK_PROD_AWS_REGION }}
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -290,7 +290,7 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "prod"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
+          DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/user-management-service
           npm i
@@ -299,7 +299,7 @@ jobs:
         shell: bash
         env:
           ENV: "prod"
-          AWS_REGION: "eu-central-1"
+          AWS_REGION: ${{ vars.CDK_PROD_AWS_REGION }}
         run: |
           cd src/user-management-service
           make integration-test
@@ -329,7 +329,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: "eu-central-1"
+          aws-region: ${{ vars.SAM_AWS_REGION }}
       - name: Set Commit Hash Environment Variables
         shell: bash
         run: |
@@ -340,8 +340,8 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "sam-${{ env.sha_short }}"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-central-1"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
           cd src/user-management-service
           make sam
@@ -349,7 +349,7 @@ jobs:
         shell: bash
         env:
           ENV: "sam-${{ env.sha_short }}"
-          AWS_REGION: "eu-central-1"
+          AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
           cd src/user-management-service
           make integration-test
@@ -360,8 +360,8 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "sam-${{ env.sha_short }}"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-central-1"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
           cd src/user-management-service
           make sam-destroy
@@ -372,8 +372,8 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-central-1"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
           cd src/user-management-service
           make sam
@@ -382,7 +382,7 @@ jobs:
         shell: bash
         env:
           ENV: "dev"
-          AWS_REGION: "eu-central-1"
+          AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
           cd src/user-management-service
           make integration-test
@@ -393,8 +393,8 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
-          DD_SITE: "datadoghq.com"
-          AWS_REGION: "eu-central-1"
+          DD_SITE: ${{ vars.DD_SITE }}
+          AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
           cd src/user-management-service
           make sam-destroy
@@ -433,7 +433,7 @@ jobs:
   #         COMMIT_HASH: ${{ env.sha_short }}
   #         ENV: "dev"
   #         DD_API_KEY: ${{secrets.DD_API_KEY}}
-  #         DD_SITE: "datadoghq.com"
+  #         DD_SITE: ${{ vars.DD_SITE }}
   #         AWS_REGION: "us-east-2"
   #       run: |
   #         cd src/user-management-service
@@ -455,7 +455,7 @@ jobs:
   #         COMMIT_HASH: ${{ env.sha_short }}
   #         ENV: "dev"
   #         DD_API_KEY: ${{secrets.DD_API_KEY}}
-  #         DD_SITE: "datadoghq.com"
+  #         DD_SITE: ${{ vars.DD_SITE }}
   #         AWS_REGION: "us-east-2"
   #       run: |
   #         cd src/user-management-service

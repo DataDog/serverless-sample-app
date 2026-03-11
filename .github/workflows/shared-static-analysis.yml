@@ -32,7 +32,7 @@ jobs:
       with:
         dd_api_key: ${{ secrets.DD_API_KEY }}
         dd_app_key: ${{ secrets.DD_APP_KEY }}
-        dd_site: datadoghq.eu
+        dd_site: ${{ vars.DD_SITE }}
         cpu_count: 2
         subdirectory: ${{inputs.directory}}
   software-composition-analysis:
@@ -47,4 +47,4 @@ jobs:
       with:
         dd_api_key: ${{ secrets.DD_API_KEY }}
         dd_app_key: ${{ secrets.DD_APP_KEY }}
-        dd_site: datadoghq.eu
+        dd_site: ${{ vars.DD_SITE }}
