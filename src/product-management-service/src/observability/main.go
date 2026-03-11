@@ -111,7 +111,7 @@ func getEnv(key, fallback string) string {
 
 func TrackTransaction(ctx context.Context, transactionEvent TransactionEvent) error {
 	span, _ := tracer.SpanFromContext(ctx)
-	span.SetTag("dsm.transaction_id", transactionEvent.TransactionID)
+	span.SetTag("dsm.transaction.id", transactionEvent.TransactionID)
 	span.SetTag("dsm.transaction.checkpoint", transactionEvent.Checkpoint)
 
 	ddSite := getEnv("DD_SITE", "us3.datadoghq.com")
