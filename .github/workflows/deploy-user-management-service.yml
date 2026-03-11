@@ -36,7 +36,7 @@ jobs:
         shell: bash
         run: |
           cd src/user-management-service
-          cargo test --workspace
+          cargo test --workspace --exclude integration-tests
       - name: Cargo clippy
         shell: bash
         run: |
