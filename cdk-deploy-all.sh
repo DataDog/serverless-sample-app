@@ -42,6 +42,12 @@ npm i
 cdk deploy --require-approval never &>../../deployment-logs/loyalty-point-service.log &
 popd
 
+pushd src/product-search-service
+npm i
+./package.sh
+cdk deploy --require-approval never &>../../deployment-logs/product-search-service.log &
+popd
+
 pushd src/activity-service
 pip install --upgrade pip pre-commit poetry
 pre-commit install

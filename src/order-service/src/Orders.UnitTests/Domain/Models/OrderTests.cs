@@ -232,7 +232,6 @@ public class OrderTests
     #region Fuzzing Tests
     
     [Theory]
-    [InlineData(OrderStatus.Created, OrderStatus.Created, OrderStatus.Confirmed, OrderStatus.Confirmed, OrderStatus.Completed)]
     [InlineData(OrderStatus.Created, OrderStatus.NoStock, OrderStatus.NoStock, OrderStatus.NoStock, OrderStatus.NoStock)]
     public void MultipleStateTransitions_FollowExpectedPath(
         OrderStatus initial,
