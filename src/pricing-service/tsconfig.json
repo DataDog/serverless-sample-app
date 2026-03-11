@@ -27,6 +27,7 @@
   "exclude": [
     "node_modules",
     "cdk.out",
-    "@aws-sdk/*"
+    "@aws-sdk/*",
+    "sst.config.ts"
   ]
 }
