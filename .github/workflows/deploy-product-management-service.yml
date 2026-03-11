@@ -37,8 +37,13 @@ jobs:
       - name: Go vet
         shell: bash
         run: |
-          cd src/product-management-service
-          go vet ./...
+          for mod_dir in src/product-management-service/src/core \
+                         src/product-management-service/src/observability \
+                         src/product-management-service/src/product-acl \
+                         src/product-management-service/src/product-api \
+                         src/product-management-service/src/product-event-publisher; do
+            (cd "$mod_dir" && go vet ./...)
+          done
 
   deploy-tf:
     runs-on: ubuntu-latest
