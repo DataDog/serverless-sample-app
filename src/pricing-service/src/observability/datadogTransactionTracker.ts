@@ -154,7 +154,7 @@ export class DatadogTransactionTracker {
     const span = tracer.scope().active();
     if (span) {
       span.addTags({
-        "dsm.transaction_id": transaction.transactionId,
+        "dsm.transaction.id": transaction.transactionId,
         "dsm.transaction.checkpoint": transaction.checkpoint,
       });
     }
