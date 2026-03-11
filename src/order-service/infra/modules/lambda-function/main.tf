@@ -40,29 +40,9 @@ resource "aws_iam_policy" "function_logging_policy" {
   })
 }
 
-resource "aws_iam_policy" "dd_api_secret_policy" {
-  name = "tf-dotnet-${var.function_name}-api-key-policy-${var.env}"
-  policy = jsonencode({
-    "Version" : "2012-10-17",
-    "Statement" : [
-      {
-        Action : [
-          "secretsmanager:GetSecretValue"
-        ],
-        Effect : "Allow",
-        Resource : var.dd_api_key_secret_arn
-      }
-    ]
-  })
-}
-
 resource "aws_iam_role_policy_attachment" "function_logging_policy_attachment" {
   role       = aws_iam_role.lambda_function_role.id
   policy_arn = aws_iam_policy.function_logging_policy.arn
-}
-resource "aws_iam_role_policy_attachment" "secrets_retrieval_policy_attachment" {
-  role       = aws_iam_role.lambda_function_role.id
-  policy_arn = aws_iam_policy.dd_api_secret_policy.arn
 }
 
 resource "aws_iam_role_policy_attachment" "additional_policy_attachments" {
@@ -100,7 +80,7 @@ module "aws_lambda_function" {
     "DD_SERVICE" : var.service_name,
     "DD_ENV" : var.env,
     "DD_VERSION" : var.app_version,
-    "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn,
+    "DD_API_KEY" : var.dd_api_key,
     "DD_CAPTURE_LAMBDA_PAYLOAD" : "true",
     "AWS_LAMBDA_EXEC_WRAPPER" : "/opt/datadog_wrapper",
     "DD_LOGS_INJECTION" : "true",

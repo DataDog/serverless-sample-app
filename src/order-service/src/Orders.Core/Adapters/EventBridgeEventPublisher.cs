@@ -13,6 +13,7 @@ using Datadog.Trace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Orders.Core.PublicEvents;
+using Orders.Core.Telemetry;
 
 namespace Orders.Core.Adapters;
 
@@ -21,6 +22,7 @@ internal record DeprecationInfo(DateTime Date, string SupercededBy);
 public class EventBridgeEventPublisher(
     ILogger<EventBridgeEventPublisher> logger,
     IConfiguration configuration,
+    ITransactionTracker transactionTracker,
     AmazonEventBridgeClient eventBridgeClient) : IPublicEventPublisher
 {
     private readonly string Source = $"{configuration["ENV"]}.orders";
@@ -85,6 +87,8 @@ public class EventBridgeEventPublisher(
             DetailType = "orders.orderCreated.v1",
             Detail = JsonSerializer.Serialize(evt)
         };
+        
+        await transactionTracker.TrackTransactionAsync(evt.OrderNumber, "orders.orderCreated");
 
         await Publish(putEventRecord);
     }
@@ -98,6 +102,8 @@ public class EventBridgeEventPublisher(
             DetailType = "orders.orderConfirmed.v1",
             Detail = JsonSerializer.Serialize(evt)
         };
+        
+        await transactionTracker.TrackTransactionAsync(evt.OrderNumber, "orders.orderConfirmed");
 
         await Publish(putEventRecord);
     }
@@ -111,6 +117,8 @@ public class EventBridgeEventPublisher(
             DetailType = "orders.orderCompleted.v1",
             Detail = JsonSerializer.Serialize(evt)
         };
+        
+        await transactionTracker.TrackTransactionAsync(evt.OrderNumber, "orders.orderCompleted");
 
         await Publish(putEventRecord, new DeprecationInfo(new DateTime(2025, 12, 01), "orders.orderCompleted.v2"));
     }
@@ -124,6 +132,8 @@ public class EventBridgeEventPublisher(
             DetailType = "orders.orderCompleted.v2",
             Detail = JsonSerializer.Serialize(evt)
         };
+        
+        await transactionTracker.TrackTransactionAsync(evt.OrderId, "orders.orderCompleted");
 
         await Publish(putEventRecord);
     }

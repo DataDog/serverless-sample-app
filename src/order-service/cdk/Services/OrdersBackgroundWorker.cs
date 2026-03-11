@@ -59,7 +59,7 @@ public class OrdersBackgroundWorker : Construct
         var handleStockReserved = new InstrumentedFunction(this, "StockReservedACLFunction",
             new FunctionProps(props.SharedProps, "StockReservationSuccessACL", "../src/Orders.BackgroundWorkers/",
                 "Orders.BackgroundWorkers::Orders.BackgroundWorkers.Functions_HandleStockReserved_Generated::HandleStockReserved",
-                environmentVariables, props.SharedProps.DDApiKeySecret));
+                environmentVariables));
         handleStockReserved.Function.AddEventSource(new SqsEventSource(stockReservedEventQueue.Queue));
 
         handleStockReserved.Function.Role?.AttachInlinePolicy(describeEventBusPolicy);
@@ -83,7 +83,7 @@ public class OrdersBackgroundWorker : Construct
         var handleOutOfStock = new InstrumentedFunction(this, "StockReservationFailedACLFunction",
             new FunctionProps(props.SharedProps, "HandleStockReservationFailed", "../src/Orders.BackgroundWorkers/",
                 "Orders.BackgroundWorkers::Orders.BackgroundWorkers.Functions_HandleReservationFailed_Generated::HandleReservationFailed",
-                environmentVariables, props.SharedProps.DDApiKeySecret));
+                environmentVariables));
         handleOutOfStock.Function.AddEventSource(new SqsEventSource(stockReservationFailedEventQueue.Queue));
 
         handleOutOfStock.Function.Role?.AttachInlinePolicy(describeEventBusPolicy);

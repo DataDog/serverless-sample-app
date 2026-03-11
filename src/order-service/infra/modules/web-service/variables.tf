@@ -34,7 +34,7 @@ variable "environment_variables" {
   }))
 }
 
-variable "dd_api_key_secret_arn" {
+variable "dd_api_key" {
   type = string
 }
 

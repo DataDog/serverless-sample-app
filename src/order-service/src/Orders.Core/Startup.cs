@@ -14,6 +14,7 @@ using Orders.Core.Adapters;
 using Orders.Core.PublicEvents;
 using Orders.Core.StockReservationFailure;
 using Orders.Core.StockReservationSuccess;
+using Orders.Core.Telemetry;
 using Serilog;
 using Serilog.Formatting.Compact;
 
@@ -38,7 +39,8 @@ public static class Startup
             .MinimumLevel.Is(Serilog.Events.LogEventLevel.Information)
             .WriteTo.Console(new CompactJsonFormatter())
             .CreateBootstrapLogger();
-        
+
+        services.AddSingleton<ITransactionTracker, DatadogTransactionTracker>();
         services.AddLogging();
         services.AddAwsServices(configuration);
 

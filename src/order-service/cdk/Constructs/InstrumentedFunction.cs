@@ -21,8 +21,7 @@ public record FunctionProps(
     string FunctionName,
     string ProjectPath,
     string Handler,
-    Dictionary<string, string> EnvironmentVariables,
-    ISecret DdApiKeySecret);
+    Dictionary<string, string> EnvironmentVariables);
 
 public class InstrumentedFunction : Construct
 {
@@ -53,7 +52,7 @@ public class InstrumentedFunction : Construct
             { "ENV", props.Shared.Env },
             { "DD_VERSION", props.Shared.Version },
             { "DD_SERVICE", props.Shared.ServiceName },
-            { "DD_API_KEY_SECRET_ARN", props.DdApiKeySecret.SecretArn },
+            { "DD_API_KEY", props.Shared.DDApiKey },
             { "DD_CAPTURE_LAMBDA_PAYLOAD", "true" },
             { "DD_DATA_STREAMS_ENABLED", "true" },
             { "DOMAIN", props.Shared.Domain },
@@ -95,7 +94,5 @@ public class InstrumentedFunction : Construct
                 },
                 Effect = Effect.DENY
             }));
-
-        props.DdApiKeySecret.GrantRead(Function);
     }
 }

@@ -58,13 +58,6 @@ data "aws_iam_policy_document" "allow_jwt_secret_key_ssm_read" {
   }
 }
 
-data "aws_iam_policy_document" "retrieve_api_key_secret" {
-  statement {
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = [var.dd_api_key_secret_arn]
-  }
-}
-
 data "aws_iam_policy_document" "eb_queue_policy" {
   statement {
     sid    = "AllowEBPost"
@@ -100,8 +93,4 @@ data "aws_iam_policy_document" "order_workflow_lambda_invoke" {
       module.confirm_order_handler.function_arn
     ]
   }
-}
-
-data "aws_secretsmanager_secret" "api_key_secret" {
-  arn = var.dd_api_key_secret_arn
 }

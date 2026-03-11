@@ -7,4 +7,4 @@ using Amazon.CDK.AWS.SecretsManager;
 
 namespace OrdersService.CDK.Constructs;
 
-public record SharedProps(string ServiceName, string Env, string Version, string Team, string Domain, ISecret DDApiKeySecret, string DDSite, IDistribution? SharedDistribution = null);
+public record SharedProps(string ServiceName, string Env, string Version, string Team, string Domain, string DDApiKey, string DDSite, IDistribution? SharedDistribution = null);

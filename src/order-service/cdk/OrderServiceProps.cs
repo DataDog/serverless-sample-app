@@ -95,7 +95,7 @@ public class OrderServiceProps : Construct
             };
 
             var testEventHarness = new TestEventHarness(scope, "OrdersTestEventHarness",
-                new TestEventHarnessProps(props, props.DDApiKeySecret, "orderNumber", new List<ITopic>(),
+                new TestEventHarnessProps(props, "orderNumber", new List<ITopic>(),
                     publicEvents));
         }
     }

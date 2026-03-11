@@ -135,7 +135,7 @@ public class OrdersApi : Construct
         var function = new InstrumentedFunction(this, "ConfirmOrderFunction",
             new FunctionProps(props.SharedProps, "ConfirmOrder", "../src/Orders.BackgroundWorkers/",
                 "Orders.BackgroundWorkers::Orders.BackgroundWorkers.WorkflowHandlers_ReservationSuccess_Generated::ReservationSuccess",
-                environmentVariables, props.SharedProps.DDApiKeySecret));
+                environmentVariables));
 
         OrdersTable.GrantReadWriteData(function.Function);
         props.ServiceProps.PublisherBus.GrantPutEventsTo(function.Function);
@@ -148,7 +148,7 @@ public class OrdersApi : Construct
         var function = new InstrumentedFunction(this, "NoStockFunction",
             new FunctionProps(props.SharedProps, "NoStock", "../src/Orders.BackgroundWorkers/",
                 "Orders.BackgroundWorkers::Orders.BackgroundWorkers.WorkflowHandlers_ReservationFailed_Generated::ReservationFailed",
-                environmentVariables, props.SharedProps.DDApiKeySecret));
+                environmentVariables));
 
         OrdersTable.GrantReadWriteData(function.Function);
 
@@ -218,6 +218,7 @@ public class OrdersApi : Construct
                         { "DD_SERVICE", props.SharedProps.ServiceName },
                         { "DD_ENV", props.SharedProps.Env },
                         { "DD_VERSION", props.SharedProps.Version },
+                        { "DD_API_KEY", props.SharedProps.DDApiKey },
                         { "DD_DATA_STREAMS_ENABLED", "true" }
                     },
                     DockerLabels = new Dictionary<string, string>(3)
@@ -239,7 +240,7 @@ public class OrdersApi : Construct
                             { "dd_source", "dotnet" },
                             { "dd_message_key", "log" },
                             { "provider", "ecs" },
-                            { "apikey", props.SharedProps.DDApiKeySecret.SecretValue.UnsafeUnwrap() }
+                            { "apikey", props.SharedProps.DDApiKey }
                         }
                     })
                 },
@@ -283,8 +284,6 @@ public class OrdersApi : Construct
         OrdersWorkflow.GrantStartExecution(taskRole);
 
         taskRole.AddToPolicy(describeBusPolicyStatement);
-        props.SharedProps.DDApiKeySecret.GrantRead(taskRole);
-        props.SharedProps.DDApiKeySecret.GrantRead(executionRole);
 
         application.TargetGroup.ConfigureHealthCheck(new HealthCheck
         {
@@ -320,12 +319,9 @@ public class OrdersApi : Construct
                 { "DD_SERVICE", props.SharedProps.ServiceName },
                 { "DD_VERSION", props.SharedProps.Version },
                 { "DD_APM_IGNORE_RESOURCES", "GET /health" },
-                { "DD_DATA_STREAMS_ENABLED", "true" }
+                { "DD_DATA_STREAMS_ENABLED", "true" },
+                { "DD_API_KEY", props.SharedProps.DDApiKey }
             },
-            Secrets = new Dictionary<string, Secret>
-            {
-                { "DD_API_KEY", Secret.FromSecretsManager(props.SharedProps.DDApiKeySecret) }
-            }
         });
         
         var cloudfrontDistribution = new Distribution(this, "OrderApiDistribution", new DistributionProps()

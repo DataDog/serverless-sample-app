@@ -51,7 +51,7 @@ module "handle_inventory_stock_reserved_function" {
     EVENT_BUS_NAME : var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.orders_service_bus.name
     TABLE_NAME : aws_dynamodb_table.orders_api.name
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site = var.dd_site
   app_version = var.app_version
   env = var.env
@@ -115,7 +115,7 @@ module "handle_inventory_stock_reservation_failed_function" {
     EVENT_BUS_NAME : var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.orders_service_bus.name
     TABLE_NAME : aws_dynamodb_table.orders_api.name
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site = var.dd_site
   app_version = var.app_version
   env = var.env

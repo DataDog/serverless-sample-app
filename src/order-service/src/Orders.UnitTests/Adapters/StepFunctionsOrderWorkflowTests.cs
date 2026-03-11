@@ -10,12 +10,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Orders.Core;
 using Orders.Core.Adapters;
+using Orders.Core.Telemetry;
 
 namespace Orders.UnitTests.Adapters;
 
 public class StepFunctionsOrderWorkflowTests
 {
     private readonly Mock<AmazonStepFunctionsClient> _stepFunctionsClient;
+    private readonly Mock<ITransactionTracker> _transactionTrackerMock = new();
     private readonly StepFunctionsOrderWorkflow _sut;
     private StartExecutionRequest? _capturedRequest;
 
@@ -40,7 +42,7 @@ public class StepFunctionsOrderWorkflowTests
 
         var logger = new Mock<ILogger<StepFunctionsOrderWorkflow>>();
 
-        _sut = new StepFunctionsOrderWorkflow(configuration, _stepFunctionsClient.Object, logger.Object);
+        _sut = new StepFunctionsOrderWorkflow(configuration, _transactionTrackerMock.Object, _stepFunctionsClient.Object, logger.Object);
     }
 
     [Fact]

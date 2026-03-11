@@ -56,7 +56,7 @@ module "orders_web_service" {
       value = "true"
     }
   ]
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site               = var.dd_site
   ecs_cluster_id        = aws_ecs_cluster.main.id
   subnet_ids            = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]

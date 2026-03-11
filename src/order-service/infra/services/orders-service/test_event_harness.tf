@@ -85,7 +85,7 @@ module "event_harness_api_lambda" {
     "TABLE_NAME" : aws_dynamodb_table.test_harness_api[count.index].name
     "KEY_PROPERTY_NAME" : "orderNumber"
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site               = var.dd_site
   env                   = var.env
   app_version           = var.app_version
@@ -151,7 +151,7 @@ module "event_harness_event_bridge_lambda" {
     "TABLE_NAME" : aws_dynamodb_table.test_harness_api[count.index].name
     "KEY_PROPERTY_NAME" : "orderNumber"
   }
-  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_api_key = var.dd_api_key
   dd_site               = var.dd_site
   env                   = var.env
   app_version           = var.app_version

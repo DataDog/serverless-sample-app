@@ -10,12 +10,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Orders.Core.Adapters;
 using Orders.Core.PublicEvents;
+using Orders.Core.Telemetry;
 
 namespace Orders.UnitTests.Adapters;
 
 public class EventBridgeEventPublisherTests
 {
     private readonly Mock<AmazonEventBridgeClient> _eventBridgeClientMock;
+    private readonly Mock<ITransactionTracker> _transactionTrackerMock = new();
     private readonly EventBridgeEventPublisher _publisher;
     private PutEventsRequest? _capturedRequest;
 
@@ -44,6 +46,7 @@ public class EventBridgeEventPublisherTests
         _publisher = new EventBridgeEventPublisher(
             logger.Object,
             configuration,
+            _transactionTrackerMock.Object,
             _eventBridgeClientMock.Object);
     }
 

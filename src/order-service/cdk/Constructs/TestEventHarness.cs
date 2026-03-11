@@ -17,7 +17,7 @@ using Constructs;
 
 namespace OrdersService.CDK.Constructs;
 
-public record TestEventHarnessProps(SharedProps Shared, ISecret DdApiKeySecret, string JsonPropertyKeyName, List<ITopic> SnsTopics, List<Rule> EventBridgeRules);
+public record TestEventHarnessProps(SharedProps Shared, string JsonPropertyKeyName, List<ITopic> SnsTopics, List<Rule> EventBridgeRules);
 
 public class TestEventHarness : Construct
 {
@@ -48,7 +48,7 @@ public class TestEventHarness : Construct
         };
         var eventApiFunction = new InstrumentedFunction(this, $"EventHarnessApiFunction-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}",
             new FunctionProps(props.Shared, $"TestApi-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", "../src/TestHarness/TestHarness.Lambda",
-                "TestHarness.Lambda::TestHarness.Lambda.ApiFunctions_GetReceivedEvents_Generated::GetReceivedEvents", apiEnvironmentVariables, props.DdApiKeySecret));
+                "TestHarness.Lambda::TestHarness.Lambda.ApiFunctions_GetReceivedEvents_Generated::GetReceivedEvents", apiEnvironmentVariables));
         TestEventTable.GrantReadData(eventApiFunction.Function);
 
         var httpAPi = new RestApi(this, $"TestEventApi{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", new RestApiProps()
@@ -80,7 +80,7 @@ public class TestEventHarness : Construct
             };
             var handlerFunction = new InstrumentedFunction(this, $"EventHarnessSns-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}",
                 new FunctionProps(props.Shared, $"SnsEvent-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", "../src/TestHarness/TestHarness.Lambda",
-                    "TestHarness.Lambda::TestHarness.Lambda.HandlerFunctions_HandleSns_Generated::HandleSns", snsHandlerEnvVariables, props.DdApiKeySecret));
+                    "TestHarness.Lambda::TestHarness.Lambda.HandlerFunctions_HandleSns_Generated::HandleSns", snsHandlerEnvVariables));
             TestEventTable.GrantReadWriteData(handlerFunction.Function);
 
             foreach (var topic in props.SnsTopics)
@@ -98,7 +98,7 @@ public class TestEventHarness : Construct
             };
             var handlerFunction = new InstrumentedFunction(this, $"EventHarnessEventBridge-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}",
                 new FunctionProps(props.Shared, $"EBEvent-{props.Shared.ServiceName}-{props.Shared.Env}-{props.Shared.Version}", "../src/TestHarness/TestHarness.Lambda",
-                    "TestHarness.Lambda::TestHarness.Lambda.HandlerFunctions_HandleEventBridge_Generated::HandleEventBridge", eventBridgeHandlerVariables, props.DdApiKeySecret));
+                    "TestHarness.Lambda::TestHarness.Lambda.HandlerFunctions_HandleEventBridge_Generated::HandleEventBridge", eventBridgeHandlerVariables));
             TestEventTable.GrantReadWriteData(handlerFunction.Function);
 
             foreach (var rule in props.EventBridgeRules)
