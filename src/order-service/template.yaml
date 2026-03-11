@@ -64,13 +64,6 @@ Globals:
       - x86_64
 
 Resources:
-  DDApiKeySecret:
-    Type: "AWS::SecretsManager::Secret"
-    Properties:
-      Name: !Sub "/${Env}/${ServiceName}/datadog-api-key"
-      Description: "The Datadog API key"
-      SecretString: !Ref DDApiKey
-
   OrdersServiceEventBus:
     Type: AWS::Events::EventBus
     Properties:
@@ -177,12 +170,6 @@ Resources:
           Properties:
             Queue: !GetAtt OrdersStockReservedQueue.Arn
       Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -233,12 +220,6 @@ Resources:
           Properties:
             Queue: !GetAtt StockReservationFailedQueue.Arn
       Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -284,12 +265,6 @@ Resources:
             - !Ref OrdersServiceEventBus
           TABLE_NAME: !Ref OrdersTable
       Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -330,12 +305,6 @@ Resources:
             - !Ref OrdersServiceEventBus
           TABLE_NAME: !Ref OrdersTable
       Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecret
         # The Datadog extension sends log data to Datadog using the telemetry API, disabling CloudWatch prevents 'double paying' for logs
         - Version: "2012-10-17"
           Statement:
@@ -693,14 +662,6 @@ Resources:
                   - logs:PutLogEvents
                   - logs:DescribeLogStreams
                 Resource: "*"
-        - PolicyName: allow-secrets-retrieve
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - secretsmanager:GetSecretValue
-                Resource: !Ref DDApiKeySecret
 
   ECSTaskRole:
     Type: AWS::IAM::Role
@@ -749,14 +710,6 @@ Resources:
                   - IsIntegratedEnvironment
                   - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-arn:1}}"
                   - !GetAtt OrdersServiceEventBus.Arn
-        - PolicyName: allow-secrets-retrieve
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - secretsmanager:GetSecretValue
-                Resource: !Ref DDApiKeySecret
         - PolicyName: allow-ssm-access-key-retrieve
           PolicyDocument:
             Version: "2012-10-17"
@@ -818,7 +771,14 @@ Resources:
               Value: "orders"
             - Name: ENV
               Value: !Ref Env
-
+            - Name: DD_SITE
+              Value: !Ref DDSite
+            - Name: DD_API_KEY
+              Value: !Ref DDApiKey
+            - Name: DD_SERVICE
+              Value: !Ref ServiceName
+            - Name: DD_DATA_STREAMS_ENABLED
+              Value: "true"
             - Name: DD_LOGS_INJECTION
               Value: "true"
           PortMappings:
@@ -866,9 +826,8 @@ Resources:
               Value: !Ref CommitHash
             - Name: DD_APM_IGNORE_RESOURCES
               Value: "GET /"
-          Secrets:
             - Name: DD_API_KEY
-              ValueFrom: !Ref DDApiKeySecret
+              Value: !Ref DDApiKey
           PortMappings:
             - ContainerPort: 8125
               HostPort: 8125
@@ -1058,12 +1017,6 @@ Resources:
             Path: "/events/{eventId}"
             Method: "GET"
       Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecret
         - DynamoDBCrudPolicy:
             TableName: !Ref TestHarnessTable
 
@@ -1117,12 +1070,6 @@ Resources:
               detail-type:
                 - "orders.orderCompleted.v2"
       Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Ref DDApiKeySecret
         - DynamoDBCrudPolicy:
             TableName: !Ref TestHarnessTable
 
