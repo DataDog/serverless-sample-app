@@ -53,8 +53,6 @@ public static class ServiceExtensions
             secretKey = paramResult.Parameter.Value;
         }
 
-        Console.WriteLine($"Using JWT secret: [REDACTED]");
-
         if (secretKey is null)
         {
             throw new ArgumentException("Invalid JWT Secret Access Key provided, application failure.");
