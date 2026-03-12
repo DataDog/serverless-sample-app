@@ -211,8 +211,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: 'npm'
-          cache-dependency-path: src/order-service/package-lock.json
       - name: Install CDK
         run: |
           npm install -g aws-cdk
@@ -304,8 +302,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: 'npm'
-          cache-dependency-path: src/order-service/package-lock.json
       - name: Install CDK
         run: |
           npm install -g aws-cdk
@@ -349,8 +345,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: 'npm'
-          cache-dependency-path: src/order-service/package-lock.json
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
