@@ -85,7 +85,7 @@ public class CompleteOrderHandler
             logger.LogInformation("Order {OrderId} completed successfully",
                 existingOrder.OrderNumber);
 
-            return Results.Ok(new OrderDTO(existingOrder));
+            return Results.Ok(new OrderDto(existingOrder));
         }
         catch (Orders.Core.Domain.Exceptions.OrderNotConfirmedException ex)
         {

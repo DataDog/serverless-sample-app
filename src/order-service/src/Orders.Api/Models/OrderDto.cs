@@ -3,7 +3,8 @@
 // Copyright 2025 Datadog, Inc.
 
 using System.Text.Json.Serialization;
-using Orders.Core.Domain.Models;
+using CoreOrder = Orders.Core.Order;
+using DomainOrder = Orders.Core.Domain.Models.Order;
 
 namespace Orders.Api.Models;
 
@@ -63,7 +64,7 @@ public class OrderDto
     /// Creates an order DTO from a domain Order
     /// </summary>
     /// <param name="order">The domain order to convert</param>
-    public OrderDto(Order order)
+    public OrderDto(DomainOrder order)
     {
         OrderId = order.OrderId.Value;
         UserId = order.UserId.Value;
@@ -73,4 +74,15 @@ public class OrderDto
         OrderStatus = order.OrderStatus;
         TotalPrice = order.TotalPrice;
     }
-} 
+
+    public OrderDto(CoreOrder order)
+    {
+        OrderId = order.OrderNumber;
+        UserId = order.UserId;
+        Products = order.Products;
+        OrderDate = order.OrderDate;
+        OrderType = (Orders.Core.Domain.Models.OrderType)order.OrderType;
+        OrderStatus = (Orders.Core.Domain.Models.OrderStatus)order.OrderStatus;
+        TotalPrice = order.TotalPrice;
+    }
+}

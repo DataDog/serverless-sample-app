@@ -84,7 +84,7 @@ public class GetUserOrdersHandler
 
             var response = new 
             {
-                Items = pagedResult.Items.Select(order => new OrderDTO(order)),
+                Items = pagedResult.Items.Select(order => new OrderDto(order)),
                 PageSize = pagedResult.PageSize,
                 HasMorePages = pagedResult.HasMorePages,
                 NextPageToken = pagedResult.NextPageToken

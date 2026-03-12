@@ -21,7 +21,8 @@ public class CreateOrderHandler
         IOrders orders,
         IOrderWorkflow orderWorkflow,
         IValidator<CreateOrderRequest> validator,
-        ILogger<CreateOrderHandler> logger)
+        ILogger<CreateOrderHandler> logger,
+        CancellationToken cancellationToken = default)
     {
         var correlationId = context.Items["CorrelationId"]?.ToString() ?? Guid.NewGuid().ToString();
         var stopwatch = Stopwatch.StartNew();
@@ -40,7 +41,7 @@ public class CreateOrderHandler
             
             // Validate request using FluentValidation
             var validationStartTime = Stopwatch.GetTimestamp();
-            var validationResult = await validator.ValidateAsync(request);
+            var validationResult = await validator.ValidateAsync(request, cancellationToken);
             var validationDuration = Stopwatch.GetElapsedTime(validationStartTime);
             
             if (!validationResult.IsValid)
@@ -77,8 +78,8 @@ public class CreateOrderHandler
             // Log workflow start
             logger.LogWorkflowStarted("OrderCreation", orderType);
             
-            await orders.Store(newOrder);
-            await orderWorkflow.StartWorkflowFor(newOrder);
+            await orders.Store(newOrder, cancellationToken);
+            await orderWorkflow.StartWorkflowFor(newOrder, cancellationToken);
             
             stopwatch.Stop();
             
@@ -98,7 +99,7 @@ public class CreateOrderHandler
             };
             logger.LogBusinessMetrics("Order creation completed", businessContext);
             
-            return Results.Created($"/api/orders/{newOrder.OrderNumber}", new OrderDTO(newOrder));
+            return Results.Created($"/api/orders/{newOrder.OrderNumber}", new OrderDto(newOrder));
         }
         catch (OrderValidationException ex)
         {

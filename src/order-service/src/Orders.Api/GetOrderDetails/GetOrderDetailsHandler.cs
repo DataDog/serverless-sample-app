@@ -66,7 +66,7 @@ public class GetOrderDetailsHandler
             }
 
             logger.LogDebug("Order {OrderId} retrieved successfully", orderId);
-            return Results.Ok(new OrderDTO(existingOrder));
+            return Results.Ok(new OrderDto(existingOrder));
         }
         catch (ArgumentException ex)
         {

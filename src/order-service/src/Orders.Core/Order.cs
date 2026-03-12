@@ -100,7 +100,7 @@ public record Order
     {
         if (OrderStatus != OrderStatus.Created)
         {
-            return;
+            throw new InvalidOrderStateException($"Cannot confirm order in status: {OrderStatus}");
         }
 
         OrderStatus = OrderStatus.Confirmed;

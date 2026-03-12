@@ -6,9 +6,9 @@ namespace Orders.Core;
 
 public interface IOrderWorkflow
 {
-    Task StartWorkflowFor(Order order);
+    Task StartWorkflowFor(Order order, CancellationToken cancellationToken = default);
 
-    Task StockReservationSuccessful(string correlationId);
+    Task StockReservationSuccessful(string correlationId, CancellationToken cancellationToken = default);
     
-    Task StockReservationFailed(string correlationId);
+    Task StockReservationFailed(string correlationId, CancellationToken cancellationToken = default);
 }

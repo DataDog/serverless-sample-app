@@ -55,24 +55,8 @@ public class MemoryHealthCheck : IHealthCheck
                 ["CorrelationId"] = correlationId
             };
 
-            // Force a memory measurement with garbage collection for more accurate reading
-            if (allocatedBytes > WarningThresholdBytes)
-            {
-                _logger.LogInformation("Memory usage high, forcing garbage collection for accurate measurement");
-                var beforeGC = allocatedBytes;
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                GC.Collect();
-                var afterGC = GC.GetTotalMemory(false);
-                
-                healthData["AllocatedBytesBeforeGC"] = beforeGC;
-                healthData["AllocatedBytesAfterGC"] = afterGC;
-                healthData["BytesFreedByGC"] = beforeGC - afterGC;
-                
-                allocatedBytes = afterGC;
-                memoryPressure = allocatedBytes / (double)MaxMemoryBytes;
-                healthData["MemoryPressurePercentAfterGC"] = Math.Round(memoryPressure * 100, 1);
-            }
+            healthData["WarningThresholdBytes"] = WarningThresholdBytes;
+            healthData["WarningThresholdMB"] = Math.Round(WarningThresholdBytes / (1024.0 * 1024.0), 2);
 
             // Log performance metrics
             _logger.LogPerformanceMetrics(

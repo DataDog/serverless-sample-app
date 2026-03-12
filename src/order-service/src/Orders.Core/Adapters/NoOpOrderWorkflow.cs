@@ -6,17 +6,17 @@ namespace Orders.Core.Adapters;
 
 public class NoOpOrderWorkflow : IOrderWorkflow
 {
-    public Task StartWorkflowFor(Order order)
+    public Task StartWorkflowFor(Order order, CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
     }
 
-    public Task StockReservationSuccessful(string correlationId)
+    public Task StockReservationSuccessful(string correlationId, CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
     }
 
-    public Task StockReservationFailed(string correlationId)
+    public Task StockReservationFailed(string correlationId, CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
     }

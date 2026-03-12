@@ -39,7 +39,7 @@ public class StepFunctionsOrderWorkflow : IOrderWorkflow
         _taskFailureResiliencePipeline = ResiliencePolicies.GetStepFunctionsPolicy<SendTaskFailureResponse>(logger);
     }
     
-    public async Task StartWorkflowFor(Order order)
+    public async Task StartWorkflowFor(Order order, CancellationToken cancellationToken = default)
     {
         var inputNode = JsonSerializer.SerializeToNode(order, new JsonSerializerOptions
         {
@@ -71,7 +71,7 @@ public class StepFunctionsOrderWorkflow : IOrderWorkflow
         {
             var result = await _startExecutionResiliencePipeline.ExecuteAsync(
                 async ct => await _stepFunctionsClient.StartExecutionAsync(startExecutionRequest, ct),
-                CancellationToken.None);
+                cancellationToken);
                 
             result.AddToTelemetry();
 
@@ -84,7 +84,7 @@ public class StepFunctionsOrderWorkflow : IOrderWorkflow
         }
     }
 
-    public async Task StockReservationSuccessful(string correlationId)
+    public async Task StockReservationSuccessful(string correlationId, CancellationToken cancellationToken = default)
     {
         correlationId.AddToTelemetry("conversationId");
         var request = new SendTaskSuccessRequest()
@@ -97,7 +97,7 @@ public class StepFunctionsOrderWorkflow : IOrderWorkflow
         {
             var response = await _taskSuccessResiliencePipeline.ExecuteAsync(
                 async ct => await _stepFunctionsClient.SendTaskSuccessAsync(request, ct),
-                CancellationToken.None);
+                cancellationToken);
         }
         catch (Exception ex)
         {
@@ -113,7 +113,7 @@ public class StepFunctionsOrderWorkflow : IOrderWorkflow
         carrier["_datadog"]![key] = value;
     }
 
-    public async Task StockReservationFailed(string correlationId)
+    public async Task StockReservationFailed(string correlationId, CancellationToken cancellationToken = default)
     {
         correlationId.AddToTelemetry("conversationId");
         
@@ -128,7 +128,7 @@ public class StepFunctionsOrderWorkflow : IOrderWorkflow
         {
             await _taskFailureResiliencePipeline.ExecuteAsync(
                 async ct => await _stepFunctionsClient.SendTaskFailureAsync(request, ct),
-                CancellationToken.None);
+                cancellationToken);
         }
         catch (Exception ex)
         {

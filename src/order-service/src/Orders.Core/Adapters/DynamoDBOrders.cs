@@ -34,7 +34,6 @@ public class DynamoDBOrders(
     private const string DATE_TIME_FORMAT = "yyyyMMddHHmmss";
     private const string GSI1PK = "GSI1PK";
     private const string GSI1SK = "GSI1SK";
-    private const int PAGE_SIZE = 20;
 
     private readonly ResiliencePipeline<QueryResponse> _queryResiliencePipeline = 
         ResiliencePolicies.GetDynamoDBPolicy<QueryResponse>(logger);
@@ -85,10 +84,10 @@ public class DynamoDBOrders(
                 item[USER_ID].S,
                 item[ORDER_NUMBER].S,
                 DateTime.ParseExact(item[ORDER_DATE].S, DATE_TIME_FORMAT, CultureInfo.InvariantCulture),
-                (OrderType)Enum.ToObject(typeof(OrderType), int.Parse(item[ORDER_TYPE].N)),
-                decimal.Parse(item[TOTAL_PRICE].N),
+                (OrderType)Enum.ToObject(typeof(OrderType), int.Parse(item[ORDER_TYPE].N, CultureInfo.InvariantCulture)),
+                decimal.Parse(item[TOTAL_PRICE].N, NumberStyles.Number, CultureInfo.InvariantCulture),
                 item[PRODUCTS].SS.ToArray(),
-                (OrderStatus)Enum.ToObject(typeof(OrderStatus), int.Parse(item[ORDER_STATUS].N))));
+                (OrderStatus)Enum.ToObject(typeof(OrderStatus), int.Parse(item[ORDER_STATUS].N, CultureInfo.InvariantCulture))));
 
         // Create page token for next page if there are more results
         var nextPageToken = queryResult.LastEvaluatedKey?.Any() == true 
@@ -144,10 +143,10 @@ public class DynamoDBOrders(
                 item[USER_ID].S,
                 item[ORDER_NUMBER].S,
                 DateTime.ParseExact(item[ORDER_DATE].S, DATE_TIME_FORMAT, CultureInfo.InvariantCulture),
-                (OrderType)Enum.ToObject(typeof(OrderType), int.Parse(item[ORDER_TYPE].N)),
-                decimal.Parse(item[TOTAL_PRICE].N),
+                (OrderType)Enum.ToObject(typeof(OrderType), int.Parse(item[ORDER_TYPE].N, CultureInfo.InvariantCulture)),
+                decimal.Parse(item[TOTAL_PRICE].N, NumberStyles.Number, CultureInfo.InvariantCulture),
                 item[PRODUCTS].SS.ToArray(),
-                (OrderStatus)Enum.ToObject(typeof(OrderStatus), int.Parse(item[ORDER_STATUS].N))));
+                (OrderStatus)Enum.ToObject(typeof(OrderStatus), int.Parse(item[ORDER_STATUS].N, CultureInfo.InvariantCulture))));
 
         // Create page token for next page if there are more results
         var nextPageToken = queryResult.LastEvaluatedKey?.Any() == true 
@@ -190,10 +189,10 @@ public class DynamoDBOrders(
             getItemResult.Item[USER_ID].S,
             getItemResult.Item[ORDER_NUMBER].S,
             DateTime.ParseExact(getItemResult.Item[ORDER_DATE].S, DATE_TIME_FORMAT, CultureInfo.InvariantCulture),
-            (OrderType)Enum.ToObject(typeof(OrderType), int.Parse(getItemResult.Item[ORDER_TYPE].N)),
-            decimal.Parse(getItemResult.Item[TOTAL_PRICE].N),
+            (OrderType)Enum.ToObject(typeof(OrderType), int.Parse(getItemResult.Item[ORDER_TYPE].N, CultureInfo.InvariantCulture)),
+            decimal.Parse(getItemResult.Item[TOTAL_PRICE].N, NumberStyles.Number, CultureInfo.InvariantCulture),
             getItemResult.Item[PRODUCTS].SS.ToArray(),
-            (OrderStatus)Enum.ToObject(typeof(OrderStatus), int.Parse(getItemResult.Item[ORDER_STATUS].N)));
+            (OrderStatus)Enum.ToObject(typeof(OrderStatus), int.Parse(getItemResult.Item[ORDER_STATUS].N, CultureInfo.InvariantCulture)));
     }
 
     public async Task Store(Order order, CancellationToken cancellationToken = default)
@@ -207,9 +206,9 @@ public class DynamoDBOrders(
             { USER_ID, new AttributeValue(order.UserId) },
             { ORDER_NUMBER, new AttributeValue(order.OrderNumber) },
             { ORDER_DATE, new AttributeValue(order.OrderDate.ToString(DATE_TIME_FORMAT)) },
-            { ORDER_TYPE, new AttributeValue() { N = ((int)order.OrderType).ToString("n0") } },
-            { ORDER_STATUS, new AttributeValue() { N = ((int)order.OrderStatus).ToString("n0") } },
-            { TOTAL_PRICE, new AttributeValue() { N = order.TotalPrice.ToString("n2") } },
+            { ORDER_TYPE, new AttributeValue() { N = ((int)order.OrderType).ToString(CultureInfo.InvariantCulture) } },
+            { ORDER_STATUS, new AttributeValue() { N = ((int)order.OrderStatus).ToString(CultureInfo.InvariantCulture) } },
+            { TOTAL_PRICE, new AttributeValue() { N = order.TotalPrice.ToString(CultureInfo.InvariantCulture) } },
             { PRODUCTS, new AttributeValue(order.Products.ToList()) },
             { TYPE, new AttributeValue("Order") }
         };
@@ -251,9 +250,9 @@ public class DynamoDBOrders(
                 { USER_ID, new AttributeValue(order.UserId) },
                 { ORDER_NUMBER, new AttributeValue(order.OrderNumber) },
                 { ORDER_DATE, new AttributeValue(order.OrderDate.ToString(DATE_TIME_FORMAT)) },
-                { ORDER_TYPE, new AttributeValue() { N = ((int)order.OrderType).ToString("n0") } },
-                { ORDER_STATUS, new AttributeValue() { N = ((int)order.OrderStatus).ToString("n0") } },
-                { TOTAL_PRICE, new AttributeValue() { N = order.TotalPrice.ToString("n2") } },
+                { ORDER_TYPE, new AttributeValue() { N = ((int)order.OrderType).ToString(CultureInfo.InvariantCulture) } },
+                { ORDER_STATUS, new AttributeValue() { N = ((int)order.OrderStatus).ToString(CultureInfo.InvariantCulture) } },
+                { TOTAL_PRICE, new AttributeValue() { N = order.TotalPrice.ToString(CultureInfo.InvariantCulture) } },
                 { PRODUCTS, new AttributeValue(order.Products.ToList()) },
                 { TYPE, new AttributeValue("Order") }
             };

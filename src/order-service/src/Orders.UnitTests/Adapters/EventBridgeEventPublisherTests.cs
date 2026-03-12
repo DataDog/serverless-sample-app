@@ -92,6 +92,70 @@ public class EventBridgeEventPublisherTests
     }
 
     [Fact]
+    public async Task Publish_WhenEventBridgeReportsPartialFailure_ShouldThrowAndNotTrackTransaction()
+    {
+        _eventBridgeClientMock
+            .Setup(c => c.PutEventsAsync(It.IsAny<PutEventsRequest>(), default))
+            .ReturnsAsync(new PutEventsResponse
+            {
+                FailedEntryCount = 1,
+                HttpStatusCode = System.Net.HttpStatusCode.OK,
+                Entries = new List<PutEventsResultEntry>
+                {
+                    new()
+                    {
+                        ErrorCode = "InternalFailure",
+                        ErrorMessage = "publish failed"
+                    }
+                }
+            });
+
+        var orderCreatedEvent = new OrderCreatedEventV1
+        {
+            OrderNumber = "ORD-001",
+            UserId = "user-123",
+            Products = new[] { "product-1" }
+        };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _publisher.Publish(orderCreatedEvent));
+
+        _transactionTrackerMock.Verify(
+            tracker => tracker.TrackTransactionAsync(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Publish_ShouldTrackTransactionAfterSuccessfulPublish()
+    {
+        var calls = new List<string>();
+
+        _eventBridgeClientMock
+            .Setup(c => c.PutEventsAsync(It.IsAny<PutEventsRequest>(), default))
+            .Callback(() => calls.Add("publish"))
+            .ReturnsAsync(new PutEventsResponse
+            {
+                FailedEntryCount = 0,
+                HttpStatusCode = System.Net.HttpStatusCode.OK
+            });
+
+        _transactionTrackerMock
+            .Setup(tracker => tracker.TrackTransactionAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .Callback(() => calls.Add("track"))
+            .Returns(Task.CompletedTask);
+
+        var orderCreatedEvent = new OrderCreatedEventV1
+        {
+            OrderNumber = "ORD-001",
+            UserId = "user-123",
+            Products = new[] { "product-1" }
+        };
+
+        await _publisher.Publish(orderCreatedEvent);
+
+        calls.Should().Equal("publish", "track");
+    }
+
+    [Fact]
     public void JsonNodeCarrier_WhenMutatedInCallback_RetainsMutations()
     {
         var originalJson = JsonSerializer.Serialize(new OrderCreatedEventV1

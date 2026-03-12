@@ -17,7 +17,6 @@ public class ConfirmedOrdersHandler
     public static async Task<IResult> Handle(
         HttpContext context,
         IOrders orders,
-        IEventGateway eventGateway,
         IValidator<PaginationQueryRequest> validator,
         ILogger<ConfirmedOrdersHandler> logger,
         [FromQuery] int pageSize = 20,
@@ -71,7 +70,7 @@ public class ConfirmedOrdersHandler
 
             var response = new 
             {
-                Items = pagedResult.Items.Select(order => new OrderDTO(order)),
+                Items = pagedResult.Items.Select(order => new OrderDto(order)),
                 PageSize = pagedResult.PageSize,
                 HasMorePages = pagedResult.HasMorePages,
                 NextPageToken = pagedResult.NextPageToken

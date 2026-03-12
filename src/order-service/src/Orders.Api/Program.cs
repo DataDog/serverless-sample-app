@@ -211,8 +211,6 @@ try
     // Add correlation ID middleware first
     app.UseCorrelationId();
     
-    app.UseRateLimiter();
-    
     // Add API deprecation middleware
     app.UseApiDeprecation();
     
@@ -234,6 +232,8 @@ try
     app.UseCors("CorsPolicy");
 
     app.UseAuthentication();
+
+    app.UseRateLimiter();
 
     app.UseAuthorization();
 

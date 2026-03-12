@@ -54,7 +54,7 @@ public class WorkflowHandlersTests
                 It.IsAny<string>()))
             .Returns(_extractedContext.Object);
 
-        _orderWorkflow.Setup(w => w.StockReservationSuccessful(It.IsAny<string>()))
+        _orderWorkflow.Setup(w => w.StockReservationSuccessful(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var successHandler = new Core.StockReservationSuccess.StockReservationSuccessHandler(
@@ -97,7 +97,7 @@ public class WorkflowHandlersTests
                 It.IsAny<string>()))
             .Returns(_extractedContext.Object);
 
-        _orderWorkflow.Setup(w => w.StockReservationFailed(It.IsAny<string>()))
+        _orderWorkflow.Setup(w => w.StockReservationFailed(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var successHandler = new Core.StockReservationSuccess.StockReservationSuccessHandler(

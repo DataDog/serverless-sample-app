@@ -56,7 +56,7 @@ public class FunctionsTests
                 It.IsAny<ISpanContext?>()))
             .Returns(_scope.Object);
 
-        _orderWorkflow.Setup(w => w.StockReservationSuccessful(It.IsAny<string>()))
+        _orderWorkflow.Setup(w => w.StockReservationSuccessful(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var sqsEvent = CreateSqsEventWithStockReservedMessage("stock.reserved");
@@ -93,7 +93,7 @@ public class FunctionsTests
                 It.IsAny<ISpanContext?>()))
             .Returns(_scope.Object);
 
-        _orderWorkflow.Setup(w => w.StockReservationFailed(It.IsAny<string>()))
+        _orderWorkflow.Setup(w => w.StockReservationFailed(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var sqsEvent = CreateSqsEventWithReservationFailedMessage("stock.reservation_failed");
@@ -125,7 +125,7 @@ public class FunctionsTests
             .Returns(_scope.Object);
 
         var expectedException = new InvalidOperationException("workflow failure");
-        _orderWorkflow.Setup(w => w.StockReservationFailed(It.IsAny<string>()))
+        _orderWorkflow.Setup(w => w.StockReservationFailed(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(expectedException);
 
         var sqsEvent = CreateSqsEventWithReservationFailedMessage("stock.reservation_failed");
@@ -155,7 +155,7 @@ public class FunctionsTests
                 It.IsAny<ISpanContext?>()))
             .Returns(_scope.Object);
 
-        _orderWorkflow.Setup(w => w.StockReservationFailed(It.IsAny<string>()))
+        _orderWorkflow.Setup(w => w.StockReservationFailed(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var sqsEvent = CreateSqsEventWithReservationFailedMessage("stock.reservation_failed");

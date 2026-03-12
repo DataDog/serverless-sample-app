@@ -27,6 +27,7 @@ public class EventBridgeEventPublisher(
 {
     private readonly string Source = $"{configuration["ENV"]}.orders";
     private readonly string EventBusName = configuration["EVENT_BUS_NAME"] ?? "";
+    private const string PublishFailureMessage = "One or more EventBridge entries failed to publish.";
 
     private async Task Publish(PutEventsRequestEntry evt, DeprecationInfo? deprecationInfo = null)
     {
@@ -76,6 +77,26 @@ public class EventBridgeEventPublisher(
 
         scope.Span.SetTag("messaging.failedMessageCount", putEventsResponse.FailedEntryCount);
         scope.Span.SetTag("messaging.publishStatusCode", putEventsResponse.HttpStatusCode.ToString());
+
+        if (putEventsResponse.FailedEntryCount > 0)
+        {
+            var failureReasons = putEventsResponse.Entries
+                .Where(entry => !string.IsNullOrWhiteSpace(entry.ErrorCode) || !string.IsNullOrWhiteSpace(entry.ErrorMessage))
+                .Select(entry => $"{entry.ErrorCode}:{entry.ErrorMessage}")
+                .ToArray();
+
+            var failureSummary = failureReasons.Length > 0
+                ? string.Join("; ", failureReasons)
+                : "unknown EventBridge failure";
+
+            logger.LogError(
+                "{Message} DetailType={DetailType} FailureSummary={FailureSummary}",
+                PublishFailureMessage,
+                evt.DetailType,
+                failureSummary);
+
+            throw new InvalidOperationException($"{PublishFailureMessage} {failureSummary}");
+        }
     }
 
     public async Task Publish(OrderCreatedEventV1 evt)
@@ -88,9 +109,8 @@ public class EventBridgeEventPublisher(
             Detail = JsonSerializer.Serialize(evt)
         };
         
-        await transactionTracker.TrackTransactionAsync(evt.OrderNumber, "orders.orderCreated");
-
         await Publish(putEventRecord);
+        await transactionTracker.TrackTransactionAsync(evt.OrderNumber, "orders.orderCreated");
     }
 
     public async Task Publish(OrderConfirmedEventV1 evt)
@@ -103,9 +123,8 @@ public class EventBridgeEventPublisher(
             Detail = JsonSerializer.Serialize(evt)
         };
         
-        await transactionTracker.TrackTransactionAsync(evt.OrderNumber, "orders.orderConfirmed");
-
         await Publish(putEventRecord);
+        await transactionTracker.TrackTransactionAsync(evt.OrderNumber, "orders.orderConfirmed");
     }
 
     public async Task Publish(OrderCompletedEventV1 evt)
@@ -118,9 +137,8 @@ public class EventBridgeEventPublisher(
             Detail = JsonSerializer.Serialize(evt)
         };
         
-        await transactionTracker.TrackTransactionAsync(evt.OrderNumber, "orders.orderCompleted");
-
         await Publish(putEventRecord, new DeprecationInfo(new DateTime(2025, 12, 01), "orders.orderCompleted.v2"));
+        await transactionTracker.TrackTransactionAsync(evt.OrderNumber, "orders.orderCompleted");
     }
 
     public async Task Publish(OrderCompletedEventV2 evt)
@@ -133,9 +151,8 @@ public class EventBridgeEventPublisher(
             Detail = JsonSerializer.Serialize(evt)
         };
         
-        await transactionTracker.TrackTransactionAsync(evt.OrderId, "orders.orderCompleted");
-
         await Publish(putEventRecord);
+        await transactionTracker.TrackTransactionAsync(evt.OrderId, "orders.orderCompleted");
     }
 
     private static void SetHeader(JsonNode carrier, string key, string value)

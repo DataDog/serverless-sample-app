@@ -56,47 +56,10 @@ public class Functions
     public async Task<SQSBatchResponse> HandleStockReserved(SQSEvent evt)
     {
         evt.AddToTelemetry();
-
-        var batchItemFailures = new List<SQSBatchResponse.BatchItemFailure>();
-        var processingTasks = new List<Task<bool>>();
-
-        foreach (var record in evt.Records)
-        {
-            var task = ProcessStockReservedMessageAsync(record);
-            processingTasks.Add(task);
-        }
-
-        var timeoutTask = Task.Delay(MAX_PROCESSING_TIME_MS);
-        var completedTask = await Task.WhenAny(Task.WhenAll(processingTasks), timeoutTask);
-
-        if (completedTask == timeoutTask)
-        {
-            _logger.LogError("Batch processing timed out after {Timeout}ms", MAX_PROCESSING_TIME_MS);
-
-            for (var i = 0; i < processingTasks.Count; i++)
-                if (!processingTasks[i].IsCompleted)
-                    batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure
-                    {
-                        ItemIdentifier = evt.Records[i].MessageId
-                    });
-        }
-        else
-        {
-            for (var i = 0; i < processingTasks.Count; i++)
-                if (!processingTasks[i].Result)
-                    batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure
-                    {
-                        ItemIdentifier = evt.Records[i].MessageId
-                    });
-        }
-
-        return new SQSBatchResponse
-        {
-            BatchItemFailures = batchItemFailures
-        };
+        return await ProcessBatchAsync(evt, ProcessStockReservedMessageAsync);
     }
 
-    private async Task<bool> ProcessStockReservedMessageAsync(SQSEvent.SQSMessage record)
+    private async Task<bool> ProcessStockReservedMessageAsync(SQSEvent.SQSMessage record, CancellationToken cancellationToken)
     {
         IScope? processingSpan = null;
 
@@ -126,12 +89,17 @@ public class Functions
             var result = await _workflowResiliencePipeline.ExecuteAsync(
                 async ct =>
                 {
-                    await _orderWorkflow.StockReservationSuccessful(evtData.Detail!.Data.ConversationId);
+                    await _orderWorkflow.StockReservationSuccessful(evtData.Detail!.Data.ConversationId, ct);
                     return true;
                 },
-                CancellationToken.None);
+                cancellationToken);
 
             return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("Processing stock reserved message {MessageId} was cancelled", record.MessageId);
+            return false;
         }
         catch (Exception e)
         {
@@ -149,47 +117,10 @@ public class Functions
     public async Task<SQSBatchResponse> HandleReservationFailed(SQSEvent evt)
     {
         evt.AddToTelemetry();
-
-        var batchItemFailures = new List<SQSBatchResponse.BatchItemFailure>();
-        var processingTasks = new List<Task<bool>>();
-
-        foreach (var record in evt.Records)
-        {
-            var task = ProcessReservationFailedMessageAsync(record);
-            processingTasks.Add(task);
-        }
-
-        var timeoutTask = Task.Delay(MAX_PROCESSING_TIME_MS);
-        var completedTask = await Task.WhenAny(Task.WhenAll(processingTasks), timeoutTask);
-
-        if (completedTask == timeoutTask)
-        {
-            _logger.LogError("Batch processing timed out after {Timeout}ms", MAX_PROCESSING_TIME_MS);
-
-            for (var i = 0; i < processingTasks.Count; i++)
-                if (!processingTasks[i].IsCompleted)
-                    batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure
-                    {
-                        ItemIdentifier = evt.Records[i].MessageId
-                    });
-        }
-        else
-        {
-            for (var i = 0; i < processingTasks.Count; i++)
-                if (!processingTasks[i].Result)
-                    batchItemFailures.Add(new SQSBatchResponse.BatchItemFailure
-                    {
-                        ItemIdentifier = evt.Records[i].MessageId
-                    });
-        }
-
-        return new SQSBatchResponse
-        {
-            BatchItemFailures = batchItemFailures
-        };
+        return await ProcessBatchAsync(evt, ProcessReservationFailedMessageAsync);
     }
 
-    private async Task<bool> ProcessReservationFailedMessageAsync(SQSEvent.SQSMessage record)
+    private async Task<bool> ProcessReservationFailedMessageAsync(SQSEvent.SQSMessage record, CancellationToken cancellationToken)
     {
         IScope? processingSpan = null;
 
@@ -221,12 +152,17 @@ public class Functions
             var result = await _workflowResiliencePipeline.ExecuteAsync(
                 async ct =>
                 {
-                    await _orderWorkflow.StockReservationFailed(evtData.Detail!.Data.ConversationId);
+                    await _orderWorkflow.StockReservationFailed(evtData.Detail!.Data.ConversationId, ct);
                     return true;
                 },
-                CancellationToken.None);
+                cancellationToken);
 
             return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("Processing reservation failed message {MessageId} was cancelled", record.MessageId);
+            return false;
         }
         catch (Exception e)
         {
@@ -251,6 +187,48 @@ public class Functions
                     yield return value.GetString();
                 }
             }
+        }
+    }
+
+    private async Task<SQSBatchResponse> ProcessBatchAsync(
+        SQSEvent evt,
+        Func<SQSEvent.SQSMessage, CancellationToken, Task<bool>> processMessageAsync)
+    {
+        using var timeoutCts = new CancellationTokenSource(MAX_PROCESSING_TIME_MS);
+        var processingTasks = evt.Records
+            .Select(record => processMessageAsync(record, timeoutCts.Token))
+            .ToArray();
+
+        try
+        {
+            var results = await Task.WhenAll(processingTasks);
+            var batchItemFailures = results
+                .Select((processed, index) => new { processed, index })
+                .Where(result => !result.processed)
+                .Select(result => new SQSBatchResponse.BatchItemFailure
+                {
+                    ItemIdentifier = evt.Records[result.index].MessageId
+                })
+                .ToList();
+
+            return new SQSBatchResponse
+            {
+                BatchItemFailures = batchItemFailures
+            };
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            _logger.LogError("Batch processing timed out after {Timeout}ms", MAX_PROCESSING_TIME_MS);
+
+            return new SQSBatchResponse
+            {
+                BatchItemFailures = evt.Records
+                    .Select(record => new SQSBatchResponse.BatchItemFailure
+                    {
+                        ItemIdentifier = record.MessageId
+                    })
+                    .ToList()
+            };
         }
     }
 }
