@@ -5,6 +5,7 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using Datadog.Trace;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace Orders.Api;
 
@@ -20,8 +21,12 @@ public static class UserClaimExtensions
         }
 
         var enumerable = claims.ToList();
-        var userId = enumerable.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
-        var userType = enumerable.FirstOrDefault(c => c.Type == "user_type")?.Value;
+        var userId = enumerable.FirstOrDefault(c =>
+                c.Type == ClaimTypes.NameIdentifier ||
+                c.Type == JwtRegisteredClaimNames.Sub ||
+                c.Type == "sub")
+            ?.Value;
+        var userType = enumerable.FirstOrDefault(c => c.Type == "user_type")?.Value?.ToUpperInvariant();
 
         if (Tracer.Instance.ActiveScope != null)
         {
