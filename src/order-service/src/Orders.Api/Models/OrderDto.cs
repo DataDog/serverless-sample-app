@@ -18,38 +18,45 @@ public class OrderDto
     /// <summary>
     /// Gets the unique identifier for this order
     /// </summary>
+    [JsonPropertyName("orderId")]
     public string OrderId { get; set; }
 
     /// <summary>
     /// Gets the user identifier that placed this order
     /// </summary>
+    [JsonPropertyName("userId")]
     public string UserId { get; set; }
     
     /// <summary>
     /// Gets the list of product identifiers in this order
     /// </summary>
+    [JsonPropertyName("products")]
     public IReadOnlyList<string> Products { get; set; }
     
     /// <summary>
     /// Gets the date when the order was created
     /// </summary>
+    [JsonPropertyName("orderDate")]
     public DateTime OrderDate { get; set; }
     
     /// <summary>
     /// Gets the type of the order (Standard or Priority)
     /// </summary>
+    [JsonPropertyName("orderType")]
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public OrderType OrderType { get; set; }
     
     /// <summary>
     /// Gets the current status of the order
     /// </summary>
+    [JsonPropertyName("status")]
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public OrderStatus OrderStatus { get; set; }
     
     /// <summary>
     /// Gets the total price of the order
     /// </summary>
+    [JsonPropertyName("totalPrice")]
     public decimal TotalPrice { get; set; }
 
     /// <summary>
