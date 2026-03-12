@@ -57,9 +57,9 @@ public class WorkflowHandlersTests
         _orderWorkflow.Setup(w => w.StockReservationSuccessful(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var successHandler = new Core.StockReservationSuccess.StockReservationSuccessHandler(
-            Mock.Of<IOrders>(), Mock.Of<Core.PublicEvents.IPublicEventPublisher>());
-        var failureHandler = new Core.StockReservationFailure.StockReservationFailureHandler(
+        var successHandler = new StockReservationSuccessHandler(
+            Mock.Of<IOrders>(), Mock.Of<Orders.Core.PublicEvents.IPublicEventPublisher>());
+        var failureHandler = new StockReservationFailureHandler(
             Mock.Of<IOrders>());
 
         var sut = new WorkflowHandlers(successHandler, failureHandler, _tracingProvider.Object);
@@ -100,9 +100,9 @@ public class WorkflowHandlersTests
         _orderWorkflow.Setup(w => w.StockReservationFailed(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var successHandler = new Core.StockReservationSuccess.StockReservationSuccessHandler(
-            Mock.Of<IOrders>(), Mock.Of<Core.PublicEvents.IPublicEventPublisher>());
-        var failureHandler = new Core.StockReservationFailure.StockReservationFailureHandler(
+        var successHandler = new StockReservationSuccessHandler(
+            Mock.Of<IOrders>(), Mock.Of<Orders.Core.PublicEvents.IPublicEventPublisher>());
+        var failureHandler = new StockReservationFailureHandler(
             Mock.Of<IOrders>());
 
         var sut = new WorkflowHandlers(successHandler, failureHandler, _tracingProvider.Object);

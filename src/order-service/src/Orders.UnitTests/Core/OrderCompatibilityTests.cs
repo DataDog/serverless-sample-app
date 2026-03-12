@@ -3,6 +3,8 @@
 // Copyright 2026 Datadog, Inc.
 
 using Orders.Core.Domain.Exceptions;
+using CoreOrder = Orders.Core.Order;
+using OrderStatus = Orders.Core.OrderStatus;
 
 namespace Orders.UnitTests.Core;
 
@@ -14,7 +16,7 @@ public class OrderCompatibilityTests
     [InlineData(OrderStatus.NoStock)]
     public void ConfirmOrder_WithNonCreatedStatus_ThrowsInvalidOrderStateException(OrderStatus status)
     {
-        var order = Order.CreateStandardOrder("user-1", new[] { "product-1" });
+        var order = CoreOrder.CreateStandardOrder("user-1", new[] { "product-1" });
         order.OrderStatus = status;
 
         var action = () => order.ConfirmOrder();

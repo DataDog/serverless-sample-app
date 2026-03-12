@@ -5,6 +5,8 @@
 using System.Text.Json.Serialization;
 using CoreOrder = Orders.Core.Order;
 using DomainOrder = Orders.Core.Domain.Models.Order;
+using OrderStatus = Orders.Core.Domain.Models.OrderStatus;
+using OrderType = Orders.Core.Domain.Models.OrderType;
 
 namespace Orders.Api.Models;
 
