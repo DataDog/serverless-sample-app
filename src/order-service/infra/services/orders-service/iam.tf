@@ -36,12 +36,6 @@ resource "aws_iam_policy" "order_workflow_function_invoke" {
   policy = data.aws_iam_policy_document.order_workflow_lambda_invoke.json
 }
 
-resource "aws_iam_policy" "get_api_key_secret" {
-  name   = "tf-orders-get-secret-${var.env}"
-  path   = "/"
-  policy = data.aws_iam_policy_document.retrieve_api_key_secret.json
-}
-
 resource "aws_iam_policy" "get_jwt_ssm_parameter" {
   name   = "tf-orders-get-jwt-${var.env}"
   path   = "/"

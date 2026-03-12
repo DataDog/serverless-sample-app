@@ -71,7 +71,6 @@ module "inventory_api_web_service" {
   security_group_ids    = [aws_security_group.ecs_sg.id]
   target_group_arn      = aws_lb_target_group.target_group.arn
   additional_execution_role_policy_attachments = [
-    aws_iam_policy.get_api_key_secret.arn
   ]
   additional_task_role_policy_attachments = [
     aws_iam_policy.dynamo_db_read.arn,

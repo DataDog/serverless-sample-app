@@ -24,12 +24,6 @@ resource "aws_iam_policy" "eb_publish" {
   policy = data.aws_iam_policy_document.eb_publish.json
 }
 
-resource "aws_iam_policy" "get_api_key_secret" {
-  name   = "TF_Inventory-get-secret-${var.env}"
-  path   = "/"
-  policy = data.aws_iam_policy_document.retrieve_api_key_secret.json
-}
-
 resource "aws_iam_policy" "sqs_receive_policy" {
   name   = "TF_Inventory-sqs-receive-${var.env}"
   path   = "/"
