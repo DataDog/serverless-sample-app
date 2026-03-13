@@ -2,7 +2,7 @@ module cdk
 
 go 1.23.0
 
-toolchain go1.24.0
+toolchain go1.26.0
 
 require (
 	github.com/DataDog/datadog-cdk-constructs-go/ddcdkconstruct v1.24.0
