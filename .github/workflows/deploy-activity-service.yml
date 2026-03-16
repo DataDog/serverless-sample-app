@@ -339,7 +339,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: "poetry" # NOTE: poetry must be installed before this step, or else cache doesn't work
-      - uses: aws-actions/setup-sam@v1
+      - uses: aws-actions/setup-sam@0578b2f57e540e67233c3ce0c5477ee36938ff3d # v1.0.0
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
         with:
