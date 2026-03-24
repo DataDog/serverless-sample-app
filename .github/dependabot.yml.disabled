@@ -1,0 +1,68 @@
+version: 2
+updates:
+
+  - package-ecosystem: "maven"
+    directory: "/src/inventory-service"
+    schedule:
+      interval: "monthly"
+    groups:
+      maven-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directories:
+      - "/src/loyalty-point-service"
+      - "/src/pricing-service"
+      - "/src/user-management-service"
+    schedule:
+      interval: "monthly"
+    groups:
+      npm-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "nuget"
+    directory: "/src/order-service"
+    schedule:
+      interval: "monthly"
+    groups:
+      nuget-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "terraform"
+    directories:
+      - "/src/inventory-service/infra"
+      - "/src/loyalty-point-service/infra"
+      - "/src/pricing-service/infra"
+      - "/src/user-management-service/infra"
+      - "/src/order-service/infra"
+      - "/src/product-management-service/infra"
+      - "/src/activity-service/infra"
+    schedule:
+      interval: "monthly"
+    groups:
+      terraform-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "cargo"
+    directories:
+      - "/src/user-management-service"
+    schedule:
+      interval: "monthly"
+    groups:
+      rust-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pip"
+    directories:
+      - "/src/activity-service"
+    schedule:
+      interval: "monthly"
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
