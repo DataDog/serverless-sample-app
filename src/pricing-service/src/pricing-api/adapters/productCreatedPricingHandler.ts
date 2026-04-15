@@ -78,6 +78,7 @@ export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
       batchItemFailures.push({
         itemIdentifier: message.messageId,
       });
+
     } finally {
       messageProcessingSpan?.finish();
     }

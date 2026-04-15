@@ -41,7 +41,7 @@ export class Api extends Construct {
           allowHeaders: ["*"],
           allowMethods: ["GET,PUT,POST,DELETE"],
         },
-      }
+      },
     );
 
     const productResource = this.api.root.addResource("pricing");
@@ -57,21 +57,20 @@ export class Api extends Construct {
 
     // Workshop builds are uninstrumented — no dd-trace.
     // Production builds exclude dd-trace so the Datadog Lambda layer provides it at runtime.
-    const externalModules = isWorkshopBuild
-      ? ["@aws-sdk/client-eventbridge", "@aws-sdk/client-ssm"]
-      : [
-          "dd-trace",
-          "@datadog/native-metrics",
-          "@datadog/pprof",
-          "@datadog/native-appsec",
-          "@datadog/native-iast-taint-tracking",
-          "@datadog/native-iast-rewriter",
-          "graphql/language/visitor",
-          "graphql/language/printer",
-          "graphql/utilities",
-          "@aws-sdk/client-eventbridge",
-          "@aws-sdk/client-ssm",
-        ];
+    const externalModules = [
+      "dd-trace",
+      "@datadog/native-metrics",
+      "@datadog/pprof",
+      "@datadog/native-appsec",
+      "@datadog/native-iast-taint-tracking",
+      "@datadog/native-iast-rewriter",
+      "graphql/language/visitor",
+      "graphql/language/printer",
+      "graphql/utilities",
+      "@aws-sdk/client-eventbridge",
+      "@aws-sdk/client-ssm",
+      "@openfeature/server-sdk",
+    ];
 
     const calculatePricingFunction = new NodejsFunction(
       this,
@@ -95,16 +94,15 @@ export class Api extends Construct {
           keepNames: true,
           externalModules,
         },
-      }
+      },
     );
 
-    // Paste Datadog configuration from the workshop here.
     // Add Datadog configuration to your Lambda function
     props.serviceProps
       .getSharedProps()
       .datadogConfiguration?.addLambdaFunctions([calculatePricingFunction]);
 
-    // The Datadog extension sends log data to Datadog using the telemetry API. So you no longer need to use CloudWatch for viewing these logs. Disabling it prevents  'double paying' for logs.
+    // The Datadog extension sends log data to Datadog using the telemetry API. So you no longer need to use CloudWatch for viewing these logs. Disabling it prevents 'double paying' for logs.
     calculatePricingFunction.addToRolePolicy(
       new PolicyStatement({
         actions: [
@@ -114,14 +112,14 @@ export class Api extends Construct {
         ],
         resources: ["arn:aws:logs:*:*:*"],
         effect: Effect.DENY,
-      })
+      }),
     );
 
     const kmsAlias = Alias.fromAliasName(this, "SSMAlias", "aws/ssm");
     kmsAlias.grantDecrypt(calculatePricingFunction);
 
     const calculatePricingIntegration = new LambdaIntegration(
-      calculatePricingFunction
+      calculatePricingFunction,
     );
 
     return calculatePricingIntegration;

@@ -45,22 +45,19 @@ export class PricingEventHandlers extends Construct {
       ? "./src/pricing-api/workshop/productCreatedPricingHandler.ts"
       : "./src/pricing-api/adapters/productCreatedPricingHandler.ts";
 
-    // Workshop builds are uninstrumented — no dd-trace.
-    // Production builds exclude dd-trace so the Datadog Lambda layer provides it at runtime.
-    const externalModules = isWorkshopBuild
-      ? ["@aws-sdk/client-sqs"]
-      : [
-          "dd-trace",
-          "@datadog/native-metrics",
-          "@datadog/pprof",
-          "@datadog/native-appsec",
-          "@datadog/native-iast-taint-tracking",
-          "@datadog/native-iast-rewriter",
-          "graphql/language/visitor",
-          "graphql/language/printer",
-          "graphql/utilities",
-          "@aws-sdk/client-sqs",
-        ];
+    // Both builds exclude dd-trace so the Datadog Lambda layer provides it at runtime.
+    const externalModules = [
+      "dd-trace",
+      "@datadog/native-metrics",
+      "@datadog/pprof",
+      "@datadog/native-appsec",
+      "@datadog/native-iast-taint-tracking",
+      "@datadog/native-iast-rewriter",
+      "graphql/language/visitor",
+      "graphql/language/printer",
+      "graphql/utilities",
+      "@aws-sdk/client-sqs",
+    ];
 
     const env = props.serviceProps.getSharedProps().environment;
     const productApiEndpointParameterName = `/${env}/ProductService/api-endpoint`;
@@ -76,24 +73,19 @@ export class PricingEventHandlers extends Construct {
         memorySize: 512,
         timeout: Duration.seconds(29),
         environment: {
-          ENV: env,
           POWERTOOLS_SERVICE_NAME:
             props.serviceProps.getSharedProps().serviceName,
           POWERTOOLS_LOG_LEVEL: env === "prod" ? "WARN" : "INFO",
+          ENV: env,
           DEPLOYED_AT: new Date().toISOString(),
           BUILD_ID: props.serviceProps.getSharedProps().version,
           TEAM: props.serviceProps.getSharedProps().team,
           DOMAIN: props.serviceProps.getSharedProps().domain,
           EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
           PRODUCT_API_ENDPOINT_PARAMETER: productApiEndpointParameterName,
-          ...(isWorkshopBuild
-            ? {}
-            : {
-                DD_DATA_STREAMS_ENABLED: "true",
-                DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true",
-                DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none",
-                DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore",
-              }),
+          DD_DATA_STREAMS_ENABLED: "true",
+          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "none",
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "datadog,tracecontext",
         },
         bundling: {
           platform: "node",
@@ -102,7 +94,7 @@ export class PricingEventHandlers extends Construct {
           keepNames: true,
           externalModules,
         },
-      }
+      },
     );
 
     handleProductCreatedFunction.addToRolePolicy(
@@ -111,7 +103,7 @@ export class PricingEventHandlers extends Construct {
         resources: [
           `arn:aws:ssm:${Stack.of(this).region}:${Stack.of(this).account}:parameter${productApiEndpointParameterName}`,
         ],
-      })
+      }),
     );
 
     props.serviceProps
@@ -121,7 +113,7 @@ export class PricingEventHandlers extends Construct {
     handleProductCreatedFunction.addEventSource(
       new SqsEventSource(this.productCreatedQueue, {
         reportBatchItemFailures: true,
-      })
+      }),
     );
 
     props.serviceProps
@@ -134,7 +126,7 @@ export class PricingEventHandlers extends Construct {
       {
         detailType: ["product.productCreated.v1"],
         source: [`${props.serviceProps.getSharedProps().environment}.products`],
-      }
+      },
     );
     rule.addTarget(new SqsQueue(this.productCreatedQueue));
   }
@@ -149,22 +141,21 @@ export class PricingEventHandlers extends Construct {
       ? "./src/pricing-api/workshop/productUpdatedPricingHandler.ts"
       : "./src/pricing-api/adapters/productUpdatedPricingHandler.ts";
 
-    // Workshop builds are uninstrumented — no dd-trace.
-    // Production builds exclude dd-trace so the Datadog Lambda layer provides it at runtime.
-    const externalModules = isWorkshopBuild
-      ? ["@aws-sdk/client-sqs"]
-      : [
-          "dd-trace",
-          "@datadog/native-metrics",
-          "@datadog/pprof",
-          "@datadog/native-appsec",
-          "@datadog/native-iast-taint-tracking",
-          "@datadog/native-iast-rewriter",
-          "graphql/language/visitor",
-          "graphql/language/printer",
-          "graphql/utilities",
-          "@aws-sdk/client-sqs",
-        ];
+    // Both builds exclude dd-trace so the Datadog Lambda layer provides it at runtime.
+    const externalModules = [
+      "dd-trace",
+      "@datadog/native-metrics",
+      "@datadog/pprof",
+      "@datadog/native-appsec",
+      "@datadog/native-iast-taint-tracking",
+      "@datadog/native-iast-rewriter",
+      "graphql/language/visitor",
+      "graphql/language/printer",
+      "graphql/utilities",
+      "@aws-sdk/client-eventbridge",
+      "@aws-sdk/client-ssm",
+      "@openfeature/server-sdk"
+    ];
 
     const env = props.serviceProps.getSharedProps().environment;
     const productApiEndpointParameterName = `/${env}/ProductService/api-endpoint`;
@@ -190,14 +181,9 @@ export class PricingEventHandlers extends Construct {
           DOMAIN: props.serviceProps.getSharedProps().domain,
           EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
           PRODUCT_API_ENDPOINT_PARAMETER: productApiEndpointParameterName,
-          ...(isWorkshopBuild
-            ? {}
-            : {
-                DD_DATA_STREAMS_ENABLED: "true",
-                DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: "true",
-                DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none",
-                DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore",
-              }),
+          DD_DATA_STREAMS_ENABLED: "true",
+          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "none",
+          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "datadog,tracecontext",
         },
         bundling: {
           platform: "node",
@@ -206,7 +192,7 @@ export class PricingEventHandlers extends Construct {
           keepNames: true,
           externalModules,
         },
-      }
+      },
     );
 
     handleProductUpdatedFunction.addToRolePolicy(
@@ -215,7 +201,7 @@ export class PricingEventHandlers extends Construct {
         resources: [
           `arn:aws:ssm:${Stack.of(this).region}:${Stack.of(this).account}:parameter${productApiEndpointParameterName}`,
         ],
-      })
+      }),
     );
 
     props.serviceProps
@@ -229,7 +215,7 @@ export class PricingEventHandlers extends Construct {
     handleProductUpdatedFunction.addEventSource(
       new SqsEventSource(this.productUpdatedQueue, {
         reportBatchItemFailures: true,
-      })
+      }),
     );
 
     const rule = props.serviceProps.addSubscriptionRule(
@@ -238,7 +224,7 @@ export class PricingEventHandlers extends Construct {
       {
         detailType: ["product.productUpdated.v1"],
         source: [`${props.serviceProps.getSharedProps().environment}.products`],
-      }
+      },
     );
     rule.addTarget(new SqsQueue(this.productUpdatedQueue));
   }
