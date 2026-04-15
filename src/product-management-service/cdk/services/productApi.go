@@ -140,6 +140,7 @@ func NewProductApi(scope constructs.Construct, id string, props *ProductApiProps
 		Entry:                "../src/product-api/outbox-processor/",
 		FunctionName:         "OutboxProcessor",
 		EnvironmentVariables: outboxProcessorEnvironmentVariables,
+		Timeout:              awscdk.Duration_Minutes(jsii.Number(5)),
 	})
 
 	// Grant permissions to publish to all topics
