@@ -2,34 +2,29 @@
 PYTHON := ".venv/bin/python3"
 .ONESHELL:
 
-install:
+dev:
+	poetry env use python3.13
 	pip install --upgrade pip poetry
+	pip install poetry-plugin-export
 	poetry config --local virtualenvs.in-project true
 	poetry install --no-root
+	poetry self add poetry-plugin-export
+	npm ci
 
-build:
+deps:
+	poetry export --only=dev --format=requirements.txt > dev_requirements.txt
+	poetry export --without=dev --format=requirements.txt > lambda_requirements.txt
+
+build: deps
 	rm -rf .build
-	mkdir -p .build/lambdas
-	cp -r product_search_service .build/lambdas/
-	pip install \
-		"aws-lambda-powertools[tracer]>=3.0.0" \
-		"pydantic>=2.0.0" \
-		"boto3>=1.37.0" \
-		"ddtrace>=3.0.0" \
-		"requests>=2.32.0" \
-		-t .build/lambdas/ \
-		--platform manylinux2014_aarch64 \
-		--implementation cp \
-		--python-version 313 \
-		--only-binary=:all: \
-		--upgrade \
-		--quiet
+	mkdir -p .build/lambdas ; cp -r product_search_service .build/lambdas
+	mkdir -p .build/common_layer ; poetry export --without=dev --format=requirements.txt > .build/common_layer/requirements.txt
 
 cdk-deploy: build
-	cd cdk && pip install -r requirements.txt && cdk deploy --app "python3 app.py" --all --require-approval never
+	cdk deploy --require-approval never --all
 
 cdk-destroy:
-	cd cdk && cdk destroy --app "python3 app.py" --all --force
+	cdk destroy --all --force
 
 lint:
 	poetry run ruff check . && poetry run mypy .

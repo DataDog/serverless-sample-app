@@ -1,40 +1,129 @@
+[build-system]
+requires = ["poetry>=2.0.1"]
+build-backend = "poetry.core.masonry.api"
 [tool.poetry]
-name = "product-search-service"
-version = "0.1.0"
-description = "AI-powered product search service using Amazon Bedrock and S3 Vector Object Store"
-authors = ["Datadog <demo@datadoghq.com>"]
+name = "serverless_sample_app"
+version = "3.0.0"
+authors = ["DataDog"]
+classifiers=[
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3.13",
+]
+repository="https://github.com/DataDog/serverless-sample-app"
+readme = "README.md"
+license = "MIT-0"
 
 [tool.poetry.dependencies]
-python = "^3.13"
-aws-lambda-powertools = {extras = ["tracer"], version = "^3.0.0"}
-pydantic = "^2.0.0"
-boto3 = "^1.37.0"
-ddtrace = "^3.0.0"
-requests = "^2.32.0"
+python = ">=3.13.0,<3.14"
+pydantic = {version = "^2.0.3"}
+email-validator = {version = "*"}
+aws-lambda-powertools =  {extras = ["tracer"],version = "^3.21.0"}
+mypy-boto3-dynamodb = "^1.40.20"
+cachetools = "*"
+boto3 = "^1.40.21"
+aws-lambda-env-modeler = "*"
+ddtrace = "3.9.4"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.0.0"
-pytest-mock = "^3.14.0"
-pytest-timeout = "^2.3.0"
-moto = {extras = ["dynamodb", "s3", "ssm", "bedrock"], version = "^5.0.0"}
-ruff = "^0.8.0"
-mypy = "^1.0.0"
-boto3-stubs = {extras = ["dynamodb", "s3", "bedrock-runtime", "ssm"], version = "^1.37.0"}
+# CDK
+product_search_service-cdk = {path = "cdk", develop = true}
+aws-cdk-lib = ">=2.202.0"
+datadog-cdk-constructs-v2 = "^2.6.0"
+constructs = ">=10.0.0"
+cdk-nag = ">2.0.0"
+"aws-cdk.aws-lambda-python-alpha" = "^2.201.0-alpha.0"
+cdk-monitoring-constructs = "*"
+# DEV
+pytest = "*"
+pytest-mock = "*"
+pycodestyle = "*"
+pytest-cov = "*"
+pytest-html = "*"
+python-dateutil = "*"
+python-dotenv = "*"
+GitPython = "*"
+ruff = "*"
+radon = "*"
+xenon = "*"
+pre-commit = "*"
+mkdocs-material = "*"
+mkdocs-git-revision-date-plugin = "*"
+mkdocs-glightbox = "*"
+types-cachetools = "*"
+mypy = "*"
+types-requests = "*"
+toml = "*"
+mkdocs-render-swagger-plugin = "*"
+boto3 = "^1.40.21"
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.ruff]
-target-version = "py313"
-line-length = 120
-
-[tool.ruff.lint]
-select = ["E", "W", "F", "I", "B", "C4", "UP"]
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.9"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = "tests"
 
-[tool.mypy]
-python_version = "3.13"
-strict = true
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "cdk.out",
+    ".vscode",
+    ".pytest_cache",
+    ".build",
+    ".mypy_cache",
+    ".github"
+]
+
+# Same as Black.
+line-length = 150
+indent-width = 4
+
+# Assume Python 3.13
+target-version = "py313"
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+]
+ignore = [ "E203", "E266", "E501", "W191"]
+
+[tool.ruff.format]
+quote-style = "single"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-third-party = ["pydantic", "aws_lambda_powertools"]

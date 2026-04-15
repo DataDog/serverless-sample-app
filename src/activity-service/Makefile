@@ -8,7 +8,9 @@ LATEST_OPENAPI := openapi_latest.json
 
 
 dev:
+	poetry env use python3.13
 	pip install --upgrade pip poetry
+	pip install poetry-plugin-export
 	poetry config --local virtualenvs.in-project true
 	poetry install --no-root
 	poetry self add poetry-plugin-export

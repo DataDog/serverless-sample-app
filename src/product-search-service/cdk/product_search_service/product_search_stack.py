@@ -20,7 +20,7 @@ from datadog_cdk_constructs_v2 import DatadogLambda
 SERVICE_NAME = "product-search-service"
 LAMBDA_TIMEOUT_SECONDS = 29
 LAMBDA_MEMORY_MB = 512
-BUILD_FOLDER = "../.build/lambdas/"
+BUILD_FOLDER = ".build/lambdas/"
 
 
 class ProductSearchStack(Stack):
