@@ -186,9 +186,17 @@ type OutboxEvent struct {
 }
 
 func functionHandler(ctx context.Context, event OutboxEvent) error {
-	// Get the span injected by ddlambda.WrapFunction — do NOT call span.Finish()
-	// as ddlambda owns its lifecycle.
-	span, _ := tracer.SpanFromContext(ctx)
+	// Start a fresh root span (no parent → new trace_id) for each scheduled
+	// invocation. Without this, warm-container runs inherit the trace_id frozen
+	// into the Lambda environment at cold-start time, causing all invocations to
+	// appear under the same trace in Datadog.
+	span := tracer.StartSpan(
+		"outbox.process",
+		tracer.SpanType("worker"),
+		tracer.ResourceName("outbox-processor"),
+	)
+	defer span.Finish()
+	ctx = tracer.ContextWithSpan(ctx, span)
 
 	entries, err := productRepository.GetUnprocessedEntries(ctx)
 	if err != nil {
