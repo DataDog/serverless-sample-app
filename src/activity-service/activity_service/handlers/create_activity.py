@@ -489,7 +489,7 @@ def _add_default_span_tags(event_id: str | None, event_type: str, trace_parent: 
     span.set_tag('messaging.message.id', event_id)
     span.set_tag('messaging.operation.type', 'process')
     span.set_tag('messaging.operation.name', 'process')
-    span.set_tag('messaging.batch.message_count', 1)
+    span.set_tag('messaging.batch.message_count', '1')
 
     if not trace_parent:
         return
