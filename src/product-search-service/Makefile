@@ -11,6 +11,10 @@ dev:
 	poetry self add poetry-plugin-export
 	npm ci
 
+install:
+	poetry config --local virtualenvs.in-project true
+	poetry install --no-root
+
 deps:
 	poetry export --only=dev --format=requirements.txt > dev_requirements.txt
 	poetry export --without=dev --format=requirements.txt > lambda_requirements.txt
