@@ -19,6 +19,8 @@ build: deps
 	rm -rf .build
 	mkdir -p .build/lambdas ; cp -r product_search_service .build/lambdas
 	mkdir -p .build/common_layer ; poetry export --without=dev --format=requirements.txt > .build/common_layer/requirements.txt
+	pip install -r .build/common_layer/requirements.txt -t .build/lambdas/ --upgrade --quiet \
+		--platform manylinux2014_aarch64 --only-binary=:all: --python-version 3.13 --implementation cp
 
 cdk-deploy: build
 	cdk deploy --require-approval never --all

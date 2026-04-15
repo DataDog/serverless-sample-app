@@ -20,8 +20,8 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@aws-sdk/client-eventbridge": "^3.1000.0",
-    "@aws-sdk/client-ssm": "^3.1000.0",
+    "@aws-sdk/client-eventbridge": "^3.1030.0",
+    "@aws-sdk/client-ssm": "^3.1030.0",
     "@types/aws-lambda": "8.10.161",
     "@types/jest": "^29.0.0",
     "@types/node": "25.3.3",
@@ -31,7 +31,7 @@
     "constructs": "^10.4.5",
     "datadog-cdk-constructs-v2": "^3.10.0",
     "datadog-lambda-js": "^12.135.0",
-    "dd-trace": "^5.87.0",
+    "dd-trace": "^5.97.0",
     "esbuild": "^0.27.3",
     "jest": "^29.7.0",
     "moq.ts": "^10.1.0",

@@ -8,6 +8,7 @@
 import { Logger } from "@aws-lambda-powertools/logger";
 import { PipelineCheckpointRecorder } from "../core/pipelineCheckpointRecorder";
 import { DatadogTransactionTracker } from "../../observability/datadogTransactionTracker";
+import { tracer } from "dd-trace";
 
 /**
  * Adapter that forwards pipeline checkpoints to the Datadog pipeline_stats API.
@@ -22,18 +23,16 @@ export class DatadogPipelineCheckpointRecorder implements PipelineCheckpointReco
     this.logger = new Logger({ serviceName: process.env.DD_SERVICE });
   }
 
-  async recordCheckpoint(transactionId: string, checkpoint: string): Promise<void> {
+  async recordCheckpoint(
+    transactionId: string,
+    checkpoint: string,
+  ): Promise<void> {
     try {
-      const result = await this.tracker.sendSingle(transactionId, checkpoint);
-      if (!result.success) {
-        this.logger.warn(
-          `Pipeline checkpoint failed: transactionId=${transactionId} checkpoint=${checkpoint} status=${result.statusCode}`
-        );
-      }
+      tracer.dataStreamsCheckpointer.trackTransaction(transactionId, checkpoint, tracer.scope().active());
     } catch (error) {
       this.logger.warn(
         `Pipeline checkpoint error: transactionId=${transactionId} checkpoint=${checkpoint}`,
-        { error }
+        { error },
       );
     }
   }
