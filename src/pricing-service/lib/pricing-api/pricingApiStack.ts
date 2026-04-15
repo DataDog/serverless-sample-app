@@ -6,14 +6,11 @@
 //
 
 import * as cdk from "aws-cdk-lib";
-import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
-import { DatadogLambda } from "datadog-cdk-constructs-v2";
 import { SharedProps } from "../constructs/sharedFunctionProps";
 import { Api } from "./api";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { PricingServiceProps } from "./pricingServiceProps";
-import { PricingEventHandlers } from "./pricingEventHandlers";
 
 const isWorkshopBuild = process.env.WORKSHOP_BUILD === "true";
 
@@ -25,28 +22,14 @@ export class PricingApiStack extends cdk.Stack {
     const env = process.env.ENV ?? "dev";
     const version = process.env["COMMIT_HASH"] ?? "latest";
 
-    const datadogConfiguration = isWorkshopBuild
-      ? undefined
-      : new DatadogLambda(this, "Datadog", {
-          nodeLayerVersion: 135,
-          extensionLayerVersion: 93,
-          site: process.env.DD_SITE ?? "datadoghq.com",
-          apiKey: process.env.DD_API_KEY!,
-          service,
-          version,
-          env,
-          enableColdStartTracing: true,
-          enableDatadogTracing: true,
-          captureLambdaPayload: true,
-        });
-
+    // TODO: Replace this code block with the code from the workshop
     const sharedProps: SharedProps = {
       team: "pricing",
       domain: "pricing",
       environment: env,
       serviceName: service,
       version,
-      datadogConfiguration,
+      datadogConfiguration: undefined,
     };
 
     const pricingServiceProps = new PricingServiceProps(this, sharedProps);
@@ -56,11 +39,9 @@ export class PricingApiStack extends cdk.Stack {
       jwtSecret: pricingServiceProps.getJwtSecret(),
     });
 
-    if (!isWorkshopBuild) {
-      const _ = new PricingEventHandlers(this, "PricingEventHandlers", {
-        serviceProps: pricingServiceProps,
-      });
-    }
+    // const _ = new PricingEventHandlers(this, "PricingEventHandlers", {
+    //   serviceProps: pricingServiceProps,
+    // });
 
     const _param = new StringParameter(this, "PricingAPIEndpoint", {
       parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/api-endpoint`,
