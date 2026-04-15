@@ -4,8 +4,6 @@ import json
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from product_search_service.handlers.catalog_sync import (
     PRICING_CALCULATED,
     PRODUCT_CREATED,
@@ -15,7 +13,6 @@ from product_search_service.handlers.catalog_sync import (
     lambda_handler,
 )
 from product_search_service.models.product import PricingTier, ProductMetadata
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -7,7 +7,7 @@ import boto3
 from aws_lambda_powertools import Logger
 from ddtrace import tracer
 
-from product_search_service.models.product import ProductMetadata, PricingTier
+from product_search_service.models.product import PricingTier, ProductMetadata
 
 logger = Logger()
 

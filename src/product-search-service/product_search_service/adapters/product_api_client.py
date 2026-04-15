@@ -5,7 +5,7 @@ import requests
 from aws_lambda_powertools import Logger
 from botocore.config import Config
 
-from product_search_service.models.product import ProductMetadata, PricingTier
+from product_search_service.models.product import PricingTier, ProductMetadata
 
 logger = Logger()
 

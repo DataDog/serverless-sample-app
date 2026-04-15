@@ -3,6 +3,7 @@ import os
 
 from aws_cdk import App, Environment
 from boto3 import client, session
+
 from cdk.product_search_service.product_search_stack import ProductSearchStack
 
 account = client('sts').get_caller_identity()['Account']

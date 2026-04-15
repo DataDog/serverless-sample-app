@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import pytest
 from unittest.mock import MagicMock, patch
 
 from product_search_service.models.product import (
     PricingTier,
     ProductMetadata,
-    ProductSummary,
-    SearchResponse,
 )
 from product_search_service.observability.messaging import (
     add_messaging_span_tags,

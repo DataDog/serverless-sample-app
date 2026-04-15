@@ -16,7 +16,7 @@ from product_search_service.adapters.bedrock_embedder import BedrockEmbedder
 from product_search_service.adapters.metadata_repository import MetadataRepository
 from product_search_service.adapters.product_api_client import ProductApiClient
 from product_search_service.adapters.vector_repository import VectorRepository
-from product_search_service.models.product import PricingTier, ProductMetadata
+from product_search_service.models.product import PricingTier
 from product_search_service.observability.messaging import (
     add_messaging_span_tags,
     extract_trace_parent,

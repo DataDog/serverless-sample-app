@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from product_search_service.models.product import ProductMetadata, PricingTier
+from product_search_service.models.product import PricingTier, ProductMetadata
 
 
 class Embedder(Protocol):

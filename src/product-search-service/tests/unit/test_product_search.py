@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 # Patch the ddtrace LLMObs workflow decorator before the handler module is imported
 # so tests work without a running ddtrace agent.
 with patch("ddtrace.llmobs.decorators.workflow", lambda **kw: lambda f: f):
@@ -157,7 +155,7 @@ def test_bedrock_failure_tags_span_as_error(mock_embedder):
         result = lambda_handler(make_api_event("any query"), MagicMock())
 
     assert result["statusCode"] == 503
-    mock_span.__setattr__  # ensure it is a MagicMock
+    assert isinstance(mock_span, MagicMock)  # ensure it is a MagicMock
     assert mock_tracer.current_span.called
     mock_span.set_tag.assert_any_call("error.message", "Bedrock unavailable")
     mock_span.set_tag.assert_any_call("error.type", "RuntimeError")
