@@ -45,6 +45,7 @@ class BedrockGenerator:
                     time.sleep(sleep_seconds)
                     continue
                 raise
+        raise RuntimeError("unreachable: all retry attempts exhausted")
 
     def generate_answer(self, query: str, products: list[ProductMetadata]) -> str:
         """Generate a grounded natural language answer.

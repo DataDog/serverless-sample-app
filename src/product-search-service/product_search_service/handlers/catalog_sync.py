@@ -7,7 +7,6 @@ from typing import Any, Callable
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.batch import BatchProcessor, EventType, process_partial_response
 from aws_lambda_powertools.utilities.batch.types import PartialItemFailureResponse
-from aws_lambda_powertools.utilities.data_classes import SQSEvent
 from aws_lambda_powertools.utilities.data_classes.sqs_event import SQSRecord
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from ddtrace import tracer
@@ -105,7 +104,7 @@ def _get_event_handler_registry() -> dict[str, EventHandler]:
 
 
 @logger.inject_lambda_context
-def lambda_handler(event: SQSEvent, context: LambdaContext) -> PartialItemFailureResponse:
+def lambda_handler(event: dict[str, Any], context: LambdaContext) -> PartialItemFailureResponse:
     """Process SQS messages containing EventBridge events with partial batch response support.
 
     Args:

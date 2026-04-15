@@ -127,3 +127,11 @@ line-ending = "auto"
 
 [tool.ruff.lint.isort]
 known-third-party = ["pydantic", "aws_lambda_powertools"]
+
+[tool.mypy]
+python_version = "3.13"
+exclude = ["cdk\\.out/", "\\.build/", "\\.venv/"]
+
+[[tool.mypy.overrides]]
+module = ["boto3", "boto3.*", "botocore", "botocore.*", "setuptools"]
+ignore_missing_imports = true

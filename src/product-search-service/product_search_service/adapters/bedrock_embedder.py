@@ -36,6 +36,7 @@ class BedrockEmbedder:
                     time.sleep(sleep_seconds)
                     continue
                 raise
+        raise RuntimeError("unreachable: all retry attempts exhausted")
 
     def embed(self, text: str) -> list[float]:
         """Generate embedding using Titan Embeddings V2.
