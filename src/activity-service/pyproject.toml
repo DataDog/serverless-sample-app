@@ -25,13 +25,13 @@ mypy-boto3-dynamodb = "^1.40.20"
 cachetools = "*"
 boto3 = "^1.40.21"
 aws-lambda-env-modeler = "*"
-ddtrace = "3.9.4"
+ddtrace = "4.7.1"
 
 [tool.poetry.group.dev.dependencies]
 # CDK
 activity-service-cdk = {path = "cdk", develop = true}
 aws-cdk-lib = ">=2.202.0"
-datadog-cdk-constructs-v2 = "^2.6.0"
+datadog-cdk-constructs-v2 = "^3.10.0"
 constructs = ">=10.0.0"
 cdk-nag = ">2.0.0"
 "aws-cdk.aws-lambda-python-alpha" = "^2.201.0-alpha.0"

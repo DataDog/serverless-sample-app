@@ -12,8 +12,8 @@ Transform:
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKey: !Ref DDApiKey
-      pythonLayerVersion: 113
-      extensionLayerVersion: '90'
+      pythonLayerVersion: 123
+      extensionLayerVersion: '96'
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash

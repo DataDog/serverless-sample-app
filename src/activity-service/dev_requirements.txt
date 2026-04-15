@@ -295,9 +295,9 @@ coverage==7.13.5 ; python_version == "3.13" \
     --hash=sha256:f4cd16206ad171cbc2470dbea9103cf9a7607d5fe8c242fdf1edf36174020664 \
     --hash=sha256:f70c9ab2595c56f81a89620e22899eea8b212a4041bd728ac6f4a28bf5d3ddd0 \
     --hash=sha256:fbabfaceaeb587e16f7008f7795cd80d20ec548dc7f94fbb0d4ec2e038ce563f
-datadog-cdk-constructs-v2==2.8.0 ; python_version == "3.13" \
-    --hash=sha256:776f35451bd0bbc9670d154297e5b12c97788d3742d1daf78edc988fc2ba62e4 \
-    --hash=sha256:9f7dc39645468c922736ff0b9d62dbf8e1ced110e86ba2f73d63d09dce2725c4
+datadog-cdk-constructs-v2==3.10.0 ; python_version == "3.13" \
+    --hash=sha256:7702e2915823338f0ed2c88de3caf4471eb130cc9174e2ad269220e4ed4f013f \
+    --hash=sha256:ab1016794f0efc9374951fb5d476d095df3858df5efee0802780fafead3ed688
 distlib==0.4.0 ; python_full_version >= "3.13.0" and python_version < "3.14" \
     --hash=sha256:9659f7d87e46584a30b5780e43ac7a2143098441670ff0a49d5f9034c54a6c16 \
     --hash=sha256:feec40075be03a04501a973d81f633735b4b69f98b05450592310c0f401a4e0d
