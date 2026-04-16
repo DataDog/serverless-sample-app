@@ -40,11 +40,11 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated.v1", evt)
 
 	// Inject DSM context before marshaling so _datadog carrier is included in the message.
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+	dsm_ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
 	}, "direction:out", productcore.ExternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
-		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
+		datastreams.InjectToBase64Carrier(dsm_ctx, &cloudEvent)
 	}
 
 	evtData, _ := cloudEvent.ToJSON()
@@ -93,12 +93,12 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 	defer span.Finish()
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productUpdated.v1", evt)
 
-	// Inject DSM context before marshaling so _datadog carrier is included in the message.
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+	// Set the DSM produce checkpoint and then inject the context into the CloudEvent
+	dsm_ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
 	}, "direction:out", productcore.ExternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
-		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
+		datastreams.InjectToBase64Carrier(dsm_ctx, &cloudEvent)
 	}
 
 	evtData, _ := cloudEvent.ToJSON()
@@ -149,11 +149,11 @@ func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Con
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productDeleted.v1", evt)
 
 	// Inject DSM context before marshaling so _datadog carrier is included in the message.
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
+	dsm_ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
 	}, "direction:out", productcore.ExternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
 	if ok {
-		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
+		datastreams.InjectToBase64Carrier(dsm_ctx, &cloudEvent)
 	}
 
 	evtData, _ := cloudEvent.ToJSON()

@@ -126,7 +126,7 @@ func processCreatedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 
 	// Extract DSM context using the incoming ctx so the checkpoint is linked to
 	// the current trace, not an orphaned background context.
-	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
+	ctx, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
 		ServiceOverride: "productservice-publiceventpublisher",
 	}, "direction:in", productcore.InternalPubSubName, "topic:"+evt.Type, "manual_checkpoint:true")
 
