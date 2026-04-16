@@ -14,6 +14,7 @@ import { Span, tracer } from "dd-trace";
 import { CloudEvent } from "cloudevents";
 import { Logger } from "@aws-lambda-powertools/logger";
 import {
+  DSM_PROPAGATION_KEY_BASE_64,
   MessagingType,
   startPublishSpanWithSemanticConventions,
 } from "../../observability/observability";
@@ -33,7 +34,7 @@ export class EventBridgeEventPublisher implements EventPublisher {
 
   async publishPriceCalculatedEvent(
     evt: PriceCalculatedEventV1,
-    linkedTraceparent?: string
+    linkedTraceparent?: string,
   ): Promise<boolean> {
     const parentSpan = tracer.scope().active();
 
@@ -48,7 +49,7 @@ export class EventBridgeEventPublisher implements EventPublisher {
         traceparent: parentSpan?.context().toTraceparent(),
       });
 
-      messagingSpan = startPublishSpanWithSemanticConventions(
+      const publishSpan = startPublishSpanWithSemanticConventions(
         cloudEventWrapper,
         {
           publicOrPrivate: MessagingType.PUBLIC,
@@ -56,13 +57,19 @@ export class EventBridgeEventPublisher implements EventPublisher {
           destinationName: process.env.EVENT_BUS_NAME ?? "",
           parentSpan: parentSpan,
           linkedTraceparent,
-        }
+        },
       );
+      messagingSpan = publishSpan.span;
 
+      // Ensure the DSM context is injected
       const evtEntries: PutEventsRequestEntry[] = [
         {
           EventBusName: process.env.EVENT_BUS_NAME,
-          Detail: JSON.stringify(cloudEventWrapper),
+          Detail: JSON.stringify({
+            ...cloudEventWrapper,
+            DSM_PROPAGATION_KEY_BASE_64:
+              publishSpan.carrier[DSM_PROPAGATION_KEY_BASE_64],
+          }),
           DetailType: "pricing.pricingCalculated.v1",
           Source: `${process.env.ENV}.pricing`,
         },
@@ -71,12 +78,14 @@ export class EventBridgeEventPublisher implements EventPublisher {
       await this.client.send(
         new PutEventsCommand({
           Entries: evtEntries,
-        })
+        }),
       );
 
       messagingSpan?.finish();
     } catch (error: unknown) {
-      this.logger.error(error instanceof Error ? error.message : JSON.stringify(error));
+      this.logger.error(
+        error instanceof Error ? error.message : JSON.stringify(error),
+      );
       if (error instanceof Error) {
         const e = error as Error;
         const stack = e.stack!.split("\n").slice(1, 4).join("\n");

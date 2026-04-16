@@ -29,6 +29,7 @@ type CloudEvent[T any] struct {
 	Time        string            `json:"time"`
 	TraceParent string            `json:"traceparent"`
 	Datadog     map[string]string `json:"_datadog,omitempty"`
+	DsmContext  string            `json:"dd-pathway-ctx-base64,omitempty"` // for backward compatibility with older services using the _datadog field as a simple string carrier
 }
 
 func NewCloudEvent[T any](ctx context.Context, evtType string, data T) CloudEvent[T] {

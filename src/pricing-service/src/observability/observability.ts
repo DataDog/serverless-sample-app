@@ -5,7 +5,8 @@ import * as os from "os";
 
 const textEncoder = new TextEncoder();
 const logger = new Logger({});
-const cpuCount = os.cpus().length;
+
+export const DSM_PROPAGATION_KEY_BASE_64 = "dd-pathway-ctx-base64";
 
 export enum MessagingType {
   PUBLIC,
@@ -23,13 +24,21 @@ export interface SemanticConventions {
 
 export function startProcessSpanWithSemanticConventions(
   evt: CloudEvent<any>,
-  conventions: SemanticConventions
+  conventions: SemanticConventions,
 ): Span {
   const messageProcessingSpan = tracer.startSpan(`process ${evt.type}`, {
     childOf: conventions.parentSpan ?? undefined,
   });
-  const headers = {};
-  tracer.dataStreamsCheckpointer.setConsumeCheckpoint("eventbridge", evt.type, headers);
+
+  // Extract the DSM-specific header from the event data to set the consume checkpoint, enabling Datadog's Data Streams Monitoring to track this message consumption
+  const dsmHeader = (evt.data as Record<string, unknown>)[
+    DSM_PROPAGATION_KEY_BASE_64
+  ];
+  tracer.dataStreamsCheckpointer.setConsumeCheckpoint(
+    "eventbridge",
+    evt.type,
+    dsmHeader,
+  );
 
   try {
     messageProcessingSpan.addTags({
@@ -49,7 +58,7 @@ export function startProcessSpanWithSemanticConventions(
       "messaging.message.envelope.size": textEncoder.encode(JSON.stringify(evt))
         .length,
       "messaging.message.body.size": textEncoder.encode(
-        JSON.stringify(evt.data)
+        JSON.stringify(evt.data),
       ).length,
     });
 
@@ -73,18 +82,19 @@ export function startProcessSpanWithSemanticConventions(
 
 export function startPublishSpanWithSemanticConventions(
   evt: CloudEvent<any>,
-  conventions: SemanticConventions
-): Span {
+  conventions: SemanticConventions,
+): { span: Span; carrier: Record<string, string> } {
   const messagingSpan = tracer.startSpan(`publish ${evt.type}`, {
     childOf: conventions.parentSpan ?? undefined,
   });
 
+  const carrier = {};
+
   try {
-    const headers = {};
     tracer.dataStreamsCheckpointer.setProduceCheckpoint(
       "eventbridge",
       evt.type,
-      headers,
+      carrier,
     );
 
     messagingSpan.addTags({
@@ -102,7 +112,7 @@ export function startPublishSpanWithSemanticConventions(
       "messaging.message.envelope.size": textEncoder.encode(JSON.stringify(evt))
         .length,
       "messaging.message.body.size": textEncoder.encode(
-        JSON.stringify(evt.data)
+        JSON.stringify(evt.data),
       ).length,
       "messaging.operation.name": "send",
       "messaging.message.conversation_id": conventions.conversationId ?? "",
@@ -116,7 +126,7 @@ export function startPublishSpanWithSemanticConventions(
     logger.error(JSON.stringify(e));
   }
 
-  return messagingSpan;
+  return { span: messagingSpan, carrier };
 }
 
 export function addDefaultServiceTagsTo(span: Span | undefined | null) {

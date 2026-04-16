@@ -132,10 +132,10 @@ func processMessage(ctx context.Context, record events.SQSMessage) error {
 
 	// Extract DSM context using the incoming ctx so the checkpoint is linked to
 	// the current trace, not an orphaned background context.
-	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
+	dsm_ctx, _ := tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
 		ServiceOverride: "productservice-acl",
 	}, "direction:in", productcore.ExternalPubSubName, "topic:"+evt.Type, "manual_checkpoint:true")
-	processSpan, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(spanLinks))
+	processSpan, _ := tracer.StartSpanFromContext(dsm_ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(spanLinks))
 	defer processSpan.Finish()
 
 	processSpan.SetTag("product.id", evt.Data.ProductId)
@@ -146,7 +146,7 @@ func processMessage(ctx context.Context, record events.SQSMessage) error {
 	processSpan.SetTag("messaging.operation.type", "process")
 	processSpan.SetTag("messaging.system", "aws_sqs")
 
-	_, err := eventTranslator.HandleProductPricingChanged(ctx, evt.Data)
+	_, err := eventTranslator.HandleProductPricingChanged(dsm_ctx, evt.Data)
 
 	if err != nil {
 		processSpan.SetTag("error", true)
