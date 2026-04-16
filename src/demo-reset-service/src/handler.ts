@@ -9,6 +9,7 @@ import { Logger } from '@aws-lambda-powertools/logger';
 import tracer from 'dd-trace';
 import { deleteAll } from './deleteAll';
 import { reseedData } from './reseedData';
+import { reseedUser } from './reseedUser';
 
 const logger = new Logger({ serviceName: 'demo-reset-service' });
 
@@ -44,6 +45,18 @@ export const handler = async (event: unknown): Promise<void> => {
   }
 
   logger.info({ message: 'Reseed phase complete', results: seedResults });
+
+  const userSpan = tracer.startSpan('demo-reset.reseed-user', { childOf: tracer.scope().active() ?? undefined });
+  try {
+    await reseedUser();
+  } catch (err) {
+    userSpan.setTag('error', true);
+    throw err;
+  } finally {
+    userSpan.finish();
+  }
+
+  logger.info({ message: 'Admin user reseeded' });
 
   logger.info({
     message: 'Demo reset complete',
