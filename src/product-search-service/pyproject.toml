@@ -39,6 +39,7 @@ cdk-monitoring-constructs = "*"
 # DEV
 pytest = "*"
 pytest-mock = "*"
+pytest-timeout = "*"
 pycodestyle = "*"
 pytest-cov = "*"
 pytest-html = "*"
