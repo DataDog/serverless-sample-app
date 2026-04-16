@@ -9,6 +9,8 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest --no-cache",
+    "test:unit": "jest --no-cache --testPathPattern='src/'",
+    "test:integration": "jest --no-cache --testPathPattern='tests/'",
     "cdk": "cdk",
     "dev:sst": "sst dev --stage=personal",
     "build:sst": "sst build --stage=dev",

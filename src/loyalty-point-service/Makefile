@@ -20,7 +20,7 @@ cdk-destroy:
 	cdk destroy --all --force
 
 integration-test:
-	npm run test
+	npm run test:integration
 
 build:
 	./package.sh

@@ -42,7 +42,7 @@ jobs:
       - name: Run unit tests
         run: |
           cd src/loyalty-point-service
-          npm test
+          npm run test:unit
 
   deploy-tf:
     runs-on: ubuntu-latest
