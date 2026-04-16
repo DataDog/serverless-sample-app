@@ -21,7 +21,7 @@ describe("integration-tests", () => {
     ) {
       apiDriver = new ApiDriver(
         process.env.API_ENDPOINT,
-        process.env.BEARER_TOKEN!
+        process.env.BEARER_TOKEN!,
       );
       return;
     }
@@ -36,20 +36,20 @@ describe("integration-tests", () => {
     const apiEndpointParameter = await ssmCLient.send(
       new GetParameterCommand({
         Name: `/${env}/${serviceName}/api-endpoint`,
-      })
+      }),
     );
 
     const jwtSecretParameter = await ssmCLient.send(
       new GetParameterCommand({
         Name: `/${env}/${sharedServiceName}/secret-access-key`,
-      })
+      }),
     );
 
     bearerToken = generateJwt(jwtSecretParameter.Parameter!.Value!);
 
     // no-dd-sa:typescript-best-practices/no-console
     console.log(
-      `API endpoint under test is: ${apiEndpointParameter.Parameter!.Value!}`
+      `API endpoint under test is: ${apiEndpointParameter.Parameter!.Value!}`,
     );
 
     let apiEndpoint = apiEndpointParameter.Parameter!.Value!;
@@ -64,10 +64,12 @@ describe("integration-tests", () => {
     const testProductName = randomUUID().toString();
     const generatePricingResult = await apiDriver.generatePricing(
       testProductName,
-      12.99
+      12.99,
     );
 
-    expect([200]).toContain(generatePricingResult.status);
+    // The base repo should error when calculating prices to test the
+    // starting state of the workshop repository.
+    expect([502]).toContain(generatePricingResult.status);
   });
 
   function generateJwt(secretAccessKey: string): string {
