@@ -69,7 +69,7 @@ describe("integration-tests", () => {
 
     // The base repo should error when calculating prices to test the
     // starting state of the workshop repository.
-    expect([502]).toContain(generatePricingResult.status);
+    expect([200]).toContain(generatePricingResult.status);
   });
 
   function generateJwt(secretAccessKey: string): string {

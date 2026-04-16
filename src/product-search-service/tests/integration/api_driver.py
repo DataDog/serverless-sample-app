@@ -4,10 +4,11 @@ import json
 import os
 import random
 import string
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import boto3
+import jwt
 import requests
 
 
@@ -18,11 +19,12 @@ class ProductSearchApiDriver:
     matching the pattern used by the activity-service integration tests.
     """
 
-    def __init__(self, search_api_endpoint: str, product_api_endpoint: str, event_bus_name: str) -> None:
+    def __init__(self, search_api_endpoint: str, product_api_endpoint: str, event_bus_name: str, jwt_secret: str = "") -> None:
         self.search_api_endpoint = search_api_endpoint.rstrip("/")
         self.product_api_endpoint = product_api_endpoint.rstrip("/")
         self.event_bus_name = event_bus_name
         self.environment = os.environ.get("ENV", "dev")
+        self._jwt_secret = jwt_secret
         self._events_client = boto3.client("events")
         self._products_client = requests.Session()
 
@@ -52,11 +54,33 @@ class ProductSearchApiDriver:
     # Product Management Service API (used to seed test products)
     # ------------------------------------------------------------------
 
+    def _generate_admin_token(self) -> str:
+        """Generate a short-lived ADMIN JWT signed with the shared secret.
+
+        The Product Management Service validates:
+        - HS256 signing algorithm
+        - `user_type` claim must equal "ADMIN"
+        - Token must not be expired
+        See: src/product-management-service/src/product-api/internal/adapters/authentication.go
+        """
+        now = datetime.now(timezone.utc)
+        payload = {
+            "sub": "admin@serverless-sample.com",
+            "user_type": "ADMIN",
+            "iat": now,
+            "exp": now + timedelta(hours=1),
+        }
+        return jwt.encode(payload, self._jwt_secret, algorithm="HS256")
+
     def create_product(self, name: str, price: float) -> dict[str, Any]:
         """Create a product via the Product Management Service API."""
+        headers = {}
+        if self._jwt_secret:
+            headers["Authorization"] = f"Bearer {self._generate_admin_token()}"
         response = self._products_client.post(
             f"{self.product_api_endpoint}/product",
             json={"name": name, "price": price},
+            headers=headers,
             timeout=10,
         )
         response.raise_for_status()
@@ -64,8 +88,12 @@ class ProductSearchApiDriver:
 
     def delete_product(self, product_id: str) -> None:
         """Delete a product via the Product Management Service API."""
+        headers = {}
+        if self._jwt_secret:
+            headers["Authorization"] = f"Bearer {self._generate_admin_token()}"
         response = self._products_client.delete(
             f"{self.product_api_endpoint}/product/{product_id}",
+            headers=headers,
             timeout=10,
         )
         # 404 on cleanup is acceptable
@@ -153,9 +181,10 @@ def initialize_driver() -> ProductSearchApiDriver:
     search_endpoint = os.environ.get("SEARCH_API_ENDPOINT")
     product_endpoint = os.environ.get("PRODUCT_API_ENDPOINT")
     event_bus_name = os.environ.get("EVENT_BUS_NAME")
+    jwt_secret = os.environ.get("JWT_SECRET_KEY", "")
 
     if search_endpoint and product_endpoint and event_bus_name:
-        return ProductSearchApiDriver(search_endpoint, product_endpoint, event_bus_name)
+        return ProductSearchApiDriver(search_endpoint, product_endpoint, event_bus_name, jwt_secret)
 
     env = os.environ.get("ENV", "dev")
     ssm = boto3.client("ssm")
@@ -179,10 +208,17 @@ def initialize_driver() -> ProductSearchApiDriver:
             )["Parameter"]["Value"]
         except ssm.exceptions.ParameterNotFound:
             event_bus_name = "default"
+        try:
+            jwt_secret = ssm.get_parameter(
+                Name=f"/{env}/shared/secret-access-key",
+                WithDecryption=True,
+            )["Parameter"]["Value"]
+        except ssm.exceptions.ParameterNotFound:
+            jwt_secret = ""
     else:
         # Product Management Service and shared event bus are not deployed in ephemeral envs.
         # Pipeline tests are skipped; smoke tests only need the search endpoint.
         product_endpoint = ""
         event_bus_name = "default"
 
-    return ProductSearchApiDriver(search_endpoint, product_endpoint, event_bus_name)
+    return ProductSearchApiDriver(search_endpoint, product_endpoint, event_bus_name, jwt_secret)
