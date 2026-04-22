@@ -13,7 +13,7 @@ argon2 = "0.5.3"
 jsonwebtoken = "9"
 chrono = "0.4.44"
 uuid = { version = "1.20", features = ["v4"] }
-sha2 = "0.10"
+sha2 = "0.11"
 base64 = "0.22"
 
 thiserror = {workspace = true}
