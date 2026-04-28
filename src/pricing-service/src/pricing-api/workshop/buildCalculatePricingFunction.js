@@ -16,8 +16,18 @@ esbuild
     platform: "node",
     target: ["node22"],
     external: [
+      "dd-trace",
+      "@datadog/native-metrics",
+      "@datadog/pprof",
+      "@datadog/native-appsec",
+      "@datadog/native-iast-taint-tracking",
+      "@datadog/native-iast-rewriter",
+      "graphql/language/visitor",
+      "graphql/language/printer",
+      "graphql/utilities",
       "@aws-sdk/client-eventbridge",
       "@aws-sdk/client-ssm",
+      "@openfeature/server-sdk",
     ],
   })
   .catch((err) => {

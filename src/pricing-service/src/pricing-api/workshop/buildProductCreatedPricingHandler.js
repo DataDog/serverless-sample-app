@@ -9,15 +9,24 @@ const esbuild = require("esbuild");
 
 esbuild
   .build({
-    entryPoints: [
-      "./src/pricing-api/workshop/productCreatedPricingHandler.ts",
-    ],
+    entryPoints: ["./src/pricing-api/workshop/productCreatedPricingHandler.ts"],
     bundle: true,
     outfile: "out/productCreatedPricingHandler/index.js",
     platform: "node",
     target: ["node22"],
     external: [
-      "@aws-sdk/client-sqs",
+      "dd-trace",
+      "@datadog/native-metrics",
+      "@datadog/pprof",
+      "@datadog/native-appsec",
+      "@datadog/native-iast-taint-tracking",
+      "@datadog/native-iast-rewriter",
+      "graphql/language/visitor",
+      "graphql/language/printer",
+      "graphql/utilities",
+      "@aws-sdk/client-eventbridge",
+      "@aws-sdk/client-ssm",
+      "@openfeature/server-sdk",
     ],
   })
   .catch((err) => {
