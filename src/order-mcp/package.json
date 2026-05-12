@@ -54,7 +54,7 @@
     "@aws-lambda-powertools/parameters": "^2.22.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@types/jsonwebtoken": "^9.0.10",
-    "axios": "^1.13.5",
+    "axios": "^1.16.0",
     "dd-trace": "^5.87.0",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3"
