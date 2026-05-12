@@ -7,8 +7,11 @@
 
 AWSTemplateFormatVersion : '2010-09-09'
 Description: A SAM template for deploying Lambda functions.
+
+# Paste workshop transform block here, ONLY replacing the Transform block leaving everything else the same
 Transform: 
   - AWS::Serverless-2016-10-31
+# Leave everything underneath here unchanged
 
 Conditions:
   IsNonProdEnvironment: !Not [!Equals [!Ref Env, prod]]
