@@ -27,7 +27,7 @@
     "@types/node": "25.3.3",
     "aws-cdk": "2.1108.0",
     "aws-cdk-lib": "^2.240.0",
-    "axios": "^1.13.6",
+    "axios": "^1.17.0",
     "constructs": "^10.4.5",
     "datadog-cdk-constructs-v2": "^3.10.0",
     "datadog-lambda-js": "^12.135.0",
@@ -51,5 +51,62 @@
     "cloudevents": "^10.0.0",
     "jsonwebtoken": "^9.0.3",
     "zod": "^4.3.6"
+  },
+  "overrides": {
+    "ts-jest": {
+      "minimatch": "^3.1.5",
+      "js-yaml": "^3.14.2"
+    },
+    "serverless-esbuild": {
+      "minimatch": "^3.1.5"
+    },
+    "@datadog/datadog-ci-base": {
+      "simple-git": "^3.36.0",
+      "glob": "^10.5.0"
+    },
+    "@datadog/datadog-ci-plugin-coverage": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-deployment": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-dora": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-sarif": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-sbom": {
+      "simple-git": "^3.36.0"
+    },
+    "serverless-plugin-datadog": {
+      "simple-git": "^3.36.0",
+      "basic-ftp": "^5.3.1",
+      "fast-uri": "^3.1.2",
+      "fast-xml-builder": "^1.1.9"
+    },
+    "jest": {
+      "minimatch": "^3.1.5"
+    },
+    "serverless-step-functions": {
+      "fast-uri": "^3.1.2"
+    },
+    "rimraf": {
+      "glob": "^10.5.0"
+    },
+    "aws-cdk-lib": {
+      "fast-uri": "^3.1.2",
+      "brace-expansion": "^5.0.6",
+      "yaml": "^1.10.3"
+    },
+    "cloudevents": {
+      "fast-uri": "^3.1.2"
+    },
+    "@aws-sdk/client-eventbridge": {
+      "fast-xml-builder": "^1.1.9"
+    },
+    "@aws-sdk/client-ssm": {
+      "fast-xml-builder": "^1.1.9"
+    }
   }
 }
