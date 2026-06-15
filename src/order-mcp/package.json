@@ -58,5 +58,83 @@
     "dd-trace": "^5.87.0",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3"
+  },
+  "overrides": {
+    "ts-jest": {
+      "minimatch": "^3.1.5",
+      "picomatch": "^2.3.2"
+    },
+    "fast-xml-parser": "^4.5.6",
+    "@datadog/datadog-ci-base": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-coverage": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-deployment": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-dora": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-sarif": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-sbom": {
+      "simple-git": "^3.36.0"
+    },
+    "serverless-plugin-datadog": {
+      "simple-git": "^3.36.0",
+      "basic-ftp": "^5.3.1",
+      "fast-uri": "^3.1.2"
+    },
+    "@modelcontextprotocol/sdk": {
+      "fast-uri": "^3.1.2"
+    },
+    "@aws-sdk/client-cloudformation": {
+      "minimatch": "^3.1.5"
+    },
+    "@aws-sdk/client-dynamodb": {
+      "minimatch": "^3.1.5"
+    },
+    "@aws-sdk/client-eventbridge": {
+      "minimatch": "^3.1.5"
+    },
+    "@aws-sdk/client-sfn": {
+      "minimatch": "^3.1.5"
+    },
+    "@aws-sdk/client-sqs": {
+      "minimatch": "^3.1.5"
+    },
+    "@aws-sdk/client-ssm": {
+      "minimatch": "^3.1.5"
+    },
+    "jest": {
+      "minimatch": "^3.1.5",
+      "picomatch": "^2.3.2"
+    },
+    "serverless-esbuild": {
+      "minimatch": "^3.1.5",
+      "picomatch": "^2.3.2"
+    },
+    "sst": {
+      "minimatch": "^3.1.5",
+      "picomatch": "^2.3.2",
+      "fast-uri": "^3.1.2",
+      "yaml": "^1.10.3"
+    },
+    "@types/jest": {
+      "picomatch": "^2.3.2"
+    },
+    "serverless-step-functions": {
+      "fast-uri": "^3.1.2"
+    },
+    "aws-cdk-lib": {
+      "fast-uri": "^3.1.2",
+      "yaml": "^1.10.3"
+    },
+    "@aws-cdk/toolkit-lib": {
+      "yaml": "^1.10.3"
+    }
   }
 }
