@@ -33,7 +33,7 @@
     "@types/node": "25.3.3",
     "aws-cdk": "2.1108.0",
     "aws-cdk-lib": "^2.240.0",
-    "axios": "^1.13.6",
+    "axios": "^1.17.0",
     "constructs": "^10.4.5",
     "datadog-cdk-constructs-v2": "^3.9.0",
     "datadog-lambda-js": "^12.135.0",
@@ -58,5 +58,124 @@
     "cloudevents": "^10.0.0",
     "jsonwebtoken": "^9.0.3",
     "zod": "^4.3.6"
+  },
+  "overrides": {
+    "ts-jest": {
+      "picomatch": "^2.3.2"
+    },
+    "@aws-sdk/client-cognito-identity": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-ecs": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-iam": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-iot": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-iot-data-plane": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-rds-data": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-s3": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-sso": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-sso-oidc": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-sts": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/credential-providers": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/middleware-flexible-checksums": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "sst": {
+      "fast-xml-parser": "^4.5.6",
+      "minimatch": "^3.1.5",
+      "picomatch": "^2.3.2",
+      "fast-uri": "^3.1.2",
+      "yaml": "^1.10.3",
+      "ajv": "^8.20.0"
+    },
+    "@datadog/datadog-ci-base": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-coverage": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-deployment": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-dora": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-sarif": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-sbom": {
+      "simple-git": "^3.36.0"
+    },
+    "serverless-plugin-datadog": {
+      "simple-git": "^3.36.0",
+      "basic-ftp": "^5.3.1",
+      "fast-uri": "^3.1.2",
+      "ajv": "^8.20.0"
+    },
+    "serverless-esbuild": {
+      "undici": "^6.26.0",
+      "picomatch": "^2.3.2"
+    },
+    "archiver-utils": {
+      "minimatch": "^3.1.5"
+    },
+    "bestzip": {
+      "minimatch": "^3.1.5"
+    },
+    "help-me": {
+      "minimatch": "^3.1.5"
+    },
+    "test-exclude": {
+      "minimatch": "^3.1.5"
+    },
+    "zip-stream": {
+      "minimatch": "^3.1.5"
+    },
+    "@types/jest": {
+      "picomatch": "^2.3.2"
+    },
+    "jest": {
+      "picomatch": "^2.3.2"
+    },
+    "aws-cdk-lib": {
+      "fast-uri": "^3.1.2",
+      "brace-expansion": "^5.0.6",
+      "yaml": "^1.10.3",
+      "ajv": "^8.20.0"
+    },
+    "cloudevents": {
+      "fast-uri": "^3.1.2",
+      "ajv": "^8.20.0"
+    },
+    "serverless-step-functions": {
+      "fast-uri": "^3.1.2",
+      "ajv": "^8.20.0"
+    },
+    "@aws-cdk/toolkit-lib": {
+      "brace-expansion": "^5.0.6",
+      "yaml": "^1.10.3"
+    },
+    "cdk-assets": {
+      "brace-expansion": "^5.0.6"
+    }
   }
 }
