@@ -29,8 +29,8 @@
     "@types/jest": "^29.5.14",
     "@types/node": "22.13.1",
     "aws-cdk": "2.178.1",
-    "aws-cdk-lib": "^2.172.0",
-    "axios": "^1.13.2",
+    "aws-cdk-lib": "^2.259.0",
+    "axios": "^1.17.0",
     "constructs": "^10.4.2",
     "datadog-cdk-constructs-v2": "^1.23.0",
     "datadog-lambda-js": "^9.120.0",
@@ -52,5 +52,67 @@
     "@aws-lambda-powertools/logger": "^2.14.0",
     "cloudevents": "^8.0.2",
     "zod": "^3.24.2"
+  },
+  "overrides": {
+    "cdk-assets": {
+      "fast-xml-parser": "^4.5.6",
+      "minimatch": "^5.1.9"
+    },
+    "@aws-sdk/client-cloudformation": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-dynamodb": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-eventbridge": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-sfn": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-sns": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-sqs": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "@aws-sdk/client-ssm": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "serverless-plugin-datadog": {
+      "fast-xml-parser": "^4.5.6",
+      "basic-ftp": "^5.3.1",
+      "simple-git": "^3.36.0"
+    },
+    "sst": {
+      "fast-xml-parser": "^4.5.6",
+      "basic-ftp": "^5.3.1",
+      "picomatch": "^2.3.2"
+    },
+    "serverless-esbuild": {
+      "undici": "^6.26.0",
+      "picomatch": "^2.3.2"
+    },
+    "@datadog/datadog-ci": {
+      "simple-git": "^3.36.0"
+    },
+    "filelist": {
+      "minimatch": "^5.1.9"
+    },
+    "readdir-glob": {
+      "minimatch": "^5.1.9"
+    },
+    "@types/request": {
+      "form-data": "^2.5.6"
+    },
+    "@types/jest": {
+      "picomatch": "^2.3.2"
+    },
+    "jest": {
+      "picomatch": "^2.3.2"
+    },
+    "ts-jest": {
+      "picomatch": "^2.3.2"
+    }
   }
 }
