@@ -32,5 +32,66 @@
     "serverless-plugin-datadog": "^5.122.0",
     "serverless-plugin-resource-tagging": "^1.2.0",
     "source-map-support": "^0.5.21"
+  },
+  "overrides": {
+    "serverless-plugin-datadog": {
+      "simple-git": "^3.36.0",
+      "basic-ftp": "^5.3.1",
+      "fast-xml-parser": "^5.8.0",
+      "fast-uri": "^3.1.2",
+      "lodash": "^4.18.1"
+    },
+    "ts-jest": {
+      "minimatch": "^3.1.5",
+      "picomatch": "^2.3.2",
+      "js-yaml": "^3.14.2"
+    },
+    "@datadog/datadog-ci-base": {
+      "simple-git": "^3.36.0",
+      "glob": "^10.5.0"
+    },
+    "@datadog/datadog-ci-plugin-coverage": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-deployment": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-dora": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-sarif": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-sbom": {
+      "simple-git": "^3.36.0"
+    },
+    "jest": {
+      "minimatch": "^3.1.5",
+      "picomatch": "^2.3.2",
+      "cross-spawn": "^7.0.6",
+      "js-yaml": "^3.14.2"
+    },
+    "@types/jest": {
+      "picomatch": "^2.3.2"
+    },
+    "cargo-lambda-cdk": {
+      "lodash-es": "^4.18.1"
+    },
+    "aws-cdk-lib": {
+      "fast-uri": "^3.1.2",
+      "brace-expansion": "^5.0.6"
+    },
+    "@jest/reporters": {
+      "glob": "^10.5.0"
+    },
+    "jest-config": {
+      "glob": "^10.5.0"
+    },
+    "jest-runtime": {
+      "glob": "^10.5.0"
+    },
+    "rimraf": {
+      "glob": "^10.5.0"
+    }
   }
 }
