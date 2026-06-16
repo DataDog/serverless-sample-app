@@ -25,5 +25,34 @@
   "dependencies": {
     "amplify": "^0.0.11",
     "browserify": "^17.0.1"
+  },
+  "overrides": {
+    "@babel/preset-env": {
+      "@babel/helpers": "^7.29.7"
+    },
+    "babelify": {
+      "@babel/helpers": "^7.29.7"
+    },
+    "@aws-sdk/client-ssm": {
+      "fast-xml-parser": "^4.5.6"
+    },
+    "asn1.js": {
+      "bn.js": "^4.12.3"
+    },
+    "create-ecdh": {
+      "bn.js": "^4.12.3"
+    },
+    "diffie-hellman": {
+      "bn.js": "^4.12.3"
+    },
+    "elliptic": {
+      "bn.js": "^4.12.3"
+    },
+    "miller-rabin": {
+      "bn.js": "^4.12.3"
+    },
+    "public-encrypt": {
+      "bn.js": "^4.12.3"
+    }
   }
 }
