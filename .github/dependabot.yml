@@ -10,6 +10,8 @@ updates:
         patterns:
           - "*"
 
+    cooldown:
+      default-days: 2
   - package-ecosystem: "npm"
     directories:
       - "/src/loyalty-point-service"
@@ -22,6 +24,8 @@ updates:
         patterns:
           - "*"
 
+    cooldown:
+      default-days: 2
   - package-ecosystem: "nuget"
     directory: "/src/order-service"
     schedule:
@@ -31,6 +35,8 @@ updates:
         patterns:
           - "*"
 
+    cooldown:
+      default-days: 2
   - package-ecosystem: "terraform"
     directories:
       - "/src/inventory-service/infra"
@@ -47,6 +53,8 @@ updates:
         patterns:
           - "*"
 
+    cooldown:
+      default-days: 2
   - package-ecosystem: "cargo"
     directories:
       - "/src/user-management-service"
@@ -57,6 +65,8 @@ updates:
         patterns:
           - "*"
 
+    cooldown:
+      default-days: 2
   - package-ecosystem: "pip"
     directories:
       - "/src/activity-service"
@@ -65,4 +75,5 @@ updates:
     groups:
       python-dependencies:
         patterns:
-          - "*"
+          - "*"    cooldown:
+      default-days: 2
