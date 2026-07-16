@@ -1,0 +1,36 @@
+{
+  "name": "my-catalog",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "eventcatalog dev",
+    "build": "eventcatalog build",
+    "start": "eventcatalog start",
+    "preview": "eventcatalog preview",
+    "generate": "eventcatalog generate",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@eventcatalog/core": "^2.29.0",
+    "@eventcatalog/generator-asyncapi": "3.0.5",
+    "@eventcatalog/generator-openapi": "4.0.7"
+  },
+  "overrides": {
+    "@eventcatalog/core": {
+      "axios": "^1.18.1",
+      "form-data": "^4.0.6",
+      "picomatch": "^4.0.5",
+      "lodash": "^4.18.1"
+    },
+    "ibm-cloud-sdk-core": {
+      "axios": "^1.18.1",
+      "form-data": "^4.0.6"
+    },
+    "glob": {
+      "minimatch": "^9.0.9"
+    },
+    "@eventcatalog/generator-asyncapi": {
+      "lodash": "^4.18.1"
+    }
+  }
+}
