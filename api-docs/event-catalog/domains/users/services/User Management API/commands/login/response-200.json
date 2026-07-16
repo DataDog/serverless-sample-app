@@ -1,9 +1,0 @@
-{
-  "type": "object",
-  "properties": {
-    "token": {
-      "type": "string"
-    }
-  },
-  "isSchema": true
-}
