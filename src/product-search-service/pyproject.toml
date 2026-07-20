@@ -1,5 +1,5 @@
 [build-system]
-requires = ["poetry>=2.0.1"]
+requires = ["poetry>=2.4.1"]
 build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name = "serverless_sample_app"
