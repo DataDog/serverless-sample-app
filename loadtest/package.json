@@ -3,5 +3,10 @@
   "devDependencies": {
     "@aws-sdk/client-ssm": "^3.759.0"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "overrides": {
+    "@aws-sdk/client-ssm": {
+      "fast-xml-parser": "^4.5.7"
+    }
+  }
 }
