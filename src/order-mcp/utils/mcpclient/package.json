@@ -6,5 +6,10 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
     "fetch-cookie": "^3.1.0"
+  },
+  "overrides": {
+    "@modelcontextprotocol/sdk": {
+      "ip-address": "^10.1.1"
+    }
   }
 }
