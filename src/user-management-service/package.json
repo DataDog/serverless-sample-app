@@ -14,7 +14,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^25.3.3",
     "aws-cdk": "2.1108.0",
-    "aws-cdk-lib": "^2.240.0",
+    "aws-cdk-lib": "^2.261.0",
     "cargo-lambda-cdk": "^0.0.36",
     "constructs": "^10.4.5",
     "datadog-cdk-constructs-v2": "^3.9.0",
@@ -27,10 +27,51 @@
     "typescript": "~5.9.3"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.240.0",
+    "aws-cdk-lib": "2.261.0",
     "constructs": "^10.4.5",
     "serverless-plugin-datadog": "^5.122.0",
     "serverless-plugin-resource-tagging": "^1.2.0",
     "source-map-support": "^0.5.21"
+  },
+  "overrides": {
+    "serverless-plugin-datadog": {
+      "simple-git": "^3.36.0",
+      "basic-ftp": "^5.3.1",
+      "lodash": "^4.18.1",
+      "fast-uri": "^3.1.3",
+      "fast-xml-parser": "^5.10.1"
+    },
+    "ts-jest": {
+      "minimatch": "^3.1.5",
+      "js-yaml": "^3.14.2"
+    },
+    "@datadog/datadog-ci-base": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-coverage": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-deployment": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-dora": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-sarif": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-sbom": {
+      "simple-git": "^3.36.0"
+    },
+    "jest": {
+      "minimatch": "^3.1.5",
+      "js-yaml": "^3.14.2"
+    },
+    "cargo-lambda-cdk": {
+      "lodash-es": "^4.18.1"
+    },
+    "jest-util": {
+      "picomatch": "^4.0.5"
+    }
   }
 }
