@@ -1,5 +1,5 @@
 [build-system]
-requires = ["poetry>=2.0.1"]
+requires = ["poetry>=2.4.1"]
 build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name = "serverless_sample_app"
@@ -25,7 +25,7 @@ mypy-boto3-dynamodb = "^1.40.20"
 cachetools = "*"
 boto3 = "^1.40.21"
 aws-lambda-env-modeler = "*"
-ddtrace = "4.7.1"
+ddtrace = "4.11.1"
 
 [tool.poetry.group.dev.dependencies]
 # CDK
