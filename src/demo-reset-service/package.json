@@ -19,7 +19,7 @@
     "@types/node": "25.3.3",
     "@types/pg": "^8.0.0",
     "aws-cdk": "2.1108.0",
-    "aws-cdk-lib": "^2.240.0",
+    "aws-cdk-lib": "^2.263.0",
     "constructs": "^10.4.5",
     "datadog-cdk-constructs-v2": "^3.9.0",
     "esbuild": "^0.27.3",
@@ -35,7 +35,7 @@
     "@aws-sdk/client-ssm": "^3.1000.0",
     "@aws-sdk/dsql-signer": "^3.1000.0",
     "jsonwebtoken": "^9.0.0",
-    "dd-trace": "^5.87.0",
+    "dd-trace": "^5.121.0",
     "pg": "^8.0.0"
   },
   "overrides": {
@@ -49,9 +49,7 @@
       "fast-xml-parser": "^5.8.0"
     },
     "aws-cdk-lib": {
-      "brace-expansion": "^5.0.6",
-      "fast-uri": "^3.1.2",
-      "yaml": "^1.10.3"
+      "brace-expansion": "^5.0.9"
     }
   }
 }
