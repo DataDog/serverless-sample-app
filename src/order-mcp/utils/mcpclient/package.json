@@ -9,7 +9,7 @@
   },
   "overrides": {
     "@modelcontextprotocol/sdk": {
-      "ip-address": "^10.1.1"
+      "ip-address": "^10.4.0"
     }
   }
 }
