@@ -1,5 +1,5 @@
 [build-system]
-requires = ["poetry>=2.0.1"]
+requires = ["poetry>=2.4.1"]
 build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name = "serverless_sample_app"
@@ -30,7 +30,7 @@ ddtrace = "3.9.4"
 [tool.poetry.group.dev.dependencies]
 # CDK
 product_search_service-cdk = {path = "cdk", develop = true}
-aws-cdk-lib = ">=2.202.0"
+aws-cdk-lib = ">=2.263.0"
 datadog-cdk-constructs-v2 = "^2.6.0"
 constructs = ">=10.0.0"
 cdk-nag = ">2.0.0"
