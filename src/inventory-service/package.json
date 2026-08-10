@@ -18,36 +18,37 @@
   },
   "overrides": {
     "serverless-plugin-datadog": {
-      "axios": "^1.18.1",
       "fast-xml-parser": "^4.5.7",
-      "protobufjs": "^7.6.5",
-      "basic-ftp": "^5.3.1",
       "simple-git": "^3.36.0",
       "form-data": "^4.0.6",
       "minimatch": "^9.0.9",
-      "@grpc/grpc-js": "^1.12.7",
-      "jws": "^4.0.1",
       "glob": "^10.5.0",
-      "js-yaml": "^3.15.0",
-      "@smithy/config-resolver": "^4.6.10",
-      "follow-redirects": "^1.16.0",
-      "@protobufjs/utf8": "^1.1.2",
-      "ws": "^7.5.13"
+      "js-yaml": "^3.15.1",
+      "@datadog/datadog-ci": {
+        "ajv": {
+          "fast-uri": "^3.1.5"
+        },
+        "ajv-formats": {
+          "ajv": {
+            "fast-uri": "^3.1.5"
+          }
+        },
+        "js-yaml": "^3.15.1"
+      }
     },
     "serverless-step-functions": {
-      "axios": "^1.18.1",
-      "form-data": "^4.0.6",
-      "minimatch": "^9.0.9",
-      "glob": "^10.5.0",
-      "follow-redirects": "^1.16.0"
+      "asl-validator": {
+        "ajv": {
+          "fast-uri": "^3.1.5"
+        }
+      }
     },
     "@aws-sdk/core": {
       "fast-xml-parser": "^4.5.7"
     },
     "@datadog/datadog-ci": {
       "simple-git": "^3.36.0",
-      "form-data": "^4.0.6",
-      "brace-expansion": "^1.1.15"
+      "form-data": "^4.0.6"
     }
   }
 }
