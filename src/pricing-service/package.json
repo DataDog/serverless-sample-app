@@ -26,8 +26,8 @@
     "@types/jest": "^29.0.0",
     "@types/node": "25.3.3",
     "aws-cdk": "2.1108.0",
-    "aws-cdk-lib": "^2.240.0",
-    "axios": "^1.13.6",
+    "aws-cdk-lib": "^2.263.0",
+    "axios": "^1.19.0",
     "constructs": "^10.4.5",
     "datadog-cdk-constructs-v2": "^3.10.0",
     "datadog-lambda-js": "^12.135.0",
@@ -51,5 +51,641 @@
     "cloudevents": "^10.0.0",
     "jsonwebtoken": "^9.0.3",
     "zod": "^4.3.6"
+  },
+  "overrides": {
+    "serverless-esbuild": {
+      "@effect/platform-node": {
+        "undici": "^6.28.0"
+      },
+      "archiver": {
+        "archiver-utils": {
+          "glob": {
+            "minimatch": {
+              "brace-expansion": "^1.1.18",
+              ".": "^3.1.5"
+            }
+          }
+        }
+      },
+      "bestzip": {
+        "archiver": {
+          "archiver-utils": {
+            "glob": {
+              "minimatch": {
+                "brace-expansion": "^1.1.18",
+                ".": "^3.1.5"
+              }
+            }
+          }
+        },
+        "glob": {
+          "minimatch": {
+            "brace-expansion": "^1.1.18",
+            ".": "^3.1.5"
+          }
+        }
+      }
+    },
+    "ts-jest": {
+      "handlebars": "^4.7.9",
+      "@jest/transform": {
+        "babel-plugin-istanbul": {
+          "test-exclude": {
+            "glob": {
+              "minimatch": {
+                "brace-expansion": "^1.1.18",
+                ".": "^3.1.5"
+              }
+            },
+            "minimatch": {
+              "brace-expansion": "^1.1.18",
+              ".": "^3.1.5"
+            }
+          },
+          "@istanbuljs/load-nyc-config": {
+            "js-yaml": "^3.15.1"
+          }
+        }
+      },
+      "babel-jest": {
+        "@jest/transform": {
+          "babel-plugin-istanbul": {
+            "test-exclude": {
+              "glob": {
+                "minimatch": {
+                  "brace-expansion": "^1.1.18",
+                  ".": "^3.1.5"
+                }
+              },
+              "minimatch": {
+                "brace-expansion": "^1.1.18",
+                ".": "^3.1.5"
+              }
+            },
+            "@istanbuljs/load-nyc-config": {
+              "js-yaml": "^3.15.1"
+            }
+          }
+        },
+        "babel-plugin-istanbul": {
+          "test-exclude": {
+            "glob": {
+              "minimatch": {
+                "brace-expansion": "^1.1.18",
+                ".": "^3.1.5"
+              }
+            },
+            "minimatch": {
+              "brace-expansion": "^1.1.18",
+              ".": "^3.1.5"
+            }
+          },
+          "@istanbuljs/load-nyc-config": {
+            "js-yaml": "^3.15.1"
+          }
+        }
+      }
+    },
+    "@datadog/datadog-ci-base": {
+      "simple-git": "^3.36.0",
+      "brace-expansion": "^2.1.4",
+      "minimatch": "^9.0.9"
+    },
+    "@datadog/datadog-ci-plugin-coverage": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-deployment": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-dora": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-sarif": {
+      "simple-git": "^3.36.0"
+    },
+    "@datadog/datadog-ci-plugin-sbom": {
+      "simple-git": "^3.36.0"
+    },
+    "serverless-plugin-datadog": {
+      "simple-git": "^3.36.0",
+      "@datadog/datadog-ci": {
+        "@datadog/datadog-ci-base": {
+          "@datadog/datadog-ci-plugin-sarif": {
+            "ajv": {
+              "fast-uri": "^3.1.5"
+            },
+            "ajv-formats": {
+              "ajv": {
+                "fast-uri": "^3.1.5"
+              }
+            }
+          },
+          "@datadog/datadog-ci-plugin-sbom": {
+            "ajv": {
+              "fast-uri": "^3.1.5"
+            },
+            "ajv-formats": {
+              "ajv": {
+                "fast-uri": "^3.1.5"
+              }
+            }
+          },
+          "proxy-agent": {
+            "pac-proxy-agent": {
+              "get-uri": {
+                "basic-ftp": "^5.3.1"
+              }
+            }
+          },
+          "datadog-metrics": {
+            "dogapi": {
+              "lodash": "^4.18.1"
+            }
+          },
+          "inquirer": {
+            "lodash": "^4.18.1"
+          }
+        },
+        "@datadog/datadog-ci-plugin-coverage": {
+          "@datadog/datadog-ci-base": {
+            "@datadog/datadog-ci-plugin-sarif": {
+              "ajv": {
+                "fast-uri": "^3.1.5"
+              },
+              "ajv-formats": {
+                "ajv": {
+                  "fast-uri": "^3.1.5"
+                }
+              }
+            },
+            "@datadog/datadog-ci-plugin-sbom": {
+              "ajv": {
+                "fast-uri": "^3.1.5"
+              },
+              "ajv-formats": {
+                "ajv": {
+                  "fast-uri": "^3.1.5"
+                }
+              }
+            },
+            "proxy-agent": {
+              "pac-proxy-agent": {
+                "get-uri": {
+                  "basic-ftp": "^5.3.1"
+                }
+              }
+            },
+            "datadog-metrics": {
+              "dogapi": {
+                "lodash": "^4.18.1"
+              }
+            },
+            "inquirer": {
+              "lodash": "^4.18.1"
+            }
+          }
+        },
+        "@datadog/datadog-ci-plugin-deployment": {
+          "@datadog/datadog-ci-base": {
+            "@datadog/datadog-ci-plugin-sarif": {
+              "ajv": {
+                "fast-uri": "^3.1.5"
+              },
+              "ajv-formats": {
+                "ajv": {
+                  "fast-uri": "^3.1.5"
+                }
+              }
+            },
+            "@datadog/datadog-ci-plugin-sbom": {
+              "ajv": {
+                "fast-uri": "^3.1.5"
+              },
+              "ajv-formats": {
+                "ajv": {
+                  "fast-uri": "^3.1.5"
+                }
+              }
+            },
+            "proxy-agent": {
+              "pac-proxy-agent": {
+                "get-uri": {
+                  "basic-ftp": "^5.3.1"
+                }
+              }
+            },
+            "datadog-metrics": {
+              "dogapi": {
+                "lodash": "^4.18.1"
+              }
+            },
+            "inquirer": {
+              "lodash": "^4.18.1"
+            }
+          }
+        },
+        "@datadog/datadog-ci-plugin-dora": {
+          "@datadog/datadog-ci-base": {
+            "@datadog/datadog-ci-plugin-sarif": {
+              "ajv": {
+                "fast-uri": "^3.1.5"
+              },
+              "ajv-formats": {
+                "ajv": {
+                  "fast-uri": "^3.1.5"
+                }
+              }
+            },
+            "@datadog/datadog-ci-plugin-sbom": {
+              "ajv": {
+                "fast-uri": "^3.1.5"
+              },
+              "ajv-formats": {
+                "ajv": {
+                  "fast-uri": "^3.1.5"
+                }
+              }
+            },
+            "proxy-agent": {
+              "pac-proxy-agent": {
+                "get-uri": {
+                  "basic-ftp": "^5.3.1"
+                }
+              }
+            },
+            "datadog-metrics": {
+              "dogapi": {
+                "lodash": "^4.18.1"
+              }
+            },
+            "inquirer": {
+              "lodash": "^4.18.1"
+            }
+          }
+        },
+        "@datadog/datadog-ci-plugin-gate": {
+          "@datadog/datadog-ci-base": {
+            "@datadog/datadog-ci-plugin-sarif": {
+              "ajv": {
+                "fast-uri": "^3.1.5"
+              },
+              "ajv-formats": {
+                "ajv": {
+                  "fast-uri": "^3.1.5"
+                }
+              }
+            },
+            "@datadog/datadog-ci-plugin-sbom": {
+              "ajv": {
+                "fast-uri": "^3.1.5"
+              },
+              "ajv-formats": {
+                "ajv": {
+                  "fast-uri": "^3.1.5"
+                }
+              }
+            },
+            "proxy-agent": {
+              "pac-proxy-agent": {
+                "get-uri": {
+                  "basic-ftp": "^5.3.1"
+                }
+              }
+            },
+            "datadog-metrics": {
+              "dogapi": {
+                "lodash": "^4.18.1"
+              }
+            },
+            "inquirer": {
+              "lodash": "^4.18.1"
+            }
+          }
+        },
+        "@datadog/datadog-ci-plugin-junit": {
+          "@datadog/datadog-ci-base": {
+            "@datadog/datadog-ci-plugin-sarif": {
+              "ajv": {
+                "fast-uri": "^3.1.5"
+              },
+              "ajv-formats": {
+                "ajv": {
+                  "fast-uri": "^3.1.5"
+                }
+              }
+            },
+            "@datadog/datadog-ci-plugin-sbom": {
+              "ajv": {
+                "fast-uri": "^3.1.5"
+              },
+              "ajv-formats": {
+                "ajv": {
+                  "fast-uri": "^3.1.5"
+                }
+              }
+            },
+            "proxy-agent": {
+              "pac-proxy-agent": {
+                "get-uri": {
+                  "basic-ftp": "^5.3.1"
+                }
+              }
+            },
+            "datadog-metrics": {
+              "dogapi": {
+                "lodash": "^4.18.1"
+              }
+            },
+            "inquirer": {
+              "lodash": "^4.18.1"
+            }
+          }
+        },
+        "@datadog/datadog-ci-plugin-sarif": {
+          "@datadog/datadog-ci-base": {
+            "@datadog/datadog-ci-plugin-sbom": {
+              "ajv": {
+                "fast-uri": "^3.1.5"
+              },
+              "ajv-formats": {
+                "ajv": {
+                  "fast-uri": "^3.1.5"
+                }
+              }
+            },
+            "proxy-agent": {
+              "pac-proxy-agent": {
+                "get-uri": {
+                  "basic-ftp": "^5.3.1"
+                }
+              }
+            },
+            "datadog-metrics": {
+              "dogapi": {
+                "lodash": "^4.18.1"
+              }
+            },
+            "inquirer": {
+              "lodash": "^4.18.1"
+            }
+          },
+          "ajv": {
+            "fast-uri": "^3.1.5"
+          },
+          "ajv-formats": {
+            "ajv": {
+              "fast-uri": "^3.1.5"
+            }
+          }
+        },
+        "@datadog/datadog-ci-plugin-sbom": {
+          "@datadog/datadog-ci-base": {
+            "@datadog/datadog-ci-plugin-sarif": {
+              "ajv": {
+                "fast-uri": "^3.1.5"
+              },
+              "ajv-formats": {
+                "ajv": {
+                  "fast-uri": "^3.1.5"
+                }
+              }
+            },
+            "proxy-agent": {
+              "pac-proxy-agent": {
+                "get-uri": {
+                  "basic-ftp": "^5.3.1"
+                }
+              }
+            },
+            "datadog-metrics": {
+              "dogapi": {
+                "lodash": "^4.18.1"
+              }
+            },
+            "inquirer": {
+              "lodash": "^4.18.1"
+            }
+          },
+          "ajv": {
+            "fast-uri": "^3.1.5"
+          },
+          "ajv-formats": {
+            "ajv": {
+              "fast-uri": "^3.1.5"
+            }
+          }
+        }
+      }
+    },
+    "aws-cdk-lib": {
+      "fast-uri": "^3.1.5",
+      "brace-expansion": "^5.0.9"
+    },
+    "cloudevents": {
+      "ajv": {
+        "fast-uri": "^3.1.5"
+      },
+      "ajv-formats": {
+        "ajv": {
+          "fast-uri": "^3.1.5"
+        }
+      }
+    },
+    "serverless-step-functions": {
+      "asl-validator": {
+        "ajv": {
+          "fast-uri": "^3.1.5"
+        }
+      },
+      "lodash": "^4.18.1",
+      "@serverless/utils": {
+        "lodash": "^4.18.1",
+        "inquirer": {
+          "lodash": "^4.18.1"
+        }
+      }
+    },
+    "jest": {
+      "@jest/core": {
+        "@jest/reporters": {
+          "glob": {
+            "minimatch": {
+              "brace-expansion": "^1.1.18",
+              ".": "^3.1.5"
+            }
+          }
+        },
+        "jest-config": {
+          "glob": {
+            "minimatch": {
+              "brace-expansion": "^1.1.18",
+              ".": "^3.1.5"
+            }
+          },
+          "jest-circus": {
+            "jest-runtime": {
+              "glob": {
+                "minimatch": {
+                  "brace-expansion": "^1.1.18",
+                  ".": "^3.1.5"
+                }
+              }
+            }
+          },
+          "jest-runner": {
+            "jest-runtime": {
+              "glob": {
+                "minimatch": {
+                  "brace-expansion": "^1.1.18",
+                  ".": "^3.1.5"
+                }
+              }
+            }
+          }
+        },
+        "jest-runner": {
+          "jest-runtime": {
+            "glob": {
+              "minimatch": {
+                "brace-expansion": "^1.1.18",
+                ".": "^3.1.5"
+              }
+            }
+          }
+        },
+        "jest-runtime": {
+          "glob": {
+            "minimatch": {
+              "brace-expansion": "^1.1.18",
+              ".": "^3.1.5"
+            }
+          }
+        }
+      },
+      "jest-cli": {
+        "@jest/core": {
+          "@jest/reporters": {
+            "glob": {
+              "minimatch": {
+                "brace-expansion": "^1.1.18",
+                ".": "^3.1.5"
+              }
+            }
+          },
+          "jest-config": {
+            "glob": {
+              "minimatch": {
+                "brace-expansion": "^1.1.18",
+                ".": "^3.1.5"
+              }
+            },
+            "jest-circus": {
+              "jest-runtime": {
+                "glob": {
+                  "minimatch": {
+                    "brace-expansion": "^1.1.18",
+                    ".": "^3.1.5"
+                  }
+                }
+              }
+            },
+            "jest-runner": {
+              "jest-runtime": {
+                "glob": {
+                  "minimatch": {
+                    "brace-expansion": "^1.1.18",
+                    ".": "^3.1.5"
+                  }
+                }
+              }
+            }
+          },
+          "jest-runner": {
+            "jest-runtime": {
+              "glob": {
+                "minimatch": {
+                  "brace-expansion": "^1.1.18",
+                  ".": "^3.1.5"
+                }
+              }
+            }
+          },
+          "jest-runtime": {
+            "glob": {
+              "minimatch": {
+                "brace-expansion": "^1.1.18",
+                ".": "^3.1.5"
+              }
+            }
+          }
+        },
+        "create-jest": {
+          "jest-config": {
+            "glob": {
+              "minimatch": {
+                "brace-expansion": "^1.1.18",
+                ".": "^3.1.5"
+              }
+            },
+            "jest-circus": {
+              "jest-runtime": {
+                "glob": {
+                  "minimatch": {
+                    "brace-expansion": "^1.1.18",
+                    ".": "^3.1.5"
+                  }
+                }
+              }
+            },
+            "jest-runner": {
+              "jest-runtime": {
+                "glob": {
+                  "minimatch": {
+                    "brace-expansion": "^1.1.18",
+                    ".": "^3.1.5"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "jest-config": {
+          "glob": {
+            "minimatch": {
+              "brace-expansion": "^1.1.18",
+              ".": "^3.1.5"
+            }
+          },
+          "jest-circus": {
+            "jest-runtime": {
+              "glob": {
+                "minimatch": {
+                  "brace-expansion": "^1.1.18",
+                  ".": "^3.1.5"
+                }
+              }
+            }
+          },
+          "jest-runner": {
+            "jest-runtime": {
+              "glob": {
+                "minimatch": {
+                  "brace-expansion": "^1.1.18",
+                  ".": "^3.1.5"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "readdir-glob": {
+      "brace-expansion": "^2.1.4",
+      "minimatch": "^5.1.9"
+    },
+    "rimraf": {
+      "brace-expansion": "^2.1.4",
+      "minimatch": "^9.0.9"
+    }
   }
 }
