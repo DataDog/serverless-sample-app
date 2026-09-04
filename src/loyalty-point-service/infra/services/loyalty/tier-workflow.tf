@@ -19,6 +19,9 @@ module "fetch_order_history_activity_lambda" {
   zip_file       = "../out/fetchOrderHistoryActivity/fetchOrderHistoryActivity.zip"
   function_name  = "FetchOrderHistoryActivity"
   lambda_handler = "index.handler"
+  # Publish a version so the orchestrator's context.invoke() targets a
+  # qualified ARN, as required by Lambda Durable Execution.
+  publish = true
   environment_variables = {
     "JWT_SECRET_PARAM_NAME"        = var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/LoyaltyService/secret-access-key"
     "ORDER_SERVICE_ENDPOINT_PARAM" = "/${var.env}/OrderService/api-endpoint"
@@ -38,14 +41,17 @@ module "tier_upgrade_orchestrator_lambda" {
   zip_file       = "../out/tierUpgradeOrchestrator/tierUpgradeOrchestrator.zip"
   function_name  = "TierUpgradeOrchestrator"
   lambda_handler = "index.handler"
+  # Publish a version so durable-execution replays always call the same
+  # immutable orchestrator code (not the mutable $LATEST).
+  publish = true
   environment_variables = {
-    "TABLE_NAME"                          = aws_dynamodb_table.loyalty_table.name
-    "EVENT_BUS_NAME"                      = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
-    "FETCH_ORDER_HISTORY_ACTIVITY_ARN"    = "${module.fetch_order_history_activity_lambda.function_arn}:$LATEST"
-    "PRODUCT_SERVICE_ENDPOINT_PARAM"      = "/${var.env}/ProductService/api-endpoint"
-    "PRODUCT_SEARCH_ENDPOINT_PARAM"       = "/${var.env}/ProductSearchService/api-endpoint"
-    "JWT_SECRET_PARAM_NAME"               = var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/LoyaltyService/secret-access-key"
-    "ORDER_SERVICE_ENDPOINT_PARAM"        = "/${var.env}/OrderService/api-endpoint"
+    "TABLE_NAME"                       = aws_dynamodb_table.loyalty_table.name
+    "EVENT_BUS_NAME"                   = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
+    "FETCH_ORDER_HISTORY_ACTIVITY_ARN" = module.fetch_order_history_activity_lambda.qualified_arn
+    "PRODUCT_SERVICE_ENDPOINT_PARAM"   = "/${var.env}/ProductService/api-endpoint"
+    "PRODUCT_SEARCH_ENDPOINT_PARAM"    = "/${var.env}/ProductSearchService/api-endpoint"
+    "JWT_SECRET_PARAM_NAME"            = var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/LoyaltyService/secret-access-key"
+    "ORDER_SERVICE_ENDPOINT_PARAM"     = "/${var.env}/OrderService/api-endpoint"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -71,8 +77,9 @@ module "tier_upgrade_trigger_lambda" {
     # Versioned ARN — durable execution requires a qualified ARN so the Lambda
     # runtime injects DurableExecutionArn with a qualifier that matches the
     # IAM policy (name:*). An unqualified name produces an unqualified ARN
-    # that the policy does not cover.
-    "ORCHESTRATOR_FUNCTION_NAME" = "${module.tier_upgrade_orchestrator_lambda.function_arn}:$LATEST"
+    # that the policy does not cover. Use the published version ARN so replays
+    # are pinned to an immutable version rather than the mutable $LATEST.
+    "ORCHESTRATOR_FUNCTION_NAME" = module.tier_upgrade_orchestrator_lambda.qualified_arn
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -85,11 +92,11 @@ module "tier_upgrade_trigger_lambda" {
 }
 
 module "notification_acknowledger_lambda" {
-  service_name   = "LoyaltyService"
-  source         = "../../modules/lambda-function"
-  zip_file       = "../out/notificationAcknowledger/notificationAcknowledger.zip"
-  function_name  = "NotificationAcknowledger"
-  lambda_handler = "index.handler"
+  service_name          = "LoyaltyService"
+  source                = "../../modules/lambda-function"
+  zip_file              = "../out/notificationAcknowledger/notificationAcknowledger.zip"
+  function_name         = "NotificationAcknowledger"
+  lambda_handler        = "index.handler"
   environment_variables = {}
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site
@@ -140,8 +147,8 @@ resource "aws_iam_policy" "invoke_fetch_order_history_activity" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = ["lambda:InvokeFunction"]
+      Effect = "Allow"
+      Action = ["lambda:InvokeFunction"]
       Resource = [
         module.fetch_order_history_activity_lambda.function_arn,
         "${module.fetch_order_history_activity_lambda.function_arn}:*",

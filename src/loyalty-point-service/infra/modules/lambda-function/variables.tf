@@ -61,6 +61,12 @@ variable "memory_size" {
 }
 
 variable "additional_policy_attachments" {
-  type = list(string)
+  type    = list(string)
   default = []
+}
+
+variable "publish" {
+  description = "Whether to publish a new Lambda version on each change. Required for Lambda Durable Execution, which needs a qualified (versioned) ARN so mid-execution replays always call the same immutable version of the code."
+  type        = bool
+  default     = false
 }
