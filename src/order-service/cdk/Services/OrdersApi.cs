@@ -218,8 +218,7 @@ public class OrdersApi : Construct
                         { "DD_SERVICE", props.SharedProps.ServiceName },
                         { "DD_ENV", props.SharedProps.Env },
                         { "DD_VERSION", props.SharedProps.Version },
-                        { "DD_API_KEY", props.SharedProps.DDApiKey },
-                        { "DD_DATA_STREAMS_ENABLED", "true" }
+                        { "DD_API_KEY", props.SharedProps.DDApiKey }
                     },
                     DockerLabels = new Dictionary<string, string>(3)
                     {
@@ -319,7 +318,6 @@ public class OrdersApi : Construct
                 { "DD_SERVICE", props.SharedProps.ServiceName },
                 { "DD_VERSION", props.SharedProps.Version },
                 { "DD_APM_IGNORE_RESOURCES", "GET /health" },
-                { "DD_DATA_STREAMS_ENABLED", "true" },
                 { "DD_API_KEY", props.SharedProps.DDApiKey }
             },
         });

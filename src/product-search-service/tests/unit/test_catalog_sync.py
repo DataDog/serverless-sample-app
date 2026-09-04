@@ -89,7 +89,6 @@ _PATCH_EMBEDDER = "product_search_service.handlers.catalog_sync._get_embedder"
 _PATCH_VECTOR = "product_search_service.handlers.catalog_sync._get_vector_repo"
 _PATCH_METADATA = "product_search_service.handlers.catalog_sync._get_metadata_repo"
 _PATCH_PRODUCT_API = "product_search_service.handlers.catalog_sync._get_product_api"
-_PATCH_DSM = "product_search_service.handlers.catalog_sync.set_dsm_consume_checkpoint"
 _PATCH_SPAN_TAGS = "product_search_service.handlers.catalog_sync.add_messaging_span_tags"
 
 
@@ -124,7 +123,6 @@ class TestProductCreatedEvent:
             patch(_PATCH_VECTOR, return_value=vector_repo),
             patch(_PATCH_METADATA, return_value=metadata_repo),
             patch(_PATCH_PRODUCT_API, return_value=product_api),
-            patch(_PATCH_DSM),
             patch(_PATCH_SPAN_TAGS),
         ):
             lambda_handler(event, _LAMBDA_CONTEXT)
@@ -153,7 +151,6 @@ class TestProductCreatedEvent:
             patch(_PATCH_VECTOR, return_value=MagicMock()),
             patch(_PATCH_METADATA, return_value=MagicMock()),
             patch(_PATCH_PRODUCT_API, return_value=product_api),
-            patch(_PATCH_DSM),
             patch(_PATCH_SPAN_TAGS),
         ):
             result = lambda_handler(event, _LAMBDA_CONTEXT)
@@ -186,7 +183,6 @@ class TestProductUpdatedEvent:
             patch(_PATCH_VECTOR, return_value=vector_repo),
             patch(_PATCH_METADATA, return_value=metadata_repo),
             patch(_PATCH_PRODUCT_API, return_value=product_api),
-            patch(_PATCH_DSM),
             patch(_PATCH_SPAN_TAGS),
         ):
             lambda_handler(event, _LAMBDA_CONTEXT)
@@ -210,7 +206,6 @@ class TestProductUpdatedEvent:
             patch(_PATCH_VECTOR, return_value=MagicMock()),
             patch(_PATCH_METADATA, return_value=MagicMock()),
             patch(_PATCH_PRODUCT_API, return_value=product_api),
-            patch(_PATCH_DSM),
             patch(_PATCH_SPAN_TAGS),
         ):
             result = lambda_handler(event, _LAMBDA_CONTEXT)
@@ -232,7 +227,6 @@ class TestProductDeletedEvent:
             patch(_PATCH_VECTOR, return_value=vector_repo),
             patch(_PATCH_METADATA, return_value=metadata_repo),
             patch(_PATCH_PRODUCT_API, return_value=MagicMock()),
-            patch(_PATCH_DSM),
             patch(_PATCH_SPAN_TAGS),
         ):
             lambda_handler(event, _LAMBDA_CONTEXT)
@@ -262,7 +256,6 @@ class TestPricingCalculatedEvent:
             patch(_PATCH_VECTOR, return_value=vector_repo),
             patch(_PATCH_METADATA, return_value=metadata_repo),
             patch(_PATCH_PRODUCT_API, return_value=MagicMock()),
-            patch(_PATCH_DSM),
             patch(_PATCH_SPAN_TAGS),
         ):
             lambda_handler(event, _LAMBDA_CONTEXT)
@@ -291,7 +284,6 @@ class TestPricingCalculatedEvent:
             patch(_PATCH_VECTOR, return_value=vector_repo),
             patch(_PATCH_METADATA, return_value=metadata_repo),
             patch(_PATCH_PRODUCT_API, return_value=product_api),
-            patch(_PATCH_DSM),
             patch(_PATCH_SPAN_TAGS),
         ):
             result = lambda_handler(event, _LAMBDA_CONTEXT)
@@ -324,7 +316,6 @@ class TestStockUpdatedEvent:
             patch(_PATCH_VECTOR, return_value=vector_repo),
             patch(_PATCH_METADATA, return_value=metadata_repo),
             patch(_PATCH_PRODUCT_API, return_value=MagicMock()),
-            patch(_PATCH_DSM),
             patch(_PATCH_SPAN_TAGS),
         ):
             lambda_handler(event, _LAMBDA_CONTEXT)
@@ -352,7 +343,6 @@ class TestStockUpdatedEvent:
             patch(_PATCH_VECTOR, return_value=vector_repo),
             patch(_PATCH_METADATA, return_value=metadata_repo),
             patch(_PATCH_PRODUCT_API, return_value=product_api),
-            patch(_PATCH_DSM),
             patch(_PATCH_SPAN_TAGS),
         ):
             result = lambda_handler(event, _LAMBDA_CONTEXT)
@@ -375,7 +365,6 @@ class TestMalformedEvents:
             patch(_PATCH_VECTOR, return_value=MagicMock()),
             patch(_PATCH_METADATA, return_value=MagicMock()),
             patch(_PATCH_PRODUCT_API, return_value=MagicMock()),
-            patch(_PATCH_DSM),
             patch(_PATCH_SPAN_TAGS),
         ):
             result = lambda_handler(event, _LAMBDA_CONTEXT)
@@ -397,7 +386,6 @@ class TestUnknownEventType:
             patch(_PATCH_VECTOR, return_value=vector_repo),
             patch(_PATCH_METADATA, return_value=metadata_repo),
             patch(_PATCH_PRODUCT_API, return_value=MagicMock()),
-            patch(_PATCH_DSM),
             patch(_PATCH_SPAN_TAGS),
         ):
             result = lambda_handler(event, _LAMBDA_CONTEXT)

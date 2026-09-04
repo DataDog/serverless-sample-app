@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.inventory.core.*;
 import com.inventory.core.config.AppConfig;
-import datadog.trace.api.experimental.DataStreamsCheckpointer;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
@@ -39,9 +38,6 @@ public class EventPublisherImpl implements EventPublisher {
     private final Logger logger = LoggerFactory.getLogger(EventPublisherImpl.class);
 
     @Inject
-    TransactionTracker transactionTracker;
-
-    @Inject
     public EventPublisherImpl(EventBridgeClient eventBridge, SnsClient snsClient, ObjectMapper mapper, AppConfig appConfig) {
         this.eventBridge = eventBridge;
         this.snsClient = snsClient;
@@ -65,10 +61,6 @@ public class EventPublisherImpl implements EventPublisher {
             }
 
             var evtWrapper = new CloudEventWrapper<>("inventory.productAdded.v1", evt);
-
-            // Set DSM produce checkpoint before serialising so context is embedded in the body.
-            DataStreamsCheckpointer.get().setProduceCheckpoint("sns", evtWrapper.getType(), new Carrier(evtWrapper.getDatadog()));
-            transactionTracker.track(evt.getProductId(), "inventory.productAdded");
 
             var evtContents = this.eventWriter.writeValueAsString(evtWrapper);
             final Span publishSpan = createPublishSpan("inventory.productAdded", evtWrapper, evtContents.length(), topicArn);
@@ -98,35 +90,28 @@ public class EventPublisherImpl implements EventPublisher {
     @Override
     public void publishInventoryStockUpdatedEvent(InventoryStockUpdatedEvent evt) {
         var evtWrapper = new CloudEventWrapper<>("inventory.stockUpdated.v1", evt);
-        transactionTracker.track(evt.getProductId(), "inventory.stockUpdated");
         this.publish(evtWrapper);
     }
 
     @Override
     public void publishStockReservedEvent(StockReservedEventV1 evt) {
-        transactionTracker.track(evt.getOrderNumber(), "inventory.stockReserved");
         var evtWrapper = new CloudEventWrapper<>("inventory.stockReserved.v1", evt);
         this.publish(evtWrapper);
     }
 
     @Override
     public void publishProductOutOfStockEvent(ProductOutOfStockEventV1 evt) {
-        transactionTracker.track(evt.getProductId(), "inventory.outOfStock");
         var evtWrapper = new CloudEventWrapper<>("inventory.outOfStock.v1", evt);
         this.publish(evtWrapper);
     }
 
     @Override
     public void publishStockReservationFailedEvent(StockReservationFailedEventV1 evt) {
-        transactionTracker.track(evt.getOrderNumber(), "inventory.stockReservationFailed");
         var evtWrapper = new CloudEventWrapper<>("inventory.stockReservationFailed.v1", evt);
         this.publish(evtWrapper);
     }
 
     private void publish(CloudEventWrapper<?> evtWrapper) {
-        // Set DSM produce checkpoint before serialising so context is embedded in the body.
-        DataStreamsCheckpointer.get().setProduceCheckpoint("eventbridge", evtWrapper.getType(), new Carrier(evtWrapper.getDatadog()));
-
         String detail;
         try {
             detail = this.eventWriter.writeValueAsString(evtWrapper);

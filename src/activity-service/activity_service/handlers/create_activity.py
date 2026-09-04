@@ -12,7 +12,6 @@ from aws_lambda_powertools.utilities.idempotency import idempotent_function
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from ddtrace import tracer
 from ddtrace._trace.context import Context
-from ddtrace.data_streams import set_consume_checkpoint
 
 from activity_service.dal import get_dal_handler
 from activity_service.dal.db_handler import DalHandler
@@ -65,29 +64,11 @@ def process_message(record: SQSRecord, lambda_context: LambdaContext) -> None:
         time = convert_date_time_string_to_epoch(message_body.get('time'))
         cloud_event_wrapper = message_body.get('detail', {})
 
-        _set_data_streams_consume_checkpoint(cloud_event_wrapper)
-
         process_cloud_event(cloud_event_wrapper, time, lambda_context)
 
     except Exception as e:
         logger.exception(f'Error processing message: {e}')
         raise
-
-
-def _set_data_streams_consume_checkpoint(cloud_event_wrapper: dict[str, Any]) -> None:
-    """Set a Data Streams consume checkpoint extracting pathway context from the _datadog envelope."""
-    carrier_get = extract_data_streams_carrier(cloud_event_wrapper)
-    set_consume_checkpoint('eventbridge', cloud_event_wrapper.get('type'), carrier_get)
-
-
-def extract_data_streams_carrier(cloud_event_wrapper: dict[str, Any]) -> Callable[[str], str | None]:
-    """Return a carrier-get function that reads keys from the _datadog envelope."""
-    datadog_envelope: dict[str, Any] = cloud_event_wrapper.get('_datadog', {}) or {}
-
-    def carrier_get(key: str) -> str | None:
-        return datadog_envelope.get(key)
-
-    return carrier_get
 
 
 def extract_trace_parent(cloud_event_wrapper: dict[str, Any]) -> str | None:

@@ -4,8 +4,6 @@ go 1.25.0
 
 require github.com/datadog/serverless-sample-observability v0.0.0
 
-require github.com/datadog/serverless-sample-product-core v0.0.0
-
 replace github.com/datadog/serverless-sample-observability v0.0.0 => ../observability
 
 replace github.com/datadog/serverless-sample-product-core v0.0.0 => ../core

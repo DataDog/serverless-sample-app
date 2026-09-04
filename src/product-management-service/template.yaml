@@ -59,8 +59,6 @@ Globals:
         DD_VERSION: !Ref CommitHash
         DD_SERVICE: !Ref ServiceName
         DSQL_CLUSTER_ENDPOINT: !Sub "${ProductApiCluster}.dsql.${AWS::Region}.on.aws"
-
-        DD_DATA_STREAMS_ENABLED: "true"
     Architectures:
       - arm64
   Api:

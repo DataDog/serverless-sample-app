@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from ddtrace import tracer
 from ddtrace._trace.context import Context
-from ddtrace.data_streams import set_consume_checkpoint
 
 
 def add_messaging_span_tags(
@@ -55,22 +54,6 @@ def add_messaging_span_tags(
     except ValueError:
         return
     span.link_span(linked_context)
-
-
-def set_dsm_consume_checkpoint(event_type: str, cloud_event: dict) -> None:
-    """Set a Data Streams Monitoring consume checkpoint for an EventBridge event.
-
-    Args:
-        event_type: The cloud event type string used as the DSM stream name.
-        cloud_event: The full cloud event dict, which may contain a ``_datadog``
-            envelope with pathway context.
-    """
-    datadog_envelope: dict = cloud_event.get("_datadog", {}) or {}
-
-    def carrier_get(key: str) -> str | None:
-        return datadog_envelope.get(key)
-
-    set_consume_checkpoint("eventbridge", event_type, carrier_get)
 
 
 def extract_trace_parent(cloud_event: dict) -> str | None:

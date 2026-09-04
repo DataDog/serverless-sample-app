@@ -10,12 +10,9 @@ package main
 import (
 	"context"
 	"encoding/json"
-	observability "github.com/datadog/serverless-sample-observability"
 	"os"
 	"product-api/internal/adapters"
 	"product-api/internal/utils"
-	"strconv"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
@@ -63,12 +60,6 @@ func functionHandler(ctx context.Context, request events.APIGatewayProxyRequest)
 	if err != nil {
 		return utils.GenerateApiResponseForError(err)
 	}
-
-	observability.TrackTransaction(ctx, observability.TransactionEvent{
-		TransactionID:  res.ProductId,
-		Checkpoint:     "create_product",
-		TimestampNanos: strconv.FormatInt(time.Now().UnixNano(), 10),
-	})
 
 	return utils.GenerateApiResponseFor(res, 201, "")
 }

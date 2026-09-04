@@ -9,7 +9,6 @@ using Amazon.StepFunctions.Model;
 using Datadog.Trace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Orders.Core.Telemetry;
 using Polly;
 
 namespace Orders.Core.Adapters;
@@ -17,7 +16,6 @@ namespace Orders.Core.Adapters;
 public class StepFunctionsOrderWorkflow : IOrderWorkflow
 {
     private readonly IConfiguration _configuration;
-    private readonly ITransactionTracker _transactionTracker;
     private readonly AmazonStepFunctionsClient _stepFunctionsClient;
     private readonly ILogger<StepFunctionsOrderWorkflow> _logger;
     private readonly ResiliencePipeline<StartExecutionResponse> _startExecutionResiliencePipeline;
@@ -26,12 +24,10 @@ public class StepFunctionsOrderWorkflow : IOrderWorkflow
 
     public StepFunctionsOrderWorkflow(
         IConfiguration configuration, 
-        ITransactionTracker transactionTracker,
         AmazonStepFunctionsClient stepFunctionsClient,
         ILogger<StepFunctionsOrderWorkflow> logger)
     {
         _configuration = configuration;
-        _transactionTracker = transactionTracker;
         _stepFunctionsClient = stepFunctionsClient;
         _logger = logger;
         _startExecutionResiliencePipeline = ResiliencePolicies.GetStepFunctionsPolicy<StartExecutionResponse>(logger);
@@ -51,12 +47,10 @@ public class StepFunctionsOrderWorkflow : IOrderWorkflow
         var activeContext = Tracer.Instance.ActiveScope?.Span.Context;
         if (activeContext != null)
         {
-            new SpanContextInjector().InjectIncludingDsm(
+            new SpanContextInjector().Inject(
                 inputNode,
                 SetHeader,
-                activeContext,
-                "stepfunctions",
-                "orders.orderCreated.v1");
+                activeContext);
         }
 
         var startExecutionRequest = new StartExecutionRequest()
@@ -74,8 +68,6 @@ public class StepFunctionsOrderWorkflow : IOrderWorkflow
                 cancellationToken);
                 
             result.AddToTelemetry();
-
-            await _transactionTracker.TrackTransactionAsync(order.OrderNumber, "order.startWorkflow");
         }
         catch (Exception ex)
         {

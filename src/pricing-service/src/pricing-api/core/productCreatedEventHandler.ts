@@ -7,7 +7,6 @@
 
 import { tracer } from "dd-trace";
 import { EventPublisher } from "./eventPublisher";
-import { PipelineCheckpointRecorder } from "./pipelineCheckpointRecorder";
 import { PricingService } from "./pricingService";
 import { ProductApiClient } from "./productApiClient";
 
@@ -19,18 +18,15 @@ export class ProductCreatedEventHandler {
   private pricingService: PricingService;
   private eventPublisher: EventPublisher;
   private productApiClient: ProductApiClient;
-  private checkpointRecorder: PipelineCheckpointRecorder;
 
   constructor(
     pricingService: PricingService,
     eventPublisher: EventPublisher,
-    productApiClient: ProductApiClient,
-    checkpointRecorder: PipelineCheckpointRecorder
+    productApiClient: ProductApiClient
   ) {
     this.pricingService = pricingService;
     this.eventPublisher = eventPublisher;
     this.productApiClient = productApiClient;
-    this.checkpointRecorder = checkpointRecorder;
   }
 
   async handle(evt: ProductCreatedEvent, linkedTraceparent?: string): Promise<void> {
@@ -39,8 +35,6 @@ export class ProductCreatedEventHandler {
 
     const price = await this.productApiClient.getProductPrice(evt.productId);
     mainSpan?.addTags({ "pricing.price": price });
-
-    await this.checkpointRecorder.recordCheckpoint(evt.productId, "generating_pricing");
 
     const priceResult = await this.pricingService.calculate({
       productId: evt.productId,
@@ -57,7 +51,5 @@ export class ProductCreatedEventHandler {
       },
       linkedTraceparent
     );
-
-    await this.checkpointRecorder.recordCheckpoint(evt.productId, "pricing_published");
   }
 }

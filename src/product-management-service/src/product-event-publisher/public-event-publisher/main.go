@@ -15,11 +15,6 @@ import (
 	"product-event-publisher/internal/adapters"
 	"product-event-publisher/internal/core"
 
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
-
-	productcore "github.com/datadog/serverless-sample-product-core"
-
 	observability "github.com/datadog/serverless-sample-observability"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
@@ -124,12 +119,6 @@ func processCreatedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 	defer span.Finish()
 
-	// Extract DSM context using the incoming ctx so the checkpoint is linked to
-	// the current trace, not an orphaned background context.
-	ctx, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
-		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:in", productcore.InternalPubSubName, "topic:"+evt.Type, "manual_checkpoint:true")
-
 	span.SetTag("product.id", evt.Data.ProductId)
 	span.SetTag("messaging.message.id", evt.Id)
 	span.SetTag("messaging.message.type", evt.Type)
@@ -160,12 +149,6 @@ func processUpdatedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 	defer span.Finish()
 
-	// Extract DSM context using the incoming ctx so the checkpoint is linked to
-	// the current trace, not an orphaned background context.
-	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
-		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:in", productcore.InternalPubSubName, "topic:"+evt.Type, "manual_checkpoint:true")
-
 	span.SetTag("product.id", evt.Data.ProductId)
 	span.SetTag("messaging.message.id", evt.Id)
 	span.SetTag("messaging.message.type", evt.Type)
@@ -195,12 +178,6 @@ func processDeletedEvent(ctx context.Context, snsMessage events.SNSEntity) (stri
 
 	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 	defer span.Finish()
-
-	// Extract DSM context using the incoming ctx so the checkpoint is linked to
-	// the current trace, not an orphaned background context.
-	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
-		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:in", productcore.InternalPubSubName, "topic:"+evt.Type, "manual_checkpoint:true")
 
 	span.SetTag("product.id", evt.Data.ProductId)
 	span.SetTag("messaging.message.id", evt.Id)
