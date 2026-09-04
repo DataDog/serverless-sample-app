@@ -11,6 +11,7 @@ use tokio::time::sleep;
 
 struct ApiEndpoint(String);
 struct EventBusName(String);
+struct JwtSecret(String);
 
 #[derive(Deserialize)]
 pub struct UserDTO {
@@ -39,7 +40,7 @@ async fn when_user_registers_then_should_be_able_to_login() {
     let email_under_test = format!("{}@test.com", random_email);
     let password_under_test = "Test!23";
 
-    let (api_endpoint, event_bus_name) = retrieve_parameter_values(&environment).await;
+    let (api_endpoint, event_bus_name, jwt_secret) = retrieve_parameter_values(&environment).await;
     println!("API endpoint is {}", &api_endpoint.0);
     println!("Event bus name is {}", &event_bus_name.0);
 
@@ -47,6 +48,7 @@ async fn when_user_registers_then_should_be_able_to_login() {
         environment,
         api_endpoint.0.clone(),
         event_bus_name.0.clone(),
+        jwt_secret.0.clone(),
     )
     .await;
 
@@ -79,7 +81,7 @@ async fn when_order_completed_event_is_published_order_count_is_increased() {
     let email_under_test = format!("{}@test.com", random_email);
     let password_under_test = "Test!23";
 
-    let (api_endpoint, event_bus_name) = retrieve_parameter_values(&environment).await;
+    let (api_endpoint, event_bus_name, jwt_secret) = retrieve_parameter_values(&environment).await;
     println!("API endpoint is {}", &api_endpoint.0);
     println!("Event bus name is {}", &event_bus_name.0);
 
@@ -87,6 +89,7 @@ async fn when_order_completed_event_is_published_order_count_is_increased() {
         environment,
         api_endpoint.0.clone(),
         event_bus_name.0.clone(),
+        jwt_secret.0.clone(),
     )
     .await;
 
@@ -138,7 +141,7 @@ async fn oauth_authorization_code_flow_should_work_end_to_end() {
     let email_under_test = format!("{}@test.com", random_email);
     let password_under_test = "Test!23";
 
-    let (api_endpoint, event_bus_name) = retrieve_parameter_values(&environment).await;
+    let (api_endpoint, event_bus_name, jwt_secret) = retrieve_parameter_values(&environment).await;
     println!("API endpoint is {}", &api_endpoint.0);
     println!("Event bus name is {}", &event_bus_name.0);
 
@@ -146,6 +149,7 @@ async fn oauth_authorization_code_flow_should_work_end_to_end() {
         environment,
         api_endpoint.0.clone(),
         event_bus_name.0.clone(),
+        jwt_secret.0.clone(),
     )
     .await;
 
@@ -278,12 +282,13 @@ async fn oauth_authorization_code_flow_should_work_end_to_end() {
 async fn oauth_discovery_endpoint_should_return_valid_metadata() {
     let environment = std::env::var("ENV").unwrap_or("dev".to_string());
 
-    let (api_endpoint, event_bus_name) = retrieve_parameter_values(&environment).await;
+    let (api_endpoint, event_bus_name, jwt_secret) = retrieve_parameter_values(&environment).await;
 
     let api_driver = ApiDriver::new(
         environment,
         api_endpoint.0.clone(),
         event_bus_name.0.clone(),
+        jwt_secret.0.clone(),
     )
     .await;
 
@@ -368,12 +373,13 @@ async fn oauth_discovery_endpoint_should_return_valid_metadata() {
 async fn oauth_invalid_authorization_code_should_fail_token_exchange() {
     let environment = std::env::var("ENV").unwrap_or("dev".to_string());
 
-    let (api_endpoint, event_bus_name) = retrieve_parameter_values(&environment).await;
+    let (api_endpoint, event_bus_name, jwt_secret) = retrieve_parameter_values(&environment).await;
 
     let api_driver = ApiDriver::new(
         environment,
         api_endpoint.0.clone(),
         event_bus_name.0.clone(),
+        jwt_secret.0.clone(),
     )
     .await;
 
@@ -421,12 +427,13 @@ async fn oauth_invalid_authorization_code_should_fail_token_exchange() {
 async fn oauth_invalid_redirect_uri_should_be_rejected() {
     let environment = std::env::var("ENV").unwrap_or("dev".to_string());
 
-    let (api_endpoint, event_bus_name) = retrieve_parameter_values(&environment).await;
+    let (api_endpoint, event_bus_name, jwt_secret) = retrieve_parameter_values(&environment).await;
 
     let api_driver = ApiDriver::new(
         environment,
         api_endpoint.0.clone(),
         event_bus_name.0.clone(),
+        jwt_secret.0.clone(),
     )
     .await;
 
@@ -470,7 +477,58 @@ async fn oauth_invalid_redirect_uri_should_be_rejected() {
     println!("OAuth invalid redirect URI test completed successfully!");
 }
 
-async fn retrieve_parameter_values(environment: &str) -> (ApiEndpoint, EventBusName) {
+/// Build a minimal HS256 JWT with `user_type: "ADMIN"` signed with `secret`.
+/// This matches the claims validated by `TokenGenerator::validate_admin_token`
+/// in the shared crate (sub + user_type + exp + iat).
+/// Build a minimal HS256 JWT with `user_type: "ADMIN"` signed with `secret`.
+/// Matches the claims validated by `TokenGenerator::validate_admin_token`.
+fn generate_admin_jwt(secret: &str) -> String {
+    use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+    use base64::Engine;
+    use sha2::Digest;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    let header = URL_SAFE_NO_PAD.encode(r#"{"alg":"HS256","typ":"JWT"}"#);
+    let payload_json = format!(
+        "{{\"sub\":\"admin@test.com\",\"user_type\":\"ADMIN\",\"iat\":{now},\"exp\":{}}}",
+        now + 3600
+    );
+    let payload = URL_SAFE_NO_PAD.encode(payload_json.as_bytes());
+    let signing_input = format!("{header}.{payload}");
+
+    // HMAC-SHA256: manually implemented using sha2 (already a dep).
+    let key = secret.as_bytes();
+    const BLOCK: usize = 64;
+    let mut k = vec![0u8; BLOCK];
+    if key.len() > BLOCK {
+        let d = sha2::Sha256::digest(key);
+        k[..d.len()].copy_from_slice(&d);
+    } else {
+        k[..key.len()].copy_from_slice(key);
+    }
+    let ipad: Vec<u8> = k.iter().map(|b| b ^ 0x36).collect();
+    let opad: Vec<u8> = k.iter().map(|b| b ^ 0x5c).collect();
+
+    let mut inner = sha2::Sha256::new();
+    inner.update(&ipad);
+    inner.update(signing_input.as_bytes());
+    let inner_hash = inner.finalize();
+
+    let mut outer = sha2::Sha256::new();
+    outer.update(&opad);
+    outer.update(inner_hash.as_slice());
+    let mac = outer.finalize();
+
+    let signature = URL_SAFE_NO_PAD.encode(mac.as_slice());
+    format!("{signing_input}.{signature}")
+}
+
+async fn retrieve_parameter_values(environment: &str) -> (ApiEndpoint, EventBusName, JwtSecret) {
     let config = aws_config::load_defaults(BehaviorVersion::latest()).await;
     let ssm_client = aws_sdk_ssm::Client::new(&config);
 
@@ -502,7 +560,24 @@ async fn retrieve_parameter_values(environment: &str) -> (ApiEndpoint, EventBusN
         .value
         .expect("API Endpoint value not found");
 
-    (ApiEndpoint(api_endpoint), EventBusName(event_bus_name))
+    // Retrieve the JWT signing secret so integration tests can create admin tokens
+    // for endpoints that require admin authorisation (e.g. POST /oauth/register).
+    let secret_param_name = match environment {
+        "dev" | "prod" => format!("/{}/shared/secret-access-key", environment),
+        _ => format!("/{}/Users/secret-access-key", environment),
+    };
+    let jwt_secret = ssm_client
+        .get_parameter()
+        .name(&secret_param_name)
+        .with_decryption(true)
+        .send()
+        .await
+        .ok()
+        .and_then(|r| r.parameter)
+        .and_then(|p| p.value)
+        .unwrap_or_default();
+
+    (ApiEndpoint(api_endpoint), EventBusName(event_bus_name), JwtSecret(jwt_secret))
 }
 
 pub(crate) struct ApiDriver {
@@ -511,6 +586,7 @@ pub(crate) struct ApiDriver {
     eb_client: aws_sdk_eventbridge::Client,
     base_url: String,
     event_bus_name: String,
+    jwt_secret: String, // shared HMAC secret — used to mint admin tokens in tests
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -880,7 +956,7 @@ pub struct IntrospectRequestParams {
 }
 
 impl ApiDriver {
-    pub async fn new(env: String, base_url: String, event_bus_name: String) -> Self {
+    pub async fn new(env: String, base_url: String, event_bus_name: String, jwt_secret: String) -> Self {
         let client = reqwest::Client::builder()
             .redirect(Policy::none())
             .build()
@@ -894,6 +970,7 @@ impl ApiDriver {
             client,
             base_url,
             event_bus_name,
+            jwt_secret,
             eb_client: event_bridge_client,
         }
     }
@@ -986,9 +1063,12 @@ impl ApiDriver {
             "response_types": response_types
         });
 
+        // POST /oauth/register requires an ADMIN Bearer token (Sprint 1 C-SEC-6 fix).
+        let admin_token = generate_admin_jwt(&self.jwt_secret);
         self.client
             .post(format!("{}/oauth/register", self.base_url))
             .header("Content-Type", "application/json")
+            .header("Authorization", format!("Bearer {}", admin_token))
             .body(client_body.to_string())
             .send()
             .await

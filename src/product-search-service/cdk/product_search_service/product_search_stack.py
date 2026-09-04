@@ -424,8 +424,28 @@ class ProductSearchStack(Stack):
         # JWT scheme used by product-management-service and order-service.
         # Without this, anonymous requests trigger paid Bedrock invocations.
         # ---------------------------------------------------------------------------
+        # For dev/prod the shared SSM parameter already exists.  For ephemeral
+        # (commit-hash) environments we provision a service-scoped copy so the
+        # authorizer can start up without depending on a parameter that was never
+        # created.  The value comes from the JWT_SECRET_ACCESS_KEY env var that CI
+        # always sets during the deploy step — never a hardcoded literal.
+        if environment in integrated_environments:
+            jwt_secret_param_name = f"/{environment}/shared/secret-access-key"
+        else:
+            ephemeral_jwt_secret_value = os.environ.get(
+                "JWT_SECRET_ACCESS_KEY",
+                "MISSING_JWT_SECRET_REPLACE_WITH_JWT_SECRET_ACCESS_KEY_ENV_VAR",
+            )
+            ephemeral_secret_param = ssm.StringParameter(
+                self,
+                "EphemeralJwtSecretParam",
+                parameter_name=f"/{environment}/ProductSearchService/secret-access-key",
+                string_value=ephemeral_jwt_secret_value,
+            )
+            jwt_secret_param_name = ephemeral_secret_param.parameter_name
+
         jwt_secret_parameter_arn = (
-            f"arn:aws:ssm:{self.region}:{self.account}:parameter/{environment}/shared/secret-access-key"
+            f"arn:aws:ssm:{self.region}:{self.account}:parameter{jwt_secret_param_name}"
         )
 
         search_authorizer_role = iam.Role(
@@ -460,7 +480,7 @@ class ProductSearchStack(Stack):
             environment={
                 "POWERTOOLS_SERVICE_NAME": SERVICE_NAME,
                 "POWERTOOLS_LOG_LEVEL": "INFO",
-                "JWT_SECRET_PARAM_NAME": f"/{environment}/shared/secret-access-key",
+                "JWT_SECRET_PARAM_NAME": jwt_secret_param_name,
                 "ENV": environment,
             },
             tracing=_lambda.Tracing.ACTIVE,
