@@ -7,10 +7,11 @@
 
 # SSM parameter for JWT secret access key (non-integrated environments only)
 resource "aws_ssm_parameter" "activity_service_access_key" {
-  count = var.env == "dev" || var.env == "prod" ? 0 : 1
-  name  = "/${var.env}/ActivityService/secret-access-key"
-  type  = "String"
-  value = "This is a sample secret key that should not be used in production"
+  count       = var.env == "dev" || var.env == "prod" ? 0 : 1
+  name        = "/${var.env}/ActivityService/secret-access-key"
+  type        = "SecureString"
+  value       = var.jwt_signing_secret
+  description = "Strong, cryptographically random JWT signing secret."
 
   tags = {
     Environment = var.env
@@ -61,18 +62,18 @@ module "entity_id_resource" {
 
 # Get Activity Lambda Function
 module "get_activity_lambda" {
-  service_name              = "ActivityService"
-  source                    = "../../modules/python-lambda-function"
-  zip_file                  = "../.build/activity_service.zip"
-  layer_zip_file            = "../.build/common_layer.zip"
-  function_name             = "GetActivity"
-  lambda_handler            = "activity_service.handlers.handle_get_activity.lambda_handler"
-  dd_api_key_secret_arn     = var.dd_api_key_secret_arn
-  dd_site                   = var.dd_site
-  app_version               = var.app_version
-  env                       = var.env
-  function_timeout          = 29
-  memory_size               = 512
+  service_name          = "ActivityService"
+  source                = "../../modules/python-lambda-function"
+  zip_file              = "../.build/activity_service.zip"
+  layer_zip_file        = "../.build/common_layer.zip"
+  function_name         = "GetActivity"
+  lambda_handler        = "activity_service.handlers.handle_get_activity.lambda_handler"
+  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site               = var.dd_site
+  app_version           = var.app_version
+  env                   = var.env
+  function_timeout      = 29
+  memory_size           = 512
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.activities_table.name
     "IDEMPOTENCY_TABLE_NAME" : aws_dynamodb_table.idempotency_table.name
@@ -101,24 +102,24 @@ module "get_activity_lambda_api" {
 
 # Handle Events Lambda Function (SQS processor)
 module "handle_events_lambda" {
-  service_name              = "ActivityService"
-  source                    = "../../modules/python-lambda-function"
-  zip_file                  = "../.build/activity_service.zip"
-  layer_zip_file            = "../.build/common_layer.zip"
-  function_name             = "HandleEvents"
-  lambda_handler            = "activity_service.handlers.create_activity.lambda_handler"
-  dd_api_key_secret_arn     = var.dd_api_key_secret_arn
-  dd_site                   = var.dd_site
-  app_version               = var.app_version
-  env                       = var.env
-  function_timeout          = 29
-  memory_size               = 512
+  service_name          = "ActivityService"
+  source                = "../../modules/python-lambda-function"
+  zip_file              = "../.build/activity_service.zip"
+  layer_zip_file        = "../.build/common_layer.zip"
+  function_name         = "HandleEvents"
+  lambda_handler        = "activity_service.handlers.create_activity.lambda_handler"
+  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site               = var.dd_site
+  app_version           = var.app_version
+  env                   = var.env
+  function_timeout      = 29
+  memory_size           = 512
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.activities_table.name
     "IDEMPOTENCY_TABLE_NAME" : aws_dynamodb_table.idempotency_table.name
-    "DD_BOTOCORE_DISTRIBUTED_TRACING": "false"
-    "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": "ignore"
-    "DD_TRACE_PROPAGATION_STYLE_EXTRACT": "none"
+    "DD_BOTOCORE_DISTRIBUTED_TRACING" : "false"
+    "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT" : "ignore"
+    "DD_TRACE_PROPAGATION_STYLE_EXTRACT" : "none"
   }
   additional_policy_attachments = [
     aws_iam_policy.activities_table_read.arn,

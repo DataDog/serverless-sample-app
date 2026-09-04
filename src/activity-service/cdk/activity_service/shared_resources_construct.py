@@ -1,3 +1,5 @@
+import os
+
 from aws_cdk import aws_events as events
 from aws_cdk import aws_ssm as ssm
 from constructs import Construct
@@ -36,7 +38,8 @@ class SharedResources:
                 scope,
                 "JwtSecretAccessKey",
                 parameter_name=f"/{shared_props.environment}/{shared_props.service_name}/secret-access-key",
-                string_value="This is a sample secret key that should not be used in production`",
+                # Operator-supplied JWT signing secret; never commit a literal value.
+                string_value=os.environ["JWT_SECRET_ACCESS_KEY"],
             )
         else:
             self.jwt_secret_access_key = ssm.StringParameter.from_string_parameter_name(

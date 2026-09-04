@@ -33,6 +33,10 @@ Parameters:
     Type: String
   DDApiKey:
     Type: String
+  SecretAccessKey:
+    Type: String
+    NoEcho: true
+    Description: Must be a strong, cryptographically random JWT signing secret; never use a sample or committed value.
 
 Globals:
   Function:
@@ -97,8 +101,10 @@ Resources:
     Condition: IsNotIntegratedEnvironment
     Properties:
       Name: !Sub /${Env}/${ServiceName}/secret-access-key
+      # AWS::SSM::Parameter does not support SecureString in CloudFormation.
       Type: String
-      Value: "This is a sample secret key that should not be used in production`"
+      Value: !Ref SecretAccessKey
+      Description: Must contain a strong, cryptographically random JWT signing secret; never use a sample or committed value.
 
   GetProductFunction:
     Type: AWS::Serverless::Function

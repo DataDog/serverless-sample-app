@@ -6,10 +6,11 @@
 //
 
 resource "aws_ssm_parameter" "product_service_access_key" {
-  count = var.env == "dev" || var.env == "prod" ? 0 : 1
-  name  = "/${var.env}/${var.service_name}/secret-access-key"
-  type  = "String"
-  value = "This is a sample secret key that should not be used in production`"
+  count       = var.env == "dev" || var.env == "prod" ? 0 : 1
+  name        = "/${var.env}/${var.service_name}/secret-access-key"
+  type        = "SecureString"
+  value       = var.jwt_signing_secret
+  description = "Strong, cryptographically random JWT signing secret."
 }
 
 module "api_gateway" {
@@ -49,10 +50,10 @@ module "create_product_lambda" {
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
-  dd_api_key = var.dd_api_key
-  dd_site               = var.dd_site
-  app_version           = var.app_version
-  env                   = var.env
+  dd_api_key  = var.dd_api_key
+  dd_site     = var.dd_site
+  app_version = var.app_version
+  env         = var.env
   additional_policy_attachments = [
     aws_iam_policy.allow_jwt_secret_access.arn,
     aws_iam_policy.sns_publish_create.arn,
@@ -81,10 +82,10 @@ module "list_products_lambda" {
     "PRODUCT_CREATED_TOPIC_ARN" : aws_sns_topic.product_created.arn
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
-  dd_api_key = var.dd_api_key
-  dd_site               = var.dd_site
-  app_version           = var.app_version
-  env                   = var.env
+  dd_api_key  = var.dd_api_key
+  dd_site     = var.dd_site
+  app_version = var.app_version
+  env         = var.env
   additional_policy_attachments = [
     aws_iam_policy.allow_jwt_secret_access.arn,
     aws_iam_policy.sns_publish_create.arn,
@@ -113,10 +114,10 @@ module "get_product_lambda" {
   environment_variables = {
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
-  dd_api_key = var.dd_api_key
-  dd_site               = var.dd_site
-  app_version           = var.app_version
-  env                   = var.env
+  dd_api_key  = var.dd_api_key
+  dd_site     = var.dd_site
+  app_version = var.app_version
+  env         = var.env
   additional_policy_attachments = [
     aws_iam_policy.allow_jwt_secret_access.arn,
     aws_iam_policy.dsql_connect.arn
@@ -150,10 +151,10 @@ module "update_product_lambda" {
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
-  dd_api_key = var.dd_api_key
-  dd_site               = var.dd_site
-  app_version           = var.app_version
-  env                   = var.env
+  dd_api_key  = var.dd_api_key
+  dd_site     = var.dd_site
+  app_version = var.app_version
+  env         = var.env
   additional_policy_attachments = [
     aws_iam_policy.allow_jwt_secret_access.arn,
     aws_iam_policy.sns_publish_update.arn,
@@ -188,10 +189,10 @@ module "delete_product_lambda" {
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/${var.service_name}/secret-access-key"
     "DSQL_CLUSTER_ENDPOINT" : "${aws_dsql_cluster.product_api_dsql.identifier}.dsql.${data.aws_region.current.name}.on.aws"
   }
-  dd_api_key = var.dd_api_key
-  dd_site               = var.dd_site
-  app_version           = var.app_version
-  env                   = var.env
+  dd_api_key  = var.dd_api_key
+  dd_site     = var.dd_site
+  app_version = var.app_version
+  env         = var.env
   additional_policy_attachments = [
     aws_iam_policy.allow_jwt_secret_access.arn,
     aws_iam_policy.sns_publish_delete.arn,

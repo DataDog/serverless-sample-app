@@ -53,9 +53,8 @@ func NewProductServiceProps(stack awscdk.Stack, sharedProps sharedconstructs.Sha
 			JwtSecretAccessKeyParam: jwtSecretAccessKey,
 		}
 	} else {
-		productServiceSecretAccessKey := awsssm.NewStringParameter(stack, jsii.String("ProductJwtSecretAccessKey"), &awsssm.StringParameterProps{
+		productServiceSecretAccessKey := awsssm.StringParameter_FromSecureStringParameterAttributes(stack, jsii.String("ProductJwtSecretAccessKey"), &awsssm.SecureStringParameterAttributes{
 			ParameterName: jsii.Sprintf("/%s/%s/secret-access-key", sharedProps.Env, sharedProps.ServiceName),
-			StringValue:   jsii.String("This is a sample secret key that should not be used in production`"),
 		})
 
 		return ProductServiceProps{

@@ -3,6 +3,7 @@ import os
 import aws_cdk as cdk
 from aws_cdk import Duration, Stack, Tags
 from aws_cdk import aws_apigatewayv2 as apigwv2
+from aws_cdk import aws_apigatewayv2_authorizers as apigwv2_authorizers
 from aws_cdk import aws_apigatewayv2_integrations as apigwv2_integrations
 from aws_cdk import aws_dynamodb as dynamodb
 from aws_cdk import aws_events as events
@@ -418,13 +419,79 @@ class ProductSearchStack(Stack):
         )
 
         # ---------------------------------------------------------------------------
-        # HTTP API Gateway — POST /search
+        # JWT authorizer Lambda — validates the Bearer token on POST /search using
+        # the shared HMAC secret (SSM /{env}/shared/secret-access-key), the same
+        # JWT scheme used by product-management-service and order-service.
+        # Without this, anonymous requests trigger paid Bedrock invocations.
+        # ---------------------------------------------------------------------------
+        jwt_secret_parameter_arn = (
+            f"arn:aws:ssm:{self.region}:{self.account}:parameter/{environment}/shared/secret-access-key"
+        )
+
+        search_authorizer_role = iam.Role(
+            self,
+            "SearchAuthorizerFunctionRole",
+            role_name=f"CDK-{SERVICE_NAME}-search-authorizer-{environment}",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
+            managed_policies=[
+                iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"),
+            ],
+            inline_policies={
+                "ssm_jwt_secret": iam.PolicyDocument(
+                    statements=[
+                        iam.PolicyStatement(
+                            actions=["ssm:GetParameter"],
+                            resources=[jwt_secret_parameter_arn],
+                            effect=iam.Effect.ALLOW,
+                        )
+                    ]
+                ),
+            },
+        )
+
+        search_authorizer_fn = _lambda.Function(
+            self,
+            "SearchAuthorizerFunction",
+            function_name=f"{SERVICE_NAME}-search-authorizer-{environment}",
+            runtime=_lambda.Runtime.PYTHON_3_13,
+            architecture=_lambda.Architecture.ARM_64,
+            code=_lambda.Code.from_asset(BUILD_FOLDER),
+            handler="product_search_service.handlers.lambda_authorizer.lambda_handler",
+            environment={
+                "POWERTOOLS_SERVICE_NAME": SERVICE_NAME,
+                "POWERTOOLS_LOG_LEVEL": "INFO",
+                "JWT_SECRET_PARAM_NAME": f"/{environment}/shared/secret-access-key",
+                "ENV": environment,
+            },
+            tracing=_lambda.Tracing.ACTIVE,
+            retry_attempts=0,
+            timeout=Duration.seconds(5),
+            memory_size=128,
+            role=search_authorizer_role,
+            log_retention=RetentionDays.ONE_WEEK,
+            logging_format=_lambda.LoggingFormat.JSON,
+            system_log_level_v2=_lambda.SystemLogLevel.INFO,
+        )
+
+        search_authorizer = apigwv2_authorizers.HttpLambdaAuthorizer(
+            "SearchAuthorizer",
+            search_authorizer_fn,
+            authorizer_name=f"{SERVICE_NAME}-search-authorizer-{environment}",
+            response_types=[apigwv2_authorizers.HttpLambdaResponseType.SIMPLE],
+            results_cache_ttl=Duration.minutes(5),
+        )
+
+        # ---------------------------------------------------------------------------
+        # HTTP API Gateway — POST /search (JWT-authorised, throttled)
         # ---------------------------------------------------------------------------
         http_api = apigwv2.HttpApi(
             self,
             "ProductSearchApi",
             api_name=f"Product Search API - {environment}",
             description="HTTP API for AI-powered product search",
+            # An explicit $default stage is created below so throttling can be
+            # applied; the auto-created default stage cannot be throttled.
+            create_default_stage=False,
             cors_preflight=apigwv2.CorsPreflightOptions(
                 allow_origins=["*"],
                 allow_methods=[apigwv2.CorsHttpMethod.ANY],
@@ -439,6 +506,21 @@ class ProductSearchStack(Stack):
                 "ProductSearchIntegration",
                 product_search_fn,
             ),
+            authorizer=search_authorizer,
+        )
+
+        # Stage throttling caps runaway cost from unauthenticated or
+        # misbehaving clients: 10 req/s steady-state, 20 req/s burst.
+        api_stage = apigwv2.HttpStage(
+            self,
+            "ProductSearchApiStage",
+            http_api=http_api,
+            stage_name="$default",
+            auto_deploy=True,
+            throttle=apigwv2.ThrottleSettings(
+                rate_limit=10,
+                burst_limit=20,
+            ),
         )
 
         # ---------------------------------------------------------------------------
@@ -448,7 +530,7 @@ class ProductSearchStack(Stack):
             self,
             "ProductSearchApiEndpointParameter",
             parameter_name=f"/{environment}/ProductSearchService/api-endpoint",
-            string_value=http_api.url or "",
+            string_value=api_stage.url or "",
         )
 
         # ---------------------------------------------------------------------------
@@ -459,7 +541,7 @@ class ProductSearchStack(Stack):
         # ---------------------------------------------------------------------------
         # Stack outputs
         # ---------------------------------------------------------------------------
-        cdk.CfnOutput(self, "ApiEndpoint", value=http_api.url or "")
+        cdk.CfnOutput(self, "ApiEndpoint", value=api_stage.url or "")
         cdk.CfnOutput(self, "MetadataTableName", value=metadata_table.table_name)
         cdk.CfnOutput(self, "VectorBucketName", value=vector_bucket_name)
         cdk.CfnOutput(self, "VectorIndexName", value=vector_index_name)

@@ -3,16 +3,10 @@ import axios, { AxiosInstance } from "axios";
 import { getParameter } from "@aws-lambda-powertools/parameters/ssm";
 import { Logger } from "@aws-lambda-powertools/logger";
 import { z } from "zod";
-import {
-  createProductService,
-  ProductService,
-} from "../core/products/productService";
-import { createOrderService, OrderService } from "../core/order/orderService";
+import { createProductService } from "../core/products/productService";
+import { createOrderService } from "../core/order/orderService";
 
 const logger = new Logger({});
-
-let productService: ProductService | undefined;
-let orderService: OrderService | undefined;
 
 const create = () => {
   const mcpServer = new McpServer(
@@ -31,9 +25,7 @@ const create = () => {
     "availableProducts",
     { token: z.string().optional() },
     async (ctx) => {
-      if (!productService) {
-        productService = await createProductService(ctx.token!);
-      }
+      const productService = await createProductService(ctx.token!);
 
       const productList = await productService.getAvailableProducts();
 
@@ -52,9 +44,7 @@ const create = () => {
     "createOrder",
     { token: z.string().optional(), productsOnOrder: z.array(z.string()) },
     async (ctx) => {
-      if (!orderService) {
-        orderService = await createOrderService(ctx.token!);
-      }
+      const orderService = await createOrderService(ctx.token!);
 
       const orderResponse = await orderService.createOrder(ctx.productsOnOrder);
 
@@ -73,9 +63,7 @@ const create = () => {
     "getOrderStatus",
     { token: z.string().optional(), orderId: z.string() },
     async (ctx) => {
-      if (!orderService) {
-        orderService = await createOrderService(ctx.token!);
-      }
+      const orderService = await createOrderService(ctx.token!);
 
       const orderResponse = await orderService.getOrderStatus(ctx.orderId);
 
@@ -94,9 +82,7 @@ const create = () => {
     "getMyOrders",
     { token: z.string().optional() },
     async (ctx) => {
-      if (!orderService) {
-        orderService = await createOrderService(ctx.token!);
-      }
+      const orderService = await createOrderService(ctx.token!);
 
       const orderResponse = await orderService.listOrders();
 

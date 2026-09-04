@@ -24,7 +24,7 @@ export const handler = async (
   }
 
   const parameter = await getParameter(process.env.JWT_SECRET_PARAM_NAME!);
-  let verificationResult: JwtPayload | string = "";
+  let verificationResult: JwtPayload | string | undefined;
 
   try {
     verificationResult = verify(authToken, parameter!);
@@ -34,7 +34,15 @@ export const handler = async (
     return generatePolicy("Deny", event.methodArn);
   }
 
-  if (verificationResult.length === 0) {
+  // `verify` returns a decoded JwtPayload object for valid signed tokens, or a
+  // raw string for tokens without a structured payload. A valid token must be
+  // a payload object carrying a `sub` (subject) claim.
+  if (
+    !verificationResult ||
+    typeof verificationResult === "string" ||
+    !verificationResult.sub
+  ) {
+    logger.warn("Token verification produced an invalid payload, returning deny");
     return generatePolicy("Deny", event.methodArn);
   }
 

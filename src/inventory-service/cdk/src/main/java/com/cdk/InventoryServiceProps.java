@@ -6,6 +6,7 @@ import software.amazon.awscdk.services.events.EventBus;
 import software.amazon.awscdk.services.events.EventBusProps;
 import software.amazon.awscdk.services.events.IEventBus;
 import software.amazon.awscdk.services.ssm.IStringParameter;
+import software.amazon.awscdk.services.ssm.SecureStringParameterAttributes;
 import software.amazon.awscdk.services.ssm.StringParameter;
 import software.amazon.awscdk.services.ssm.StringParameterProps;
 import software.constructs.Construct;
@@ -40,9 +41,8 @@ public class InventoryServiceProps extends Construct {
 
             this.jwtAccessKeyParameter = StringParameter.fromStringParameterName(this, "JwtAccessKeyParameter", String.format("/%s/shared/secret-access-key", sharedProps.env()));
         } else {
-            this.jwtAccessKeyParameter = new StringParameter(this, "InventoryJWTAccessKeyParameter", StringParameterProps.builder()
+            this.jwtAccessKeyParameter = StringParameter.fromSecureStringParameterAttributes(this, "InventoryJWTAccessKeyParameter", SecureStringParameterAttributes.builder()
                     .parameterName(String.format("/%s/%s/secret-access-key", sharedProps.env(), sharedProps.service()))
-                    .stringValue("This is a sample secret key that should not be used in production`")
                     .build());
         }
         this.sharedProps = sharedProps;

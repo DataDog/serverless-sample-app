@@ -577,7 +577,9 @@ impl Repository for DynamoDbRepository {
             .key(PARTITION_KEY, AttributeValue::S(format!("CODE#{}", code)))
             .key(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .update_expression("SET IsUsed = :used")
+            .condition_expression("attribute_exists(IsUsed) AND IsUsed = :unused")
             .expression_attribute_values(":used", AttributeValue::Bool(true))
+            .expression_attribute_values(":unused", AttributeValue::Bool(false))
             .send()
             .await;
 
