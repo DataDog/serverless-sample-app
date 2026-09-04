@@ -29,6 +29,7 @@ type OutboxRepository interface {
 	StoreOutboxEntry(ctx context.Context, entry OutboxEntry) error
 	GetUnprocessedEntries(ctx context.Context) ([]OutboxEntry, error)
 	MarkAsProcessed(ctx context.Context, entryId string) error
+	ReleaseClaim(ctx context.Context, entryId string) error
 }
 
 type OutboxEntry struct {

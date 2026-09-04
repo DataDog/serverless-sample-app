@@ -18,7 +18,7 @@ from activity_service.dal import get_dal_handler
 from activity_service.dal.db_handler import DalHandler
 from activity_service.handlers.utils.idempotency import IDEMPOTENCY_CONFIG, IDEMPOTENCY_LAYER
 from activity_service.handlers.utils.observability import logger
-from activity_service.logic.create_activity_handler import create_activity_handler
+from activity_service.logic.create_activity_handler import create_activities_handler, create_activity_handler
 from activity_service.models.input import CreateActivityRequest
 from activity_service.models.public_events import (
     ORDER_COMPLETED_EVENT_NAME,
@@ -161,6 +161,7 @@ def handle_product_created(
         entityType='product',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
@@ -190,6 +191,7 @@ def handle_product_updated(
         entityType='product',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
@@ -219,6 +221,7 @@ def handle_product_deleted(
         entityType='product',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
@@ -248,6 +251,7 @@ def handle_user_registered(
         entityType='user',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
@@ -275,17 +279,17 @@ def handle_order_created(
         entityType='order',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
         span.set_tag('order.number', order_number)
 
-    create_activity_handler(create_order_activity_request, dal_handler)
-
     user_id: str | None = detail.get('userId')
 
     if not user_id:
         logger.warning('User ID not found in order creation event')
+        create_activity_handler(create_order_activity_request, dal_handler)
         return
 
     if span:
@@ -296,8 +300,11 @@ def handle_order_created(
         entityType='user',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
-    create_activity_handler(create_order_user_activity_request, dal_handler)
+    # Write both rows atomically so a partial failure cannot leave the order
+    # row without its matching user row under a single idempotency key.
+    create_activities_handler([create_order_activity_request, create_order_user_activity_request], dal_handler)
 
 
 @tracer.wrap(resource=f'process {ORDER_CONFIRMED_EVENT_NAME}')
@@ -319,17 +326,17 @@ def handle_order_confirmed(
         entityType='order',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
         span.set_tag('order.number', order_number)
 
-    create_activity_handler(confirm_order_activity_request, dal_handler)
-
     user_id: str | None = detail.get('userId')
 
     if not user_id:
         logger.warning('User ID not found in order creation event')
+        create_activity_handler(confirm_order_activity_request, dal_handler)
         return
 
     if span:
@@ -340,8 +347,11 @@ def handle_order_confirmed(
         entityType='user',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
-    create_activity_handler(confirm_order_user_activity_request, dal_handler)
+    # Write both rows atomically so a partial failure cannot leave the order
+    # row without its matching user row under a single idempotency key.
+    create_activities_handler([confirm_order_activity_request, confirm_order_user_activity_request], dal_handler)
 
 
 @tracer.wrap(resource=f'process {ORDER_COMPLETED_EVENT_NAME}')
@@ -363,17 +373,17 @@ def handle_order_completed(
         entityType='order',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
         span.set_tag('order.number', order_number)
 
-    create_activity_handler(order_activity_request, dal_handler)
-
     user_id: str | None = detail.get('userId')
 
     if not user_id:
         logger.warning('User ID not found in order creation event')
+        create_activity_handler(order_activity_request, dal_handler)
         return
 
     if span:
@@ -384,8 +394,11 @@ def handle_order_completed(
         entityType='user',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
-    create_activity_handler(user_activity_request, dal_handler)
+    # Write both rows atomically so a partial failure cannot leave the order
+    # row without its matching user row under a single idempotency key.
+    create_activities_handler([order_activity_request, user_activity_request], dal_handler)
 
 
 @tracer.wrap(resource=f'process {STOCK_UPDATED}')
@@ -406,6 +419,7 @@ def handle_stock_updated(
         entityType='product',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
@@ -433,6 +447,7 @@ def handle_stock_reserved(
         entityType='order',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
@@ -460,6 +475,7 @@ def handle_stock_reservation_failed(
         entityType='order',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:

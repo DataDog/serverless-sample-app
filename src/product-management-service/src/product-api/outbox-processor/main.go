@@ -213,6 +213,11 @@ func functionHandler(ctx context.Context, event OutboxEvent) error {
 		if err := processEntry(ctx, entry, span.Context()); err != nil {
 			log.Printf("Failed to process entry %s: %v", entry.Id, err)
 			hadFailures = true
+			// Release the claim so the entry becomes immediately re-claimable
+			// on the next invocation instead of waiting for the lease to expire.
+			if releaseErr := productRepository.ReleaseClaim(ctx, entry.Id); releaseErr != nil {
+				log.Printf("Failed to release claim on entry %s: %v", entry.Id, releaseErr)
+			}
 		}
 	}
 

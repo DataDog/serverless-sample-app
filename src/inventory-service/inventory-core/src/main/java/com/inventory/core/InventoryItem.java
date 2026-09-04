@@ -45,6 +45,20 @@ public class InventoryItem {
         this.version = version;
     }
 
+    /**
+     * Defensive copy constructor. Produces a fully independent instance so that
+     * mutating the copy (e.g. reserving/releasing stock) never affects the
+     * source object. This is used to protect cached instances from being
+     * mutated by callers.
+     */
+    public InventoryItem(InventoryItem source) {
+        this.productId = source.productId;
+        this.currentStockLevel = source.currentStockLevel;
+        this.reservedStockLevel = source.reservedStockLevel;
+        this.reservedStockOrders = new ArrayList<>(source.reservedStockOrders);
+        this.version = source.version;
+    }
+
     static InventoryItem Create(String productId, Double currentStockLevel) {
         var orders = new ArrayList<String>();
         orders.add("");

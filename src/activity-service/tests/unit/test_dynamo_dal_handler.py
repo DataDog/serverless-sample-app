@@ -22,6 +22,7 @@ def get_mock_activity_item(**overrides: object) -> ActivityItem:
     base_data: dict[str, object] = {
         "type": "product_created",
         "activity_time": 1640995200,
+        "event_id": "event-001",
     }
     base_data.update(overrides)
     return ActivityItem.model_validate(base_data)
@@ -154,7 +155,10 @@ class TestUpdateActivityWritesOnlyNewItem:
         put_item_call = mock_table.put_item.call_args
         written_item = put_item_call[1]["Item"]
         assert written_item["PK"] == "product-123-product"
-        assert written_item["SK"] == "1640995200"
+        # SK now embeds activity_time, activity_type and event_id so that two
+        # events for the same entity in the same second no longer collide.
+        assert written_item["SK"] == "1640995200#product_created#event-001"
+        assert written_item["event_id"] == "event-001"
 
 
 class TestDalHandlerSingletonBehavior:
