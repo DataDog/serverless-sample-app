@@ -98,6 +98,7 @@ jobs:
           ENV: ${{ env.sha_short }}
           AWS_REGION: ${{ vars.CDK_AWS_REGION }}
           AWS_DEFAULT_REGION: ${{ vars.CDK_AWS_REGION }}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
         run: |
           cd src/product-search-service
           make integration-test
@@ -134,6 +135,7 @@ jobs:
           ENV: "dev"
           AWS_REGION: ${{ vars.CDK_AWS_REGION }}
           AWS_DEFAULT_REGION: ${{ vars.CDK_AWS_REGION }}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
         run: |
           cd src/product-search-service
           make integration-test
@@ -203,6 +205,7 @@ jobs:
           ENV: "prod"
           AWS_REGION: ${{ vars.CDK_PROD_AWS_REGION }}
           AWS_DEFAULT_REGION: ${{ vars.CDK_PROD_AWS_REGION }}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
         run: |
           cd src/product-search-service
           make integration-test
@@ -257,6 +260,7 @@ jobs:
           ENV: ${{ env.sha_short }}
           AWS_REGION: ${{ vars.SAM_AWS_REGION }}
           AWS_DEFAULT_REGION: ${{ vars.SAM_AWS_REGION }}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
         run: |
           cd src/product-search-service
           make integration-test
@@ -291,6 +295,7 @@ jobs:
           ENV: "dev"
           AWS_REGION: ${{ vars.SAM_AWS_REGION }}
           AWS_DEFAULT_REGION: ${{ vars.SAM_AWS_REGION }}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
         run: |
           cd src/product-search-service
           make integration-test
