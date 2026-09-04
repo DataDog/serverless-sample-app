@@ -47,6 +47,7 @@ describe("integration-tests", () => {
     const jwtSecretParameter = await ssmCLient.send(
       new GetParameterCommand({
         Name: `/${env}/${sharedServiceName}/secret-access-key`,
+        WithDecryption: true,
       })
     );
     jwtSecretValue = jwtSecretParameter.Parameter!.Value!;
@@ -195,6 +196,7 @@ describe("tier-upgrade-workflow", () => {
     const jwtSecretParameter = await ssmCLient.send(
       new GetParameterCommand({
         Name: `/${env}/${sharedServiceName}/secret-access-key`,
+        WithDecryption: true,
       })
     );
     jwtSecretValue = jwtSecretParameter.Parameter!.Value!;
