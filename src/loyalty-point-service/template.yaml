@@ -561,7 +561,10 @@ Resources:
       FunctionName: !Sub TierUpgradeTrigger-${Env}
       Environment:
         Variables:
-          ORCHESTRATOR_FUNCTION_NAME: !Sub "${TierUpgradeOrchestratorFunction.Arn}:$LATEST"
+          # Use the alias ARN (function:live) so durable execution receives a
+          # qualified ARN that matches the IAM policy (function-name:*) and
+          # replays are pinned to a published version, not the mutable $LATEST.
+          ORCHESTRATOR_FUNCTION_NAME: !Ref TierUpgradeOrchestratorFunctionAliaslive
       Events:
         TierUpgradeTriggerQueue:
           Type: SQS
@@ -597,6 +600,9 @@ Resources:
       CodeUri: ./out/fetchOrderHistoryActivity/fetchOrderHistoryActivity.zip
       Handler: index.handler
       FunctionName: !Sub FetchOrderHistoryActivity-${Env}
+      # Publish a version so context.invoke() in the orchestrator uses a
+      # qualified ARN, required by Lambda Durable Execution.
+      AutoPublishAlias: live
       Environment:
         Variables:
           JWT_SECRET_PARAM_NAME: !If
@@ -640,6 +646,11 @@ Resources:
       CodeUri: ./out/tierUpgradeOrchestrator/tierUpgradeOrchestrator.zip
       Handler: index.handler
       FunctionName: !Sub TierUpgradeOrchestrator-${Env}
+      # AutoPublishAlias publishes a new Lambda version on every deployment and
+      # creates/updates the alias to point to it. Lambda Durable Execution
+      # requires a published version ARN (not $LATEST) so that mid-execution
+      # replays always call the same version of the orchestrator code.
+      AutoPublishAlias: live
       Environment:
         Variables:
           TABLE_NAME: !Ref LoyaltyAccountTable
@@ -647,7 +658,7 @@ Resources:
             - IsIntegratedEnvironment
             - !Sub "{{resolve:ssm:/${Env}/shared/event-bus-name:1}}"
             - !Ref LoyaltyServiceEventBus
-          FETCH_ORDER_HISTORY_ACTIVITY_ARN: !Sub "${FetchOrderHistoryActivityFunction.Arn}:$LATEST"
+          FETCH_ORDER_HISTORY_ACTIVITY_ARN: !Ref FetchOrderHistoryActivityFunctionAliaslive
           PRODUCT_SERVICE_ENDPOINT_PARAM: !Sub /${Env}/ProductService/api-endpoint
           PRODUCT_SEARCH_ENDPOINT_PARAM: !Sub /${Env}/ProductSearchService/api-endpoint
           JWT_SECRET_PARAM_NAME: !If
