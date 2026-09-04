@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Any
 from uuid import uuid4
 
 import boto3
@@ -86,7 +87,7 @@ class DynamoDalHandler(DalHandler):
             entries = [self._build_entry(activity) for activity in activities]
             table: Table = self._get_db_handler(self.table_name)
             serializer = TypeSerializer()
-            transact_items = [
+            transact_items: list[Any] = [
                 {
                     'Put': {
                         'TableName': self.table_name,
