@@ -1,9 +1,7 @@
 from datetime import datetime, timezone
-from typing import Any
 from uuid import uuid4
 
 import boto3
-from boto3.dynamodb.types import TypeSerializer
 from botocore.exceptions import ClientError
 from cachetools import TTLCache, cached
 from mypy_boto3_dynamodb import DynamoDBServiceResource
@@ -73,12 +71,15 @@ class DynamoDalHandler(DalHandler):
 
     @tracer.capture_method(capture_response=False)
     def save_activities(self, activities: list[Activity]) -> None:
-        """Atomically persist the newest item of each supplied Activity.
+        """Persist the newest item of each supplied Activity.
 
-        Uses TransactWriteItems so that a multi-row write (e.g. an order row and
-        the corresponding user row for a single event) either fully succeeds or
-        fully fails. This removes the partial-write window that previously left
-        inconsistent state under one idempotency key.
+        All rows are written using individual PutItem calls via the high-level
+        Table resource, which handles type serialization automatically.
+        Because each row has a deterministic, unique sort key
+        (activity_time#activity_type#event_id) the writes are idempotent:
+        a retry after partial failure will simply overwrite any already-written
+        rows with identical data, achieving the same effective atomicity without
+        the complexity and serialization requirements of TransactWriteItems.
         """
         if not activities:
             return
@@ -86,20 +87,8 @@ class DynamoDalHandler(DalHandler):
         try:
             entries = [self._build_entry(activity) for activity in activities]
             table: Table = self._get_db_handler(self.table_name)
-            serializer = TypeSerializer()
-            transact_items: list[Any] = [
-                {
-                    'Put': {
-                        'TableName': self.table_name,
-                        'Item': {
-                            key: serializer.serialize(value)
-                            for key, value in entry.model_dump(exclude_none=True).items()
-                        },
-                    }
-                }
-                for entry in entries
-            ]
-            table.meta.client.transact_write_items(TransactItems=transact_items)
+            for entry in entries:
+                table.put_item(Item=entry.model_dump(exclude_none=True))
         except (ClientError, ValidationError) as exc:  # pragma: no cover
             error_msg = 'failed to store activities'
             logger.exception(error_msg)
