@@ -1,3 +1,4 @@
+use aws_config::SdkConfig;
 use lambda_http::http::StatusCode;
 use lambda_http::{
     Error, IntoResponse, Request, RequestExt, RequestPayloadExt, run, service_fn,
@@ -9,15 +10,26 @@ use shared::adapters::DynamoDbRepository;
 use shared::core::Repository;
 use shared::ports::{ApplicationError, CreateOAuthClientCommand};
 use shared::response::{empty_response, raw_json_response};
+use shared::tokens::TokenGenerator;
 use std::env;
 use std::sync::OnceLock;
 
-#[instrument(name = "POST /oauth/register", skip(repository, event), fields(http.method = event.method().as_str(), http.path_group = event.raw_http_path()))]
+#[instrument(name = "POST /oauth/register", skip(repository, token_generator, event), fields(http.method = event.method().as_str(), http.path_group = event.raw_http_path()))]
 async fn function_handler<TRepository: Repository>(
     repository: &TRepository,
+    token_generator: &TokenGenerator,
     event: Request,
 ) -> Result<impl IntoResponse, Error> {
-    tracing::info!("Received event: {:?}", event);
+    let auth_header = match event.headers().get("Authorization") {
+        Some(header) => header,
+        None => return empty_response(&StatusCode::UNAUTHORIZED),
+    };
+    if token_generator
+        .validate_admin_token(auth_header.to_str().unwrap_or(""))
+        .is_err()
+    {
+        return empty_response(&StatusCode::FORBIDDEN);
+    }
 
     let request_body = event.payload::<CreateOAuthClientCommand>()?;
 
@@ -58,15 +70,21 @@ async fn main() -> Result<(), Error> {
         }
     };
 
-    if let Some(providers) = otel_providers { let _ = TRACER_PROVIDER.set(providers.0); }
+    if let Some(providers) = otel_providers {
+        let _ = TRACER_PROVIDER.set(providers.0);
+    }
     let table_name = env::var("TABLE_NAME").expect("TABLE_NAME is not set");
     let config = aws_config::load_from_env().await;
     let dynamodb_client = aws_sdk_dynamodb::Client::new(&config);
     let repository: DynamoDbRepository =
         DynamoDbRepository::new(dynamodb_client, table_name.clone());
+    let secret = load_jwt_secret(&config)
+        .await
+        .expect("Failed to load JWT secret");
+    let token_generator = TokenGenerator::new(secret, 86400);
 
     run(service_fn(|event| async {
-        let res = function_handler(&repository, event).await;
+        let res = function_handler(&repository, &token_generator, event).await;
 
         if let Some(provider) = TRACER_PROVIDER.get()
             && let Err(e) = provider.force_flush()
@@ -77,4 +95,20 @@ async fn main() -> Result<(), Error> {
         res
     }))
     .await
+}
+
+async fn load_jwt_secret(config: &SdkConfig) -> Result<String, ()> {
+    let parameter_name =
+        env::var("JWT_SECRET_PARAM_NAME").expect("JWT_SECRET_PARAM_NAME is not set");
+    let value = aws_sdk_ssm::Client::new(config)
+        .get_parameter()
+        .with_decryption(true)
+        .name(parameter_name)
+        .send()
+        .await
+        .expect("Failed to retrieve JWT secret")
+        .parameter
+        .and_then(|parameter| parameter.value)
+        .expect("JWT secret value not found");
+    Ok(value)
 }

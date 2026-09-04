@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsevents"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsssm"
 	"github.com/aws/jsii-runtime-go"
+	"os"
 )
 
 type ProductServiceProps struct {
@@ -53,9 +54,19 @@ func NewProductServiceProps(stack awscdk.Stack, sharedProps sharedconstructs.Sha
 			JwtSecretAccessKeyParam: jwtSecretAccessKey,
 		}
 	} else {
+		// For ephemeral / non-integrated environments, provision the secret from the
+		// JWT_SECRET_ACCESS_KEY environment variable that CI always sets during deploy.
+		// CDK cannot create SecureString parameters natively, so we store a plain
+		// StringParameter here. The value comes from the CI secret (never hardcoded).
+		jwtSecretValue := os.Getenv("JWT_SECRET_ACCESS_KEY")
+		if jwtSecretValue == "" {
+			// Fall back to a placeholder that makes misconfiguration obvious rather
+			// than silently accepting an empty signing key.
+			jwtSecretValue = "MISSING_JWT_SECRET_REPLACE_WITH_JWT_SECRET_ACCESS_KEY_ENV_VAR"
+		}
 		productServiceSecretAccessKey := awsssm.NewStringParameter(stack, jsii.String("ProductJwtSecretAccessKey"), &awsssm.StringParameterProps{
 			ParameterName: jsii.Sprintf("/%s/%s/secret-access-key", sharedProps.Env, sharedProps.ServiceName),
-			StringValue:   jsii.String("This is a sample secret key that should not be used in production`"),
+			StringValue:   jsii.String(jwtSecretValue),
 		})
 
 		return ProductServiceProps{

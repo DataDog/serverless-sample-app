@@ -11,11 +11,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	observability "github.com/datadog/serverless-sample-observability"
 	"log"
 	"os"
 	"strconv"
-	"time"
 
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -28,8 +26,6 @@ import (
 	"product-api/internal/adapters"
 
 	core "github.com/datadog/serverless-sample-product-core"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
@@ -45,14 +41,6 @@ var (
 )
 
 func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddtrace.SpanContext) error {
-	// Restore DSM pathway from the outbox entry and emit the consume checkpoint.
-	if len(entry.DsmContext) > 0 {
-		ctx = datastreams.ExtractFromBase64Carrier(ctx, core.OutboxDsmCarrier(entry.DsmContext))
-	}
-	tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-outbox",
-	}, "direction:in", core.InternalOutboxName, "topic:"+entry.EventType, "manual_checkpoint:true")
-
 	// Create span links to connect to the original trace
 	spanLinks := []ddtrace.SpanLink{}
 
@@ -101,12 +89,6 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 		}
 		span.SetTag("product.id", event.ProductId)
 
-		observability.TrackTransaction(ctx, observability.TransactionEvent{
-			TransactionID:  event.ProductId,
-			Checkpoint:     "product_created",
-			TimestampNanos: strconv.FormatInt(time.Now().UnixNano(), 10),
-		})
-
 		if err := eventPublisher.PublishProductCreated(ctx, event); err != nil {
 			span.SetTag("error", true)
 			span.SetTag("error.message", err.Error())
@@ -124,12 +106,6 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 		}
 		span.SetTag("product.id", event.ProductId)
 
-		observability.TrackTransaction(ctx, observability.TransactionEvent{
-			TransactionID:  event.ProductId,
-			Checkpoint:     "product_updated",
-			TimestampNanos: strconv.FormatInt(time.Now().UnixNano(), 10),
-		})
-
 		if err := eventPublisher.PublishProductUpdated(ctx, event); err != nil {
 			span.SetTag("error", true)
 			span.SetTag("error.message", err.Error())
@@ -146,12 +122,6 @@ func processEntry(ctx context.Context, entry core.OutboxEntry, activeSpanCtx ddt
 			return fmt.Errorf("failed to unmarshal ProductDeletedEvent: %w", err)
 		}
 		span.SetTag("product.id", event.ProductId)
-
-		observability.TrackTransaction(ctx, observability.TransactionEvent{
-			TransactionID:  event.ProductId,
-			Checkpoint:     "product_deleted",
-			TimestampNanos: strconv.FormatInt(time.Now().UnixNano(), 10),
-		})
 
 		if err := eventPublisher.PublishProductDeleted(ctx, event); err != nil {
 			span.SetTag("error", true)
@@ -213,6 +183,11 @@ func functionHandler(ctx context.Context, event OutboxEvent) error {
 		if err := processEntry(ctx, entry, span.Context()); err != nil {
 			log.Printf("Failed to process entry %s: %v", entry.Id, err)
 			hadFailures = true
+			// Release the claim so the entry becomes immediately re-claimable
+			// on the next invocation instead of waiting for the lease to expire.
+			if releaseErr := productRepository.ReleaseClaim(ctx, entry.Id); releaseErr != nil {
+				log.Printf("Failed to release claim on entry %s: %v", entry.Id, releaseErr)
+			}
 		}
 	}
 

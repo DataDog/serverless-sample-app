@@ -88,7 +88,6 @@ async fn main() -> Result<(), Error> {
     let secret = load_jwt_secret(&config)
         .await
         .expect("Failed to load JWT secret");
-    println!("JWT secret value is {}", secret);
 
     let expiration: usize = env::var("TOKEN_EXPIRATION")
         .unwrap_or(String::from("86400"))

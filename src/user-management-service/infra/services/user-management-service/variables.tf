@@ -6,9 +6,16 @@
 //
 
 variable "service_name" {
-  type = string
+  type        = string
   description = "The name of the service"
-  default = "Users"
+  default     = "Users"
+}
+
+variable "jwt_signing_secret" {
+  type        = string
+  description = "JWT HMAC signing secret; supply a strong, cryptographically random value and never commit it to source control."
+  sensitive   = true
+  default     = null
 }
 
 variable "dd_api_key_secret_arn" {
@@ -17,17 +24,17 @@ variable "dd_api_key_secret_arn" {
 }
 
 variable "dd_site" {
-  type    = string
+  type        = string
   description = "The Datadog site"
 }
 
 variable "env" {
-  type = string
+  type        = string
   description = "The environment deploying to"
 }
 
 variable "app_version" {
-  type = string
+  type        = string
   description = "The deployed version of the application"
-  default = "latest"
+  default     = "latest"
 }

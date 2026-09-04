@@ -38,10 +38,6 @@ jest.mock("dd-trace", () => ({
       addLink: jest.fn(),
       finish: jest.fn(),
     }),
-    dataStreamsCheckpointer: {
-      setConsumeCheckpoint: jest.fn(),
-      setProduceCheckpoint: jest.fn(),
-    },
   },
   Span: jest.fn().mockImplementation(() => ({
     finish: jest.fn(),

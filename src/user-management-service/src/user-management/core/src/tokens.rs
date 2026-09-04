@@ -62,27 +62,34 @@ impl TokenGenerator {
         email_address: &str,
     ) -> Result<Claims, ApplicationError> {
         let hashed_email_address = StringHasher::hash_string(email_address.to_uppercase());
-        tracing::info!("Validating {} against {}", token, hashed_email_address);
+        tracing::info!("Validating [REDACTED] against {}", hashed_email_address);
 
-        let token = if token.contains("Bearer ") {
-            token.replace("Bearer ", "")
-        } else {
-            token.to_string()
-        };
-
-        let claim = decode::<Claims>(
-            &token,
-            &DecodingKey::from_secret(self.secret.as_bytes()),
-            &jsonwebtoken::Validation::default(),
-        )
-        .map(|data| data.claims)
-        .map_err(|_e| ApplicationError::InvalidToken())?;
+        let claim = self.decode_token(token)?;
 
         claim
             .is_for_user(&hashed_email_address)
             .map_err(|_e| ApplicationError::InvalidToken())?;
 
         Ok(claim)
+    }
+
+    pub fn validate_admin_token(&self, token: &str) -> Result<Claims, ApplicationError> {
+        let claim = self.decode_token(token)?;
+        if claim.user_type != "ADMIN" {
+            return Err(ApplicationError::InvalidToken());
+        }
+        Ok(claim)
+    }
+
+    fn decode_token(&self, token: &str) -> Result<Claims, ApplicationError> {
+        let token = token.strip_prefix("Bearer ").unwrap_or(token);
+        decode::<Claims>(
+            token,
+            &DecodingKey::from_secret(self.secret.as_bytes()),
+            &jsonwebtoken::Validation::default(),
+        )
+        .map(|data| data.claims)
+        .map_err(|_e| ApplicationError::InvalidToken())
     }
 }
 
@@ -116,5 +123,29 @@ mod tests {
         let res = token_generator.validate_token(&format!("Bearer {}", token), "test@test.com");
 
         assert!(res.is_ok());
+    }
+
+    #[test]
+    fn admin_validation_rejects_non_admin_and_accepts_admin() {
+        let token_generator = TokenGenerator::new("test-secret".to_string(), 3600);
+        let standard_token = token_generator.generate_token(make_test_user());
+        assert!(
+            token_generator
+                .validate_admin_token(&standard_token)
+                .is_err()
+        );
+
+        let admin = User::Admin(UserDetails {
+            user_id: "ADMIN@TEST.COM".to_string(),
+            email_address: "admin@test.com".to_string(),
+            first_name: "Admin".to_string(),
+            last_name: "User".to_string(),
+            password_hash: "hash".to_string(),
+            created_at: Utc::now(),
+            last_active: None,
+            order_count: 0,
+        });
+        let admin_token = token_generator.generate_token(admin);
+        assert!(token_generator.validate_admin_token(&admin_token).is_ok());
     }
 }

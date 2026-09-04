@@ -57,6 +57,7 @@
     "axios": "^1.16.0",
     "dd-trace": "^5.115.0",
     "express": "^5.2.1",
+    "jose": "^5.0.0",
     "jsonwebtoken": "^9.0.3"
   },
   "overrides": {

@@ -13,10 +13,6 @@ import (
 	"os"
 	"product-event-publisher/internal/core"
 
-	productcore "github.com/datadog/serverless-sample-product-core"
-
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
@@ -38,14 +34,6 @@ func (publisher EventBridgeEventPublisher) PublishProductCreated(ctx context.Con
 	span, _ := tracer.StartSpanFromContext(ctx, "publish product.productCreated.v1")
 	defer span.Finish()
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated.v1", evt)
-
-	// Inject DSM context before marshaling so _datadog carrier is included in the message.
-	dsm_ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", productcore.ExternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(dsm_ctx, &cloudEvent)
-	}
 
 	evtData, _ := cloudEvent.ToJSON()
 	message := string(evtData)
@@ -93,14 +81,6 @@ func (publisher EventBridgeEventPublisher) PublishProductUpdated(ctx context.Con
 	defer span.Finish()
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productUpdated.v1", evt)
 
-	// Set the DSM produce checkpoint and then inject the context into the CloudEvent
-	dsm_ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", productcore.ExternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(dsm_ctx, &cloudEvent)
-	}
-
 	evtData, _ := cloudEvent.ToJSON()
 	message := string(evtData)
 	detailType := cloudEvent.Type
@@ -147,14 +127,6 @@ func (publisher EventBridgeEventPublisher) PublishProductDeleted(ctx context.Con
 	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productDeleted.v1", evt)
-
-	// Inject DSM context before marshaling so _datadog carrier is included in the message.
-	dsm_ctx, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-publiceventpublisher",
-	}, "direction:out", productcore.ExternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(dsm_ctx, &cloudEvent)
-	}
 
 	evtData, _ := cloudEvent.ToJSON()
 	message := string(evtData)

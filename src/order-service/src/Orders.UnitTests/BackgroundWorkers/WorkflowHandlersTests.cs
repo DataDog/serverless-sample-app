@@ -47,11 +47,9 @@ public class WorkflowHandlersTests
             }
         };
 
-        _tracingProvider.Setup(t => t.ExtractContextIncludingDsm(
+        _tracingProvider.Setup(t => t.ExtractContext(
                 It.IsAny<JsonDocument>(),
-                It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
+                It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>()))
             .Returns(_extractedContext.Object);
 
         _orderWorkflow.Setup(w => w.StockReservationSuccessful(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -66,11 +64,9 @@ public class WorkflowHandlersTests
 
         await sut.ReservationSuccess(requestWithContext);
 
-        _tracingProvider.Verify(t => t.ExtractContextIncludingDsm(
+        _tracingProvider.Verify(t => t.ExtractContext(
             It.IsAny<JsonDocument>(),
-            It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Once);
+            It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>()), Times.Once);
         _tracingProvider.Verify(t => t.StartActiveSpan(
             It.Is<string>(operationName => operationName.Contains("orders.confirmOrder")),
             _extractedContext.Object), Times.Once);
@@ -90,11 +86,9 @@ public class WorkflowHandlersTests
             }
         };
 
-        _tracingProvider.Setup(t => t.ExtractContextIncludingDsm(
+        _tracingProvider.Setup(t => t.ExtractContext(
                 It.IsAny<JsonDocument>(),
-                It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
+                It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>()))
             .Returns(_extractedContext.Object);
 
         _orderWorkflow.Setup(w => w.StockReservationFailed(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -109,11 +103,9 @@ public class WorkflowHandlersTests
 
         await sut.ReservationFailed(requestWithContext);
 
-        _tracingProvider.Verify(t => t.ExtractContextIncludingDsm(
+        _tracingProvider.Verify(t => t.ExtractContext(
             It.IsAny<JsonDocument>(),
-            It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>(),
-            It.IsAny<string>(),
-            It.IsAny<string>()), Times.Once);
+            It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>()), Times.Once);
         _tracingProvider.Verify(t => t.StartActiveSpan(
             It.Is<string>(operationName => operationName.Contains("orders.noStock")),
             _extractedContext.Object), Times.Once);

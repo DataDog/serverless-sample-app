@@ -8,14 +8,14 @@
 resource "aws_ssm_parameter" "user_service_access_key" {
   count = var.env == "dev" || var.env == "prod" ? 0 : 1
   name  = "/${var.env}/${var.service_name}/secret-access-key"
-  type  = "String"
-  value = "This is a sample secret key that should not be used in production`"
+  type  = "SecureString"
+  value = var.jwt_signing_secret
 }
 
 module "api_gateway" {
-  source            = "../../modules/api-gateway"
-  api_name          = "${var.service_name}-API-${var.env}"
-  env               = var.env
+  source   = "../../modules/api-gateway"
+  api_name = "${var.service_name}-API-${var.env}"
+  env      = var.env
 }
 
 # HTTP API doesn't require explicit resource creation - routes are defined directly in integrations
@@ -28,7 +28,7 @@ module "register_user_function" {
   lambda_handler = "index.handler"
   environment_variables = {
     "TABLE_NAME" : aws_dynamodb_table.user_management_table.name
-    "EVENT_BUS_NAME": var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.user_service_bus.name
+    "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.user_service_bus.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
   dd_site               = var.dd_site

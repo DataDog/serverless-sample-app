@@ -12,9 +12,6 @@ import (
 	"fmt"
 	"os"
 
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
-
 	core "github.com/datadog/serverless-sample-product-core"
 
 	"github.com/aws/aws-sdk-go-v2/service/sns"
@@ -36,13 +33,6 @@ func (publisher SnsEventPublisher) PublishProductCreated(ctx context.Context, ev
 	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productCreated", evt)
-
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-outbox",
-	}, "direction:out", core.InternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
-	}
 
 	tracedMessageData, _ := cloudEvent.ToJSON()
 
@@ -82,13 +72,6 @@ func (publisher SnsEventPublisher) PublishProductUpdated(ctx context.Context, ev
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productUpdated", evt)
 
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-outbox",
-	}, "direction:out", core.InternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
-	}
-
 	tracedMessageData, _ := cloudEvent.ToJSON()
 	message := string(tracedMessageData)
 	topicArn := os.Getenv("PRODUCT_UPDATED_TOPIC_ARN")
@@ -125,13 +108,6 @@ func (publisher SnsEventPublisher) PublishProductDeleted(ctx context.Context, ev
 	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.productDeleted", evt)
-
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-outbox",
-	}, "direction:out", core.InternalPubSubName, "topic:"+cloudEvent.Type, "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
-	}
 
 	tracedMessageData, _ := cloudEvent.ToJSON()
 	message := string(tracedMessageData)

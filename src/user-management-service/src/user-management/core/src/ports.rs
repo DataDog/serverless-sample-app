@@ -70,6 +70,7 @@ pub struct CreateUserCommand {
     first_name: String,
     last_name: String,
     password: String,
+    #[serde(skip)]
     admin_user: Option<bool>,
 }
 
@@ -596,7 +597,7 @@ impl AuthorizeRequest {
         if self.response_type != "code" {
             return Err(ApplicationError::InvalidInput(format!(
                 "Only 'code' response type is supported. Current request is for '{}'",
-                &self.response_type
+                self.response_type
             )));
         }
 
@@ -986,6 +987,18 @@ impl TokenRequest {
             ));
         }
 
+        if auth_code.client_id != self.client_id {
+            return Err(ApplicationError::InvalidInput(
+                "Authorization code was not issued to this client".to_string(),
+            ));
+        }
+
+        if auth_code.is_used {
+            return Err(ApplicationError::InvalidInput(
+                "Authorization code has already been used".to_string(),
+            ));
+        }
+
         if decode(&auth_code.redirect_uri) != decode(redirect_uri) {
             warn!(
                 "Redirect URI mismatch: expected '{}', got '{}'",
@@ -1000,12 +1013,13 @@ impl TokenRequest {
         if let Some(code_challenge) = &auth_code.code_challenge {
             // The code challenge property might exist, but be empty.
             if !code_challenge.is_empty() {
-                let code_verifier =
-                    self.code_verifier
-                        .as_ref()
-                        .ok_or(ApplicationError::InvalidInput(
-                            "Code verifier is required for PKCE".to_string(),
-                        ))?;
+                let code_verifier = self
+                    .code_verifier
+                    .as_deref()
+                    .filter(|verifier| !verifier.is_empty())
+                    .ok_or(ApplicationError::InvalidInput(
+                        "A non-empty code verifier is required for PKCE".to_string(),
+                    ))?;
 
                 if !self.validate_pkce(
                     code_verifier,
@@ -1019,30 +1033,38 @@ impl TokenRequest {
             }
         }
 
-        // Validate client secret if not using PKCE
-        if auth_code.code_challenge.is_none() {
-            let client_secret =
-                self.client_secret
-                    .as_ref()
-                    .ok_or(ApplicationError::InvalidInput(
-                        "Client secret is required".to_string(),
-                    ))?;
+        // Client authentication and PKCE are independent protections: always authenticate
+        // the client, including when this authorization code used PKCE.
+        let client_secret = self
+            .client_secret
+            .as_deref()
+            .filter(|secret| !secret.is_empty())
+            .ok_or(ApplicationError::InvalidInput(
+                "Client secret is required".to_string(),
+            ))?;
 
-            if !repository
-                .validate_client_secret(&self.client_id, client_secret)
-                .await
-                .map_err(|e| {
-                    ApplicationError::InternalError(format!(
-                        "Failed to validate client secret: {}",
-                        e
-                    ))
-                })?
-            {
-                return Err(ApplicationError::InvalidInput(
-                    "Invalid client secret".to_string(),
-                ));
-            }
+        if !repository
+            .validate_client_secret(&self.client_id, client_secret)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to validate client secret: {}", e))
+            })?
+        {
+            return Err(ApplicationError::InvalidInput(
+                "Invalid client secret".to_string(),
+            ));
         }
+
+        // Atomically consume the code before generating or storing any tokens.
+        repository
+            .mark_authorization_code_used(code)
+            .await
+            .map_err(|e| {
+                ApplicationError::InvalidInput(format!(
+                    "Authorization code could not be consumed: {}",
+                    e
+                ))
+            })?;
 
         // Get user for token generation
         let user = repository
@@ -1216,9 +1238,7 @@ impl TokenRequest {
                 ApplicationError::InternalError(format!("Failed to validate client secret: {}", e))
             })?
         {
-            return Err(ApplicationError::InvalidInput(
-                "Invalid client credentials".to_string(),
-            ));
+            return Err(ApplicationError::InvalidToken());
         }
 
         // Get client
@@ -1327,21 +1347,20 @@ impl IntrospectTokenRequest {
     ) -> Result<IntrospectTokenResponse, ApplicationError> {
         Span::current().set_attribute("oauth.client_id", self.client_id.clone());
 
-        // Validate client
-        if let Some(client_secret) = &self.client_secret
-            && !repository
-                .validate_client_secret(&self.client_id, client_secret)
-                .await
-                .map_err(|e| {
-                    ApplicationError::InternalError(format!(
-                        "Failed to validate client secret: {}",
-                        e
-                    ))
-                })?
+        // RFC 7662 requires the protected introspection endpoint to authenticate callers.
+        let client_secret = self
+            .client_secret
+            .as_deref()
+            .filter(|secret| !secret.is_empty())
+            .ok_or(ApplicationError::InvalidToken())?;
+        if !repository
+            .validate_client_secret(&self.client_id, client_secret)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to validate client secret: {}", e))
+            })?
         {
-            return Err(ApplicationError::InvalidInput(
-                "Invalid client credentials".to_string(),
-            ));
+            return Err(ApplicationError::InvalidToken());
         }
 
         // Get token
@@ -1405,21 +1424,20 @@ impl RevokeTokenRequest {
     ) -> Result<(), ApplicationError> {
         Span::current().set_attribute("user.id", self.client_id.clone());
 
-        // Validate client
-        if let Some(client_secret) = &self.client_secret
-            && !repository
-                .validate_client_secret(&self.client_id, client_secret)
-                .await
-                .map_err(|e| {
-                    ApplicationError::InternalError(format!(
-                        "Failed to validate client secret: {}",
-                        e
-                    ))
-                })?
+        // RFC 7009 requires client authentication at the revocation endpoint.
+        let client_secret = self
+            .client_secret
+            .as_deref()
+            .filter(|secret| !secret.is_empty())
+            .ok_or(ApplicationError::InvalidToken())?;
+        if !repository
+            .validate_client_secret(&self.client_id, client_secret)
+            .await
+            .map_err(|e| {
+                ApplicationError::InternalError(format!("Failed to validate client secret: {}", e))
+            })?
         {
-            return Err(ApplicationError::InvalidInput(
-                "Invalid client credentials".to_string(),
-            ));
+            return Err(ApplicationError::InvalidToken());
         }
 
         // Revoke token (both access and refresh tokens)
@@ -1431,5 +1449,26 @@ impl RevokeTokenRequest {
             })?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod security_tests {
+    use super::CreateUserCommand;
+
+    #[test]
+    fn public_user_payload_cannot_set_admin_flag() {
+        let command: CreateUserCommand = serde_json::from_str(
+            r#"{
+                "email_address":"attacker@example.com",
+                "first_name":"Not",
+                "last_name":"Admin",
+                "password":"password",
+                "admin_user":true
+            }"#,
+        )
+        .expect("payload should deserialize");
+
+        assert!(command.admin_user.is_none());
     }
 }

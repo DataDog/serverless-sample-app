@@ -13,7 +13,6 @@ using Datadog.Trace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Orders.Core.PublicEvents;
-using Orders.Core.Telemetry;
 
 namespace Orders.Core.Adapters;
 
@@ -22,7 +21,6 @@ internal record DeprecationInfo(DateTime Date, string SupercededBy);
 public class EventBridgeEventPublisher(
     ILogger<EventBridgeEventPublisher> logger,
     IConfiguration configuration,
-    ITransactionTracker transactionTracker,
     AmazonEventBridgeClient eventBridgeClient) : IPublicEventPublisher
 {
     private readonly string Source = $"{configuration["ENV"]}.orders";
@@ -58,12 +56,10 @@ public class EventBridgeEventPublisher(
 
         var detailNode = JsonNode.Parse(evt.Detail) ?? new JsonObject();
 
-        new SpanContextInjector().InjectIncludingDsm(
+        new SpanContextInjector().Inject(
             detailNode,
             SetHeader,
-            scope.Span.Context,
-            "eventbridge",
-            evt.DetailType);
+            scope.Span.Context);
 
         evt.Detail = detailNode.ToJsonString();
 
@@ -110,7 +106,6 @@ public class EventBridgeEventPublisher(
         };
         
         await Publish(putEventRecord);
-        await transactionTracker.TrackTransactionAsync(evt.OrderNumber, "orders.orderCreated");
     }
 
     public async Task Publish(OrderConfirmedEventV1 evt)
@@ -124,7 +119,6 @@ public class EventBridgeEventPublisher(
         };
         
         await Publish(putEventRecord);
-        await transactionTracker.TrackTransactionAsync(evt.OrderNumber, "orders.orderConfirmed");
     }
 
     public async Task Publish(OrderCompletedEventV1 evt)
@@ -138,7 +132,6 @@ public class EventBridgeEventPublisher(
         };
         
         await Publish(putEventRecord, new DeprecationInfo(new DateTime(2025, 12, 01), "orders.orderCompleted.v2"));
-        await transactionTracker.TrackTransactionAsync(evt.OrderNumber, "orders.orderCompleted");
     }
 
     public async Task Publish(OrderCompletedEventV2 evt)
@@ -152,7 +145,6 @@ public class EventBridgeEventPublisher(
         };
         
         await Publish(putEventRecord);
-        await transactionTracker.TrackTransactionAsync(evt.OrderId, "orders.orderCompleted");
     }
 
     private static void SetHeader(JsonNode carrier, string key, string value)

@@ -6,10 +6,11 @@
 //
 
 resource "aws_ssm_parameter" "pricing_service_access_key" {
-  count = var.env == "dev" || var.env == "prod" ? 0 : 1
-  name  = "/${var.env}/PricingService/secret-access-key"
-  type  = "String"
-  value = "This is a sample secret key that should not be used in production`"
+  count       = var.env == "dev" || var.env == "prod" ? 0 : 1
+  name        = "/${var.env}/PricingService/secret-access-key"
+  type        = "SecureString"
+  value       = var.jwt_signing_secret
+  description = "Strong, cryptographically random JWT signing secret."
 }
 
 module "api_gateway" {
@@ -36,10 +37,10 @@ module "calculate_pricing_lambda" {
   environment_variables = {
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/PricingService/secret-access-key"
   }
-  dd_api_key = var.dd_api_key
-  dd_site               = var.dd_site
-  app_version           = var.app_version
-  env                   = var.env
+  dd_api_key  = var.dd_api_key
+  dd_site     = var.dd_site
+  app_version = var.app_version
+  env         = var.env
   additional_policy_attachments = [
     aws_iam_policy.get_jwt_ssm_parameter.arn
   ]

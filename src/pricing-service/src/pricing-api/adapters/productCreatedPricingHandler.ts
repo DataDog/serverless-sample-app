@@ -24,7 +24,6 @@ import {
 } from "../../observability/observability";
 import { ProductCreatedEvent, ProductCreatedEventHandler } from "../core/productCreatedEventHandler";
 import { SsmProductApiClient } from "./ssmProductApiClient";
-import { DatadogPipelineCheckpointRecorder } from "./datadogPipelineCheckpointRecorder";
 
 const logger = new Logger({ serviceName: process.env.DD_SERVICE });
 const eventBridgeClient = new EventBridgeClient();
@@ -33,8 +32,7 @@ const ssmClient = new SSMClient();
 const createProductHandler = new ProductCreatedEventHandler(
   new PricingService(),
   new EventBridgeEventPublisher(eventBridgeClient),
-  new SsmProductApiClient(ssmClient),
-  new DatadogPipelineCheckpointRecorder()
+  new SsmProductApiClient(ssmClient)
 );
 
 export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {

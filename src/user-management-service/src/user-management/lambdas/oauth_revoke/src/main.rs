@@ -17,8 +17,6 @@ async fn function_handler<TRepository: Repository>(
     repository: &TRepository,
     event: Request,
 ) -> Result<impl IntoResponse, Error> {
-    tracing::info!("Received event: {:?}", event);
-
     // OAuth revoke requests can come as form data or JSON
     let revoke_request = if let Some(content_type) = event.headers().get("content-type") {
         if content_type
@@ -53,7 +51,7 @@ async fn function_handler<TRepository: Repository>(
             ApplicationError::NotFound => empty_response(&StatusCode::NOT_FOUND),
             ApplicationError::InvalidInput(_) => empty_response(&StatusCode::BAD_REQUEST),
             ApplicationError::InvalidPassword() => empty_response(&StatusCode::BAD_REQUEST),
-            ApplicationError::InvalidToken() => empty_response(&StatusCode::BAD_REQUEST),
+            ApplicationError::InvalidToken() => empty_response(&StatusCode::UNAUTHORIZED),
             ApplicationError::InternalError(_) => {
                 empty_response(&StatusCode::INTERNAL_SERVER_ERROR)
             }

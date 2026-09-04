@@ -12,13 +12,12 @@ from aws_lambda_powertools.utilities.idempotency import idempotent_function
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from ddtrace import tracer
 from ddtrace._trace.context import Context
-from ddtrace.data_streams import set_consume_checkpoint
 
 from activity_service.dal import get_dal_handler
 from activity_service.dal.db_handler import DalHandler
 from activity_service.handlers.utils.idempotency import IDEMPOTENCY_CONFIG, IDEMPOTENCY_LAYER
 from activity_service.handlers.utils.observability import logger
-from activity_service.logic.create_activity_handler import create_activity_handler
+from activity_service.logic.create_activity_handler import create_activities_handler, create_activity_handler
 from activity_service.models.input import CreateActivityRequest
 from activity_service.models.public_events import (
     ORDER_COMPLETED_EVENT_NAME,
@@ -65,29 +64,11 @@ def process_message(record: SQSRecord, lambda_context: LambdaContext) -> None:
         time = convert_date_time_string_to_epoch(message_body.get('time'))
         cloud_event_wrapper = message_body.get('detail', {})
 
-        _set_data_streams_consume_checkpoint(cloud_event_wrapper)
-
         process_cloud_event(cloud_event_wrapper, time, lambda_context)
 
     except Exception as e:
         logger.exception(f'Error processing message: {e}')
         raise
-
-
-def _set_data_streams_consume_checkpoint(cloud_event_wrapper: dict[str, Any]) -> None:
-    """Set a Data Streams consume checkpoint extracting pathway context from the _datadog envelope."""
-    carrier_get = extract_data_streams_carrier(cloud_event_wrapper)
-    set_consume_checkpoint('eventbridge', cloud_event_wrapper.get('type'), carrier_get)
-
-
-def extract_data_streams_carrier(cloud_event_wrapper: dict[str, Any]) -> Callable[[str], str | None]:
-    """Return a carrier-get function that reads keys from the _datadog envelope."""
-    datadog_envelope: dict[str, Any] = cloud_event_wrapper.get('_datadog', {}) or {}
-
-    def carrier_get(key: str) -> str | None:
-        return datadog_envelope.get(key)
-
-    return carrier_get
 
 
 def extract_trace_parent(cloud_event_wrapper: dict[str, Any]) -> str | None:
@@ -161,6 +142,7 @@ def handle_product_created(
         entityType='product',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
@@ -190,6 +172,7 @@ def handle_product_updated(
         entityType='product',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
@@ -219,6 +202,7 @@ def handle_product_deleted(
         entityType='product',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
@@ -248,6 +232,7 @@ def handle_user_registered(
         entityType='user',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
@@ -275,17 +260,17 @@ def handle_order_created(
         entityType='order',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
         span.set_tag('order.number', order_number)
 
-    create_activity_handler(create_order_activity_request, dal_handler)
-
     user_id: str | None = detail.get('userId')
 
     if not user_id:
         logger.warning('User ID not found in order creation event')
+        create_activity_handler(create_order_activity_request, dal_handler)
         return
 
     if span:
@@ -296,8 +281,11 @@ def handle_order_created(
         entityType='user',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
-    create_activity_handler(create_order_user_activity_request, dal_handler)
+    # Write both rows atomically so a partial failure cannot leave the order
+    # row without its matching user row under a single idempotency key.
+    create_activities_handler([create_order_activity_request, create_order_user_activity_request], dal_handler)
 
 
 @tracer.wrap(resource=f'process {ORDER_CONFIRMED_EVENT_NAME}')
@@ -319,17 +307,17 @@ def handle_order_confirmed(
         entityType='order',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
         span.set_tag('order.number', order_number)
 
-    create_activity_handler(confirm_order_activity_request, dal_handler)
-
     user_id: str | None = detail.get('userId')
 
     if not user_id:
         logger.warning('User ID not found in order creation event')
+        create_activity_handler(confirm_order_activity_request, dal_handler)
         return
 
     if span:
@@ -340,8 +328,11 @@ def handle_order_confirmed(
         entityType='user',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
-    create_activity_handler(confirm_order_user_activity_request, dal_handler)
+    # Write both rows atomically so a partial failure cannot leave the order
+    # row without its matching user row under a single idempotency key.
+    create_activities_handler([confirm_order_activity_request, confirm_order_user_activity_request], dal_handler)
 
 
 @tracer.wrap(resource=f'process {ORDER_COMPLETED_EVENT_NAME}')
@@ -363,17 +354,17 @@ def handle_order_completed(
         entityType='order',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
         span.set_tag('order.number', order_number)
 
-    create_activity_handler(order_activity_request, dal_handler)
-
     user_id: str | None = detail.get('userId')
 
     if not user_id:
         logger.warning('User ID not found in order creation event')
+        create_activity_handler(order_activity_request, dal_handler)
         return
 
     if span:
@@ -384,8 +375,11 @@ def handle_order_completed(
         entityType='user',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
-    create_activity_handler(user_activity_request, dal_handler)
+    # Write both rows atomically so a partial failure cannot leave the order
+    # row without its matching user row under a single idempotency key.
+    create_activities_handler([order_activity_request, user_activity_request], dal_handler)
 
 
 @tracer.wrap(resource=f'process {STOCK_UPDATED}')
@@ -406,6 +400,7 @@ def handle_stock_updated(
         entityType='product',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
@@ -433,6 +428,7 @@ def handle_stock_reserved(
         entityType='order',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:
@@ -460,6 +456,7 @@ def handle_stock_reservation_failed(
         entityType='order',
         activityType=activity_type,
         activityTime=time,
+        eventId=event_id,
     )
     span = tracer.current_span()
     if span:

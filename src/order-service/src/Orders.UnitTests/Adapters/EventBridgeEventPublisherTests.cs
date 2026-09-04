@@ -11,14 +11,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Orders.Core.Adapters;
 using Orders.Core.PublicEvents;
-using Orders.Core.Telemetry;
 
 namespace Orders.UnitTests.Adapters;
 
 public class EventBridgeEventPublisherTests
 {
     private readonly Mock<AmazonEventBridgeClient> _eventBridgeClientMock;
-    private readonly Mock<ITransactionTracker> _transactionTrackerMock = new();
     private readonly EventBridgeEventPublisher _publisher;
     private PutEventsRequest? _capturedRequest;
 
@@ -47,7 +45,6 @@ public class EventBridgeEventPublisherTests
         _publisher = new EventBridgeEventPublisher(
             logger.Object,
             configuration,
-            _transactionTrackerMock.Object,
             _eventBridgeClientMock.Object);
     }
 
@@ -92,7 +89,7 @@ public class EventBridgeEventPublisherTests
     }
 
     [Fact]
-    public async Task Publish_WhenEventBridgeReportsPartialFailure_ShouldThrowAndNotTrackTransaction()
+    public async Task Publish_WhenEventBridgeReportsPartialFailure_ShouldThrow()
     {
         _eventBridgeClientMock
             .Setup(c => c.PutEventsAsync(It.IsAny<PutEventsRequest>(), default))
@@ -118,41 +115,6 @@ public class EventBridgeEventPublisherTests
         };
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _publisher.Publish(orderCreatedEvent));
-
-        _transactionTrackerMock.Verify(
-            tracker => tracker.TrackTransactionAsync(It.IsAny<string>(), It.IsAny<string>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task Publish_ShouldTrackTransactionAfterSuccessfulPublish()
-    {
-        var calls = new List<string>();
-
-        _eventBridgeClientMock
-            .Setup(c => c.PutEventsAsync(It.IsAny<PutEventsRequest>(), default))
-            .Callback(() => calls.Add("publish"))
-            .ReturnsAsync(new PutEventsResponse
-            {
-                FailedEntryCount = 0,
-                HttpStatusCode = System.Net.HttpStatusCode.OK
-            });
-
-        _transactionTrackerMock
-            .Setup(tracker => tracker.TrackTransactionAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .Callback(() => calls.Add("track"))
-            .Returns(Task.CompletedTask);
-
-        var orderCreatedEvent = new OrderCreatedEventV1
-        {
-            OrderNumber = "ORD-001",
-            UserId = "user-123",
-            Products = new[] { "product-1" }
-        };
-
-        await _publisher.Publish(orderCreatedEvent);
-
-        calls.Should().Equal("publish", "track");
     }
 
     [Fact]
@@ -175,7 +137,6 @@ public class EventBridgeEventPublisherTests
 
         setHeader(carrier, "x-datadog-trace-id", "12345");
         setHeader(carrier, "x-datadog-parent-id", "67890");
-        setHeader(carrier, "dd-pathway-ctx", "encoded-pathway");
 
         var resultJson = carrier.ToJsonString();
         var resultNode = JsonNode.Parse(resultJson);
@@ -183,7 +144,6 @@ public class EventBridgeEventPublisherTests
         resultNode!["_datadog"].Should().NotBeNull();
         resultNode!["_datadog"]!["x-datadog-trace-id"]!.GetValue<string>().Should().Be("12345");
         resultNode!["_datadog"]!["x-datadog-parent-id"]!.GetValue<string>().Should().Be("67890");
-        resultNode!["_datadog"]!["dd-pathway-ctx"]!.GetValue<string>().Should().Be("encoded-pathway");
     }
 
     [Fact]

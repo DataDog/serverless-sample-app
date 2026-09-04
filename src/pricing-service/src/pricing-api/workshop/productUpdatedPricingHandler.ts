@@ -27,7 +27,6 @@ import {
   startProcessSpanWithSemanticConventions,
 } from "../../observability/observability";
 import { SsmProductApiClient } from "../adapters/ssmProductApiClient";
-import { DatadogPipelineCheckpointRecorder } from "../adapters/datadogPipelineCheckpointRecorder";
 
 const logger = new Logger({ serviceName: process.env.DD_SERVICE });
 const eventBridgeClient = new EventBridgeClient();
@@ -37,7 +36,6 @@ const updateProductHandler = new ProductUpdatedEventHandler(
   new PricingService(),
   new EventBridgeEventPublisher(eventBridgeClient),
   new SsmProductApiClient(ssmClient),
-  new DatadogPipelineCheckpointRecorder(),
 );
 
 export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {

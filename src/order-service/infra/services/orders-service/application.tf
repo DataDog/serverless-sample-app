@@ -10,10 +10,11 @@ resource "aws_ecs_cluster" "main" {
 }
 
 resource "aws_ssm_parameter" "orders_service_access_key" {
-  count = var.env == "dev" || var.env == "prod" ? 0 : 1
-  name  = "/${var.env}/OrdersService/secret-access-key"
-  type  = "String"
-  value = "This is a sample secret key that should not be used in production`"
+  count       = var.env == "dev" || var.env == "prod" ? 0 : 1
+  name        = "/${var.env}/OrdersService/secret-access-key"
+  type        = "SecureString"
+  value       = var.jwt_signing_secret
+  description = "Strong, cryptographically random JWT signing secret."
 }
 
 module "orders_web_service" {
@@ -33,7 +34,7 @@ module "orders_web_service" {
     },
     {
       name  = "EVENT_BUS_NAME"
-      value = var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.orders_service_bus.name
+      value = var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.orders_service_bus.name
     },
     {
       name  = "ORDER_WORKFLOW_ARN"
@@ -56,12 +57,12 @@ module "orders_web_service" {
       value = "true"
     }
   ]
-  dd_api_key = var.dd_api_key
-  dd_site               = var.dd_site
-  ecs_cluster_id        = aws_ecs_cluster.main.id
-  subnet_ids            = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
-  security_group_ids    = [aws_security_group.ecs_sg.id]
-  target_group_arn      = aws_lb_target_group.target_group.arn
+  dd_api_key         = var.dd_api_key
+  dd_site            = var.dd_site
+  ecs_cluster_id     = aws_ecs_cluster.main.id
+  subnet_ids         = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
+  security_group_ids = [aws_security_group.ecs_sg.id]
+  target_group_arn   = aws_lb_target_group.target_group.arn
   additional_execution_role_policy_attachments = [
   ]
   additional_task_role_policy_attachments = [
