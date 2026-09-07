@@ -36,21 +36,11 @@ Parameters:
   DDServiceName:
     Type: String
     Default: product-search-service
-  JwtSecretAccessKey:
-    Type: String
-    NoEcho: true
-    Default: ""
-    Description: JWT signing secret used by the search Lambda authorizer in ephemeral
-      (commit-hash) environments. Always injected from the JWT_SECRET_ACCESS_KEY
-      CI secret — never a hardcoded value.
 
 Conditions:
   IsIntegratedEnvironment: !Or
     - !Equals ["dev", !Ref Env]
     - !Equals ["prod", !Ref Env]
-  IsNotIntegratedEnvironment: !And
-    - !Not [!Equals [!Ref Env, prod]]
-    - !Not [!Equals [!Ref Env, dev]]
 
 Globals:
   Function:
@@ -310,50 +300,6 @@ Resources:
               Resource: "*"
 
 
-  SearchAuthorizerFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub "ProductSearchService-SearchAuthorizer-${Env}"
-      CodeUri: .build/lambdas/
-      Handler: product_search_service.handlers.lambda_authorizer.lambda_handler
-      Timeout: 5
-      MemorySize: 128
-      Environment:
-        Variables:
-          POWERTOOLS_SERVICE_NAME: !Ref DDServiceName
-          POWERTOOLS_LOG_LEVEL: INFO
-          JWT_SECRET_PARAM_NAME: !If
-            - IsIntegratedEnvironment
-            - !Sub "/${Env}/shared/secret-access-key"
-            - !Sub "/${Env}/ProductSearchService/secret-access-key"
-          ENV: !Ref Env
-      Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - ssm:GetParameter
-              Resource: !Sub
-                - "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SecretParamName}"
-                - SecretParamName: !If
-                    - IsIntegratedEnvironment
-                    - !Sub "/${Env}/shared/secret-access-key"
-                    - !Sub "/${Env}/ProductSearchService/secret-access-key"
-
-  # For dev/prod the shared JWT secret parameter already exists (created by the
-  # shared-infra stack). For ephemeral (commit-hash) environments we provision a
-  # service-scoped copy from the JWT_SECRET_ACCESS_KEY CI secret so the authorizer
-  # can start up without depending on a parameter that was never created.
-  EphemeralJwtSecretParam:
-    Type: AWS::SSM::Parameter
-    Condition: IsNotIntegratedEnvironment
-    Properties:
-      Name: !Sub "/${Env}/ProductSearchService/secret-access-key"
-      Type: String
-      Value: !Ref JwtSecretAccessKey
-      Description: JWT signing secret for the Product Search Service search authorizer
-
-
   ##################################
   ########## HTTP API ##############
   ##################################
@@ -370,25 +316,6 @@ Resources:
           - "*"
         AllowOrigins:
           - "*"
-      # JWT Lambda authorizer protects POST /search: anonymous or invalid-token
-      # requests are rejected before they can trigger paid Bedrock invocations,
-      # matching the CDK stack (HttpLambdaAuthorizer, SIMPLE responses).
-      Auth:
-        DefaultAuthorizer: SearchLambdaAuthorizer
-        Authorizers:
-          SearchLambdaAuthorizer:
-            AuthorizerPayloadFormatVersion: "2.0"
-            EnableSimpleResponses: true
-            FunctionArn: !GetAtt SearchAuthorizerFunction.Arn
-            EnableFunctionDefaultPermissions: true
-            Identity:
-              IdentitySource:
-                - "$request.header.Authorization"
-      # Throttling caps runaway cost from unauthenticated or misbehaving clients:
-      # 10 req/s steady-state, 20 req/s burst (mirrors the CDK stack stage).
-      DefaultRouteSettings:
-        ThrottlingBurstLimit: 20
-        ThrottlingRateLimit: 10
 
   ##################################
   ######## SSM Parameters ##########

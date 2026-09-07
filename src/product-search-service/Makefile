@@ -52,7 +52,6 @@ sam: build
 			ParameterKey=DDSite,ParameterValue=${DD_SITE} \
 			ParameterKey=Env,ParameterValue=${ENV} \
 			ParameterKey=CommitHash,ParameterValue=${COMMIT_HASH} \
-			ParameterKey=JwtSecretAccessKey,ParameterValue="${JWT_SECRET_ACCESS_KEY:-}" \
 		--no-confirm-changeset --no-fail-on-empty-changeset \
 		--capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
 		--resolve-s3 --region ${AWS_REGION} \
