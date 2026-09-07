@@ -44,7 +44,19 @@ export const handler = withDurableExecution(
       return { status: "no-change" };
     }
 
-    // Step 3: Gather context in parallel — product list and search recommendations
+    // Step 3: Persist the tier before running non-critical enrichment. Product
+    // lookups and the activity invocation must not prevent the core upgrade from
+    // being recorded if they stall or fail.
+    await context.step("upgrade-tier", async () => {
+      await tierRepo.save(
+        event.userId,
+        tierChange.newTier,
+        event.totalPoints,
+        account.tierVersion
+      );
+    });
+
+    // Step 4: Gather context in parallel — product list and search recommendations
     const gatherResult = await context.parallel(
       "gather-context",
       [
@@ -65,7 +77,7 @@ export const handler = withDurableExecution(
       Awaited<ReturnType<typeof search>>
     ];
 
-    // Step 4: Invoke fetch-order-history activity Lambda
+    // Step 5: Invoke fetch-order-history activity Lambda
     await context.invoke(
       "fetch-order-history",
       process.env.FETCH_ORDER_HISTORY_ACTIVITY_ARN!,
@@ -76,16 +88,6 @@ export const handler = withDurableExecution(
     // recommendations come from the search result; include products count in span.
     // Guard against undefined in case a parallel branch failed to produce results.
     logger.info("Gathered product context", { productCount: products?.length ?? 0 });
-
-    // Step 5: Save the upgraded tier
-    await context.step("upgrade-tier", async () => {
-      await tierRepo.save(
-        event.userId,
-        tierChange.newTier,
-        event.totalPoints,
-        account.tierVersion
-      );
-    });
 
     // Step 6: Publish event and wait for notification acknowledgement
     await context.waitForCallback(
