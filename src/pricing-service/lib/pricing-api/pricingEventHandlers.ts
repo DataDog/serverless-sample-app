@@ -83,8 +83,6 @@ export class PricingEventHandlers extends Construct {
           DOMAIN: props.serviceProps.getSharedProps().domain,
           EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
           PRODUCT_API_ENDPOINT_PARAMETER: productApiEndpointParameterName,
-          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "none",
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "datadog,tracecontext",
         },
         bundling: {
           platform: "node",
@@ -180,8 +178,6 @@ export class PricingEventHandlers extends Construct {
           DOMAIN: props.serviceProps.getSharedProps().domain,
           EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
           PRODUCT_API_ENDPOINT_PARAMETER: productApiEndpointParameterName,
-          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "none",
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "datadog,tracecontext",
         },
         bundling: {
           platform: "node",

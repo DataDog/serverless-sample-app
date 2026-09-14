@@ -49,8 +49,6 @@ public class InventoryAcl extends Construct {
         productCreatedFunctionEnvVars.put("EVENT_BUS_NAME", props.publisherBus().getEventBusName());
         productCreatedFunctionEnvVars.put("PRODUCT_ADDED_TOPIC_ARN", newProductAddedTopic.getTopicArn());
         productCreatedFunctionEnvVars.put("DD_TRACE_OTEL_ENABLED","true");
-        productCreatedFunctionEnvVars.put("DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT", "ignore");
-        productCreatedFunctionEnvVars.put("DD_TRACE_PROPAGATION_STYLE_EXTRACT", "none");
 
         String compiledJarFilePath = "../inventory-acl/target/function.zip";
 
@@ -98,8 +96,6 @@ public class InventoryAcl extends Construct {
         orderCompletedFunctionEnvVars.put("EVENT_BUS_NAME", props.publisherBus().getEventBusName());
         orderCompletedFunctionEnvVars.put("TABLE_NAME", props.inventoryTable().getTableName());
         orderCompletedFunctionEnvVars.put("DD_TRACE_OTEL_ENABLED","true");
-        orderCompletedFunctionEnvVars.put("DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT", "ignore");
-        orderCompletedFunctionEnvVars.put("DD_TRACE_PROPAGATION_STYLE_EXTRACT", "none");
 
         IFunction orderCompletedFunction = new InstrumentedFunction(this, "OrderCompletedACLFunction",
                 new InstrumentedFunctionProps(props.sharedProps(), "com.inventory.acl", compiledJarFilePath, "handleOrderCompleted", orderCompletedFunctionEnvVars, true)).getFunction();
@@ -128,8 +124,6 @@ public class InventoryAcl extends Construct {
         orderCreatedFunctionEnvVars.put("EVENT_BUS_NAME", props.publisherBus().getEventBusName());
         orderCreatedFunctionEnvVars.put("TABLE_NAME", props.inventoryTable().getTableName());
         orderCreatedFunctionEnvVars.put("DD_TRACE_OTEL_ENABLED","true");
-        orderCreatedFunctionEnvVars.put("DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT", "ignore");
-        orderCreatedFunctionEnvVars.put("DD_TRACE_PROPAGATION_STYLE_EXTRACT", "none");
 
         return new InstrumentedFunction(this, "OrderCreatedACLFunction",
                 new InstrumentedFunctionProps(props.sharedProps(), "com.inventory.acl", compiledJarFilePath, "handleOrderCreated", orderCreatedFunctionEnvVars, true)).getFunction();
@@ -144,8 +138,6 @@ public class InventoryAcl extends Construct {
         productCatalogueRefreshFunctionEnvVars.put("PRODUCT_ADDED_TOPIC_ARN", newProductAddedTopic.getTopicArn());
         productCatalogueRefreshFunctionEnvVars.put("PRODUCT_API_ENDPOINT_PARAMETER", productApiEndpointParameterName);
         productCatalogueRefreshFunctionEnvVars.put("DD_TRACE_OTEL_ENABLED","true");
-        productCatalogueRefreshFunctionEnvVars.put("DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT", "ignore");
-        productCatalogueRefreshFunctionEnvVars.put("DD_TRACE_PROPAGATION_STYLE_EXTRACT", "none");
 
         IFunction productCatalogueRefreshFunction = new InstrumentedFunction(this, "ProductRefreshFunction",
                 new InstrumentedFunctionProps(props.sharedProps(), "com.inventory.acl", compiledJarFilePath, "handleProductCatalogueRefresh", productCatalogueRefreshFunctionEnvVars, true)).getFunction();

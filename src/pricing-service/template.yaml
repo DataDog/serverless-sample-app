@@ -136,8 +136,6 @@ Resources:
 #             - !Ref PricingServiceEventBus
 #           PRODUCT_API_ENDPOINT_PARAMETER: !Sub "/${Env}/ProductService/api-endpoint"
 #           DD_DATA_STREAMS_ENABLED: "true"
-#           DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
-#           DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
 #       Events:
 #         ProductCreatedQueue:
 #           Type: SQS
@@ -212,8 +210,6 @@ Resources:
 #             - !Ref PricingServiceEventBus
 #           PRODUCT_API_ENDPOINT_PARAMETER: !Sub "/${Env}/ProductService/api-endpoint"
 #           DD_DATA_STREAMS_ENABLED: "true"
-#           DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
-#           DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
 #       Events:
 #         ProductUpdatedQueue:
 #           Type: SQS

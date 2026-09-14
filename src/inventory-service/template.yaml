@@ -121,8 +121,6 @@ Resources:
           QUARKUS_LAMBDA_HANDLER: handleProductCreated
           MAIN_CLASS: com.inventory.acl.FunctionConfiguration
           DD_TRACE_OTEL_ENABLED: "true"
-          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
       Events:
         IntegrationQueue:
           Type: SQS
@@ -201,8 +199,6 @@ Resources:
           QUARKUS_LAMBDA_HANDLER: handleOrderCreated
           MAIN_CLASS: com.inventory.acl.FunctionConfiguration
           DD_TRACE_OTEL_ENABLED: "true"
-          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
           EVENT_BUS_NAME: !If
             - IsIntegratedEnvironment
             - !Sub '{{resolve:ssm:/${Env}/shared/event-bus-name:1}}'
@@ -250,8 +246,6 @@ Resources:
           QUARKUS_LAMBDA_HANDLER: handleOrderCompleted
           MAIN_CLASS: com.inventory.acl.FunctionConfiguration
           DD_TRACE_OTEL_ENABLED: "true"
-          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "ignore"
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "none"
           EVENT_BUS_NAME: !If
             - IsIntegratedEnvironment
             - !Sub '{{resolve:ssm:/${Env}/shared/event-bus-name:1}}'

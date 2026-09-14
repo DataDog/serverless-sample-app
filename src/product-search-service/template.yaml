@@ -207,9 +207,6 @@ Resources:
         Variables:
           POWERTOOLS_SERVICE_NAME: !Ref DDServiceName
           POWERTOOLS_LOG_LEVEL: INFO
-          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: ignore
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: none
-          DD_BOTOCORE_DISTRIBUTED_TRACING: "false"
           DD_LLMOBS_ENABLED: "1"
           DD_LLMOBS_ML_APP: !Ref DDServiceName
           VECTOR_BUCKET_NAME: !Sub "serverless-sample-app-vector-${Env}"
@@ -268,9 +265,6 @@ Resources:
         Variables:
           POWERTOOLS_SERVICE_NAME: !Ref DDServiceName
           POWERTOOLS_LOG_LEVEL: INFO
-          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: ignore
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: none
-          DD_BOTOCORE_DISTRIBUTED_TRACING: "false"
           DD_LLMOBS_ENABLED: "1"
           DD_LLMOBS_ML_APP: !Ref DDServiceName
           VECTOR_BUCKET_NAME: !Sub "serverless-sample-app-vector-${Env}"

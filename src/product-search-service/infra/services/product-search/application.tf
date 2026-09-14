@@ -20,19 +20,16 @@ module "catalog_sync_lambda" {
   memory_size           = 512
 
   environment_variables = {
-    "POWERTOOLS_SERVICE_NAME"                    = "product-search-service"
-    "POWERTOOLS_LOG_LEVEL"                       = "INFO"
-    "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT"      = "ignore"
-    "DD_TRACE_PROPAGATION_STYLE_EXTRACT"         = "none"
-    "DD_BOTOCORE_DISTRIBUTED_TRACING"            = "false"
-    "DD_DATA_STREAMS_ENABLED"                    = "true"
-    "DD_LLMOBS_ENABLED"                          = "1"
-    "DD_LLMOBS_ML_APP"                           = "product-search-service"
-    "VECTOR_BUCKET_NAME"                         = "serverless-sample-app-vector-${var.env}"
-    "METADATA_TABLE_NAME"                        = aws_dynamodb_table.product_search_metadata_table.name
-    "PRODUCT_API_ENDPOINT_PARAMETER"             = "/${var.env}/ProductService/api-endpoint"
-    "EMBEDDING_MODEL_ID"                         = "amazon.titan-embed-text-v2:0"
-    "ENV"                                        = var.env
+    "POWERTOOLS_SERVICE_NAME"        = "product-search-service"
+    "POWERTOOLS_LOG_LEVEL"           = "INFO"
+    "DD_DATA_STREAMS_ENABLED"        = "true"
+    "DD_LLMOBS_ENABLED"              = "1"
+    "DD_LLMOBS_ML_APP"               = "product-search-service"
+    "VECTOR_BUCKET_NAME"             = "serverless-sample-app-vector-${var.env}"
+    "METADATA_TABLE_NAME"            = aws_dynamodb_table.product_search_metadata_table.name
+    "PRODUCT_API_ENDPOINT_PARAMETER" = "/${var.env}/ProductService/api-endpoint"
+    "EMBEDDING_MODEL_ID"             = "amazon.titan-embed-text-v2:0"
+    "ENV"                            = var.env
   }
 
   additional_policy_attachments = [
@@ -72,20 +69,17 @@ module "product_search_lambda" {
   memory_size           = 512
 
   environment_variables = {
-    "POWERTOOLS_SERVICE_NAME"               = "product-search-service"
-    "POWERTOOLS_LOG_LEVEL"                  = "INFO"
-    "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT" = "ignore"
-    "DD_TRACE_PROPAGATION_STYLE_EXTRACT"    = "none"
-    "DD_BOTOCORE_DISTRIBUTED_TRACING"       = "false"
-    "DD_DATA_STREAMS_ENABLED"               = "true"
-    "DD_LLMOBS_ENABLED"                     = "1"
-    "DD_LLMOBS_ML_APP"                      = "product-search-service"
-    "VECTOR_BUCKET_NAME"                    = "serverless-sample-app-vector-${var.env}"
-    "METADATA_TABLE_NAME"                   = aws_dynamodb_table.product_search_metadata_table.name
-    "EMBEDDING_MODEL_ID"                    = "amazon.titan-embed-text-v2:0"
-    "GENERATION_MODEL_ID"                   = "anthropic.claude-3-5-haiku-20241022-v1:0"
-    "SEARCH_TOP_K"                          = "5"
-    "ENV"                                   = var.env
+    "POWERTOOLS_SERVICE_NAME" = "product-search-service"
+    "POWERTOOLS_LOG_LEVEL"    = "INFO"
+    "DD_DATA_STREAMS_ENABLED" = "true"
+    "DD_LLMOBS_ENABLED"       = "1"
+    "DD_LLMOBS_ML_APP"        = "product-search-service"
+    "VECTOR_BUCKET_NAME"      = "serverless-sample-app-vector-${var.env}"
+    "METADATA_TABLE_NAME"     = aws_dynamodb_table.product_search_metadata_table.name
+    "EMBEDDING_MODEL_ID"      = "amazon.titan-embed-text-v2:0"
+    "GENERATION_MODEL_ID"     = "anthropic.claude-3-5-haiku-20241022-v1:0"
+    "SEARCH_TOP_K"            = "5"
+    "ENV"                     = var.env
   }
 
   additional_policy_attachments = [

@@ -55,8 +55,6 @@ export class LoyaltyACL extends Construct {
         environment: {
           TABLE_NAME: props.loyaltyTable.tableName,
           DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${props.loyaltyTable.tableName}": ["PK"]}`,
-          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "none",
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "datadog,tracecontext",
         },
         buildDef:
           "./src/loyalty-api/adapters/buildHandleUserCreatedFunction.js",
@@ -99,8 +97,6 @@ export class LoyaltyACL extends Construct {
         environment: {
           TABLE_NAME: props.loyaltyTable.tableName,
           DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS: `{"${props.loyaltyTable.tableName}": ["PK"]}`,
-          DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT: "none",
-          DD_TRACE_PROPAGATION_STYLE_EXTRACT: "datadog,tracecontext",
         },
         buildDef:
           "./src/loyalty-api/adapters/buildHandleOrderCompletedFunction.js",
