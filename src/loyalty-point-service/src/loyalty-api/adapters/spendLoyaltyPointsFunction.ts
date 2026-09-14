@@ -28,7 +28,7 @@ const spendPointsHandler = new SpendPointsCommandHandler(
 export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> => {
-  const parameter = await getParameter(process.env.JWT_SECRET_PARAM_NAME!);
+  const parameter = await getParameter(process.env.JWT_SECRET_PARAM_NAME!, { decrypt: true });
 
   const span = tracer.scope().active();
   addDefaultServiceTagsTo(span);

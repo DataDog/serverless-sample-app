@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
 from pydantic import BaseModel, Field
 
@@ -10,3 +10,4 @@ class ActivityItemEntry(BaseModel):
     entity_type: Annotated[str, Field(min_length=1)]
     activity_type: Annotated[str, Field(min_length=1)]
     created_at: Annotated[int, Field(description='The time the event was started')]
+    event_id: Annotated[Optional[str], Field(default=None, description='The source event id')] = None

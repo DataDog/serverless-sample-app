@@ -54,7 +54,6 @@ public class InstrumentedFunction : Construct
             { "DD_SERVICE", props.Shared.ServiceName },
             { "DD_API_KEY", props.Shared.DDApiKey },
             { "DD_CAPTURE_LAMBDA_PAYLOAD", "true" },
-            { "DD_DATA_STREAMS_ENABLED", "true" },
             { "DOMAIN", props.Shared.Domain },
             { "TEAM", props.Shared.Team }
         };

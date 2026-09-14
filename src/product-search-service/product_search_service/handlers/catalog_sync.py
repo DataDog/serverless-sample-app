@@ -19,7 +19,6 @@ from product_search_service.models.product import PricingTier
 from product_search_service.observability.messaging import (
     add_messaging_span_tags,
     extract_trace_parent,
-    set_dsm_consume_checkpoint,
 )
 
 PRODUCT_CREATED = "product.productCreated.v1"
@@ -140,8 +139,6 @@ def _process_record(record: SQSRecord) -> None:
     message_body = json.loads(record.body)
     cloud_event: dict[str, Any] = message_body.get("detail", {})
     event_type: str = cloud_event.get("type", "")
-
-    set_dsm_consume_checkpoint(event_type, cloud_event)
 
     handler = _get_event_handler_registry().get(event_type)
     if handler is None:

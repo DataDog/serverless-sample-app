@@ -27,8 +27,6 @@ import (
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -75,12 +73,6 @@ func processMessage(ctx context.Context, record events.SNSEventRecord) error {
 
 	span, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type))
 	defer span.Finish()
-
-	// Extract DSM context using the incoming ctx so the checkpoint is linked to
-	// the current trace, not an orphaned background context.
-	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
-		ServiceOverride: "productservice",
-	}, "direction:in", core.InternalPubSubName, "topic:"+evt.Type, "manual_checkpoint:true")
 
 	span.SetTag("product.id", evt.Data.ProductId)
 	span.SetTag("product.priceCount", len(evt.Data.PriceBrackets))

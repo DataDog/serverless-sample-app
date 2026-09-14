@@ -63,7 +63,6 @@ export class InstrumentedLambdaFunction extends Construct {
         BUILD_ID: props.sharedProps.version,
         TEAM: props.sharedProps.team,
         DOMAIN: props.sharedProps.domain,
-        DD_DATA_STREAMS_ENABLED: "true",
         DD_APM_REPLACE_TAGS: `[
       {
         "name": "function.request.headers.Authorization",

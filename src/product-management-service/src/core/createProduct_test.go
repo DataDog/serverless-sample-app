@@ -98,6 +98,11 @@ func (m *MockOutboxRepository) MarkAsProcessed(ctx context.Context, entryId stri
 	return args.Error(0)
 }
 
+func (m *MockOutboxRepository) ReleaseClaim(ctx context.Context, entryId string) error {
+	args := m.Called(ctx, entryId)
+	return args.Error(0)
+}
+
 func TestCreateProductCommandHandler_Handle(t *testing.T) {
 	// Test cases
 	tests := []struct {

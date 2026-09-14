@@ -32,11 +32,18 @@ class ProductSearchApiDriver:
     # Search API
     # ------------------------------------------------------------------
 
+    def _search_headers(self) -> dict[str, str]:
+        """Return Authorization header for the search endpoint when a secret is available."""
+        if not self._jwt_secret:
+            return {}
+        return {"Authorization": f"Bearer {self._generate_admin_token()}"}
+
     def search(self, query: str) -> dict[str, Any]:
         """POST /search with a natural language query."""
         response = self._products_client.post(
             f"{self.search_api_endpoint}/search",
             json={"query": query},
+            headers=self._search_headers(),
             timeout=30,
         )
         response.raise_for_status()
@@ -47,6 +54,7 @@ class ProductSearchApiDriver:
         return self._products_client.post(
             f"{self.search_api_endpoint}/search",
             json={"query": query},
+            headers=self._search_headers(),
             timeout=30,
         )
 
@@ -181,7 +189,9 @@ def initialize_driver() -> ProductSearchApiDriver:
     search_endpoint = os.environ.get("SEARCH_API_ENDPOINT")
     product_endpoint = os.environ.get("PRODUCT_API_ENDPOINT")
     event_bus_name = os.environ.get("EVENT_BUS_NAME")
-    jwt_secret = os.environ.get("JWT_SECRET_KEY", "")
+    # JWT_SECRET_KEY takes precedence; fall back to JWT_SECRET_ACCESS_KEY which is
+    # the name of the GitHub Actions secret injected into the deploy step.
+    jwt_secret = os.environ.get("JWT_SECRET_KEY") or os.environ.get("JWT_SECRET_ACCESS_KEY", "")
 
     if search_endpoint and product_endpoint and event_bus_name:
         return ProductSearchApiDriver(search_endpoint, product_endpoint, event_bus_name, jwt_secret)
@@ -220,5 +230,10 @@ def initialize_driver() -> ProductSearchApiDriver:
         # Pipeline tests are skipped; smoke tests only need the search endpoint.
         product_endpoint = ""
         event_bus_name = "default"
+        # For ephemeral envs the secret is passed via JWT_SECRET_ACCESS_KEY (injected
+        # by the deploy step). The search authorizer uses the same shared secret as the
+        # product-management-service.
+        if not jwt_secret:
+            jwt_secret = os.environ.get("JWT_SECRET_ACCESS_KEY", "")
 
     return ProductSearchApiDriver(search_endpoint, product_endpoint, event_bus_name, jwt_secret)

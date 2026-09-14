@@ -94,10 +94,11 @@ module "aws_lambda_function" {
   logging_config_log_group = aws_cloudwatch_log_group.lambda_log_group.name
   source_code_hash         = filebase64sha256(var.zip_file)
   timeout                  = var.function_timeout
+  publish                  = var.publish
 
   environment_variables = merge(tomap({
-    "TEAM": "loyalty"
-    "DOMAIN": "loyalty"
+    "TEAM" : "loyalty"
+    "DOMAIN" : "loyalty"
     "DD_API_KEY_SECRET_ARN" : var.dd_api_key_secret_arn
     "DD_EXTENSION_VERSION" : "next"
     "DD_CAPTURE_LAMBDA_PAYLOAD" : "true"
@@ -116,5 +117,5 @@ module "aws_lambda_function" {
   )
 
   datadog_extension_layer_version = 90
-  datadog_node_layer_version = 130
+  datadog_node_layer_version      = 130
 }

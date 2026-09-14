@@ -74,11 +74,9 @@ public class Functions
                 return false;
             }
 
-            var parentContext = _tracingProvider.ExtractContextIncludingDsm(
+            var parentContext = _tracingProvider.ExtractContext(
                 JsonDocument.Parse(record.Body),
-                GetHeader,
-                "eventbridge",
-                evtData.Detail.Type);
+                GetHeader);
 
             processingSpan = _tracingProvider.StartActiveSpan($"process {evtData.Detail.Type}", parentContext);
 
@@ -136,11 +134,9 @@ public class Functions
                 return false;
             }
 
-            var parentContext = _tracingProvider.ExtractContextIncludingDsm(
+            var parentContext = _tracingProvider.ExtractContext(
                 JsonDocument.Parse(record.Body),
-                GetHeader,
-                "eventbridge",
-                evtData.Detail.Type);
+                GetHeader);
 
             processingSpan = _tracingProvider.StartActiveSpan($"process {evtData.Detail.Type}", parentContext);
 

@@ -56,23 +56,14 @@ export class EventBridgeTierPublisher {
         traceparent,
       });
 
-      const _datadog: Record<string, string> = {};
+      messagingSpan = startPublishSpanWithSemanticConventions(cloudEvent, {
+        publicOrPrivate: MessagingType.PRIVATE,
+        messagingSystem: "eventbridge",
+        destinationName: process.env.EVENT_BUS_NAME ?? "",
+        parentSpan: parentSpan,
+      });
 
-      messagingSpan = startPublishSpanWithSemanticConventions(
-        cloudEvent,
-        {
-          publicOrPrivate: MessagingType.PRIVATE,
-          messagingSystem: "eventbridge",
-          destinationName: process.env.EVENT_BUS_NAME ?? "",
-          parentSpan: parentSpan,
-        },
-        _datadog
-      );
-
-      const detail = {
-        ...JSON.parse(JSON.stringify(cloudEvent)),
-        _datadog,
-      };
+      const detail = JSON.parse(JSON.stringify(cloudEvent));
 
       const evtEntries: PutEventsRequestEntry[] = [
         {

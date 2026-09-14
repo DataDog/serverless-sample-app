@@ -11,3 +11,4 @@ class Activity(BaseModel):
 class ActivityItem(BaseModel):
     type: Annotated[str, Field(min_length=1, description='The type of event')]
     activity_time: Annotated[int, Field(description='The time the event was started')]
+    event_id: Annotated[str | None, Field(default=None, description='The source event id, used to keep the sort key unique')] = None

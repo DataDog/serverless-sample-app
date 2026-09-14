@@ -38,7 +38,7 @@ impl DynamoDbRepository {
     async fn put_to_dynamo(&self, user: &User) -> Result<(), RepositoryError> {
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.PutItem {}", &self.table_name),
+            format!("DynamoDB.PutItem {}", self.table_name),
         );
 
         tracing::info!("Storing user details in DynamoDB");
@@ -142,7 +142,7 @@ impl Repository for DynamoDbRepository {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.GetItem {}", &self.table_name),
+            format!("DynamoDB.GetItem {}", self.table_name),
         );
 
         let search_address = StringHasher::hash_string(email_address.to_uppercase());
@@ -236,7 +236,7 @@ impl Repository for DynamoDbRepository {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.PutItem {}", &self.table_name),
+            format!("DynamoDB.PutItem {}", self.table_name),
         );
 
         let res = self
@@ -314,7 +314,7 @@ impl Repository for DynamoDbRepository {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.GetItem {}", &self.table_name),
+            format!("DynamoDB.GetItem {}", self.table_name),
         );
 
         let res = self
@@ -357,7 +357,7 @@ impl Repository for DynamoDbRepository {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.DeleteItem {}", &self.table_name),
+            format!("DynamoDB.DeleteItem {}", self.table_name),
         );
 
         let res = self
@@ -392,7 +392,7 @@ impl Repository for DynamoDbRepository {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.Query {}", &self.table_name),
+            format!("DynamoDB.Query {}", self.table_name),
         );
 
         let page_size = limit.unwrap_or(10) as i32;
@@ -450,7 +450,7 @@ impl Repository for DynamoDbRepository {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.PutItem {}", &self.table_name),
+            format!("DynamoDB.PutItem {}", self.table_name),
         );
 
         let mut item_builder = self
@@ -505,7 +505,7 @@ impl Repository for DynamoDbRepository {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.GetItem {}", &self.table_name),
+            format!("DynamoDB.GetItem {}", self.table_name),
         );
 
         let res = self
@@ -539,7 +539,7 @@ impl Repository for DynamoDbRepository {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.DeleteItem {}", &self.table_name),
+            format!("DynamoDB.DeleteItem {}", self.table_name),
         );
 
         let res = self
@@ -567,7 +567,7 @@ impl Repository for DynamoDbRepository {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.UpdateItem {}", &self.table_name),
+            format!("DynamoDB.UpdateItem {}", self.table_name),
         );
 
         let res = self
@@ -577,7 +577,9 @@ impl Repository for DynamoDbRepository {
             .key(PARTITION_KEY, AttributeValue::S(format!("CODE#{}", code)))
             .key(SORT_KEY, AttributeValue::S("METADATA".to_string()))
             .update_expression("SET IsUsed = :used")
+            .condition_expression("attribute_exists(IsUsed) AND IsUsed = :unused")
             .expression_attribute_values(":used", AttributeValue::Bool(true))
+            .expression_attribute_values(":unused", AttributeValue::Bool(false))
             .send()
             .await;
 
@@ -604,7 +606,7 @@ impl Repository for DynamoDbRepository {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.PutItem {}", &self.table_name),
+            format!("DynamoDB.PutItem {}", self.table_name),
         );
 
         let mut item_builder = self
@@ -662,7 +664,7 @@ impl Repository for DynamoDbRepository {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.GetItem {}", &self.table_name),
+            format!("DynamoDB.GetItem {}", self.table_name),
         );
 
         let res = self
@@ -702,7 +704,7 @@ impl Repository for DynamoDbRepository {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.Scan {}", &self.table_name),
+            format!("DynamoDB.Scan {}", self.table_name),
         );
 
         // Note: This is a simplified implementation. In production, you'd want to create a GSI for refresh tokens
@@ -744,7 +746,7 @@ impl Repository for DynamoDbRepository {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.UpdateItem {}", &self.table_name),
+            format!("DynamoDB.UpdateItem {}", self.table_name),
         );
 
         let res = self
@@ -777,7 +779,7 @@ impl Repository for DynamoDbRepository {
         Span::current().set_attribute("peer.service", self.table_name.clone());
         Span::current().set_attribute(
             "resource.name",
-            format!("DynamoDB.Scan {}", &self.table_name),
+            format!("DynamoDB.Scan {}", self.table_name),
         );
 
         let res = self

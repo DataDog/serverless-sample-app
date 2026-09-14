@@ -6,24 +6,29 @@
 //
 
 output "function_arn" {
-  value       =  module.aws_lambda_function.arn
+  value       = module.aws_lambda_function.arn
   description = "The arn of the lambda function."
-} 
+}
 
 output "function_invoke_arn" {
-  value       =  module.aws_lambda_function.invoke_arn
+  value       = module.aws_lambda_function.invoke_arn
   description = "The invoke ARN of the lambda function."
-} 
+}
+
+output "qualified_arn" {
+  value       = module.aws_lambda_function.qualified_arn
+  description = "The ARN identifying the published Lambda function version (only meaningful when publish = true)."
+}
 
 output "function_name" {
-  value       =  module.aws_lambda_function.function_name
+  value       = module.aws_lambda_function.function_name
   description = "The name of the lambda function."
-} 
+}
 
-output function_role_arn {
-    value = aws_iam_role.lambda_function_role.arn
-} 
+output "function_role_arn" {
+  value = aws_iam_role.lambda_function_role.arn
+}
 
-output function_role_name {
-    value = aws_iam_role.lambda_function_role.name
+output "function_role_name" {
+  value = aws_iam_role.lambda_function_role.name
 }

@@ -11,11 +11,9 @@ public interface ITracingProvider
 {
     ISpan? GetActiveSpan();
 
-    ISpanContext? ExtractContextIncludingDsm(
+    ISpanContext? ExtractContext(
         JsonDocument carrier,
-        Func<JsonDocument, string, IEnumerable<string?>> getter,
-        string messageType,
-        string target);
+        Func<JsonDocument, string, IEnumerable<string?>> getter);
 
     IScope StartActiveSpan(string operationName, ISpanContext? parentContext);
 }

@@ -26,6 +26,12 @@ variable "app_version" {
   default     = "latest"
 }
 
+variable "jwt_signing_secret" {
+  type        = string
+  description = "A strong, cryptographically random JWT signing secret; never use a sample or committed value."
+  sensitive   = true
+}
+
 variable "region" {
   type = string
 }

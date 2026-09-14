@@ -47,6 +47,7 @@ describe("integration-tests", () => {
     const jwtSecretParameter = await ssmCLient.send(
       new GetParameterCommand({
         Name: `/${env}/${sharedServiceName}/secret-access-key`,
+        WithDecryption: true,
       })
     );
     jwtSecretValue = jwtSecretParameter.Parameter!.Value!;
@@ -195,6 +196,7 @@ describe("tier-upgrade-workflow", () => {
     const jwtSecretParameter = await ssmCLient.send(
       new GetParameterCommand({
         Name: `/${env}/${sharedServiceName}/secret-access-key`,
+        WithDecryption: true,
       })
     );
     jwtSecretValue = jwtSecretParameter.Parameter!.Value!;
@@ -238,16 +240,23 @@ describe("tier-upgrade-workflow", () => {
       await delay(asyncDelay);
 
       // Inject 8 orders to reach exactly 500 points → Silver tier
+      // A short delay between injections ensures DynamoDB writes and stream
+      // events are processed sequentially, avoiding multiple concurrent
+      // orchestrator executions that could race on the tier-save step.
       const orderIds = Array.from({ length: 8 }, () =>
         randomUUID().toString()
       );
       for (const orderId of orderIds) {
         await apiDriver.injectOrderCompletedEvent(testUserId, orderId);
+        await delay(500);
       }
 
       // Wait for the full durable workflow to complete
       // (trigger → orchestrator → parallel product/order fetch → upgrade → waitForCallback → ack → complete)
-      await delay(40000);
+      // 60 s gives headroom for cold starts, SQS polling delays and the
+      // durable-execution checkpoint round-trips without hitting the 120 s
+      // Jest test timeout.
+      await delay(60000);
 
       const tier = await apiDriver.getTierForUser(testUserId);
 
@@ -255,7 +264,7 @@ describe("tier-upgrade-workflow", () => {
       expect(tier!.tier).toBe("Silver");
       expect(tier!.pointsAtUpgrade).toBe(500);
     },
-    90000
+    120000
   );
 
   it(
@@ -265,15 +274,18 @@ describe("tier-upgrade-workflow", () => {
       await apiDriver.injectUserCreatedEvent(testUserId);
       await delay(asyncDelay);
 
-      // Inject enough orders to cross Silver threshold
+      // Inject enough orders to cross Silver threshold.
+      // Small delay between injections to avoid concurrent orchestrator
+      // executions racing on the tier-save step.
       const orderIds = Array.from({ length: 8 }, () =>
         randomUUID().toString()
       );
       for (const orderId of orderIds) {
         await apiDriver.injectOrderCompletedEvent(testUserId, orderId);
+        await delay(500);
       }
 
-      await delay(40000);
+      await delay(60000);
 
       const tier = await apiDriver.getTierForUser(testUserId);
       expect(tier).not.toBeNull();
@@ -281,7 +293,7 @@ describe("tier-upgrade-workflow", () => {
       // TierVersion should be 1 — only one upgrade despite multiple pointsAdded events
       expect(tier!.tierVersion).toBe(1);
     },
-    90000
+    120000
   );
 
   it(

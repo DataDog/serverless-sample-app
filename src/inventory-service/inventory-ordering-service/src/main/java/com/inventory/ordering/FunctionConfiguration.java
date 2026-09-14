@@ -14,7 +14,6 @@ import com.inventory.ordering.adapters.CloudEventWrapper;
 
 import com.inventory.ordering.core.InventoryOrderingService;
 import com.inventory.ordering.core.events.internal.NewProductAddedEvent;
-import datadog.trace.api.experimental.DataStreamsCheckpointer;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
@@ -60,9 +59,6 @@ public class FunctionConfiguration {
                             .startSpan();
 
                     try (Scope scope = processSpan.makeCurrent()) {
-                        var carrier = new Carrier(evtWrapper.getDatadog());
-                        DataStreamsCheckpointer.get().setConsumeCheckpoint("sns", evtWrapper.getType(), carrier);
-
                         processSpan.setAttribute("product.id", evtWrapper.getData().getProductId());
                         processSpan.setAttribute("messaging.message.id", evtWrapper.getId());
                         processSpan.setAttribute("messaging.operation.type", "process");

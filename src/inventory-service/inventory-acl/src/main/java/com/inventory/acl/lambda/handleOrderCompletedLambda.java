@@ -12,11 +12,7 @@ import com.inventory.acl.core.ExternalEventHandler;
 import com.inventory.acl.core.events.external.OrderCompletedEventV1;
 import com.inventory.core.DataAccessException;
 import com.inventory.core.InventoryItemNotFoundException;
-import com.inventory.core.TransactionTracker;
-import com.inventory.core.adapters.Carrier;
-import com.inventory.core.adapters.DatadogTelemetry;
 import com.inventory.core.utils.TraceUtils;
-import datadog.trace.api.experimental.DataStreamsCheckpointer;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.*;
 import jakarta.inject.Inject;
@@ -34,9 +30,6 @@ public class handleOrderCompletedLambda implements RequestHandler<SQSEvent, SQSB
     Logger logger = LoggerFactory.getLogger(handleOrderCompletedLambda.class);
     @Inject
     ExternalEventHandler eventHandler;
-
-    @Inject
-    TransactionTracker transactionTracker;
 
     @Override
     public SQSBatchResponse handleRequest(SQSEvent sqsEvent, Context context) {
@@ -67,9 +60,6 @@ public class handleOrderCompletedLambda implements RequestHandler<SQSEvent, SQSB
 
                 processSpan = processSpanBuilder.startSpan();
 
-                DatadogTelemetry datadog = evtWrapper.getDetail().getDatadog() != null
-                        ? evtWrapper.getDetail().getDatadog() : new DatadogTelemetry();
-                DataStreamsCheckpointer.get().setConsumeCheckpoint("eventbridge", evtWrapper.getDetailType(), new Carrier(datadog));
                 processSpan.setAttribute("messaging.id", message.getMessageId());
                 processSpan.setAttribute("messaging.operation.type", "process");
                 processSpan.setAttribute("messaging.system", "aws_sqs");

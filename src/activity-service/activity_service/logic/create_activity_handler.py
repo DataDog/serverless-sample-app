@@ -1,5 +1,5 @@
 from activity_service.dal.db_handler import DalHandler
-from activity_service.models.activity import ActivityItem
+from activity_service.models.activity import Activity, ActivityItem
 from activity_service.models.input import CreateActivityRequest
 
 
@@ -24,7 +24,8 @@ def create_activity_handler(request: CreateActivityRequest, dal_handler: DalHand
 
     existing_activity.activities.append(ActivityItem(
         type=request.activityType,
-        activity_time=request.activityTime
+        activity_time=request.activityTime,
+        event_id=request.eventId,
     ))
 
     dal_handler.update_activity(existing_activity)
@@ -33,3 +34,33 @@ def create_activity_handler(request: CreateActivityRequest, dal_handler: DalHand
         "status": "success",
         "message": f"Activity of type '{request.activityType}' for entity '{request.entityId}' created successfully."
     }
+
+
+def create_activities_handler(requests: list[CreateActivityRequest], dal_handler: DalHandler) -> dict:
+    """Atomically persist multiple activities for a single source event.
+
+    All rows are written in one transaction so a partial failure cannot leave
+    inconsistent state under a shared idempotency key.
+    """
+    activities = [_to_activity(request) for request in requests]
+
+    dal_handler.save_activities(activities)
+
+    return {
+        "status": "success",
+        "message": f"{len(activities)} activities created successfully."
+    }
+
+
+def _to_activity(request: CreateActivityRequest) -> Activity:
+    return Activity(
+        entity_id=request.entityId,
+        entity_type=request.entityType,
+        activities=[
+            ActivityItem(
+                type=request.activityType,
+                activity_time=request.activityTime,
+                event_id=request.eventId,
+            )
+        ],
+    )

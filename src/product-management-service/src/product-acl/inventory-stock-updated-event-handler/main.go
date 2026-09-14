@@ -16,8 +16,6 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -30,7 +28,6 @@ import (
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	observability "github.com/datadog/serverless-sample-observability"
-	productcore "github.com/datadog/serverless-sample-product-core"
 
 	ddlambda "github.com/DataDog/datadog-lambda-go"
 	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go-v2/aws"
@@ -124,11 +121,6 @@ func processMessage(ctx context.Context, record events.SQSMessage) error {
 		}
 	}
 
-	// Extract DSM context using the incoming ctx so the checkpoint is linked to
-	// the current trace, not an orphaned background context.
-	_, _ = tracer.SetDataStreamsCheckpointWithParams(datastreams.ExtractFromBase64Carrier(ctx, &evt), options.CheckpointParams{
-		ServiceOverride: "productservice-acl",
-	}, "direction:in", productcore.ExternalPubSubName, "topic:"+evt.Type, "manual_checkpoint:true")
 	processSpan, _ := tracer.StartSpanFromContext(ctx, fmt.Sprintf("process %s", evt.Type), tracer.WithSpanLinks(spanLinks))
 	defer processSpan.Finish()
 

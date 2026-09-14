@@ -12,9 +12,6 @@ import (
 	"fmt"
 	"os"
 
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams"
-	"gopkg.in/DataDog/dd-trace-go.v1/datastreams/options"
-
 	core "github.com/datadog/serverless-sample-product-core"
 
 	"github.com/aws/aws-sdk-go-v2/service/sns"
@@ -35,14 +32,6 @@ func (publisher SnsEventPublisher) PublishStockUpdatedEvent(ctx context.Context,
 	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.stockUpdated", evt)
-
-	// Inject DSM context before marshaling so _datadog carrier is included in the message.
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-acl",
-	}, "direction:out", core.InternalPubSubName, "topic:product.stockUpdated", "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
-	}
 
 	tracedMessageData, _ := cloudEvent.ToJSON()
 
@@ -81,14 +70,6 @@ func (publisher SnsEventPublisher) PublishPricingChangedEvent(ctx context.Contex
 	defer span.Finish()
 
 	cloudEvent := observability.NewCloudEvent(ctx, "product.pricingChanged", evt)
-
-	// Inject DSM context before marshaling so _datadog carrier is included in the message.
-	_, ok := tracer.SetDataStreamsCheckpointWithParams(ctx, options.CheckpointParams{
-		ServiceOverride: "productservice-acl",
-	}, "direction:out", core.InternalPubSubName, "topic:product.pricingChanged", "manual_checkpoint:true")
-	if ok {
-		datastreams.InjectToBase64Carrier(ctx, &cloudEvent)
-	}
 
 	tracedMessageData, _ := cloudEvent.ToJSON()
 

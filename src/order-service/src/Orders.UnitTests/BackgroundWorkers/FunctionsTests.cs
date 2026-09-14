@@ -44,11 +44,9 @@ public class FunctionsTests
 
         _tracingProvider.Setup(t => t.GetActiveSpan()).Returns(lambdaActiveSpan.Object);
 
-        _tracingProvider.Setup(t => t.ExtractContextIncludingDsm(
+        _tracingProvider.Setup(t => t.ExtractContext(
                 It.IsAny<JsonDocument>(),
-                It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>(),
-                "eventbridge",
-                "stock.reserved"))
+                It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>()))
             .Returns(_extractedContext.Object);
 
         _tracingProvider.Setup(t => t.StartActiveSpan(
@@ -81,11 +79,9 @@ public class FunctionsTests
 
         _tracingProvider.Setup(t => t.GetActiveSpan()).Returns(lambdaActiveSpan.Object);
 
-        _tracingProvider.Setup(t => t.ExtractContextIncludingDsm(
+        _tracingProvider.Setup(t => t.ExtractContext(
                 It.IsAny<JsonDocument>(),
-                It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>(),
-                "eventbridge",
-                "stock.reservation_failed"))
+                It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>()))
             .Returns(_extractedContext.Object);
 
         _tracingProvider.Setup(t => t.StartActiveSpan(
@@ -112,11 +108,9 @@ public class FunctionsTests
     [Fact]
     public async Task HandleReservationFailed_WhenWorkflowThrows_RecordsExceptionOnSpan()
     {
-        _tracingProvider.Setup(t => t.ExtractContextIncludingDsm(
+        _tracingProvider.Setup(t => t.ExtractContext(
                 It.IsAny<JsonDocument>(),
-                It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
+                It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>()))
             .Returns(_extractedContext.Object);
 
         _tracingProvider.Setup(t => t.StartActiveSpan(
@@ -141,13 +135,11 @@ public class FunctionsTests
     {
         JsonDocument? capturedDocument = null;
 
-        _tracingProvider.Setup(t => t.ExtractContextIncludingDsm(
+        _tracingProvider.Setup(t => t.ExtractContext(
                 It.IsAny<JsonDocument>(),
-                It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>(),
-                "eventbridge",
-                It.IsAny<string>()))
-            .Callback<JsonDocument, Func<JsonDocument, string, IEnumerable<string?>>, string, string>(
-                (doc, _, _, _) => capturedDocument = doc)
+                It.IsAny<Func<JsonDocument, string, IEnumerable<string?>>>()))
+            .Callback<JsonDocument, Func<JsonDocument, string, IEnumerable<string?>>>(
+                (doc, _) => capturedDocument = doc)
             .Returns(_extractedContext.Object);
 
         _tracingProvider.Setup(t => t.StartActiveSpan(

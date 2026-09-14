@@ -13,4 +13,7 @@ class DalHandler(ABC):
     def update_activity(self, activity: Activity) -> Activity: ...  # pragma: no cover
 
     @abstractmethod
+    def save_activities(self, activities: list[Activity]) -> None: ...  # pragma: no cover
+
+    @abstractmethod
     def get_activity(self, entity_id: str, entity_type: str) -> Activity: ...  # pragma: no cover

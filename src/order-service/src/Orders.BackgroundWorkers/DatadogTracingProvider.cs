@@ -11,13 +11,11 @@ public class DatadogTracingProvider : ITracingProvider
 {
     public ISpan? GetActiveSpan() => Tracer.Instance.ActiveScope?.Span;
 
-    public ISpanContext? ExtractContextIncludingDsm(
+    public ISpanContext? ExtractContext(
         JsonDocument carrier,
-        Func<JsonDocument, string, IEnumerable<string?>> getter,
-        string messageType,
-        string target)
+        Func<JsonDocument, string, IEnumerable<string?>> getter)
     {
-        return new SpanContextExtractor().ExtractIncludingDsm(carrier, getter, messageType, target);
+        return new SpanContextExtractor().Extract(carrier, getter);
     }
 
     public IScope StartActiveSpan(string operationName, ISpanContext? parentContext)

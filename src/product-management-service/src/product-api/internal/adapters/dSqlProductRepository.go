@@ -491,16 +491,18 @@ func (repo *DSqlProductRepository) ApplyMigrations(ctx context.Context) error {
 				event_data TEXT NOT NULL,
 				trace_id VARCHAR(255) NOT NULL,
 				span_id VARCHAR(255) NOT NULL,
-				dsm_context TEXT NULL,
 				created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				processed_at TIMESTAMP NULL
+				processed_at TIMESTAMP NULL,
+				claimed_at TIMESTAMP NULL
 			);
 		`)
 		if err != nil {
 			return err
 		}
 
-		_, err = conn.ExecContext(ctx, `ALTER TABLE outbox ADD COLUMN IF NOT EXISTS dsm_context TEXT NULL`)
+		// claimed_at implements a short lease so concurrent scheduled
+		// invocations cannot pick up and publish the same rows.
+		_, err = conn.ExecContext(ctx, `ALTER TABLE outbox ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMP NULL`)
 		if err != nil {
 			return err
 		}
@@ -511,26 +513,49 @@ func (repo *DSqlProductRepository) ApplyMigrations(ctx context.Context) error {
 
 func (repo *DSqlProductRepository) StoreOutboxEntry(ctx context.Context, entry core.OutboxEntry) error {
 	return repo.executeWithRetry(ctx, func(conn *sqlx.DB) error {
-		dsmCtxJSON, _ := json.Marshal(entry.DsmContext)
 		_, err := conn.ExecContext(ctx, `
-			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, dsm_context, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
-		`, entry.Id, entry.EventType, entry.EventData, entry.TraceId, entry.SpanId, string(dsmCtxJSON), entry.CreatedAt)
+			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6)
+		`, entry.Id, entry.EventType, entry.EventData, entry.TraceId, entry.SpanId, entry.CreatedAt)
 		return err
 	})
 }
 
+// outboxClaimLimit bounds how many entries a single invocation claims, keeping
+// memory and runtime predictable under backlog instead of loading the whole
+// table.
+const outboxClaimLimit = 100
+
+// outboxClaimLeaseSeconds is how long a claimed-but-unprocessed entry stays
+// invisible to other invocations before it can be re-claimed (e.g. after a
+// crash between claim and MarkAsProcessed).
+const outboxClaimLeaseSeconds = 300
+
+// GetUnprocessedEntries atomically claims a bounded batch of unprocessed outbox
+// entries and returns them. The claim (UPDATE ... RETURNING) prevents up to N
+// concurrent scheduled invocations from all reading and publishing the same
+// rows: only one transaction can flip claimed_at for a given row, and DSQL's
+// optimistic concurrency control aborts the losers, which simply retry on their
+// next run. Rows whose lease has expired become claimable again so a crash
+// between claim and processing cannot strand events.
 func (repo *DSqlProductRepository) GetUnprocessedEntries(ctx context.Context) ([]core.OutboxEntry, error) {
 	var result []core.OutboxEntry
 	var resultErr error
 
 	err := repo.executeWithRetry(ctx, func(conn *sqlx.DB) error {
 		rows, err := conn.QueryContext(ctx, `
-			SELECT id, event_type, event_data, trace_id, span_id, dsm_context, created_at, processed_at
-			FROM outbox
-			WHERE processed_at IS NULL
-			ORDER BY created_at ASC
-		`)
+			UPDATE outbox
+			SET claimed_at = CURRENT_TIMESTAMP
+			WHERE id IN (
+				SELECT id
+				FROM outbox
+				WHERE processed_at IS NULL
+				  AND (claimed_at IS NULL OR claimed_at < CURRENT_TIMESTAMP - ($1 * INTERVAL '1 second'))
+				ORDER BY created_at ASC
+				LIMIT $2
+			)
+			RETURNING id, event_type, event_data, trace_id, span_id, created_at, processed_at
+		`, outboxClaimLeaseSeconds, outboxClaimLimit)
 		if err != nil {
 			resultErr = err
 			return err
@@ -540,15 +565,15 @@ func (repo *DSqlProductRepository) GetUnprocessedEntries(ctx context.Context) ([
 		var entries []core.OutboxEntry
 		for rows.Next() {
 			var entry core.OutboxEntry
-			var dsmCtxJSON sql.NullString
-			if err := rows.Scan(&entry.Id, &entry.EventType, &entry.EventData, &entry.TraceId, &entry.SpanId, &dsmCtxJSON, &entry.CreatedAt, &entry.ProcessedAt); err != nil {
+			if err := rows.Scan(&entry.Id, &entry.EventType, &entry.EventData, &entry.TraceId, &entry.SpanId, &entry.CreatedAt, &entry.ProcessedAt); err != nil {
 				resultErr = err
 				return err
 			}
-			if dsmCtxJSON.Valid && dsmCtxJSON.String != "" {
-				json.Unmarshal([]byte(dsmCtxJSON.String), &entry.DsmContext) //nolint:errcheck
-			}
 			entries = append(entries, entry)
+		}
+		if err := rows.Err(); err != nil {
+			resultErr = err
+			return err
 		}
 		result = entries
 		return nil
@@ -566,6 +591,19 @@ func (repo *DSqlProductRepository) MarkAsProcessed(ctx context.Context, entryId 
 			UPDATE outbox
 			SET processed_at = CURRENT_TIMESTAMP
 			WHERE id = $1
+		`, entryId)
+		return err
+	})
+}
+
+// ReleaseClaim clears the lease on an entry that failed to process so it can be
+// retried on the next invocation without waiting for the lease to expire.
+func (repo *DSqlProductRepository) ReleaseClaim(ctx context.Context, entryId string) error {
+	return repo.executeWithRetry(ctx, func(conn *sqlx.DB) error {
+		_, err := conn.ExecContext(ctx, `
+			UPDATE outbox
+			SET claimed_at = NULL
+			WHERE id = $1 AND processed_at IS NULL
 		`, entryId)
 		return err
 	})
@@ -592,11 +630,10 @@ func (repo *DSqlProductRepository) StoreProductWithOutboxEntry(ctx context.Conte
 			}
 		}
 
-		dsmCtxJSON, _ := json.Marshal(outboxEntry.DsmContext)
 		_, err = tx.ExecContext(ctx, `
-			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, dsm_context, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
-		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, string(dsmCtxJSON), outboxEntry.CreatedAt)
+			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6)
+		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, outboxEntry.CreatedAt)
 		if err != nil {
 			return err
 		}
@@ -630,11 +667,10 @@ func (repo *DSqlProductRepository) UpdateProductWithOutboxEntry(ctx context.Cont
 			}
 		}
 
-		dsmCtxJSON2, _ := json.Marshal(outboxEntry.DsmContext)
 		_, err = tx.ExecContext(ctx, `
-			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, dsm_context, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
-		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, string(dsmCtxJSON2), outboxEntry.CreatedAt)
+			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6)
+		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, outboxEntry.CreatedAt)
 		if err != nil {
 			return err
 		}
@@ -654,11 +690,10 @@ func (repo *DSqlProductRepository) DeleteProductWithOutboxEntry(ctx context.Cont
 			return err
 		}
 
-		dsmCtxJSON, _ := json.Marshal(outboxEntry.DsmContext)
 		_, err = tx.ExecContext(ctx, `
-			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, dsm_context, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
-		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, string(dsmCtxJSON), outboxEntry.CreatedAt)
+			INSERT INTO outbox (id, event_type, event_data, trace_id, span_id, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6)
+		`, outboxEntry.Id, outboxEntry.EventType, outboxEntry.EventData, outboxEntry.TraceId, outboxEntry.SpanId, outboxEntry.CreatedAt)
 		if err != nil {
 			return err
 		}

@@ -8,7 +8,6 @@
 import { ProductCreatedEventHandler, ProductCreatedEvent } from "../../src/pricing-api/core/productCreatedEventHandler";
 import { PricingService, PricingResult } from "../../src/pricing-api/core/pricingService";
 import { EventPublisher } from "../../src/pricing-api/core/eventPublisher";
-import { PipelineCheckpointRecorder } from "../../src/pricing-api/core/pipelineCheckpointRecorder";
 import { ProductApiClient } from "../../src/pricing-api/core/productApiClient";
 import { PriceCalculatedEventV1 } from "../../src/pricing-api/events/priceCalculatedEventV1";
 
@@ -29,7 +28,6 @@ describe("ProductCreatedEventHandler", () => {
   let mockPricingService: jest.Mocked<PricingService>;
   let mockEventPublisher: jest.Mocked<EventPublisher>;
   let mockProductApiClient: jest.Mocked<ProductApiClient>;
-  let mockCheckpointRecorder: jest.Mocked<PipelineCheckpointRecorder>;
   let productCreatedEventHandler: ProductCreatedEventHandler;
   let mockActiveSpan: { addTags: jest.Mock };
 
@@ -47,18 +45,13 @@ describe("ProductCreatedEventHandler", () => {
       getProductPrice: jest.fn().mockResolvedValue(29.99)
     } as unknown as jest.Mocked<ProductApiClient>;
 
-    mockCheckpointRecorder = {
-      recordCheckpoint: jest.fn().mockResolvedValue(undefined)
-    } as unknown as jest.Mocked<PipelineCheckpointRecorder>;
-
     mockActiveSpan = { addTags: jest.fn() };
     require("dd-trace").tracer.scope().active.mockReturnValue(mockActiveSpan);
 
     productCreatedEventHandler = new ProductCreatedEventHandler(
       mockPricingService,
       mockEventPublisher,
-      mockProductApiClient,
-      mockCheckpointRecorder
+      mockProductApiClient
     );
   });
 
@@ -92,8 +85,6 @@ describe("ProductCreatedEventHandler", () => {
         ]
       };
       expect(mockEventPublisher.publishPriceCalculatedEvent).toHaveBeenCalledWith(expectedPublishedEvent, undefined);
-      expect(mockCheckpointRecorder.recordCheckpoint).toHaveBeenCalledWith("PROD123", "generating_pricing");
-      expect(mockCheckpointRecorder.recordCheckpoint).toHaveBeenCalledWith("PROD123", "pricing_published");
     });
 
     it("should handle the case when no active span is available", async () => {

@@ -47,7 +47,7 @@ export class EventBridgeEventPublisher implements EventPublisher {
       const eventId = randomUUID();
       const traceparent = parentSpan?.context().toTraceparent();
 
-      // Build a v2 CloudEvent to derive span tags and DSM topic.
+      // Build a v2 CloudEvent to derive span tags.
       const v2EventForSpan = new CloudEvent({
         id: eventId,
         source: process.env.DOMAIN,
@@ -57,62 +57,40 @@ export class EventBridgeEventPublisher implements EventPublisher {
         traceparent,
       });
 
-      // _datadog becomes the DSM + trace propagation carrier, matching the
-      // structure published by Java services:
-      //   { "_datadog": { "traceparent": "...", "dd-pathway-ctx-base64": "..." }, ... }
-      // DsmPathwayCodec.decode() understands both dd-pathway-ctx-base64 (ours)
-      // and dd-pathway-ctx (Java), so consumers on either side work correctly.
-      const _datadog: Record<string, string> = {};
+      messagingSpan = startPublishSpanWithSemanticConventions(v2EventForSpan, {
+        publicOrPrivate: MessagingType.PRIVATE,
+        messagingSystem: "eventbridge",
+        destinationName: process.env.EVENT_BUS_NAME ?? "",
+        parentSpan: parentSpan,
+      });
 
-      messagingSpan = startPublishSpanWithSemanticConventions(
-        v2EventForSpan,
-        {
-          publicOrPrivate: MessagingType.PRIVATE,
-          messagingSystem: "eventbridge",
-          destinationName: process.env.EVENT_BUS_NAME ?? "",
-          parentSpan: parentSpan,
-        },
-        _datadog
+      const v1Detail = JSON.parse(
+        JSON.stringify(
+          new CloudEvent({
+            id: eventId,
+            source: process.env.DOMAIN,
+            type: "loyalty.pointsAdded.v1",
+            datacontenttype: "application/json",
+            data: v1Event,
+            traceparent,
+            deprecationdate: new Date(2025, 11, 31).toISOString(),
+            supercededby: "loyalty.pointsAdded.v2",
+          })
+        )
       );
-      // After this call _datadog contains:
-      //   "dd-pathway-ctx-base64": "<encoded>"
-      //   "traceparent": "<w3c-traceparent>"
 
-      // Serialize each CloudEvent to a plain object and add _datadog at the
-      // same level — matching the Java event structure exactly.
-      const v1Detail = {
-        ...JSON.parse(
-          JSON.stringify(
-            new CloudEvent({
-              id: eventId,
-              source: process.env.DOMAIN,
-              type: "loyalty.pointsAdded.v1",
-              datacontenttype: "application/json",
-              data: v1Event,
-              traceparent,
-              deprecationdate: new Date(2025, 11, 31).toISOString(),
-              supercededby: "loyalty.pointsAdded.v2",
-            })
-          )
-        ),
-        _datadog,
-      };
-
-      const v2Detail = {
-        ...JSON.parse(
-          JSON.stringify(
-            new CloudEvent({
-              id: eventId,
-              source: process.env.DOMAIN,
-              type: "loyalty.pointsAdded.v2",
-              datacontenttype: "application/json",
-              data: evt,
-              traceparent,
-            })
-          )
-        ),
-        _datadog,
-      };
+      const v2Detail = JSON.parse(
+        JSON.stringify(
+          new CloudEvent({
+            id: eventId,
+            source: process.env.DOMAIN,
+            type: "loyalty.pointsAdded.v2",
+            datacontenttype: "application/json",
+            data: evt,
+            traceparent,
+          })
+        )
+      );
 
       const evtEntries: PutEventsRequestEntry[] = [
         {

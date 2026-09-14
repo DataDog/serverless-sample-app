@@ -69,7 +69,7 @@ where
             Self {
                 spec_version: "1.0".to_string(),
                 source: format!("{}.users", env),
-                trace_parent: Some(format!("00-{}-{}-01", &trace_id, &span_id)),
+                trace_parent: Some(format!("00-{}-{}-01", trace_id, span_id)),
                 message_type: Some(message_type),
                 data: Some(message.clone()),
                 time: since_the_epoch.as_millis().to_string(),

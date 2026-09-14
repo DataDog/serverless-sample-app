@@ -47,8 +47,9 @@ export class OrderMcpServiceProps {
         "JwtSecretAccessKey",
         {
           parameterName: `/${sharedProps.environment}/${sharedProps.serviceName}/secret-access-key`,
-          stringValue:
-            "This is a sample secret key that should not be used in production`",
+          // Operator-supplied JWT signing secret; never commit a literal value.
+          stringValue: process.env.JWT_SECRET_ACCESS_KEY ??
+            (() => { throw new Error("JWT_SECRET_ACCESS_KEY env var must be set to a strong, cryptographically random JWT signing secret"); })(),
         }
       );
     } else {

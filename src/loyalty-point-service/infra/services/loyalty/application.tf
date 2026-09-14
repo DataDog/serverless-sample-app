@@ -6,10 +6,11 @@
 //
 
 resource "aws_ssm_parameter" "loyalty_service_access_key" {
-  count = var.env == "dev" || var.env == "prod" ? 0 : 1
-  name  = "/${var.env}/LoyaltyService/secret-access-key"
-  type  = "String"
-  value = "This is a sample secret key that should not be used in production`"
+  count       = var.env == "dev" || var.env == "prod" ? 0 : 1
+  name        = "/${var.env}/LoyaltyService/secret-access-key"
+  type        = "SecureString"
+  value       = var.jwt_signing_secret
+  description = "Strong, cryptographically random JWT signing secret."
 }
 
 module "api_gateway" {
@@ -36,12 +37,12 @@ module "get_loyalty_points_lambda" {
   environment_variables = {
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/LoyaltyService/secret-access-key"
     "TABLE_NAME" : aws_dynamodb_table.loyalty_table.name
-    "EVENT_BUS_NAME": var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
+    "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
-  dd_site = var.dd_site
-  app_version = var.app_version
-  env = var.env
+  dd_site               = var.dd_site
+  app_version           = var.app_version
+  env                   = var.env
   additional_policy_attachments = [
     aws_iam_policy.dynamo_db_read.arn,
     aws_iam_policy.get_jwt_ssm_parameter.arn
@@ -49,15 +50,15 @@ module "get_loyalty_points_lambda" {
 }
 
 module "get_loyalty_points_lambda_api" {
-  source        = "../../modules/api-gateway-lambda-integration"
-  api_id        = module.api_gateway.api_id
-  api_arn       = module.api_gateway.api_arn
-  function_arn  = module.get_loyalty_points_lambda.function_invoke_arn
-  function_name = module.get_loyalty_points_lambda.function_name
-  http_method   = "GET"
+  source            = "../../modules/api-gateway-lambda-integration"
+  api_id            = module.api_gateway.api_id
+  api_arn           = module.api_gateway.api_arn
+  function_arn      = module.get_loyalty_points_lambda.function_invoke_arn
+  function_name     = module.get_loyalty_points_lambda.function_name
+  http_method       = "GET"
   api_resource_id   = module.loyalty_resource.id
   api_resource_path = module.loyalty_resource.path_part
-  env = var.env
+  env               = var.env
 }
 
 module "spend_loyalty_points_lambda" {
@@ -69,12 +70,12 @@ module "spend_loyalty_points_lambda" {
   environment_variables = {
     "JWT_SECRET_PARAM_NAME" : var.env == "dev" || var.env == "prod" ? "/${var.env}/shared/secret-access-key" : "/${var.env}/LoyaltyService/secret-access-key"
     "TABLE_NAME" : aws_dynamodb_table.loyalty_table.name
-    "DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS": "{\"${aws_dynamodb_table.loyalty_table.id}\": [\"PK\"]}"
+    "DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS" : "{\"${aws_dynamodb_table.loyalty_table.id}\": [\"PK\"]}"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
-  dd_site = var.dd_site
-  app_version = var.app_version
-  env = var.env
+  dd_site               = var.dd_site
+  app_version           = var.app_version
+  env                   = var.env
   additional_policy_attachments = [
     aws_iam_policy.dynamo_db_read.arn,
     aws_iam_policy.dynamo_db_write.arn,
@@ -84,20 +85,20 @@ module "spend_loyalty_points_lambda" {
 }
 
 module "spend_loyalty_points_lambda_api" {
-  source        = "../../modules/api-gateway-lambda-integration"
-  api_id        = module.api_gateway.api_id
-  api_arn       = module.api_gateway.api_arn
-  function_arn  = module.spend_loyalty_points_lambda.function_invoke_arn
-  function_name = module.spend_loyalty_points_lambda.function_name
-  http_method   = "POST"
+  source            = "../../modules/api-gateway-lambda-integration"
+  api_id            = module.api_gateway.api_id
+  api_arn           = module.api_gateway.api_arn
+  function_arn      = module.spend_loyalty_points_lambda.function_invoke_arn
+  function_name     = module.spend_loyalty_points_lambda.function_name
+  http_method       = "POST"
   api_resource_id   = module.loyalty_resource.id
   api_resource_path = module.loyalty_resource.path_part
-  env = var.env
+  env               = var.env
 }
 
 resource "aws_api_gateway_deployment" "rest_api_deployment" {
   rest_api_id = module.api_gateway.api_id
-  depends_on = [module.spend_loyalty_points_lambda_api, module.get_loyalty_points_lambda_api]
+  depends_on  = [module.spend_loyalty_points_lambda_api, module.get_loyalty_points_lambda_api]
   triggers = {
     redeployment = sha1(jsonencode([
       module.spend_loyalty_points_lambda_api,
@@ -125,13 +126,13 @@ module "loyalty_points_updated_handler" {
   function_name  = "HandleLoyaltyPointsUpdated"
   lambda_handler = "index.handler"
   environment_variables = {
-    "EVENT_BUS_NAME": var.env == "dev" || var.env == "prod" ?  data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
-    "DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS": "{\"${aws_dynamodb_table.loyalty_table.id}\": [\"PK\"]}"
+    "EVENT_BUS_NAME" : var.env == "dev" || var.env == "prod" ? data.aws_ssm_parameter.shared_eb_name[0].value : aws_cloudwatch_event_bus.loyalty_service_bus.name
+    "DD_TRACE_DYNAMODB_TABLE_PRIMARY_KEYS" : "{\"${aws_dynamodb_table.loyalty_table.id}\": [\"PK\"]}"
   }
   dd_api_key_secret_arn = var.dd_api_key_secret_arn
-  dd_site = var.dd_site
-  app_version = var.app_version
-  env = var.env
+  dd_site               = var.dd_site
+  app_version           = var.app_version
+  env                   = var.env
   additional_policy_attachments = [
     aws_iam_policy.dynamo_db_read.arn,
     aws_iam_policy.get_jwt_ssm_parameter.arn

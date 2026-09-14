@@ -8,3 +8,4 @@ class CreateActivityRequest(BaseModel):
     entityType: Annotated[str, Field(min_length=1, description='The type of the entity')]
     activityType: Annotated[str, Field(min_length=1, description='The type of the activity')]
     activityTime: Annotated[int, Field(description='The time the activity was started')]
+    eventId: Annotated[str | None, Field(default=None, description='The source event id, used to keep the sort key unique')] = None

@@ -19,11 +19,9 @@ public class WorkflowHandlers(
     public async Task ReservationSuccess(StockReservationSuccess request)
     {
         var carrier = JsonSerializer.SerializeToDocument(request);
-        var parentContext = tracingProvider.ExtractContextIncludingDsm(
+        var parentContext = tracingProvider.ExtractContext(
             carrier,
-            GetHeader,
-            "stepfunctions",
-            "orders.confirmOrder");
+            GetHeader);
 
         using var span = tracingProvider.StartActiveSpan("handle orders.confirmOrder", parentContext);
 
@@ -36,11 +34,9 @@ public class WorkflowHandlers(
     public async Task ReservationFailed(StockReservationFailure request)
     {
         var carrier = JsonSerializer.SerializeToDocument(request);
-        var parentContext = tracingProvider.ExtractContextIncludingDsm(
+        var parentContext = tracingProvider.ExtractContext(
             carrier,
-            GetHeader,
-            "stepfunctions",
-            "orders.noStock");
+            GetHeader);
 
         using var span = tracingProvider.StartActiveSpan("handle orders.noStock", parentContext);
 

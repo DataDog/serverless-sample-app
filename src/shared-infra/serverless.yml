@@ -35,7 +35,7 @@ resources:
       Properties:
         Name: /${sls:stage}/shared/secret-access-key
         Type: String
-        Value: "This is a sample secret key - please don't use in production environment.'"
+        Value: ${param:JWT_SECRET_ACCESS_KEY}
 
     DDApiKeySecret:
       Type: 'AWS::SecretsManager::Secret'

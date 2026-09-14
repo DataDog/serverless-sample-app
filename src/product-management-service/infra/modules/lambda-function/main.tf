@@ -82,7 +82,6 @@ module "aws_lambda_function" {
     "DD_SERVICE" : var.service_name
     "DD_SITE" : var.dd_site
     "DD_VERSION" : var.app_version
-    "DD_DATA_STREAMS_ENABLED"                           = "true"
     "ENV" : var.env }),
     var.environment_variables
   )

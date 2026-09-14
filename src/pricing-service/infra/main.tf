@@ -6,9 +6,10 @@
 //
 
 module "pricing" {
-  source                = "./services/pricing"
-  dd_api_key            = var.dd_api_key
-  dd_site               = var.dd_site
-  env                   = var.env
-  app_version           = var.app_version
+  source             = "./services/pricing"
+  dd_api_key         = var.dd_api_key
+  dd_site            = var.dd_site
+  env                = var.env
+  app_version        = var.app_version
+  jwt_signing_secret = var.jwt_signing_secret
 }

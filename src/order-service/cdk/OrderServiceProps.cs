@@ -61,7 +61,9 @@ public class OrderServiceProps : Construct
                 new StringParameterProps
                 {
                     ParameterName = $"/{props.Env}/{props.ServiceName}/secret-access-key",
-                    StringValue = "This is a sample secret key that should not be used in production`"
+                    // Operator-supplied JWT signing secret; never commit a literal value.
+                    StringValue = Environment.GetEnvironmentVariable("JWT_SECRET_ACCESS_KEY")
+                        ?? throw new InvalidOperationException("JWT_SECRET_ACCESS_KEY env var must be set to a strong, cryptographically random JWT signing secret")
                 });
         }
         else

@@ -203,6 +203,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
           DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/activity-service
@@ -225,6 +226,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
           DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/activity-service
@@ -237,6 +239,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
           DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/activity-service
@@ -259,6 +262,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
           DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/activity-service
@@ -309,6 +313,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "prod"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
           DD_SITE: ${{ vars.DD_SITE }}
         run: |
           cd src/activity-service
@@ -357,6 +362,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
           DD_SITE: ${{ vars.DD_SITE }}
           AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
@@ -379,6 +385,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
           DD_SITE: ${{ vars.DD_SITE }}
           AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
@@ -391,6 +398,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
           DD_SITE: ${{ vars.DD_SITE }}
           AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
@@ -413,6 +421,7 @@ jobs:
           COMMIT_HASH: ${{ env.sha_short }}
           ENV: ${{ env.sha_short }}
           DD_API_KEY: ${{secrets.DD_API_KEY}}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
           DD_SITE: ${{ vars.DD_SITE }}
           AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
@@ -426,6 +435,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
           DD_SITE: ${{ vars.DD_SITE }}
           AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |
@@ -449,6 +459,7 @@ jobs:
           VERSION: ${{ env.sha_short }}
           ENV: "dev"
           DD_API_KEY: ${{secrets.DD_API_KEY}}
+          JWT_SECRET_ACCESS_KEY: ${{ secrets.JWT_SECRET_ACCESS_KEY }}
           DD_SITE: ${{ vars.DD_SITE }}
           AWS_REGION: ${{ vars.SAM_AWS_REGION }}
         run: |

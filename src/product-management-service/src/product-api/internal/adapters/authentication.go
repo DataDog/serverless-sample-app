@@ -9,7 +9,6 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"os"
 	"strings"
-	"time"
 )
 
 type Authenticator struct {
@@ -19,16 +18,7 @@ type Authenticator struct {
 type Claims struct {
 	Sub      string `json:"sub"`
 	UserType string `json:"user_type"`
-	Exp      int    `json:"exp"`
-	Iat      int    `json:"iat"`
 	jwt.RegisteredClaims
-}
-
-func (c Claims) Valid() error {
-	if c.Exp < int(time.Now().Unix()) {
-		return fmt.Errorf("token has expired")
-	}
-	return nil
 }
 
 func NewAuthenticator(ctx context.Context, ssmClient ssm.Client) *Authenticator {
@@ -87,7 +77,7 @@ func (a *Authenticator) verifyToken(ctx context.Context, tokenString string) (*C
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(a.secretAccessKey), nil
-	})
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}))
 
 	if err != nil {
 		span.SetTag("auth.error", err.Error())
