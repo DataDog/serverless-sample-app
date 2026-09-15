@@ -141,9 +141,11 @@ function buildProductCard(productId, productName, productPrice, productStock) {
   priceEl.className = "price";
   priceEl.textContent = `$${productPrice}`;
 
+  // productStock === null means "not known yet"; it is filled in later by applyStockLevel.
   const stockEl = document.createElement("p");
   stockEl.className = "stock";
-  stockEl.textContent = `${productStock} in stock`;
+  stockEl.textContent =
+    productStock === null ? "Checking stock..." : `${productStock} in stock`;
 
   const footer = document.createElement("footer");
 
@@ -153,7 +155,7 @@ function buildProductCard(productId, productName, productPrice, productStock) {
   viewBtn.onclick = () => viewProduct(productId, viewBtn);
   footer.appendChild(viewBtn);
 
-  if (productStock > 0) {
+  if (productStock !== null && productStock > 0) {
     const addBtn = document.createElement("button");
     addBtn.className = "add-to-cart";
     addBtn.textContent = "Add to Order";
@@ -170,6 +172,48 @@ function buildProductCard(productId, productName, productPrice, productStock) {
   return card;
 }
 
+// Updates an already-rendered card once its stock level arrives.
+function applyStockLevel(card, productId, productName, productPrice, productStock) {
+  const stockEl = card.querySelector(".stock");
+  if (stockEl) {
+    stockEl.textContent = `${productStock} in stock`;
+  }
+
+  const footer = card.querySelector("footer");
+  if (productStock > 0 && footer && !footer.querySelector(".add-to-cart")) {
+    const addBtn = document.createElement("button");
+    addBtn.className = "add-to-cart";
+    addBtn.textContent = "Add to Order";
+    addBtn.onclick = () => addToOrder(productName, productId);
+    footer.appendChild(addBtn);
+  }
+}
+
+// Drains the stock lookups with a bounded number of in-flight requests.
+// Firing one request per product simultaneously exhausts the browser's
+// socket/memory budget and fails with ERR_INSUFFICIENT_RESOURCES.
+function runStockQueue(pending, limit) {
+  let nextIndex = 0;
+
+  function startNext() {
+    if (nextIndex >= pending.length) return;
+
+    const item = pending[nextIndex++];
+    loadStockLevel(
+      item.product,
+      (productId, productName, productPrice, productStock) => {
+        applyStockLevel(item.card, productId, productName, productPrice, productStock);
+        startNext();
+      }
+    );
+  }
+
+  const workers = Math.min(limit, pending.length);
+  for (let i = 0; i < workers; i++) {
+    startNext();
+  }
+}
+
 function refreshData() {
   let loadingSpinner = document.getElementById("loading");
   loadingSpinner.ariaBusy = true;
@@ -182,22 +226,27 @@ function refreshData() {
     contentType: "application/json",
     success: function (response) {
       loadingSpinner.ariaBusy = false;
+
+      // Render every card up-front so ordering matches the API response,
+      // then backfill unknown stock levels with throttled requests.
+      const pendingStock = [];
+
       response.data.forEach((product) => {
-        if (product.stockLevel <= 0) {
-          loadStockLevel(
-            product,
-            (productId, productName, productPrice, productStock) => {
-              productCardsElement.appendChild(
-                buildProductCard(productId, productName, productPrice, productStock)
-              );
-            }
-          );
-        } else {
-          productCardsElement.appendChild(
-            buildProductCard(product.productId, product.name, product.price, product.stockLevel)
-          );
+        const needsStockLookup = product.stockLevel <= 0;
+        const card = buildProductCard(
+          product.productId,
+          product.name,
+          product.price,
+          needsStockLookup ? null : product.stockLevel
+        );
+        productCardsElement.appendChild(card);
+
+        if (needsStockLookup) {
+          pendingStock.push({ product, card });
         }
       });
+
+      runStockQueue(pendingStock, 6);
     },
     error: function (xhr, status, error) {
       loadingSpinner.ariaBusy = false;

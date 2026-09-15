@@ -46,6 +46,11 @@ export class PricingEventHandlers extends Construct {
       : "./src/pricing-api/adapters/productCreatedPricingHandler.ts";
 
     // Both builds exclude dd-trace so the Datadog Lambda layer provides it at runtime.
+    // @aws-sdk/client-eventbridge must also stay external (resolved from the Lambda
+    // runtime's built-in AWS SDK v3) so dd-trace's aws-sdk require-in-the-middle hooks
+    // can patch it and auto-inject the _datadog trace context into PutEvents Detail.
+    // esbuild would otherwise inline the client into the bundle, leaving no real
+    // require() call for dd-trace to intercept.
     const externalModules = [
       "dd-trace",
       "@datadog/native-metrics",
@@ -57,6 +62,7 @@ export class PricingEventHandlers extends Construct {
       "graphql/language/printer",
       "graphql/utilities",
       "@aws-sdk/client-sqs",
+      "@aws-sdk/client-eventbridge",
     ];
 
     const env = props.serviceProps.getSharedProps().environment;
