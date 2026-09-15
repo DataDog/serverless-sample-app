@@ -24,8 +24,8 @@ export class PricingApiStack extends cdk.Stack {
 
     // TODO: Replace this code block with the code from the workshop
     const datadogConfiguration = new DatadogLambda(this, "Datadog", {
-      extensionLayerVersion: 96,
-      nodeLayerVersion: 137,
+      extensionLayerVersion: 99,
+      nodeLayerVersion: 143,
       site: process.env.DD_SITE ?? "datadoghq.com",
       apiKey: process.env.DD_API_KEY,
       service,
