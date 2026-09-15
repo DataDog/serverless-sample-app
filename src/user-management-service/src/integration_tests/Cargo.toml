@@ -23,7 +23,7 @@ tracing-subscriber = {workspace = true}
 [dependencies]
 serde = { version = "1.0.217", features = ["derive"] }
 uuid = { version = "1.20.0", features = ["v4"] }
-sha2 = "0.10"
+sha2 = "0.11"
 base64 = "0.22"
 rand = "0.9"
 url = "2.5"
