@@ -108,8 +108,8 @@ module "aws_lambda_function" {
     var.environment_variables
   )
 
-  datadog_extension_layer_version = 93
-  datadog_java_layer_version      = 25
+  datadog_extension_layer_version = 99
+  datadog_java_layer_version      = 28
 }
 
 resource "aws_lambda_alias" "SnapStartAlias" {

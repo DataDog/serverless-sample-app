@@ -43,8 +43,8 @@ class ProductSearchStack(Stack):
         datadog = DatadogLambda(
             self,
             "DatadogLambda",
-            python_layer_version=123,
-            extension_layer_version=93,
+            python_layer_version=127,
+            extension_layer_version=99,
             service=SERVICE_NAME,
             env=environment,
             version=version,

@@ -6,14 +6,14 @@
 #
 
 AWSTemplateFormatVersion : '2010-09-09'
-Transform: 
+Transform:
   - AWS::Serverless-2016-10-31
   - Name: DatadogServerless
     Parameters:
       stackName: !Ref "AWS::StackName"
       apiKey: !Ref DDApiKey
-      nodeLayerVersion: 130
-      extensionLayerVersion: '90'
+      nodeLayerVersion: 143
+      extensionLayerVersion: '99'
       service: !Ref ServiceName
       env: !Ref Env
       version: !Ref CommitHash
@@ -30,11 +30,11 @@ Conditions:
     - !Not [!Equals [!Ref Env, prod]]
     - !Not [!Equals [!Ref Env, dev]]
 
-Parameters: 
-  ServiceName: 
+Parameters:
+  ServiceName:
     Type: String
     Default: LoyaltyService
-  Env: 
+  Env:
     Type: String
     Default: dev
   CommitHash:
@@ -107,7 +107,7 @@ Resources:
       Type: String
       Value: !Ref SecretAccessKey
       Description: Must contain a strong, cryptographically random JWT signing secret; never use a sample or committed value.
-      
+
 ################################################
 ################     API     ###################
 ################################################
@@ -131,7 +131,7 @@ Resources:
       Events:
         GetProduct:
           Type: Api
-          Properties: 
+          Properties:
             Path: /loyalty
             Method: get
       Policies:
@@ -187,7 +187,7 @@ Resources:
       Events:
         SpendPoints:
           Type: Api
-          Properties: 
+          Properties:
             Path: /loyalty
             Method: post
       Policies:
@@ -230,7 +230,7 @@ Resources:
         DDBEvent:
           Type: DynamoDB
           Properties:
-            Stream: 
+            Stream:
               !GetAtt LoyaltyAccountTable.StreamArn   # This must be the name of a DynamoDB table declared in the same template file
             StartingPosition: LATEST
             BatchSize: 5
@@ -436,7 +436,7 @@ Resources:
         - Id: LoyaltyServiceEventBus
           Arn: !GetAtt LoyaltyServiceEventBus.Arn
           RoleArn: !GetAtt SharedEventBusToLoyaltyServiceEventBusRole.Arn
-          
+
   SharedEventBusOrderCompletedEventRule:
     Type: AWS::Events::Rule
     Condition: IsIntegratedEnvironment

@@ -53,14 +53,14 @@ public class InstrumentedFunction extends Construct {
         lambdaEnvironment.putAll(props.environmentVariables());
 
         List<ILayerVersion> layers = new ArrayList<>(2);
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:25",System.getenv("AWS_REGION"))));
-        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:93", System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogJavaLayer", String.format("arn:aws:lambda:%s:464622532012:layer:dd-trace-java:28",System.getenv("AWS_REGION"))));
+        layers.add(LayerVersion.fromLayerVersionArn(this, "DatadogLambdaExtension", String.format("arn:aws:lambda:%s:464622532012:layer:Datadog-Extension:99", System.getenv("AWS_REGION"))));
 
 
         Asset fileAsset = Asset.Builder.create(this, String.format("%sS3Asset", props.routingExpression()))
                 .path(props.jarFile()).build();
         IBucket bucket = Bucket.fromBucketName(this, "CDKBucket", fileAsset.getS3BucketName());
-        
+
         var builder = Function.Builder.create(this, props.routingExpression())
                 .functionName(String.format("%s-%s-%s", props.packageName().replace(".", ""), props.routingExpression(), props.sharedProps().env()))
                 .runtime(Runtime.JAVA_21)
@@ -75,13 +75,13 @@ public class InstrumentedFunction extends Construct {
         } else {
             builder.handler("org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest");
         }
-        
+
         if (props.sharedProps().env().equals("prod") || props.sharedProps().env().equals("test")) {
             builder.snapStart(SnapStartConf.ON_PUBLISHED_VERSIONS);
         }
 
         this.function = builder.build();
-        
+
         if (props.sharedProps().env().equals("prod") || props.sharedProps().env().equals("test")) {
             var version = new Version(this, String.format("%sVersion", id), VersionProps.builder()
                     .lambda(this.function)
