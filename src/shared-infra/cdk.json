@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node --prefer-ts-exts bin/shared-resources.ts",
+  "app": "npx tsx bin/shared-resources.ts",
   "watch": {
     "include": [
       "**"

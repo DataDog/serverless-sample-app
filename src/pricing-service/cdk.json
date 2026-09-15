@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node --prefer-ts-exts bin/pricing-service.ts",
+  "app": "npx tsx bin/pricing-service.ts",
   "watch": {
     "include": ["**"],
     "exclude": [

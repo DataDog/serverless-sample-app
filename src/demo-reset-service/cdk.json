@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node --prefer-ts-exts bin/demo-reset-service.ts",
+  "app": "npx tsx bin/demo-reset-service.ts",
   "watch": {
     "include": [
       "**"
