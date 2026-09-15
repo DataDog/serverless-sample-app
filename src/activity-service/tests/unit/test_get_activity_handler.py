@@ -5,7 +5,6 @@ from http import HTTPStatus
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
 from activity_service.models.activity import Activity, ActivityItem

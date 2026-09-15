@@ -7,7 +7,6 @@
 package com.inventory.core;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
-import software.amazon.awssdk.services.sns.endpoints.internal.Value;
 
 import java.util.ArrayList;
 import java.util.List;

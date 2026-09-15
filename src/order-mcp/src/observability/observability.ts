@@ -59,7 +59,7 @@ export function startProcessSpanWithSemanticConventions(
     if (evt.traceparent !== undefined && evt.traceparent !== undefined) {
       const manualContext = new ManualContext(evt.traceparent!.toString());
 
-      messageProcessingSpan.addLink(manualContext);
+      messageProcessingSpan.addLink({ context: manualContext });
     }
   } catch (e) {
     logger.error(JSON.stringify(e));
