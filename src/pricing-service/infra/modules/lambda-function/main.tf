@@ -66,7 +66,7 @@ resource "aws_lambda_function" "function" {
   function_name = "PricingService-${var.function_name}-${var.env}"
   role          = aws_iam_role.lambda_function_role.arn
   handler       = var.lambda_handler
-  runtime       = "nodejs22.x"
+  runtime       = "nodejs24.x"
   memory_size   = var.memory_size
   logging_config {
     log_group  = aws_cloudwatch_log_group.lambda_log_group.name

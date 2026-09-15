@@ -76,7 +76,7 @@ export class Api extends Construct {
       this,
       "CalculatePricingFunction",
       {
-        runtime: Runtime.NODEJS_22_X,
+        runtime: Runtime.NODEJS_24_X,
         functionName: `CDK-CalculatePricing-${
           props.serviceProps.getSharedProps().environment
         }`,
@@ -89,7 +89,7 @@ export class Api extends Construct {
         },
         bundling: {
           platform: "node",
-          target: "node22",
+          target: "node24",
           minify: true,
           keepNames: true,
           externalModules,

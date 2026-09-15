@@ -17,7 +17,7 @@ esbuild
     keepNames: true,
     outfile: "out/productUpdatedPricingHandler/index.js",
     platform: "node",
-    target: ["node22"],
+    target: ["node24"],
     external: [
       // provided by the Datadog Lambda layer at runtime
       "dd-trace",

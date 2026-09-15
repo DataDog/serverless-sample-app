@@ -74,7 +74,7 @@ export class PricingEventHandlers extends Construct {
       this,
       "handleProductCreatedFunction",
       {
-        runtime: Runtime.NODEJS_22_X,
+        runtime: Runtime.NODEJS_24_X,
         functionName: `CDK-PricingHandleProductCreated-${env}`,
         entry,
         handler: "handler",
@@ -94,7 +94,7 @@ export class PricingEventHandlers extends Construct {
         },
         bundling: {
           platform: "node",
-          target: "node22",
+          target: "node24",
           minify: true,
           keepNames: true,
           externalModules,
@@ -169,7 +169,7 @@ export class PricingEventHandlers extends Construct {
       this,
       "handleProductUpdatedFunction",
       {
-        runtime: Runtime.NODEJS_22_X,
+        runtime: Runtime.NODEJS_24_X,
         functionName: `CDK-PricingHandleProductUpdated-${env}`,
         entry,
         handler: "handler",
@@ -189,7 +189,7 @@ export class PricingEventHandlers extends Construct {
         },
         bundling: {
           platform: "node",
-          target: "node22",
+          target: "node24",
           minify: true,
           keepNames: true,
           externalModules,

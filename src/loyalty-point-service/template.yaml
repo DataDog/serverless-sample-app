@@ -51,7 +51,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: nodejs22.x
+    Runtime: nodejs24.x
     Timeout: 29
     MemorySize: 512
     Environment:

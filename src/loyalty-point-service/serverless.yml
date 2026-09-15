@@ -29,7 +29,7 @@ custom:
     propagateUpstreamTrace: true
   esbuild:
     platform: "node"
-    target: "node22"
+    target: "node24"
     bundle: true
     minify: true
     exclude:
@@ -48,7 +48,7 @@ custom:
 
 provider:
   name: aws
-  runtime: nodejs22.x
+  runtime: nodejs24.x
   memorySize: 512
   environment:
     TABLE_NAME: ${self:service}-${sls:stage}

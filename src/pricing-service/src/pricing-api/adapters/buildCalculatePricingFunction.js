@@ -17,7 +17,7 @@ esbuild
     outfile: "out/calculatePricingFunction/index.js",
     plugins: [ddPlugin],
     platform: "node", // allows built-in modules to be required
-    target: ["node22"],
+    target: ["node24"],
     external: [
       // esbuild cannot bundle native modules
       "@datadog/native-metrics",

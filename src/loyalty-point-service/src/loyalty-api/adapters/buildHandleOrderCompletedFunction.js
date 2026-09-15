@@ -15,7 +15,7 @@ esbuild
     keepNames: true,
     outfile: "out/handleOrderCompletedFunction/index.js",
     platform: "node", // allows built-in modules to be required
-    target: ["node22"],
+    target: ["node24"],
     external: [
       // provided by the Datadog Lambda layer at runtime
       "dd-trace",

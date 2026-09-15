@@ -43,7 +43,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: nodejs22.x
+    Runtime: nodejs24.x
     Timeout: 29
     MemorySize: 512
     Environment:
@@ -228,7 +228,7 @@ Resources:
 #       BuildProperties:
 #         Minify: true
 #         Bundle: true
-#         Target: "node22"
+#         Target: "node24"
 #         Sourcemap: true
 #         SourcesContent: true
 #         EntryPoints:

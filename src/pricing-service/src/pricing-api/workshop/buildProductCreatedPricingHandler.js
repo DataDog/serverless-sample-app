@@ -13,7 +13,7 @@ esbuild
     bundle: true,
     outfile: "out/productCreatedPricingHandler/index.js",
     platform: "node",
-    target: ["node22"],
+    target: ["node24"],
     external: [
       "dd-trace",
       "@datadog/native-metrics",

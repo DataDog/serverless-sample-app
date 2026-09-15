@@ -46,7 +46,7 @@ export class InstrumentedLambdaFunction extends Construct {
     ]);
 
     this.function = new NodejsFunction(this, props.functionName, {
-      runtime: Runtime.NODEJS_22_X,
+      runtime: Runtime.NODEJS_24_X,
       functionName: `CDK-${props.sharedProps.serviceName}-${id}-${props.sharedProps.environment}`,
       code: code,
       handler: props.handler,
@@ -84,7 +84,7 @@ export class InstrumentedLambdaFunction extends Construct {
         esbuildArgs: {
           "--bundle": "true",
         },
-        target: "node22",
+        target: "node24",
       },
     });
 

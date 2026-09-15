@@ -14,7 +14,7 @@ esbuild.build({
   keepNames: true,
   outfile: 'out/spendLoyaltyPointsFunction/index.js',
   platform: 'node', // allows built-in modules to be required
-  target: ['node22'],
+  target: ["node24"],
   external: [
     // provided by the Datadog Lambda layer at runtime
     'dd-trace',
