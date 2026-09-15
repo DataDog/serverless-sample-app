@@ -34,7 +34,12 @@ esbuild.build({
     'graphql/language/visitor',
     'graphql/language/printer',
     'graphql/utilities',
-    '@aws-sdk/client-sqs'
+    '@aws-sdk/client-sqs',
+
+    // used by this handler; must stay external (resolved from the Lambda
+    // runtime's built-in AWS SDK v3) so dd-trace's aws-sdk require-in-the-middle
+    // hooks can patch it and produce spans for DynamoDB calls.
+    '@aws-sdk/client-dynamodb'
   ]
 }).catch((err) => {
   console.error(err)

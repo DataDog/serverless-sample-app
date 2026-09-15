@@ -36,6 +36,12 @@ esbuild
       "graphql/language/printer",
       "graphql/utilities",
       "@aws-sdk/client-sqs",
+
+      // used by this handler to publish to EventBridge; must stay external
+      // (resolved from the Lambda runtime's built-in AWS SDK v3) so dd-trace's
+      // aws-sdk require-in-the-middle hooks can patch it and auto-inject the
+      // _datadog trace context into PutEvents Detail.
+      "@aws-sdk/client-eventbridge",
     ],
   })
   .catch((err) => {
