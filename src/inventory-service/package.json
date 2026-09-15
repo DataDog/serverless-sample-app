@@ -12,8 +12,8 @@
   },
   "devDependencies": {},
   "dependencies": {
-    "serverless-step-functions": "^3.21.2",
-    "serverless-plugin-datadog": "^5.78.0",
+    "serverless-step-functions": "^3.31.2",
+    "serverless-plugin-datadog": "^5.134.1",
     "serverless-plugin-resource-tagging": "^1.2.0"
   },
   "overrides": {
