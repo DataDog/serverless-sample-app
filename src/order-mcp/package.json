@@ -26,6 +26,8 @@
     "@aws-sdk/client-sns": "^3.835.0",
     "@aws-sdk/client-sqs": "^3.998.0",
     "@aws-sdk/client-ssm": "^3.998.0",
+    "@swc/core": "^1.13.5",
+    "@swc/jest": "^0.2.39",
     "@types/aws-lambda": "8.10.160",
     "@types/express": "^5.0.6",
     "@types/jest": "^29.5.14",
@@ -44,10 +46,9 @@
     "serverless-step-functions": "^3.23.4",
     "source-map-support": "^0.5.21",
     "sst": "^2.47.3",
-    "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
-    "typescript": "~5.9.3"
+    "typescript": "~7.0.2"
   },
   "dependencies": {
     "@aws-lambda-powertools/logger": "^2.22.0",

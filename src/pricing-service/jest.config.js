@@ -4,6 +4,12 @@ module.exports = {
   testMatch: ['**/*.test.ts'],
   testPathIgnorePatterns: ['/node_modules/', '/tests/integration/'],
   transform: {
-    '^.+\\.tsx?$': 'ts-jest'
+    '^.+\\.tsx?$': [
+      '@swc/jest',
+      {
+        jsc: { parser: { syntax: 'typescript' }, target: 'es2020' },
+        module: { type: 'commonjs' },
+      },
+    ]
   }
 };

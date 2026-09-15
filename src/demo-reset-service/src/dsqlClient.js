@@ -1,0 +1,30 @@
+"use strict";
+//
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the Apache License Version 2.0.
+// This product includes software developed at Datadog (https://www.datadoghq.com/).
+// Copyright 2024 Datadog, Inc.
+//
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.connectToDsql = connectToDsql;
+exports.disconnectFromDsql = disconnectFromDsql;
+const dsql_signer_1 = require("@aws-sdk/dsql-signer");
+const pg_1 = require("pg");
+async function connectToDsql(endpoint) {
+    const signer = new dsql_signer_1.DsqlSigner({ hostname: endpoint });
+    const token = await signer.getDbConnectAdminAuthToken();
+    const client = new pg_1.Client({
+        host: endpoint,
+        port: 5432,
+        database: 'postgres',
+        user: 'admin',
+        password: token,
+        ssl: { rejectUnauthorized: true },
+    });
+    await client.connect();
+    return client;
+}
+async function disconnectFromDsql(client) {
+    await client.end();
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZHNxbENsaWVudC5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbImRzcWxDbGllbnQudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IjtBQUFBLEVBQUU7QUFDRiwrRUFBK0U7QUFDL0Usd0NBQXdDO0FBQ3hDLG9GQUFvRjtBQUNwRiwrQkFBK0I7QUFDL0IsRUFBRTs7OztBQUVGLHNEQUFrRDtBQUNsRCwyQkFBNEI7QUFFckIsS0FBSyx3QkFBd0IsUUFBZ0I7SUFDbEQsTUFBTSxNQUFNLEdBQUcsSUFBSSx3QkFBVSxDQUFDLEVBQUUsUUFBUSxFQUFFLFFBQVEsRUFBRSxDQUFDLENBQUM7SUFDdEQsTUFBTSxLQUFLLEdBQUcsTUFBTSxNQUFNLENBQUMsMEJBQTBCLEVBQUUsQ0FBQztJQUV4RCxNQUFNLE1BQU0sR0FBRyxJQUFJLFdBQU0sQ0FBQztRQUN4QixJQUFJLEVBQUUsUUFBUTtRQUNkLElBQUksRUFBRSxJQUFJO1FBQ1YsUUFBUSxFQUFFLFVBQVU7UUFDcEIsSUFBSSxFQUFFLE9BQU87UUFDYixRQUFRLEVBQUUsS0FBSztRQUNmLEdBQUcsRUFBRSxFQUFFLGtCQUFrQixFQUFFLElBQUksRUFBRTtLQUNsQyxDQUFDLENBQUM7SUFFSCxNQUFNLE1BQU0sQ0FBQyxPQUFPLEVBQUUsQ0FBQztJQUN2QixPQUFPLE1BQU0sQ0FBQztBQUNoQixDQUFDO0FBRU0sS0FBSyw2QkFBNkIsTUFBYztJQUNyRCxNQUFNLE1BQU0sQ0FBQyxHQUFHLEVBQUUsQ0FBQztBQUNyQixDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiLy9cbi8vIFVubGVzcyBleHBsaWNpdGx5IHN0YXRlZCBvdGhlcndpc2UgYWxsIGZpbGVzIGluIHRoaXMgcmVwb3NpdG9yeSBhcmUgbGljZW5zZWRcbi8vIHVuZGVyIHRoZSBBcGFjaGUgTGljZW5zZSBWZXJzaW9uIDIuMC5cbi8vIFRoaXMgcHJvZHVjdCBpbmNsdWRlcyBzb2Z0d2FyZSBkZXZlbG9wZWQgYXQgRGF0YWRvZyAoaHR0cHM6Ly93d3cuZGF0YWRvZ2hxLmNvbS8pLlxuLy8gQ29weXJpZ2h0IDIwMjQgRGF0YWRvZywgSW5jLlxuLy9cblxuaW1wb3J0IHsgRHNxbFNpZ25lciB9IGZyb20gJ0Bhd3Mtc2RrL2RzcWwtc2lnbmVyJztcbmltcG9ydCB7IENsaWVudCB9IGZyb20gJ3BnJztcblxuZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIGNvbm5lY3RUb0RzcWwoZW5kcG9pbnQ6IHN0cmluZyk6IFByb21pc2U8Q2xpZW50PiB7XG4gIGNvbnN0IHNpZ25lciA9IG5ldyBEc3FsU2lnbmVyKHsgaG9zdG5hbWU6IGVuZHBvaW50IH0pO1xuICBjb25zdCB0b2tlbiA9IGF3YWl0IHNpZ25lci5nZXREYkNvbm5lY3RBZG1pbkF1dGhUb2tlbigpO1xuXG4gIGNvbnN0IGNsaWVudCA9IG5ldyBDbGllbnQoe1xuICAgIGhvc3Q6IGVuZHBvaW50LFxuICAgIHBvcnQ6IDU0MzIsXG4gICAgZGF0YWJhc2U6ICdwb3N0Z3JlcycsXG4gICAgdXNlcjogJ2FkbWluJyxcbiAgICBwYXNzd29yZDogdG9rZW4sXG4gICAgc3NsOiB7IHJlamVjdFVuYXV0aG9yaXplZDogdHJ1ZSB9LFxuICB9KTtcblxuICBhd2FpdCBjbGllbnQuY29ubmVjdCgpO1xuICByZXR1cm4gY2xpZW50O1xufVxuXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gZGlzY29ubmVjdEZyb21Ec3FsKGNsaWVudDogQ2xpZW50KTogUHJvbWlzZTx2b2lkPiB7XG4gIGF3YWl0IGNsaWVudC5lbmQoKTtcbn1cbiJdfQ==
