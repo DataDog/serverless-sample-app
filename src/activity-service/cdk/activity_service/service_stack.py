@@ -1,7 +1,7 @@
 import os
 
-from aws_cdk import Acknowledgment, Stack, Tags, Validations
-from cdk_nag import AwsSolutionsChecks
+from aws_cdk import Aspects, Stack, Tags
+from cdk_nag import AwsSolutionsChecks, NagSuppressions
 from constructs import Construct
 from datadog_cdk_constructs_v2 import DatadogLambda
 
@@ -59,23 +59,20 @@ class ServiceStack(Stack):
         Tags.of(self).add(SERVICE_NAME_TAG, SERVICE_NAME)
 
     def _add_security_tests(self) -> None:
-        # cdk-nag v3 rule packs are validation plugins rather than Aspects, and
-        # must be registered at App/Stage scope.
-        app = self.node.root
-        Validations.of(app).add_plugins(AwsSolutionsChecks(app, verbose=True))
-        # Acknowledge (suppress) specific rules for this stack.
-        # cdk-nag v3 replaced NagSuppressions with CDK's native
-        # Validations.of().acknowledge() API.
-        for rule_id, reason in (
-            ('AwsSolutions-IAM4', 'policy for cloudwatch logs.'),
-            ('AwsSolutions-IAM5', 'policy for cloudwatch logs.'),
-            ('AwsSolutions-APIG2', 'lambda does input validation'),
-            ('AwsSolutions-APIG1', 'not mandatory in a sample blueprint'),
-            ('AwsSolutions-APIG3', 'not mandatory in a sample blueprint'),
-            ('AwsSolutions-APIG6', 'not mandatory in a sample blueprint'),
-            ('AwsSolutions-APIG4', 'authorization not mandatory in a sample blueprint'),
-            ('AwsSolutions-COG4', 'not using cognito'),
-            ('AwsSolutions-L1', 'False positive'),
-            ('AwsSolutions-SQS4', 'DLQ configured correctly via CDK'),
-        ):
-            Validations.of(self).acknowledge(Acknowledgment(id=rule_id, reason=reason))
+        Aspects.of(self).add(AwsSolutionsChecks(verbose=True))
+        # Suppress a specific rule for this resource
+        NagSuppressions.add_stack_suppressions(
+            self,
+            [
+                {'id': 'AwsSolutions-IAM4', 'reason': 'policy for cloudwatch logs.'},
+                {'id': 'AwsSolutions-IAM5', 'reason': 'policy for cloudwatch logs.'},
+                {'id': 'AwsSolutions-APIG2', 'reason': 'lambda does input validation'},
+                {'id': 'AwsSolutions-APIG1', 'reason': 'not mandatory in a sample blueprint'},
+                {'id': 'AwsSolutions-APIG3', 'reason': 'not mandatory in a sample blueprint'},
+                {'id': 'AwsSolutions-APIG6', 'reason': 'not mandatory in a sample blueprint'},
+                {'id': 'AwsSolutions-APIG4', 'reason': 'authorization not mandatory in a sample blueprint'},
+                {'id': 'AwsSolutions-COG4', 'reason': 'not using cognito'},
+                {'id': 'AwsSolutions-L1', 'reason': 'False positive'},
+                {'id': 'AwsSolutions-SQS4', 'reason': 'DLQ configured correctly via CDK'},
+            ],
+        )

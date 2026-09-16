@@ -397,21 +397,22 @@ publication = ">=0.0.3"
 
 [[package]]
 name = "cdk-nag"
-version = "3.0.2"
+version = "2.38.2"
 description = "Check CDK v2 applications for best practices using a combination on available rule packs."
 optional = false
-python-versions = ">=3.10"
+python-versions = "~=3.9"
 groups = ["dev"]
 files = [
-    {file = "cdk_nag-3.0.2-py3-none-any.whl", hash = "sha256:861d8d30f5eb062d23462013bd6719fa355428f5525208b61f50da813065ea71"},
-    {file = "cdk_nag-3.0.2.tar.gz", hash = "sha256:c34f8128ac28368b34cb5d77ba21a5d541e652596d8ea844f608c0b76dc91f0d"},
+    {file = "cdk_nag-2.38.2-py3-none-any.whl", hash = "sha256:d37f18ae9450f401bcc55d5d82138beee561486806579849cb9be25ff7565904"},
+    {file = "cdk_nag-2.38.2.tar.gz", hash = "sha256:a4d419062ea4d64c2892942214b9184b124eb2bc36d087982007b3455e1ac443"},
 ]
 
 [package.dependencies]
-aws-cdk-lib = ">=2.257.0,<3.0.0"
+aws-cdk-lib = ">=2.176.0,<3.0.0"
 constructs = ">=10.5.1,<11.0.0"
-jsii = ">=1.139.0,<2.0.0"
+jsii = ">=1.128.0,<2.0.0"
 publication = ">=0.0.3"
+typeguard = "2.13.3"
 
 [[package]]
 name = "certifi"
@@ -2693,4 +2694,4 @@ requests = ">=2.0,<3.0"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13.0,<3.14"
-content-hash = "d834a4364b09f703e5b254cd4a8ba8f5c1c9da5c52b2533ebb85ae0a111f126c"
+content-hash = "2d051dfa9205eb6fd300876b7a70796d28b362799c2104e9e42c59c3c6296d32"
