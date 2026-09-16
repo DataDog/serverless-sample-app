@@ -53,6 +53,13 @@ class ProductSearchStack(Stack):
             api_key=dd_api_key,
             enable_cold_start_tracing=True,
             enable_datadog_tracing=True,
+            # Disabled: datadog-cdk-constructs-v2 reads Lambda's internal
+            # `environment` field (to append git.commit.sha/git.repository_url
+            # tags) which aws-cdk-lib no longer exposes, so the default
+            # source_code_integration=True throws
+            # "TypeError: Cannot read properties of undefined (reading 'value')"
+            # during synth. Re-enable once the construct library is fixed.
+            source_code_integration=False,
         )
 
         # ---------------------------------------------------------------------------
