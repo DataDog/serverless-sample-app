@@ -31,7 +31,12 @@ class ServiceStack(Stack):
             site=dd_site,
             api_key=dd_api_key,
             enable_cold_start_tracing=True,
-           source_code_integration=True,
+           # Disabled: datadog-cdk-constructs-v2 reads the internal
+           # `environment` field of Function, which aws-cdk-lib no longer
+           # exposes, so enabling this throws
+           # "TypeError: Cannot read properties of undefined (reading 'value')"
+           # during synth. Re-enable once the construct library is fixed.
+           source_code_integration=False,
            enable_datadog_tracing=True,
         )
 
