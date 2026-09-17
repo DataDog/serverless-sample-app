@@ -86,6 +86,7 @@ export class Api extends Construct {
         timeout: Duration.seconds(29),
         environment: {
           ENV: props.serviceProps.getSharedProps().environment,
+          DD_DATA_STREAMS_ENABLED: "true",
         },
         bundling: {
           platform: "node",

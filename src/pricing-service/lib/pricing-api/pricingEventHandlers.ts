@@ -91,6 +91,7 @@ export class PricingEventHandlers extends Construct {
           DOMAIN: props.serviceProps.getSharedProps().domain,
           EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
           PRODUCT_API_ENDPOINT_PARAMETER: productApiEndpointParameterName,
+          DD_DATA_STREAMS_ENABLED: "true",
         },
         bundling: {
           platform: "node",
@@ -186,6 +187,7 @@ export class PricingEventHandlers extends Construct {
           DOMAIN: props.serviceProps.getSharedProps().domain,
           EVENT_BUS_NAME: props.serviceProps.getPublisherBus().eventBusName,
           PRODUCT_API_ENDPOINT_PARAMETER: productApiEndpointParameterName,
+          DD_DATA_STREAMS_ENABLED: "true",
         },
         bundling: {
           platform: "node",
