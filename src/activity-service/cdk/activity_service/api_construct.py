@@ -179,6 +179,7 @@ class ApiConstruct(Construct):
             environment={
                 constants.POWERTOOLS_SERVICE_NAME: constants.SERVICE_NAME,  # for logger, tracer and metrics
                 constants.POWER_TOOLS_LOG_LEVEL: 'INFO',  # for logger
+                'DD_DATA_STREAMS_ENABLED': 'true',
                 'TABLE_NAME': db.table_name,
                 'IDEMPOTENCY_TABLE_NAME': idempotency_table.table_name,
             },
@@ -215,6 +216,7 @@ class ApiConstruct(Construct):
                 constants.POWER_TOOLS_LOG_LEVEL: 'INFO',  # for logger
                 'TABLE_NAME': db.table_name,
                 'IDEMPOTENCY_TABLE_NAME': idempotency_table.table_name,
+                'DD_DATA_STREAMS_ENABLED': 'true'
             },
             tracing=_lambda.Tracing.ACTIVE,
             retry_attempts=0,

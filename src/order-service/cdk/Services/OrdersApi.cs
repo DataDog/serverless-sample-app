@@ -218,7 +218,8 @@ public class OrdersApi : Construct
                         { "DD_SERVICE", props.SharedProps.ServiceName },
                         { "DD_ENV", props.SharedProps.Env },
                         { "DD_VERSION", props.SharedProps.Version },
-                        { "DD_API_KEY", props.SharedProps.DDApiKey }
+                        { "DD_API_KEY", props.SharedProps.DDApiKey },
+                        { "DD_DATA_STREAMS_ENABLED", "true" }
                     },
                     DockerLabels = new Dictionary<string, string>(3)
                     {
@@ -257,7 +258,7 @@ public class OrdersApi : Construct
         {
             PrefixListName = "com.amazonaws.global.cloudfront.origin-facing"
         });
-        
+
         allowCloudfrontPrefixListSecurityGroup.AddIngressRule(Peer.PrefixList(cloudfrontPrefixList.PrefixListId), Port.Tcp(80));
         application.LoadBalancer.AddSecurityGroup(allowCloudfrontPrefixListSecurityGroup);
 
@@ -321,7 +322,7 @@ public class OrdersApi : Construct
                 { "DD_API_KEY", props.SharedProps.DDApiKey }
             },
         });
-        
+
         var cloudfrontDistribution = new Distribution(this, "OrderApiDistribution", new DistributionProps()
         {
             DefaultBehavior = new BehaviorOptions()
@@ -344,7 +345,7 @@ public class OrdersApi : Construct
             ParameterName = $"/{props.SharedProps.Env}/{props.SharedProps.ServiceName}/api-endpoint",
             StringValue = $"https://{cloudfrontDistribution.DistributionDomainName}"
         });
-        
+
         return application;
     }
 }

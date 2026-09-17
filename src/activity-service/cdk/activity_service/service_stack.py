@@ -23,7 +23,7 @@ class ServiceStack(Stack):
 
         self.datadog_configuration = DatadogLambda(self, "DatadogLambda",
             python_layer_version=127,
-            extension_layer_version=99,
+            extension_layer_version=100,
             service=SERVICE_NAME,
             env=environment,
             version=version,

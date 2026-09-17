@@ -49,6 +49,7 @@ export class InstrumentedLambdaFunction extends Construct {
         DOMAIN: props.sharedProps.domain,
         ENV: props.sharedProps.environment,
         RUST_LOG: "info",
+        DD_DATA_STREAMS_ENABLED: "true",
         DD_APM_REPLACE_TAGS: `[
                     {
                       "name": "function.request.headers.Authorization",
